@@ -6,3 +6,22 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum BusinessStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+model Business {
+  id             String         @id @default(uuid())
+  businessNumber Int?
+  name           String
+  legalName      String?
+  taxId          String?
+  timezone       String         @default("America/Asuncion")
+  currency       String         @default("PYG")
+  status         BusinessStatus @default(ACTIVE)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}

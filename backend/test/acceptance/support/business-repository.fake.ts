@@ -1,0 +1,10 @@
+import { Business } from '../../../src/modules/business/domain/business.entity';
+import { BusinessStatus } from '../../../src/modules/business/domain/business-status.enum';
+
+export const businessRepositoryFake = {
+  create: (data: { name: string; legalName?: string; taxId?: string }): Promise<Business> => {
+    const now = new Date('2026-08-01T00:00:00.000Z');
+
+    return Promise.resolve(Business.create({ id: 'f8c49800-e50e-4d0e-b82b-0b51c09a0001', businessNumber: null, name: data.name, legalName: data.legalName ?? null, taxId: data.taxId ?? null, timezone: 'America/Asuncion', currency: 'PYG', status: BusinessStatus.ACTIVE, createdAt: now, updatedAt: now }));
+  },
+};

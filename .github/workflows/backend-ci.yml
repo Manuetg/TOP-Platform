@@ -1,8 +1,27 @@
 name: Backend CI
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 4 * * 0'
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: top
+          POSTGRES_PASSWORD: top
+          POSTGRES_DB: top_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U top -d top_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://top:top@localhost:5432/top_test?schema=public
     defaults:
       run:
         working-directory: backend
@@ -11,9 +30,12 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: backend/package-lock.json }
       - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
       - run: npm run lint
       - run: npm test
       - run: npm run test:integration
+      - run: npm run test:e2e
       - run: npm run test:acceptance
       - run: npm run test:coverage
       - run: npm run architecture:check
