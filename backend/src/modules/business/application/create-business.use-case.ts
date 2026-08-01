@@ -1,10 +1,12 @@
-import { type BusinessRepository, type CreateBusinessData } from '../domain/business.repository';
+import { Inject, Injectable } from '@nestjs/common';
+import { BUSINESS_REPOSITORY, type BusinessRepository, type CreateBusinessData } from '../domain/business.repository';
 import { Business } from '../domain/business.entity';
 
 export class InvalidBusinessNameError extends Error {}
 
+@Injectable()
 export class CreateBusinessUseCase {
-  constructor(private readonly businessRepository: BusinessRepository) {}
+  constructor(@Inject(BUSINESS_REPOSITORY) private readonly businessRepository: BusinessRepository) {}
 
   async execute(data: CreateBusinessData): Promise<Business> {
     const name = data.name?.trim();

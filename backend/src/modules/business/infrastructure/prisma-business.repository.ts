@@ -1,10 +1,13 @@
-import type { Business as PrismaBusiness, PrismaClient } from '@prisma/client';
+import { Injectable } from '@nestjs/common';
+import type { Business as PrismaBusiness } from '@prisma/client';
 import { Business } from '../domain/business.entity';
 import { BusinessStatus } from '../domain/business-status.enum';
 import { type BusinessRepository, type CreateBusinessData } from '../domain/business.repository';
+import { PrismaService } from './prisma.service';
 
+@Injectable()
 export class PrismaBusinessRepository implements BusinessRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(data: CreateBusinessData): Promise<Business> {
     const business = await this.prisma.business.create({ data });

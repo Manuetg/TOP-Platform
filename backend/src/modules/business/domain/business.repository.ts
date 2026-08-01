@@ -1,5 +1,7 @@
 import { Business } from './business.entity';
 
+export const BUSINESS_REPOSITORY = Symbol('BUSINESS_REPOSITORY');
+
 export interface CreateBusinessData {
   name: string;
   legalName?: string;

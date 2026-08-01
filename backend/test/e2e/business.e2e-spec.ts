@@ -5,7 +5,7 @@ import { AppModule } from '../../src/app.module';
 import { configureApplication } from '../../src/config/configure-application';
 import { Business } from '../../src/modules/business/domain/business.entity';
 import { BusinessStatus } from '../../src/modules/business/domain/business-status.enum';
-import { PrismaBusinessRepository } from '../../src/modules/business/infrastructure/prisma-business.repository';
+import { BUSINESS_REPOSITORY } from '../../src/modules/business/domain/business.repository';
 
 describe('Business endpoint', () => {
   let app: INestApplication;
@@ -30,7 +30,7 @@ describe('Business endpoint', () => {
       },
     };
     const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
-      .overrideProvider(PrismaBusinessRepository)
+      .overrideProvider(BUSINESS_REPOSITORY)
       .useValue(repository)
       .compile();
 
