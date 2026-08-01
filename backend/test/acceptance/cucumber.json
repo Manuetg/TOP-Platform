@@ -1,0 +1,1 @@
+{ "default": { "paths": ["test/acceptance/features/**/*.feature"], "require": ["test/acceptance/steps/**/*.ts", "test/acceptance/support/**/*.ts"], "requireModule": ["ts-node/register"] } }

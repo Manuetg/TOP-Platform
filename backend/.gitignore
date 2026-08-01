@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.stryker-tmp/
+reports/
+generated/
+prisma/generated/
+tmp/
+temp/
