@@ -950,27 +950,129 @@ No se definen aún las cardinalidades técnicas de base de datos.
 
 ### 1. Propósito
 
+Administrar los acuerdos de cobro y los pagos reales asociados a una Booking, permitiendo adelantos, cuotas, pagos parciales, comprobantes, anulaciones y consulta de saldo.
+
 ### 2. Responsabilidad
+
+Payment administra el plan de pagos acordado, adelantos o cuotas flexibles y pagos reales recibidos, incluidos pagos parciales y su aplicación a obligaciones previstas.
+
+Calcula importes pagados, pendientes y vencidos; mantiene el estado financiero derivado; registra método, fecha, referencia y comprobante; permite anular pagos sin eliminar historial y conserva auditoría completa, separando planes de pagos y transacciones reales.
 
 ### 3. No Responsabilidad
 
+Payment no calcula precios ni administra tarifas o Pricing Snapshot, disponibilidad, confirmación o cancelación de reservas.
+
+No emite facturación electrónica, administra contabilidad general, realiza conciliación bancaria automática ni procesa pagos online en el MVP; tampoco almacena credenciales bancarias ni datos sensibles de tarjetas.
+
 ### 4. Conceptos principales
+
+- Plan de pagos, Pago previsto, Adelanto, Cuota, Saldo y Vencimiento.
+- Pago real, Transacción, Pago parcial, Método de pago y Comprobante.
+- Anulación, Reembolso, Estado financiero derivado, Monto aplicado y Monto pendiente.
 
 ### 5. Información administrada
 
+#### Plan de pagos
+
+- Id, Negocio, Booking, Tipo de plan, Estado, Total acordado y Moneda.
+- Fecha de creación, Fecha de modificación, Usuario creador y Usuario modificador.
+
+#### Pago previsto
+
+- Id, Concepto, Monto, Porcentaje opcional, Fecha de vencimiento opcional, Estado, Orden y Observaciones.
+
+#### Pago real
+
+- Id, Negocio, Booking, Fecha y hora, Monto, Moneda, Método de pago, Referencia opcional y Observaciones.
+- Comprobante opcional, Usuario que registró el pago, Estado, Fecha de creación, Fecha de anulación opcional, Usuario que anuló opcional y Motivo de anulación opcional.
+
+#### Aplicación de pago
+
+- Pago real, Pago previsto relacionado y Monto aplicado.
+
+#### Información derivada
+
+- Total pagado, Total pendiente, Total vencido, Estado financiero y Próximo vencimiento.
+
+La información derivada puede calcularse y no debe necesariamente persistirse como fuente de verdad.
+
 ### 6. Reglas de negocio
+
+- Todo plan de pagos pertenece exactamente a una Booking y a un Negocio. Una Booking puede existir sin plan de pagos o pagos reales; el plan es independiente del Pricing Snapshot.
+- Un plan puede contener uno o múltiples pagos previstos; importes y vencimientos se definen libremente. Puede usarse una plantilla o crearse uno personalizado.
+- Un pago real puede cubrir total o parcialmente un pago previsto; uno previsto puede cubrirse mediante varios reales y un real puede distribuirse entre varios previstos si las reglas lo permiten.
+- Ningún pago real se elimina físicamente: uno incorrecto debe anularse con motivo y auditoría.
+- El estado financiero se calcula desde pagos reales válidos. Registrar un pago no cambia el precio ni confirma una Booking, salvo regla explícita del Negocio.
+- Pagos anulados no cuentan para el saldo; su monto debe ser mayor que cero y la moneda válida para Negocio y compatible con Booking.
+- Comprobantes son opcionales salvo configuración contraria. Cambios en plantillas no modifican planes asociados; planes confirmados conservan historial.
+- No se permite saldo negativo salvo política explícita de sobrepago. Reembolsos y devoluciones conservan trazabilidad completa.
 
 ### 7. Estados
 
+#### Plan de pagos
+
+- Borrador, Activo, Completado y Cancelado.
+
+#### Pago previsto
+
+- Pendiente, Pagado parcialmente, Pagado, Vencido y Cancelado.
+
+#### Pago real
+
+- Registrado, Anulado y Reembolsado (futuro).
+
+#### Estado financiero derivado de Booking
+
+- Sin pagos, Pago parcial, Pagada, Reembolsada y Con saldo a favor (futuro).
+
 ### 8. Eventos
+
+- `PaymentPlanCreated`, `PaymentPlanUpdated`, `PaymentPlanActivated`, `PaymentScheduleItemCreated` y `PaymentScheduleItemUpdated`.
+- `PaymentRegistered`, `PaymentPartiallyApplied`, `PaymentFullyApplied`, `PaymentVoided`, `PaymentReceiptAttached`, `PaymentOverdue`, `BookingFinancialStatusChanged`, `RefundRegistered` y `OverpaymentDetected`.
+
+Payment puede consumir `BookingCreated`, `BookingConfirmed`, `BookingCancelled`, `PricingSnapshotCreated`, `CheckInCompleted` y `CheckOutCompleted`.
+
+No se asume una implementación técnica basada en mensajería o event bus.
 
 ### 9. Relaciones
 
+- Payment pertenece a Business; el plan pertenece a Booking, que puede tener un plan y múltiples pagos reales.
+- Un plan contiene múltiples pagos previstos; un pago real puede aplicarse a uno o más previstos.
+- Payment consulta el total acordado del Pricing Snapshot relacionado; Contact puede ser referencia del pagador, pero el pago pertenece a Booking.
+- Files almacena comprobantes; Audit y Activity registran movimientos financieros.
+
+No se definen aún las cardinalidades técnicas de base de datos.
+
 ### 10. Capacidades
+
+- Crear, actualizar, cancelar o aplicar plantilla a un plan de pagos; crear plan sin cuotas, con adelanto y saldo o personalizado.
+- Agregar o actualizar pago previsto; registrar pago real o parcial y aplicarlo a una o varias cuotas.
+- Consultar saldo, vencidos, estado, historial y próximos vencimientos; adjuntar comprobante y anular pago.
+- Registrar reembolso (futuro).
 
 ### 11. Restricciones
 
+- No eliminar pagos ni información financiera histórica, ni permitir montos cero o negativos.
+- No mezclar pagos reales con Pricing, almacenar datos sensibles de tarjetas, procesar pagos online, conciliación bancaria, contabilidad o facturación electrónica en el MVP.
+- No recalcular el precio al registrar pagos ni modificar silenciosamente un pago registrado.
+- No anular pagos sin motivo ni permitir operaciones entre Negocios distintos o saldo negativo salvo política de sobrepago.
+
 ### 12. Pendientes
+
+- Plantillas iniciales de plan de pagos.
+- Regla definitiva de confirmación automática tras primer pago.
+- Política de sobrepago y saldo a favor.
+- Tratamiento exacto de reembolsos.
+- Métodos de pago iniciales.
+- Formatos y límites de comprobantes.
+- Política de vencimientos y pagos atrasados.
+- Distribución de un pago entre varias cuotas.
+- Múltiples monedas.
+- Política de redondeo.
+- Reglas exactas de autorización.
+- Edición de planes después de confirmar la reserva.
+- Tratamiento financiero de cancelaciones y No Show.
+- Integración futura con pagos online.
 
 ## Block
 
