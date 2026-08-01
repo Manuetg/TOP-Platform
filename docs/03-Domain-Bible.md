@@ -430,27 +430,210 @@ No se definen aún las cardinalidades técnicas de base de datos.
 
 ### 1. Propósito
 
+Determinar si uno o más Resources pueden reservarse durante un período específico, considerando reservas, bloqueos y estado operativo del Resource.
+
 ### 2. Responsabilidad
+
+Availability es responsable de:
+
+- Consultar si un Resource está disponible para un rango de fechas.
+- Buscar todos los Resources disponibles para un rango de fechas.
+- Detectar conflictos con reservas existentes.
+- Detectar conflictos con bloqueos.
+- Excluir Resources inactivos, fuera de servicio o archivados.
+- Mostrar el motivo de una indisponibilidad.
+- Sugerir alternativas disponibles.
+- Proveer información a Booking, Calendario, Dashboard y futuras integraciones.
+- Revalidar disponibilidad en el momento de confirmar una reserva.
 
 ### 3. No Responsabilidad
 
+Availability no:
+
+- Crea ni modifica reservas.
+- Crea ni modifica bloqueos.
+- Calcula precios.
+- Registra pagos.
+- Administra clientes.
+- Decide qué tarifa utilizar.
+- Almacena un calendario materializado en el MVP.
+- Realiza overbooking automático.
+- Modifica estados de Resource.
+
 ### 4. Conceptos principales
+
+- Consulta de disponibilidad.
+- Rango de fechas.
+- Conflicto.
+- Reserva bloqueante.
+- Bloqueo.
+- Resource disponible.
+- Resource no disponible.
+- Alternativa.
+- Capacidad requerida.
+- Estado operativo del Resource.
+- Política de bloqueo de reservas pendientes.
 
 ### 5. Información administrada
 
+Availability no administra información persistente propia en el MVP.
+
+Consume información de:
+
+#### Resource
+
+- Id.
+- Negocio.
+- Estado.
+- Capacidad máxima.
+- Tipo.
+- Orden de visualización.
+
+#### Booking
+
+- Resource asociado.
+- Fecha de entrada.
+- Fecha de salida.
+- Estado operativo.
+- Indicación de si bloquea disponibilidad.
+
+#### Block
+
+- Resource asociado.
+- Fecha de inicio.
+- Fecha de finalización.
+- Estado.
+- Tipo de bloqueo.
+
+#### Business
+
+- Política sobre reservas pendientes.
+- Horario estándar de check-in.
+- Horario estándar de check-out.
+- Configuración de overbooking.
+
+Availability produce resultados calculados, no entidades persistentes.
+
 ### 6. Reglas de negocio
+
+- Todo cálculo debe realizarse dentro de un único Negocio.
+- Un Resource solo puede considerarse disponible si está Activo.
+- Un Resource Fuera de servicio o Archivado no puede reservarse.
+- Las reservas en estado Borrador no bloquean disponibilidad.
+- Las reservas Confirmadas bloquean disponibilidad.
+- Las reservas En curso bloquean disponibilidad.
+- Las reservas Canceladas no bloquean disponibilidad.
+- Las reservas Finalizadas no bloquean disponibilidad futura.
+- Las reservas No Show dejan de bloquear disponibilidad una vez liberadas según la operación.
+- Las reservas Pendientes pueden bloquear o no según la configuración del Negocio.
+- Los Block activos o programados que intersectan el período solicitado bloquean disponibilidad.
+- La validación debe repetirse al confirmar una reserva.
+- No debe existir doble reserva para el mismo Resource y período, salvo que el Negocio tenga overbooking habilitado.
+- El overbooking estará deshabilitado por defecto.
+- Un Resource es indivisible en el MVP.
+- La disponibilidad se calcula a partir de datos actuales; no se almacena como fuente independiente de verdad.
+- El resultado debe explicar el motivo de la indisponibilidad.
+- Cuando sea posible, debe devolver Resources alternativos.
+- Las consultas pueden considerar capacidad mínima requerida.
+- La lógica debe tratar correctamente la salida y entrada el mismo día según horarios operativos.
 
 ### 7. Estados
 
+Availability no tiene estados propios persistentes.
+
+Los resultados posibles de una consulta son:
+
+- Disponible.
+- No disponible.
+- Disponible con advertencia.
+
+“Disponible con advertencia” puede utilizarse cuando existe una condición configurable, como una reserva pendiente que no bloquea pero requiere atención.
+
 ### 8. Eventos
+
+Availability no genera eventos de dominio persistentes por una consulta simple.
+
+Puede producir o participar en los siguientes eventos o resultados operativos:
+
+- `AvailabilityChecked`.
+- `AvailabilityConflictDetected`.
+- `AvailabilityRevalidated`.
+- `AlternativeResourcesFound`.
+- `OverbookingAttemptDetected`.
+
+Availability consume cambios originados por:
+
+- `BookingCreated`.
+- `BookingConfirmed`.
+- `BookingDatesChanged`.
+- `BookingResourceChanged`.
+- `BookingCancelled`.
+- `CheckInCompleted`.
+- `CheckOutCompleted`.
+- `BlockCreated`.
+- `BlockUpdated`.
+- `BlockCancelled`.
+- `ResourceActivated`.
+- `ResourceTakenOutOfService`.
+- `ResourceArchived`.
+
+No se asume una implementación técnica basada en mensajería o event bus.
 
 ### 9. Relaciones
 
+- Availability consulta Resource.
+- Availability consulta Booking.
+- Availability consulta Block.
+- Availability utiliza configuración de Business.
+- Booking depende de Availability para validar creación, modificación y confirmación.
+- Calendario consume resultados de Availability.
+- Dashboard puede consumir agregaciones derivadas de Availability.
+- Pricing no depende de Availability para calcular precios.
+- Payment no interactúa con Availability.
+
+No se definen aún las cardinalidades técnicas de base de datos.
+
 ### 10. Capacidades
+
+- Consultar disponibilidad de un Resource.
+- Buscar Resources disponibles.
+- Validar conflicto.
+- Revalidar disponibilidad antes de confirmar.
+- Explicar motivo de indisponibilidad.
+- Buscar alternativas.
+- Filtrar por capacidad.
+- Consultar disponibilidad por tipo de Resource.
+- Consultar disponibilidad para una fecha específica.
+- Consultar disponibilidad para un rango de fechas.
+- Validar intento de overbooking.
+- Proveer información para vista calendario.
+- Proveer información para indicadores de ocupación.
 
 ### 11. Restricciones
 
+- No persistir disponibilidad como fuente de verdad en el MVP.
+- No duplicar reglas de bloqueo dentro de Booking o Calendario.
+- No consultar datos de otros Negocios.
+- No considerar un Resource no activo como disponible.
+- No permitir que una consulta inicial garantice la confirmación; siempre debe revalidarse.
+- No implementar reserva parcial de Resource.
+- No implementar asignación automática inteligente de Resources en el MVP.
+- No implementar optimización por precio, rentabilidad o huecos de ocupación en el MVP.
+- No incluir lógica de Pricing.
+- No incluir lógica de Payment.
+
 ### 12. Pendientes
+
+- Regla exacta de solapamiento considerando hora de check-in y check-out.
+- Momento exacto en que un No Show libera disponibilidad.
+- Comportamiento definitivo de reservas Pendientes.
+- Alcance del overbooking en el MVP.
+- Orden de alternativas disponibles.
+- Política de buffers entre reservas.
+- Reglas de capacidad para adultos y menores.
+- Rendimiento objetivo y estrategia de caché.
+- Reglas exactas de autorización.
+- Tratamiento de cambios simultáneos por múltiples usuarios.
 
 ## Contact
 
