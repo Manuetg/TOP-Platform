@@ -639,27 +639,163 @@ No se definen aún las cardinalidades técnicas de base de datos.
 
 ### 1. Propósito
 
+Representar a la persona con la que el Negocio mantiene una relación comercial u operativa para gestionar reservas, comunicaciones e historial.
+
 ### 2. Responsabilidad
+
+Contact es responsable de:
+
+- Mantener la identidad básica del contacto.
+- Conservar sus datos de comunicación.
+- Relacionarse con reservas como responsable principal.
+- Permitir búsquedas rápidas durante la creación de una reserva.
+- Mantener historial de reservas y actividad asociada.
+- Evitar la duplicación innecesaria de información.
+- Permitir crear un contacto mínimo durante el flujo de reserva.
 
 ### 3. No Responsabilidad
 
+Contact no:
+
+- Representa automáticamente a todos los huéspedes.
+- Administra pagos.
+- Calcula precios.
+- Determina disponibilidad.
+- Crea reservas.
+- Almacena información perteneciente a otros Negocios.
+- Actúa como CRM avanzado en el MVP.
+- Administra campañas, embudos comerciales o automatizaciones de marketing.
+
 ### 4. Conceptos principales
+
+- Contacto.
+- Contacto responsable.
+- Huésped.
+- Datos de contacto.
+- Historial.
+- Nota.
+- Identidad.
+- Estado.
+- Duplicado potencial.
 
 ### 5. Información administrada
 
+#### Identidad
+
+- Id.
+- Negocio.
+- Nombre.
+- Apellido opcional.
+- Nombre completo.
+- Tipo de documento opcional.
+- Número de documento opcional.
+
+#### Contacto
+
+- Teléfono.
+- WhatsApp.
+- Email opcional.
+- País opcional.
+- Ciudad opcional.
+
+#### Información operativa
+
+- Observaciones.
+- Preferencias o notas simples.
+- Estado.
+- Fecha de creación.
+- Fecha de modificación.
+- Usuario creador.
+- Usuario modificador.
+
+#### Datos derivados
+
+- Cantidad de reservas.
+- Última reserva.
+- Próxima reserva.
+- Total histórico de reservas.
+
+Los datos derivados no deben convertirse necesariamente en campos persistentes en el MVP.
+
 ### 6. Reglas de negocio
+
+- Todo Contact pertenece exactamente a un Negocio.
+- El mismo individuo puede existir como Contact independiente en distintos Negocios.
+- Una reserva debe tener exactamente un Contact responsable antes de confirmarse.
+- Un Contact mínimo puede crearse con nombre y al menos un medio de contacto.
+- El teléfono o WhatsApp debe priorizarse en el mercado inicial.
+- Los huéspedes adicionales no necesitan convertirse en Contact.
+- No eliminar físicamente Contacts con historial.
+- Un Contact archivado conserva su historial.
+- El sistema debe permitir buscar por nombre, teléfono, email y documento cuando esté disponible.
+- Debe evitarse crear duplicados evidentes, pero la deduplicación automática avanzada queda fuera del MVP.
+- Contact y huésped son conceptos distintos.
+- Un Contact puede ser responsable de múltiples reservas.
 
 ### 7. Estados
 
+- Activo.
+- Inactivo.
+- Archivado.
+
 ### 8. Eventos
+
+- `ContactCreated`.
+- `ContactUpdated`.
+- `ContactActivated`.
+- `ContactDeactivated`.
+- `ContactArchived`.
+- `PotentialDuplicateDetected`.
+- `ContactLinkedToBooking`.
 
 ### 9. Relaciones
 
+- Contact pertenece a Business.
+- Contact puede ser responsable de múltiples Booking.
+- Booking referencia un Contact responsable.
+- Booking puede contener una lista de huéspedes que no son Contact.
+- Payment puede registrar al pagador como referencia informativa, pero no convierte automáticamente a esa persona en Contact.
+- Contact puede tener Activity, Comments, Files y Audit como capacidades compartidas futuras o transversales.
+
+No se definen aún las cardinalidades técnicas de base de datos.
+
 ### 10. Capacidades
+
+- Crear Contact.
+- Crear Contact mínimo durante una reserva.
+- Actualizar Contact.
+- Activar Contact.
+- Desactivar Contact.
+- Archivar Contact.
+- Consultar Contact.
+- Buscar Contact.
+- Consultar historial de reservas.
+- Añadir observaciones.
+- Detectar posible duplicado.
+- Asociar Contact a Booking.
 
 ### 11. Restricciones
 
+- No compartir Contacts entre Negocios.
+- No eliminar físicamente Contacts con historial.
+- No exigir información legal o documental completa para crear una reserva.
+- No exigir email si existe otro medio de contacto válido.
+- No modelar a cada huésped como Contact en el MVP.
+- No incluir CRM, campañas, segmentación comercial ni automatizaciones de marketing en el MVP.
+- No almacenar contraseñas, datos bancarios ni información sensible de pago dentro de Contact.
+- No fusionar automáticamente duplicados en el MVP.
+
 ### 12. Pendientes
+
+- Campos mínimos exactos para crear un Contact.
+- Normalización y validación de teléfonos.
+- Tipos de documento iniciales.
+- Reglas exactas para detectar duplicados.
+- Proceso de fusión manual de duplicados.
+- Reglas exactas de autorización.
+- Política de retención y privacidad de datos personales.
+- Información exacta de huéspedes adicionales.
+- Posibilidad futura de contactos corporativos o empresas.
 
 ## Booking
 
