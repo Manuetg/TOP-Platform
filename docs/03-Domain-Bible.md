@@ -1078,24 +1078,99 @@ No se definen aún las cardinalidades técnicas de base de datos.
 
 ### 1. Propósito
 
+Representar un período durante el cual uno o más Resources no pueden reservarse por una razón operativa distinta de una Booking.
+
 ### 2. Responsabilidad
+
+Block impide temporalmente la disponibilidad de uno o más Resources y representa motivos operativos como mantenimiento, uso interno o bloqueo administrativo.
+
+Mantiene el rango temporal, permite crear, actualizar, cancelar y finalizar bloqueos, informa a Availability, conserva motivo, observaciones, responsable y auditoría, y evita reservas ficticias para bloquear fechas.
 
 ### 3. No Responsabilidad
 
+Block no representa una Booking, administra clientes, calcula precios, registra pagos ni gestiona inventario.
+
+No ejecuta mantenimiento, órdenes de trabajo, reparaciones o limpiezas; no modifica directamente una Booking ni sustituye el estado operativo permanente de Resource.
+
 ### 4. Conceptos principales
+
+- Bloqueo, Resource bloqueado, Rango temporal, Tipo de bloqueo y Motivo.
+- Estado, Observación, Responsable, Inicio, Finalización y Cancelación.
+- Conflicto de disponibilidad.
 
 ### 5. Información administrada
 
+#### Identidad
+
+- Id, Negocio, Estado, Tipo, Motivo y Descripción u observación opcional.
+
+#### Alcance
+
+- Uno o más Resources asociados, Fecha y hora de inicio, Fecha y hora de finalización e indicación de día completo cuando corresponda.
+
+#### Auditoría
+
+- Usuario creador, Fecha de creación, Usuario modificador y Fecha de modificación.
+- Usuario, fecha y motivo de cancelación cuando corresponda.
+
 ### 6. Reglas de negocio
+
+- Todo Block pertenece exactamente a un Negocio, debe asociarse al menos a un Resource y cada Resource asociado pertenece al mismo Negocio.
+- La finalización debe ser posterior al inicio. Un Block activo o programado impide reservas del período afectado; Cancelado no afecta Availability y Finalizado no afecta disponibilidad futura.
+- Los bloqueos no se representan mediante reservas ficticias. Un Resource Fuera de servicio puede coexistir con Blocks históricos, pero su indisponibilidad permanente depende de Resource.
+- Un Block puede aplicarse a uno o varios Resources y debe conservarse históricamente sin eliminación física si afectó la operación.
+- Crear o modificar Block valida conflictos con Bookings confirmadas o en curso; debe advertir superposiciones y nunca resolverlas silenciosamente.
+- Block y mantenimiento son distintos: Block representa indisponibilidad; mantenimiento podrá ser una Extension futura. Block no modifica Pricing ni genera pagos o cargos.
 
 ### 7. Estados
 
+- Programado, Activo, Finalizado y Cancelado.
+
+Transiciones: Programado → Activo o Cancelado; Activo → Finalizado o Cancelado únicamente si la operación lo permite.
+
+No se permite Finalizado → Activo, Cancelado → Activo ni eliminación física como mecanismo normal.
+
+El paso de Programado a Activo y de Activo a Finalizado puede derivarse automáticamente según el tiempo, sin requerir modificación persistente inmediata, según la arquitectura elegida.
+
 ### 8. Eventos
+
+- `BlockCreated`, `BlockUpdated`, `BlockActivated`, `BlockCompleted`, `BlockCancelled`, `BlockResourcesChanged`, `BlockDatesChanged` y `BlockConflictDetected`.
+
+Block puede reaccionar o validar respecto a `ResourceActivated`, `ResourceTakenOutOfService`, `ResourceArchived`, `BookingConfirmed`, `BookingDatesChanged`, `BookingResourceChanged` y `BookingCancelled`.
+
+No se asume una implementación técnica basada en mensajería o event bus.
 
 ### 9. Relaciones
 
+- Block pertenece a Business y se asocia a uno o más Resource.
+- Availability consulta Block; Booking no crea Block automáticamente en el MVP.
+- Resource conserva relación histórica con Blocks; Activity y Audit pueden registrar cambios.
+- Una futura Extension de Maintenance puede crear o relacionarse con Block.
+
+No se definen aún las cardinalidades técnicas de base de datos.
+
 ### 10. Capacidades
+
+- Crear, actualizar, consultar, cancelar y finalizar Block.
+- Buscar por Resource, fecha, tipo o estado; asociar Resources; cambiar fechas, motivo u observaciones.
+- Consultar conflictos con Bookings e historial, y mostrar Blocks en calendario.
 
 ### 11. Restricciones
 
+- No crear Block sin Resource ni mezclar Resources de distintos Negocios.
+- No permitir períodos inválidos, eliminación física de Blocks con historial, ocultar conflictos ni compartir Blocks entre Negocios.
+- No utilizar Block para Booking, inventario, órdenes de trabajo o ejecución/costos de mantenimiento, ni incluir pagos.
+- No permitir que Cancelado afecte Availability ni modificar silenciosamente reservas existentes.
+
 ### 12. Pendientes
+
+- Catálogo inicial de tipos de Block.
+- Regla exacta ante conflicto con Booking existente.
+- Posibilidad de bloquear múltiples Resources en una sola operación dentro del MVP.
+- Tratamiento de bloqueos recurrentes.
+- Buffers automáticos antes o después de una Booking.
+- Regla exacta para activar y finalizar Blocks según el tiempo.
+- Reglas exactas de autorización.
+- Tratamiento de zonas horarias.
+- Alcance de integración futura con Maintenance y Cleaning.
+- Visualización exacta en Calendario.
