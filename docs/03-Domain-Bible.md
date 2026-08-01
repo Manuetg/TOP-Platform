@@ -117,27 +117,112 @@ Las reglas de autorización y el detalle operativo de cada capacidad están **Pe
 
 ### 1. Propósito
 
+Representar una unidad reservable administrada por un Negocio.
+
 ### 2. Responsabilidad
+
+- Mantener la identidad y características de la unidad.
+- Definir su capacidad.
+- Indicar si está activa para la operación.
+- Participar en consultas de disponibilidad.
+- Relacionarse con Pricing, Booking y Block.
 
 ### 3. No Responsabilidad
 
+Resource no:
+
+- Calcula disponibilidad.
+- Calcula precios.
+- Crea reservas.
+- Administra pagos.
+- Almacena clientes.
+- Administra servicios o extras.
+
 ### 4. Conceptos principales
+
+- Recurso.
+- Tipo de recurso.
+- Capacidad.
+- Características.
+- Estado.
+- Código visible.
+- Orden de visualización.
 
 ### 5. Información administrada
 
+| Grupo | Información |
+| --- | --- |
+| Identidad | Id interno, Código visible, Nombre, Tipo, Descripción |
+| Capacidad | Capacidad mínima (opcional), Capacidad máxima, Capacidad máxima de menores (opcional) |
+| Características | Lista flexible de características o amenidades |
+| Multimedia | Imágenes del recurso |
+| Organización | Orden manual de visualización |
+| Auditoría | Fecha de creación, Fecha de modificación, Usuario creador, Usuario modificador |
+
 ### 6. Reglas de negocio
+
+- Todo Resource pertenece exactamente a un Negocio.
+- Un Resource es indivisible en el MVP.
+- No se permiten jerarquías padre-hijo en el MVP.
+- Un Resource puede estar relacionado con múltiples reservas históricas.
+- Un Resource con historial no se elimina físicamente.
+- Disponible u ocupado no son estados propios del Resource.
+- La interfaz debe utilizar el término correspondiente al tipo de negocio: cabaña, habitación, domo, parcela u otro.
+- Internamente el concepto unificado es Resource.
 
 ### 7. Estados
 
+- Activo.
+- Fuera de servicio.
+- Archivado.
+
+Mantenimiento no es un estado permanente. Los períodos temporales de mantenimiento deben representarse mediante Block.
+
 ### 8. Eventos
+
+- `ResourceCreated`.
+- `ResourceUpdated`.
+- `ResourceActivated`.
+- `ResourceTakenOutOfService`.
+- `ResourceReactivated`.
+- `ResourceArchived`.
 
 ### 9. Relaciones
 
+- Pertenece a Business.
+- Puede asociarse a uno o varios planes o listas de Pricing.
+- Puede participar en múltiples Booking.
+- Puede tener múltiples Block.
+- Es consultado por Availability.
+
+No se definen aún las cardinalidades técnicas de base de datos.
+
 ### 10. Capacidades
+
+- Crear recurso.
+- Actualizar recurso.
+- Activar recurso.
+- Marcar fuera de servicio.
+- Reactivar recurso.
+- Archivar recurso.
+- Consultar recurso.
+- Ordenar recursos manualmente.
 
 ### 11. Restricciones
 
+- No reservar recursos inactivos, fuera de servicio o archivados.
+- No eliminar físicamente recursos con historial.
+- No compartir recursos entre negocios.
+- No soportar reserva parcial de un recurso en el MVP.
+- No incorporar servicios, extras, inventario ni mantenimiento como parte interna del Resource.
+
 ### 12. Pendientes
+
+- Catálogo inicial de tipos de recurso.
+- Catálogo inicial de amenidades.
+- Límites y formatos de imágenes.
+- Reglas exactas de autorización.
+- Validaciones específicas de capacidad.
 
 ## Pricing
 
