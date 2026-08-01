@@ -801,27 +801,150 @@ No se definen aún las cardinalidades técnicas de base de datos.
 
 ### 1. Propósito
 
+Representar y administrar el acuerdo comercial y operativo mediante el cual un Contact reserva uno o más Resources de un Negocio durante un período determinado, bajo condiciones económicas específicas.
+
 ### 2. Responsabilidad
+
+Booking es responsable de mantener la identidad de la reserva, relacionarla con un Negocio, Contact responsable y uno o más Resources, administrar fechas y estado operativo, y coordinar confirmación, cancelación, check-in, check-out y finalización.
+
+También referencia el Pricing Snapshot acordado, se relaciona con plan de pagos y pagos recibidos, mantiene huéspedes adicionales y observaciones operativas, conserva historial y auditoría, bloquea disponibilidad según estado y configuración del Negocio, y genera un número visible secuencial dentro del Negocio.
 
 ### 3. No Responsabilidad
 
+Booking no calcula disponibilidad ni precios, no administra listas de precios, no registra transacciones financieras, no administra clientes fuera del contexto de la reserva, no envía notificaciones por sí mismo y no administra inventario, limpieza o mantenimiento.
+
+Tampoco elimina historial, modifica automáticamente el Pricing Snapshot de una reserva confirmada ni implementa un CRM de consultas en el MVP.
+
 ### 4. Conceptos principales
+
+- Reserva.
+- Número visible de reserva.
+- Contact responsable.
+- Huésped.
+- Resource reservado.
+- Rango de estadía.
+- Estado operativo.
+- Estado financiero derivado.
+- Pricing Snapshot.
+- Plan de pagos.
+- Observación.
+- Check-in.
+- Check-out.
+- Cancelación.
+- No Show.
+- Historial.
+- Borrador.
+- Confirmación.
 
 ### 5. Información administrada
 
+#### Identidad
+
+- Id interno, Número visible secuencial por Negocio, Negocio, Estado operativo.
+- Fecha de creación, Fecha de modificación, Usuario creador, Usuario modificador.
+
+#### Estadía
+
+- Fecha de entrada, Fecha de salida, Hora de check-in prevista opcional, Hora de check-out prevista opcional.
+- Cantidad de adultos, Cantidad de menores, Cantidad total de huéspedes y lista opcional de huéspedes adicionales.
+
+#### Relaciones
+
+- Contact responsable, uno o más Resources, Pricing Snapshot, plan de pagos y pagos relacionados.
+- Archivos adjuntos, comentarios, actividad y auditoría.
+
+#### Información operativa
+
+- Origen de la reserva, observaciones, motivo de cancelación o No Show cuando corresponda.
+- Fecha y hora real de check-in y check-out, y usuarios que los realizaron.
+
+#### Información económica referenciada
+
+- Precio acordado, Moneda, Total de la reserva, Estado financiero derivado y Saldo pendiente derivado.
+
+Booking referencia esta información, pero Pricing y Payment conservan sus responsabilidades propias.
+
 ### 6. Reglas de negocio
+
+- Toda Booking pertenece exactamente a un Negocio y debe tener un Contact responsable y al menos un Resource antes de confirmarse.
+- En el MVP, los Resources reservados son unidades indivisibles; una Booking puede contener más de un Resource.
+- La fecha de salida debe ser posterior a la fecha de entrada.
+- Un borrador puede existir con información incompleta; una reserva pendiente debe contener la información mínima para ser evaluada.
+- Una reserva confirmada debe tener Contact, fechas válidas, Resource disponible y Pricing Snapshot; Availability debe revalidarse inmediatamente antes de confirmar.
+- Confirmada y En curso bloquean disponibilidad; Cancelada y Finalizada no bloquean disponibilidad futura; Pendiente puede bloquear según configuración y Borrador nunca bloquea.
+- El precio se congela mediante Pricing Snapshot al confirmar. Cambiar fechas o Resource requiere revisar disponibilidad y puede requerir recálculo; el usuario debe mantener el precio anterior o aceptar el nuevo, dejando auditoría.
+- Toda modificación relevante debe generar auditoría. Booking y Payment son independientes; una reserva puede existir sin pagos o tener múltiples pagos; el estado financiero no se mezcla con el operativo.
+- Ninguna Booking se elimina físicamente y una cancelada conserva su historial.
+- Check-in y check-out son eventos, no estados; No Show es distinto de Cancelada; Finalizada es irreversible en el MVP.
+- Los huéspedes adicionales no necesitan ser Contacts. El número visible es único dentro del Negocio.
 
 ### 7. Estados
 
+Estados operativos: Borrador, Pendiente, Confirmada, En curso, Finalizada, Cancelada y No Show.
+
+Transiciones conceptuales:
+
+- Borrador → Pendiente o Cancelada.
+- Pendiente → Confirmada o Cancelada.
+- Confirmada → En curso mediante `CheckInCompleted`, Cancelada o No Show.
+- En curso → Finalizada mediante `CheckOutCompleted`.
+
+No se permite Finalizada → estados anteriores, Cancelada → Confirmada, No Show → En curso, En curso → Pendiente ni eliminación física.
+
+Estado financiero derivado: Sin pagos, Pago parcial, Pagada, Reembolsada y Con saldo a favor (futuro). No forma parte de la máquina de estados operativa.
+
 ### 8. Eventos
+
+- `BookingDraftCreated`, `BookingCreated`, `BookingUpdated`, `BookingPending`, `BookingConfirmed`, `BookingCancelled` y `BookingMarkedNoShow`.
+- `BookingDatesChanged`, `BookingResourceChanged`, `BookingContactChanged`, `BookingPricingChanged` y `BookingGuestsChanged`.
+- `CheckInCompleted`, `CheckOutCompleted`, `BookingFinalized`, `BookingNoteAdded` y `BookingAttachmentAdded`.
+
+Booking consume resultados o capacidades de `AvailabilityChecked`, `AvailabilityRevalidated`, `PricingCalculated`, `PricingSnapshotCreated`, `PaymentRegistered`, `PaymentVoided`, `BlockCreated` y `ResourceTakenOutOfService`.
+
+No se asume una implementación técnica basada en mensajería o event bus.
 
 ### 9. Relaciones
 
+- Booking pertenece a Business y referencia un Contact responsable.
+- Puede asociarse a uno o más Resource; depende de Availability y solicita cálculos a Pricing.
+- Conserva un Pricing Snapshot, puede tener plan de pagos y múltiples Payment, huéspedes adicionales, Activity, Comments, Files y Audit.
+- No comparte información entre Negocios.
+
+No se definen aún las cardinalidades técnicas de base de datos.
+
 ### 10. Capacidades
+
+- Crear borrador o reserva; actualizar, consultar, buscar, confirmar, cancelar y marcar No Show.
+- Cambiar fechas, Resource o Contact responsable; modificar huéspedes; aplicar o cambiar Pricing Snapshot según reglas.
+- Asociar plan de pagos, registrar observaciones, adjuntar archivos, hacer check-in, check-out y finalizar.
+- Consultar historial, duplicar una reserva como base para otra y consultar por fecha, Contact, Resource, estado o número visible.
 
 ### 11. Restricciones
 
+- No confirmar sin revalidar Availability, Contact responsable, al menos un Resource, fechas válidas y Pricing Snapshot.
+- No modificar silenciosamente el precio confirmado, eliminar físicamente una reserva ni mezclar estado operativo y financiero.
+- No permitir doble reserva salvo política explícita de overbooking, ni usar check-in/check-out como estados persistentes independientes.
+- No crear huéspedes como Contacts automáticamente, ni incluir CRM de consultas, notificaciones, WhatsApp, marketplace, inventario, limpieza o mantenimiento dentro de Booking.
+- No permitir cambios de Negocio ni reutilizar números visibles de reservas canceladas o archivadas.
+
 ### 12. Pendientes
+
+- Información mínima exacta para pasar de Borrador a Pendiente.
+- Regla definitiva para confirmar automáticamente tras un primer pago.
+- Comportamiento definitivo de reservas Pendientes sobre Availability.
+- Política de cancelación y penalizaciones.
+- Tratamiento de reembolsos.
+- Regla exacta de No Show y liberación de disponibilidad.
+- Reglas de modificación de reservas en curso.
+- Tratamiento de early check-in y late check-out.
+- Regla exacta para reservas con múltiples Resources.
+- Numeración inicial y formato visible.
+- Reglas exactas de autorización por rol.
+- Validaciones de adultos, menores y capacidad.
+- Campos obligatorios de huéspedes adicionales.
+- Tratamiento de zonas horarias.
+- Política de archivado.
+- Alcance de duplicar reserva en el MVP.
 
 ## Payment
 
