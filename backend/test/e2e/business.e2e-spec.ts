@@ -11,6 +11,18 @@ describe('Business endpoint', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
+    const business = Business.create({
+      id: 'f8c49800-e50e-4d0e-b82b-0b51c09a0001',
+      businessNumber: null,
+      name: 'Cabañas del Lago',
+      legalName: 'Cabañas del Lago S.R.L.',
+      taxId: '80000000-0',
+      timezone: 'America/Asuncion',
+      currency: 'PYG',
+      status: BusinessStatus.ACTIVE,
+      createdAt: new Date('2026-08-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-08-01T00:00:00.000Z'),
+    });
     const repository = {
       create: (data: { name: string; legalName?: string; taxId?: string }): Promise<Business> => {
         const now = new Date('2026-08-01T00:00:00.000Z');
@@ -28,6 +40,7 @@ describe('Business endpoint', () => {
           updatedAt: now,
         }));
       },
+      findById: (id: string): Promise<Business | null> => Promise.resolve(id === business.id ? business : null),
     };
     const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(BUSINESS_REPOSITORY)
@@ -54,5 +67,35 @@ describe('Business endpoint', () => {
         expect(body.status).toBe('ACTIVE');
         expect(body.currency).toBe('PYG');
       });
+  });
+
+  it('recupera un negocio existente mediante HTTP sin exponer businessNumber', async () => {
+    await request(app.getHttpServer())
+      .get('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .expect(({ body }: { body: Record<string, unknown> }) => {
+        expect(body).toEqual({
+          id: 'f8c49800-e50e-4d0e-b82b-0b51c09a0001',
+          name: 'Cabañas del Lago',
+          legalName: 'Cabañas del Lago S.R.L.',
+          taxId: '80000000-0',
+          timezone: 'America/Asuncion',
+          currency: 'PYG',
+          status: 'ACTIVE',
+          createdAt: '2026-08-01T00:00:00.000Z',
+          updatedAt: '2026-08-01T00:00:00.000Z',
+        });
+      });
+  });
+
+  it('responde 404 para un negocio inexistente', async () => {
+    await request(app.getHttpServer())
+      .get('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0002')
+      .expect(404);
+  });
+
+  it('responde 400 para un identificador inválido', async () => {
+    await request(app.getHttpServer()).get('/api/businesses/no-es-uuid').expect(400);
   });
 });

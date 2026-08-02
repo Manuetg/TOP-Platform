@@ -24,8 +24,10 @@ describeWithPostgres('PrismaBusinessRepository con PostgreSQL', () => {
     const created = await repository.create({ name: 'Cabañas del Lago' });
     createdBusinessId = created.id;
     const persisted = await prisma.business.findUnique({ where: { id: created.id } });
+    const found = await repository.findById(created.id);
 
     expect(created.id).toMatch(/^[0-9a-f-]{36}$/i);
     expect(persisted).toMatchObject({ name: 'Cabañas del Lago', timezone: 'America/Asuncion', currency: 'PYG', status: 'ACTIVE' });
+    expect(found).toMatchObject({ id: created.id, name: 'Cabañas del Lago', timezone: 'America/Asuncion', currency: 'PYG', status: 'ACTIVE' });
   });
 });

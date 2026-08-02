@@ -15,6 +15,12 @@ export class PrismaBusinessRepository implements BusinessRepository {
     return this.toDomain(business);
   }
 
+  async findById(id: string): Promise<Business | null> {
+    const business = await this.prisma.business.findUnique({ where: { id } });
+
+    return business ? this.toDomain(business) : null;
+  }
+
   private toDomain(business: PrismaBusiness): Business {
     return Business.create({
       id: business.id,

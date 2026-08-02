@@ -28,7 +28,7 @@ describe('CreateBusinessUseCase', () => {
     );
 
     return {
-      repository: { create },
+      repository: { create, findById: jest.fn() },
       create,
     };
   }
@@ -57,6 +57,7 @@ describe('CreateBusinessUseCase', () => {
     const useCase = new CreateBusinessUseCase(repository);
 
     await expect(useCase.execute({ name: '   ' })).rejects.toThrow(InvalidBusinessNameError);
+    await expect(useCase.execute({ name: '   ' })).rejects.toThrow('El nombre del negocio es obligatorio.');
   });
 
   it('rechaza un nombre undefined', async () => {
@@ -64,6 +65,7 @@ describe('CreateBusinessUseCase', () => {
     const useCase = new CreateBusinessUseCase(repository);
 
     await expect(useCase.execute({ name: undefined as unknown as string })).rejects.toThrow(InvalidBusinessNameError);
+    await expect(useCase.execute({ name: undefined as unknown as string })).rejects.toThrow('El nombre del negocio es obligatorio.');
   });
 
   it('acepta un nombre de exactamente 120 caracteres y conserva opcionales ausentes', async () => {
@@ -81,5 +83,6 @@ describe('CreateBusinessUseCase', () => {
     const useCase = new CreateBusinessUseCase(repository);
 
     await expect(useCase.execute({ name: 'a'.repeat(121) })).rejects.toThrow(InvalidBusinessNameError);
+    await expect(useCase.execute({ name: 'a'.repeat(121) })).rejects.toThrow('El nombre del negocio no puede superar los 120 caracteres.');
   });
 });

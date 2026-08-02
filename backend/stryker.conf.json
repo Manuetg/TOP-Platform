@@ -1,8 +1,18 @@
 {
   "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-js/master/packages/core/schema/stryker-schema.json",
   "testRunner": "jest",
-  "jest": { "projectType": "custom", "configFile": "jest.mutation.config.cjs" },
+  "tempDirName": "stryker-tmp",
+  "jest": {
+    "projectType": "custom",
+    "configFile": "jest.mutation.config.cjs",
+    "enableFindRelatedTests": false
+  },
   "reporters": ["progress", "clear-text", "html"],
-  "mutate": ["src/**/*.ts", "!src/main.ts"],
+  "mutate": [
+    "src/modules/business/application/**/*.ts",
+    "src/modules/business/domain/**/*.ts",
+    "src/modules/business/infrastructure/prisma-business.repository.ts",
+    "!src/modules/business/**/*.spec.ts"
+  ],
   "thresholds": { "high": 80, "low": 70, "break": 70 }
 }

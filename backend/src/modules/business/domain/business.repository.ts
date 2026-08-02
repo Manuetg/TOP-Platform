@@ -10,4 +10,5 @@ export interface CreateBusinessData {
 
 export interface BusinessRepository {
   create(data: CreateBusinessData): Promise<Business>;
+  findById(id: string): Promise<Business | null>;
 }
