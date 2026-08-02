@@ -80,6 +80,7 @@ El dominio Business se relaciona con:
 - Pricing.
 - Payment.
 - Block.
+- Identity & Access.
 
 La naturaleza y cardinalidad de cada relación están **Pendientes de definición**.
 
@@ -112,6 +113,129 @@ Las reglas de autorización y el detalle operativo de cada capacidad están **Pe
 - Transiciones permitidas entre estados.
 - Naturaleza y cardinalidad de las relaciones con otros dominios.
 - Reglas de autorización y detalle operativo de las capacidades.
+
+## Identity & Access
+
+### 1. Propósito
+
+Administrar la identidad global de los usuarios, sus credenciales locales y sus membresías con Negocios para habilitar autenticación y autorización en TOP.
+
+### 2. Responsabilidad
+
+- Mantener usuarios globales y su estado de acceso.
+- Mantener credenciales locales mediante hashes de contraseña.
+- Mantener la pertenencia de un usuario a uno o varios Negocios y el rol aplicable en cada membresía.
+- Proveer la información necesaria para autenticar usuarios y resolver su contexto autorizado.
+
+### 3. No Responsabilidad
+
+Identity & Access no:
+
+- administra datos operativos de un Negocio;
+- selecciona silenciosamente un Negocio activo durante el login;
+- almacena contraseñas en texto plano;
+- implementa registro público en el MVP;
+- administra sesiones, refresh tokens ni revocación como parte del modelo inicial.
+
+### 4. Conceptos principales
+
+- **User:** identidad global de una persona que puede acceder a TOP.
+- **LocalCredential:** credencial local asociada a un User para autenticación propia.
+- **UserBusinessMembership:** pertenencia de un User a un Business con un rol.
+- **Rol:** nivel inicial de autorización de una membresía: `OWNER`, `ADMIN`, `RECEPTIONIST` o `VIEWER`.
+- **Contexto de Negocio:** Business dentro del cual se autoriza una operación.
+
+### 5. Información administrada
+
+#### User
+
+- Id UUID.
+- Email normalizado y único.
+- Estado: `ACTIVE` o `DISABLED`.
+- Fecha de creación.
+- Fecha de modificación.
+
+#### LocalCredential
+
+- User asociado.
+- Hash de contraseña.
+- Fecha de creación.
+- Fecha de modificación.
+
+La contraseña no se almacena en texto plano.
+
+#### UserBusinessMembership
+
+- Id UUID.
+- User asociado.
+- Business asociado.
+- Rol.
+- Fecha de creación.
+- Fecha de modificación.
+
+No se agrega un estado de membresía al modelo mínimo: el estado `DISABLED` del User impide su acceso. La desactivación individual de una membresía queda pendiente de definición.
+
+### 6. Reglas de negocio
+
+- User es una identidad global y puede pertenecer a varios Businesses.
+- Un email normalizado corresponde a un único User.
+- Una LocalCredential pertenece a un único User y solo almacena su hash de contraseña.
+- Una combinación de User y Business solo puede tener una membresía.
+- Toda membresía debe referenciar un Business existente.
+- Las membresías determinan el rol del User dentro de cada Business.
+- Toda operación operativa debe ejecutarse dentro de un `businessId` autorizado para el User.
+- Login devuelve las membresías disponibles y no selecciona automáticamente un Business activo.
+- La autorización se valida siempre en backend.
+
+### 7. Estados
+
+User puede estar en uno de los siguientes estados:
+
+- `ACTIVE`.
+- `DISABLED`.
+
+Las transiciones y la gestión individual de membresías están **Pendientes de definición**.
+
+### 8. Eventos
+
+Los eventos de dominio y de auditoría específicos de Identity & Access están **Pendientes de definición**. La implementación deberá conservar auditoría de los cambios relevantes de User y UserBusinessMembership.
+
+### 9. Relaciones
+
+- User se relaciona con una LocalCredential para la autenticación propia del MVP.
+- User se relaciona con uno o varios Businesses mediante UserBusinessMembership.
+- UserBusinessMembership pertenece a un User y a un Business.
+- Los módulos operativos consumen el contexto autorizado de Business, sin acceder a credenciales.
+
+No se definen aún cardinalidades técnicas de base de datos ni relaciones con sesiones o refresh tokens.
+
+### 10. Capacidades
+
+- Crear User.
+- Iniciar sesión.
+- Actualizar User.
+- Deshabilitar User.
+- Gestionar roles y permisos según el backlog.
+
+La capacidad explícita para asociar User con Business y rol está **Pendiente de definición** en el backlog.
+
+### 11. Restricciones
+
+- No compartir datos operativos entre Businesses.
+- No permitir registro público en el MVP.
+- No almacenar contraseñas, hashes o tokens en logs.
+- No seleccionar un contexto de Business sin una acción o autorización explícita posterior.
+- No incorporar Session ni RefreshToken al modelo inicial.
+
+### 12. Pendientes
+
+- Regla exacta de normalización del email.
+- Política de contraseña.
+- Transiciones de estado de User.
+- Gestión individual del estado de una membresía.
+- Capacidad y contrato para asociar User con Business y rol.
+- Matriz detallada de permisos por rol.
+- Selección explícita del contexto activo de Business.
 
 ## Resource
 

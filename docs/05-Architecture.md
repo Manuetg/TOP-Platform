@@ -127,4 +127,4 @@ backend/
 ## 23. Riesgos y decisiones pendientes
 
 - Stack aprobado: TypeScript, NestJS, PostgreSQL, Prisma, REST con OpenAPI, almacenamiento S3-compatible, Docker y GitHub Actions. Se adopta por tipado, modularidad, ecosistema, migraciones y despliegue simple. Puede registrarse posteriormente mediante ADR sin bloquear el MVP.
-- Pendientes reales: proveedor concreto de autenticación; proveedor concreto de almacenamiento S3-compatible; solución inicial de observabilidad; política y proveedor de backups; proveedor de despliegue; tratamiento futuro de impuestos y multimoneda.
+- La autenticación propia en NestJS para el MVP se define en [ADR-001: Estrategia de autenticación para el MVP](13-adr/ADR-001-estrategia-autenticacion-mvp.md). El proveedor concreto de almacenamiento S3-compatible, la solución inicial de observabilidad, la política y proveedor de backups, el proveedor de despliegue, y el tratamiento futuro de impuestos y multimoneda permanecen pendientes.
