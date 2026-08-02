@@ -14,13 +14,13 @@ Los endpoints no definidos expresamente se marcan como **Pendiente de definició
 - **BUS-002 — Get Business by Id.** Estado: Completed. Dominio: Business. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **BUS-003 — List Businesses.** Estado: Completed. Dominio: Business. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **BUS-004 — Update Business.** Estado: Completed. Dominio: Business. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **BUS-005 — Archive Business.** Estado: Planned. Dominio: Business. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. Siguiente capacidad.
+- **BUS-005 — Archive Business.** Estado: Completed. Dominio: Business. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 
-Progreso de Business: 4 de 5 capacidades completadas (80%).
+Progreso de Business: 5 de 5 capacidades completadas (100%).
 
 ## Identity & Access
 
-- **IAM-001 — Login.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **IAM-001 — Login.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. Siguiente capacidad.
 - **IAM-002 — Logout.** Estado: Planned. Dominio: Identity & Access. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **IAM-003 — Refresh Token.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **IAM-004 — Create User.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
@@ -94,7 +94,7 @@ Progreso de Business: 4 de 5 capacidades completadas (80%).
 
 | Épica | Total | Completed | In Progress | Planned | Blocked |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Business | 5 | 4 | 0 | 1 | 0 |
+| Business | 5 | 5 | 0 | 0 | 0 |
 | Identity & Access | 8 | 0 | 0 | 8 | 0 |
 | Resource | 7 | 0 | 0 | 7 | 0 |
 | Pricing | 5 | 0 | 0 | 5 | 0 |
@@ -104,6 +104,6 @@ Progreso de Business: 4 de 5 capacidades completadas (80%).
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 0 | 0 | 3 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **50** | **4** | **0** | **46** | **0** |
+| **Total** | **50** | **5** | **0** | **45** | **0** |
 
-Progreso general del MVP: 4 de 50 capacidades completadas (8%).
+Progreso general del MVP: 5 de 50 capacidades completadas (10%).
