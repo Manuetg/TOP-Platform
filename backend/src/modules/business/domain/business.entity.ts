@@ -13,11 +13,23 @@ export interface BusinessProps {
   updatedAt: Date;
 }
 
+export interface BusinessUpdate {
+  name?: string;
+  legalName?: string | null;
+  taxId?: string | null;
+  timezone?: string;
+  currency?: string;
+}
+
 export class Business {
   private constructor(private readonly props: BusinessProps) {}
 
   static create(props: BusinessProps): Business {
     return new Business(props);
+  }
+
+  update(changes: BusinessUpdate): Business {
+    return new Business({ ...this.props, ...changes, updatedAt: new Date() });
   }
 
   get id(): string {

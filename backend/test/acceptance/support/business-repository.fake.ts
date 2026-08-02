@@ -35,4 +35,5 @@ export const businessRepositoryFake = {
   },
   findById: (id: string): Promise<Business | null> => Promise.resolve(id === existingBusiness.id ? existingBusiness : null),
   list: (): Promise<Business[]> => Promise.resolve([existingBusiness, laterBusiness]),
+  update: (business: Business): Promise<Business> => Promise.resolve(business),
 };

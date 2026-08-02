@@ -28,7 +28,7 @@ describe('CreateBusinessUseCase', () => {
     );
 
     return {
-      repository: { create, findById: jest.fn(), list: jest.fn() },
+      repository: { create, findById: jest.fn(), list: jest.fn(), update: jest.fn() },
       create,
     };
   }

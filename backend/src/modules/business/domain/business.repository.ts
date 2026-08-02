@@ -12,4 +12,5 @@ export interface BusinessRepository {
   create(data: CreateBusinessData): Promise<Business>;
   findById(id: string): Promise<Business | null>;
   list(): Promise<Business[]>;
+  update(business: Business): Promise<Business>;
 }

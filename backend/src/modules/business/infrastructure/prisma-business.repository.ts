@@ -27,6 +27,21 @@ export class PrismaBusinessRepository implements BusinessRepository {
     return businesses.map((business) => this.toDomain(business));
   }
 
+  async update(business: Business): Promise<Business> {
+    const updated = await this.prisma.business.update({
+      where: { id: business.id },
+      data: {
+        name: business.name,
+        legalName: business.legalName,
+        taxId: business.taxId,
+        timezone: business.timezone,
+        currency: business.currency,
+      },
+    });
+
+    return this.toDomain(updated);
+  }
+
   private toDomain(business: PrismaBusiness): Business {
     return Business.create({
       id: business.id,

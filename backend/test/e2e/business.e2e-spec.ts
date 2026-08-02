@@ -6,10 +6,13 @@ import { configureApplication } from '../../src/config/configure-application';
 import { Business } from '../../src/modules/business/domain/business.entity';
 import { BusinessStatus } from '../../src/modules/business/domain/business-status.enum';
 import { BUSINESS_REPOSITORY } from '../../src/modules/business/domain/business.repository';
+import { UpdateBusinessUseCase } from '../../src/modules/business/application/update-business.use-case';
 
 describe('Business endpoint', () => {
   let app: INestApplication;
   let listedBusinesses: Business[];
+  let updateBusinessUseCase: UpdateBusinessUseCase;
+  let repositoryUpdate: jest.MockedFunction<(business: Business) => Promise<Business>>;
 
   beforeAll(async () => {
     const business = Business.create({
@@ -24,6 +27,7 @@ describe('Business endpoint', () => {
       createdAt: new Date('2026-08-01T00:00:00.000Z'),
       updatedAt: new Date('2026-08-01T00:00:00.000Z'),
     });
+    repositoryUpdate = jest.fn((updatedBusiness: Business) => Promise.resolve(updatedBusiness));
     const repository = {
       create: (data: { name: string; legalName?: string; taxId?: string }): Promise<Business> => {
         const now = new Date('2026-08-01T00:00:00.000Z');
@@ -43,6 +47,7 @@ describe('Business endpoint', () => {
       },
       findById: (id: string): Promise<Business | null> => Promise.resolve(id === business.id ? business : null),
       list: (): Promise<Business[]> => Promise.resolve(listedBusinesses),
+      update: repositoryUpdate,
     };
     const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(BUSINESS_REPOSITORY)
@@ -52,6 +57,7 @@ describe('Business endpoint', () => {
     app = module.createNestApplication();
     configureApplication(app);
     await app.init();
+    updateBusinessUseCase = module.get(UpdateBusinessUseCase);
   });
 
   afterAll(async () => {
@@ -60,6 +66,7 @@ describe('Business endpoint', () => {
 
   beforeEach(() => {
     listedBusinesses = [];
+    repositoryUpdate.mockClear();
   });
 
   it('crea un negocio mediante HTTP', async () => {
@@ -103,6 +110,118 @@ describe('Business endpoint', () => {
 
   it('responde 400 para un identificador inválido', async () => {
     await request(app.getHttpServer()).get('/api/businesses/no-es-uuid').expect(400);
+  });
+
+  it('actualiza parcialmente un negocio sin exponer businessNumber', async () => {
+    await request(app.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001').send({ name: 'Cabañas Actualizadas' }).expect(200).expect(({ body }: { body: Record<string, unknown> }) => {
+      expect(body.name).toBe('Cabañas Actualizadas');
+      expect(body.legalName).toBe('Cabañas del Lago S.R.L.');
+      expect(body).not.toHaveProperty('businessNumber');
+    });
+  });
+
+  it.each<{ url: string; body: Record<string, string> }>([
+    { url: '/api/businesses/no-es-uuid', body: { name: 'Válido' } },
+  ])('rechaza actualizaciones inválidas', async ({ url, body }) => {
+    await request(app.getHttpServer()).patch(url).send(body).expect(400);
+  });
+
+  it('rechaza una actualización sin campos', async () => {
+    const executeSpy = jest.spyOn(updateBusinessUseCase, 'execute');
+
+    try {
+      await request(app.getHttpServer())
+        .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
+        .send({})
+        .expect(400)
+        .expect(({ body }: { body: { message: string } }) => {
+          expect(body.message).toBe('Se requiere al menos un campo actualizable.');
+        });
+
+      expect(executeSpy).toHaveBeenCalledWith('f8c49800-e50e-4d0e-b82b-0b51c09a0001', {
+        name: undefined,
+        legalName: undefined,
+        taxId: undefined,
+        timezone: undefined,
+        currency: undefined,
+      });
+      expect(repositoryUpdate).not.toHaveBeenCalled();
+    } finally {
+      executeSpy.mockRestore();
+    }
+  });
+
+  it('rechaza un nombre compuesto solo por espacios', async () => {
+    const executeSpy = jest.spyOn(updateBusinessUseCase, 'execute');
+
+    try {
+      await request(app.getHttpServer())
+        .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
+        .send({ name: ' ' })
+        .expect(400)
+        .expect(({ body }: { body: { message: string } }) => {
+          expect(body.message).toBe('El nombre del negocio es obligatorio.');
+        });
+
+      expect(executeSpy).toHaveBeenCalledWith('f8c49800-e50e-4d0e-b82b-0b51c09a0001', { name: ' ' });
+      expect(repositoryUpdate).not.toHaveBeenCalled();
+    } finally {
+      executeSpy.mockRestore();
+    }
+  });
+
+  it('rechaza una zona horaria inválida', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
+      .send({ timezone: 'invalid' })
+      .expect(400)
+      .expect(({ body }: { body: { message: string } }) => {
+        expect(body.message).toBe('La zona horaria no es válida.');
+      });
+  });
+
+  it('acepta una zona horaria IANA válida', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
+      .send({ timezone: 'America/Asuncion' })
+      .expect(200)
+      .expect(({ body }: { body: { timezone: string } }) => {
+        expect(body.timezone).toBe('America/Asuncion');
+      });
+  });
+
+  it('acepta PYG como moneda de actualización', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
+      .send({ currency: 'PYG' })
+      .expect(200)
+      .expect(({ body }: { body: { currency: string } }) => {
+        expect(body.currency).toBe('PYG');
+      });
+  });
+
+  it.each(['USD', 'EUR', ''])('rechaza %s como moneda de actualización', async (currency) => {
+    await request(app.getHttpServer())
+      .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
+      .send({ currency })
+      .expect(400)
+      .expect(({ body }: { body: { message: string } }) => {
+        expect(body.message).toBe('La moneda debe ser PYG.');
+      });
+  });
+
+  it('rechaza null como moneda de actualización', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
+      .send({ currency: null })
+      .expect(400)
+      .expect(({ body }: { body: { message: string } }) => {
+        expect(body.message).toBe('La moneda debe ser PYG.');
+      });
+  });
+
+  it('responde 404 al actualizar un negocio inexistente', async () => {
+    await request(app.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0002').send({ name: 'Nuevo' }).expect(404);
   });
 
   it('retorna una lista vacía mediante HTTP', async () => {

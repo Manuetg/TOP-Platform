@@ -29,4 +29,14 @@ describe('Business', () => {
     expect(business.createdAt).toBe(createdAt);
     expect(business.updatedAt).toBe(updatedAt);
   });
+
+  it('actualiza inmutablemente solo los campos indicados', () => {
+    const createdAt = new Date('2026-01-01T00:00:00.000Z');
+    const original = Business.create({ id: 'id', businessNumber: 7, name: 'Original', legalName: 'Legal', taxId: 'RUC', timezone: 'America/Asuncion', currency: 'PYG', status: BusinessStatus.ACTIVE, createdAt, updatedAt: createdAt });
+    const updated = original.update({ name: 'Nuevo', legalName: null, taxId: null });
+    expect(updated).not.toBe(original);
+    expect(original.name).toBe('Original'); expect(original.legalName).toBe('Legal'); expect(original.taxId).toBe('RUC');
+    expect(updated.name).toBe('Nuevo'); expect(updated.legalName).toBeNull(); expect(updated.taxId).toBeNull();
+    expect(updated.id).toBe('id'); expect(updated.businessNumber).toBe(7); expect(updated.status).toBe(BusinessStatus.ACTIVE); expect(updated.createdAt).toBe(createdAt); expect(updated.updatedAt.getTime()).toBeGreaterThanOrEqual(createdAt.getTime());
+  });
 });

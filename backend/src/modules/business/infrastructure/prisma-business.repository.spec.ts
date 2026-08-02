@@ -1,4 +1,5 @@
 import type { Business as PrismaBusiness } from '@prisma/client';
+import { Business } from '../domain/business.entity';
 import { BusinessStatus } from '../domain/business-status.enum';
 import { PrismaBusinessRepository } from './prisma-business.repository';
 
@@ -66,5 +67,13 @@ describe('PrismaBusinessRepository', () => {
     expect(findMany).toHaveBeenCalledWith({ orderBy: { createdAt: 'asc' } });
     expect(businesses.map((business) => business.id)).toEqual([record.id, laterRecord.id]);
     expect(businesses.map((business) => business.createdAt)).toEqual([createdAt, updatedAt]);
+  });
+
+  it('actualiza solo los campos permitidos y conserva valores nulos', async () => {
+    const update = jest.fn().mockResolvedValue({ ...record, name: 'Actualizado', legalName: null, taxId: null });
+    const repository = new PrismaBusinessRepository({ business: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update } } as never);
+    const business = await repository.update(Business.create({ ...record, name: 'Actualizado', legalName: null, taxId: null, status: BusinessStatus.ACTIVE }));
+    expect(update).toHaveBeenCalledWith({ where: { id: record.id }, data: { name: 'Actualizado', legalName: null, taxId: null, timezone: 'America/Asuncion', currency: 'PYG' } });
+    expect(business.legalName).toBeNull(); expect(business.taxId).toBeNull(); expect(business.businessNumber).toBe(42);
   });
 });

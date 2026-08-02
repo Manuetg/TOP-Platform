@@ -27,7 +27,7 @@ describe('ListBusinessesUseCase', () => {
   } {
     const list: jest.MockedFunction<BusinessRepository['list']> = jest.fn().mockResolvedValue(items);
 
-    return { repository: { create: jest.fn(), findById: jest.fn(), list }, list };
+    return { repository: { create: jest.fn(), findById: jest.fn(), list, update: jest.fn() }, list };
   }
 
   it('retorna una lista vacía', async () => {

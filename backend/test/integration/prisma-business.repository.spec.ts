@@ -63,4 +63,22 @@ describeWithPostgres('PrismaBusinessRepository con PostgreSQL', () => {
     expect(businesses.map((business) => business.id)).toEqual([first.id, second.id]);
     expect(businesses.map((business) => business.createdAt)).toEqual([first.createdAt, second.createdAt]);
   });
+
+  it('persiste una actualización parcial y preserva campos no enviados', async () => {
+    const created = await repository.create({ name: 'Original', legalName: 'Legal', taxId: '8001' });
+    const updated = await repository.update(created.update({ name: 'Actualizado' }));
+    const persisted = await prisma.business.findUniqueOrThrow({ where: { id: created.id } });
+    expect(updated.name).toBe('Actualizado');
+    expect(persisted).toMatchObject({ id: created.id, name: 'Actualizado', legalName: 'Legal', taxId: '8001', timezone: 'America/Asuncion', currency: 'PYG', status: 'ACTIVE', createdAt: created.createdAt });
+  });
+
+  it('persiste una actualización múltiple y permite limpiar opcionales', async () => {
+    const created = await repository.create({ name: 'Original', legalName: 'Legal', taxId: '8001' });
+    const updated = await repository.update(created.update({ name: 'Nuevo', legalName: 'Nueva S.A.', taxId: '8002', timezone: 'America/New_York', currency: 'PYG' }));
+    const cleaned = await repository.update(updated.update({ legalName: null, taxId: null }));
+    const persisted = await prisma.business.findUniqueOrThrow({ where: { id: created.id } });
+    expect(cleaned).toMatchObject({ name: 'Nuevo', legalName: null, taxId: null, timezone: 'America/New_York', currency: 'PYG' });
+    expect(persisted).toMatchObject({ name: 'Nuevo', legalName: null, taxId: null, timezone: 'America/New_York', currency: 'PYG' });
+    expect(persisted.updatedAt.getTime()).toBeGreaterThan(created.updatedAt.getTime());
+  });
 });
