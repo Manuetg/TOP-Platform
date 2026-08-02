@@ -1,0 +1,2 @@
+import { Argon2PasswordHasher } from './argon2-password-hasher';
+describe('Argon2PasswordHasher', () => { it('genera y verifica un hash Argon2id', async () => { const hasher = new Argon2PasswordHasher(); const hash = await hasher.hash('contraseña válida'); expect(hash).toMatch(/^\$argon2id\$/); expect(hash).not.toBe('contraseña válida'); await expect(hasher.verify(hash, 'contraseña válida')).resolves.toBe(true); await expect(hasher.verify(hash, 'otra contraseña')).resolves.toBe(false); }); });

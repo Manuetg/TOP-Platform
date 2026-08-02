@@ -12,7 +12,12 @@
     "src/modules/business/application/**/*.ts",
     "src/modules/business/domain/**/*.ts",
     "src/modules/business/infrastructure/prisma-business.repository.ts",
-    "!src/modules/business/**/*.spec.ts"
+    "!src/modules/business/**/*.spec.ts",
+    "src/modules/identity/application/**/*.ts",
+    "src/modules/identity/domain/**/*.ts",
+    "src/modules/identity/infrastructure/argon2-password-hasher.ts",
+    "src/modules/identity/infrastructure/prisma-user.repository.ts",
+    "!src/modules/identity/**/*.spec.ts"
   ],
   "thresholds": { "high": 80, "low": 70, "break": 70 }
 }

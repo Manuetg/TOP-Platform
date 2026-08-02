@@ -13,6 +13,28 @@ enum BusinessStatus {
   ARCHIVED
 }
 
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  status          UserStatus       @default(ACTIVE)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  localCredential LocalCredential?
+}
+
+model LocalCredential {
+  userId       String   @id
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model Business {
   id             String         @id @default(uuid())
   businessNumber Int?
