@@ -10,7 +10,7 @@ La épica Business está completada.
 
 ## Próxima épica
 
-Identity & Access es la próxima épica. Su secuencia comienza con la creación de User y requiere resolver la capacidad explícita de membresías User–Business antes de Login. El orden operativo vigente se encuentra en [07-Backlog.md](07-Backlog.md).
+Identity & Access es la próxima épica. Su secuencia comienza con IAM-004 — Create User mediante aprovisionamiento administrativo y continúa con IAM-009 — Manage User-Business Membership antes de Login. El orden operativo vigente se encuentra en [07-Backlog.md](07-Backlog.md).
 
 ## Secuencia de dominios del MVP
 

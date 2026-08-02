@@ -126,6 +126,8 @@ Administrar la identidad global de los usuarios, sus credenciales locales y sus 
 - Mantener credenciales locales mediante hashes de contraseña.
 - Mantener la pertenencia de un usuario a uno o varios Negocios y el rol aplicable en cada membresía.
 - Proveer la información necesaria para autenticar usuarios y resolver su contexto autorizado.
+- Crear User y LocalCredential mediante aprovisionamiento administrativo, sin crear membresías implícitas.
+- Gestionar UserBusinessMembership como capacidad separada.
 
 ### 3. No Responsabilidad
 
@@ -135,6 +137,9 @@ Identity & Access no:
 - selecciona silenciosamente un Negocio activo durante el login;
 - almacena contraseñas en texto plano;
 - implementa registro público en el MVP;
+- inicia sesión ni emite tokens al crear un User;
+- crea credenciales como parte de la gestión de membresías;
+- crea membresías como parte de la creación de User;
 - administra sesiones, refresh tokens ni revocación como parte del modelo inicial.
 
 ### 4. Conceptos principales
@@ -150,19 +155,21 @@ Identity & Access no:
 #### User
 
 - Id UUID.
-- Email normalizado y único.
+- Email normalizado y único globalmente.
 - Estado: `ACTIVE` o `DISABLED`.
 - Fecha de creación.
 - Fecha de modificación.
 
 #### LocalCredential
 
-- User asociado.
+- User asociado de forma única.
 - Hash de contraseña.
 - Fecha de creación.
 - Fecha de modificación.
 
 La contraseña no se almacena en texto plano.
+
+La contraseña aceptada tiene entre 12 y 128 caracteres, permite espacios y caracteres Unicode, no se trunca y se transforma en un hash Argon2id. No se aplican requisitos arbitrarios de mayúsculas, números o símbolos en el MVP. La verificación contra contraseñas comprometidas queda como mejora futura.
 
 #### UserBusinessMembership
 
@@ -183,6 +190,11 @@ No se agrega un estado de membresía al modelo mínimo: el estado `DISABLED` del
 - Una combinación de User y Business solo puede tener una membresía.
 - Toda membresía debe referenciar un Business existente.
 - Las membresías determinan el rol del User dentro de cada Business.
+- Todo User creado administrativamente se crea con estado `ACTIVE` y su LocalCredential en una única operación atómica.
+- Crear User no crea una membresía ni asigna un Business implícitamente.
+- IAM-009 crea UserBusinessMembership, valida la existencia de User y Business, y exige uno de los roles aprobados.
+- Un email se normaliza mediante `trim` y conversión completa a minúsculas antes de validar formato y unicidad. No se eliminan puntos ni alias con `+` específicos de proveedores.
+- Un email normalizado duplicado se rechaza.
 - Toda operación operativa debe ejecutarse dentro de un `businessId` autorizado para el User.
 - Login devuelve las membresías disponibles y no selecciona automáticamente un Business activo.
 - La autorización se valida siempre en backend.
@@ -205,35 +217,36 @@ Los eventos de dominio y de auditoría específicos de Identity & Access están 
 - User se relaciona con una LocalCredential para la autenticación propia del MVP.
 - User se relaciona con uno o varios Businesses mediante UserBusinessMembership.
 - UserBusinessMembership pertenece a un User y a un Business.
+- Un Business puede tener varios Users mediante UserBusinessMembership.
 - Los módulos operativos consumen el contexto autorizado de Business, sin acceder a credenciales.
 
-No se definen aún cardinalidades técnicas de base de datos ni relaciones con sesiones o refresh tokens.
+User y LocalCredential mantienen una relación uno a uno. No se definen aún otros detalles técnicos de base de datos ni relaciones con sesiones o refresh tokens.
 
 ### 10. Capacidades
 
 - Crear User.
+- Gestionar UserBusinessMembership.
 - Iniciar sesión.
 - Actualizar User.
 - Deshabilitar User.
 - Gestionar roles y permisos según el backlog.
 
-La capacidad explícita para asociar User con Business y rol está **Pendiente de definición** en el backlog.
+- **IAM-004 — Create User:** aprovisionamiento administrativo de User y LocalCredential; no crea membresía, no inicia sesión y no devuelve tokens.
+- **IAM-009 — Manage User-Business Membership:** crea una membresía entre User, Business y Role; no crea User, credenciales, Login ni permisos adicionales.
 
 ### 11. Restricciones
 
 - No compartir datos operativos entre Businesses.
 - No permitir registro público en el MVP.
+- No exponer contraseña, passwordHash, tokens ni membresías inexistentes al crear un User.
 - No almacenar contraseñas, hashes o tokens en logs.
 - No seleccionar un contexto de Business sin una acción o autorización explícita posterior.
 - No incorporar Session ni RefreshToken al modelo inicial.
 
 ### 12. Pendientes
 
-- Regla exacta de normalización del email.
-- Política de contraseña.
 - Transiciones de estado de User.
 - Gestión individual del estado de una membresía.
-- Capacidad y contrato para asociar User con Business y rol.
 - Matriz detallada de permisos por rol.
 - Selección explícita del contexto activo de Business.
 

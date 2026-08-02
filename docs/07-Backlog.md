@@ -20,11 +20,12 @@ Progreso de Business: 5 de 5 capacidades completadas (100%).
 
 ## Identity & Access
 
-La capacidad fundacional explícita para crear y administrar la asociación User–Business–rol no existe todavía en este backlog. Se propone **IAM-009 — Manage User-Business Membership**, pendiente de aprobación explícita antes de agregarla al backlog o alterar su numeración. Debe resolverse antes de implementar Login.
+IAM-004 y IAM-009 son las capacidades fundacionales de Identity & Access. Se implementan antes de Login para evitar una dependencia circular de autorización.
 
-Secuencia ejecutable aprobada en este backlog: IAM-004, capacidad de membresías pendiente de aprobación, IAM-007, IAM-001, IAM-003, IAM-002, IAM-006, IAM-005 e IAM-008.
+Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adicional, IAM-001, protección progresiva de endpoints administrativos, IAM-003, IAM-002, IAM-006, IAM-005 e IAM-008.
 
-- **IAM-004 — Create User.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. **Siguiente capacidad.**
+- **IAM-004 — Create User.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: `POST /api/users` propuesto para habilitación posterior; el primer slice usa aprovisionamiento administrativo mediante script o seed. Pruebas obligatorias: unitarias, integración PostgreSQL, E2E, aceptación Gherkin, mutation testing y seguridad. Definition of Done: crea User `ACTIVE` y LocalCredential de forma atómica, normaliza y valida email, aplica política de contraseña, no expone datos sensibles y supera los controles vigentes. **Siguiente capacidad.**
+- **IAM-009 — Manage User-Business Membership.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/memberships` propuesto. Pruebas obligatorias: unitarias, integración PostgreSQL, E2E, aceptación Gherkin, mutation testing y seguridad. Definition of Done: crea una membresía única User–Business con rol válido, valida ambas referencias, conserva aislamiento multi-tenant y no crea User, credenciales ni tokens.
 - **IAM-007 — Roles.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **IAM-001 — Login.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: `POST /api/auth/login`. Pruebas obligatorias: según convención. Definition of Done: según convención. Depende de User, membresías y roles.
 - **IAM-003 — Refresh Token.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
@@ -99,7 +100,7 @@ Secuencia ejecutable aprobada en este backlog: IAM-004, capacidad de membresías
 | Épica | Total | Completed | In Progress | Planned | Blocked |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Business | 5 | 5 | 0 | 0 | 0 |
-| Identity & Access | 8 | 0 | 0 | 8 | 0 |
+| Identity & Access | 9 | 0 | 0 | 9 | 0 |
 | Resource | 7 | 0 | 0 | 7 | 0 |
 | Pricing | 5 | 0 | 0 | 5 | 0 |
 | Availability | 4 | 0 | 0 | 4 | 0 |
@@ -108,6 +109,6 @@ Secuencia ejecutable aprobada en este backlog: IAM-004, capacidad de membresías
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 0 | 0 | 3 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **50** | **5** | **0** | **45** | **0** |
+| **Total** | **51** | **5** | **0** | **46** | **0** |
 
-Progreso general del MVP: 5 de 50 capacidades completadas (10%).
+Progreso general del MVP: 5 de 51 capacidades completadas (9,8%).

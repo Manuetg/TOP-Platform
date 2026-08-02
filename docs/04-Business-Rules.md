@@ -138,3 +138,18 @@ La implementación técnica queda **Pendiente** para Architecture.
 ### No bloqueantes o futuras
 
 - Los demás pendientes de Pricing, Availability, Contact, Booking, Payment y Block, sin duplicación.
+
+## 15. Identity & Access
+
+- **BR-068 — Identidad global.** Tipo: Integridad. Estado: Aprobada. Dominios: Identity & Access, Business. Descripción: User es una identidad global y puede pertenecer a varios Businesses. Comportamiento: las operaciones operativas requieren un `businessId` autorizado por membresía. Excepciones: ninguna.
+- **BR-069 — Email normalizado y único.** Tipo: Integridad. Estado: Aprobada. Dominios: Identity & Access. Descripción: el email se normaliza con `trim` y minúsculas completas, se valida su formato y es único globalmente en su valor normalizado. Comportamiento: no se eliminan puntos ni alias `+` específicos de proveedores; un duplicado se rechaza. Excepciones: ninguna.
+- **BR-070 — Credencial local protegida.** Tipo: Integridad. Estado: Aprobada. Dominios: Identity & Access. Descripción: LocalCredential tiene relación uno a uno con User y solo conserva `passwordHash`. Comportamiento: la contraseña nunca se persiste ni registra en texto plano. Excepciones: ninguna.
+- **BR-071 — Política inicial de contraseña.** Tipo: Integridad. Estado: Aprobada. Dominios: Identity & Access. Descripción: una contraseña válida tiene entre 12 y 128 caracteres; permite espacios y caracteres Unicode. Comportamiento: no se trunca ni exige composición arbitraria; se almacena mediante Argon2id. Excepciones: ninguna.
+- **BR-072 — Creación administrativa de User.** Tipo: Restricción del MVP. Estado: Aprobada. Dominios: Identity & Access. Descripción: IAM-004 es aprovisionamiento administrativo sin registro público. Comportamiento: la primera implementación se ejecuta mediante script o seed administrativo controlado, sin Login previo. Excepciones: ninguna.
+- **BR-073 — Creación atómica de identidad.** Tipo: Integridad. Estado: Aprobada. Dominios: Identity & Access. Descripción: crear User crea User `ACTIVE` y LocalCredential en una única operación. Comportamiento: si falla la credencial, se revierte el User. Excepciones: ninguna.
+- **BR-074 — Membresía única.** Tipo: Integridad. Estado: Aprobada. Dominios: Identity & Access, Business. Descripción: solo puede existir una UserBusinessMembership por combinación de User y Business. Comportamiento: una membresía duplicada se rechaza. Excepciones: ninguna.
+- **BR-075 — Integridad de membresía.** Tipo: Integridad. Estado: Aprobada. Dominios: Identity & Access, Business. Descripción: una membresía requiere User y Business existentes, y un rol obligatorio aprobado. Comportamiento: IAM-009 valida referencias y acepta únicamente `OWNER`, `ADMIN`, `RECEPTIONIST` o `VIEWER`. Excepciones: ninguna.
+- **BR-076 — Separación de capacidades IAM.** Tipo: Restricción del MVP. Estado: Aprobada. Dominios: Identity & Access. Descripción: IAM-004 e IAM-009 son capacidades separadas de Login, Roles y Permissions. Comportamiento: crear User no crea membresía; gestionar membresía no crea User, credenciales, tokens ni permisos adicionales. Excepciones: ninguna.
+- **BR-077 — Datos sensibles de identidad.** Tipo: Integridad. Estado: Aprobada. Dominios: Identity & Access. Descripción: las respuestas de creación de User no exponen contraseña, passwordHash ni tokens. Comportamiento: solo se devuelven los campos públicos aprobados. Excepciones: ninguna.
+
+**Pendientes:** verificación contra contraseñas comprometidas, transiciones de User, estado individual de membresía, matriz detallada de permisos y mecanismo administrativo que protegerá `POST /api/users` cuando se habilite como endpoint.

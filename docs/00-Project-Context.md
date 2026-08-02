@@ -28,7 +28,7 @@ Los usuarios identificados son Propietario, Recepcionista y Administrador.
 
 El MVP incluye Negocio, Recursos, Precios, Disponibilidad, Reservas, Pagos, Calendario y Dashboard.
 
-La épica Business está completada al 100%: cinco de cinco capacidades. Identity & Access es la siguiente épica; la siguiente capacidad aprobada es IAM-004 — Create User. Login depende de la capacidad de membresías User–Business, propuesta como IAM-009 y pendiente de aprobación explícita.
+La épica Business está completada al 100%: cinco de cinco capacidades. Identity & Access es la siguiente épica; la siguiente capacidad aprobada es IAM-004 — Create User. Login depende de IAM-009 — Manage User-Business Membership, que ya forma parte del backlog y debe implementarse antes de Login.
 
 El estado operativo de cada capacidad se mantiene en el [Backlog](07-Backlog.md).
 
