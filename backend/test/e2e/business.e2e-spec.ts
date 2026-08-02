@@ -120,6 +120,25 @@ describe('Business endpoint', () => {
     });
   });
 
+  it('archiva un negocio existente sin exponer businessNumber', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001/archive')
+      .send()
+      .expect(200)
+      .expect(({ body }: { body: Record<string, unknown> }) => {
+        expect(body.status).toBe('ARCHIVED');
+        expect(body).not.toHaveProperty('businessNumber');
+      });
+  });
+
+  it('responde 400 al archivar con un identificador inválido', async () => {
+    await request(app.getHttpServer()).patch('/api/businesses/no-es-uuid/archive').send().expect(400);
+  });
+
+  it('responde 404 al archivar un negocio inexistente', async () => {
+    await request(app.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0002/archive').send().expect(404);
+  });
+
   it.each<{ url: string; body: Record<string, string> }>([
     { url: '/api/businesses/no-es-uuid', body: { name: 'Válido' } },
   ])('rechaza actualizaciones inválidas', async ({ url, body }) => {

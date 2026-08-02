@@ -81,4 +81,18 @@ describeWithPostgres('PrismaBusinessRepository con PostgreSQL', () => {
     expect(persisted).toMatchObject({ name: 'Nuevo', legalName: null, taxId: null, timezone: 'America/New_York', currency: 'PYG' });
     expect(persisted.updatedAt.getTime()).toBeGreaterThan(created.updatedAt.getTime());
   });
+  it('persiste el archivado y lo excluye del listado activo', async () => {
+    const archived = await repository.create({ name: 'Archivado' });
+    const active = await repository.create({ name: 'Activo' });
+
+    const archivedResult = await repository.update(archived.archive());
+    const persisted = await prisma.business.findUniqueOrThrow({ where: { id: archived.id } });
+    const found = await repository.findById(archived.id);
+    const listed = await repository.list();
+
+    expect(archivedResult.status).toBe('ARCHIVED');
+    expect(persisted.status).toBe('ARCHIVED');
+    expect(found?.status).toBe('ARCHIVED');
+    expect(listed.map((business) => business.id)).toEqual([active.id]);
+  });
 });

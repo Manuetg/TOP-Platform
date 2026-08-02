@@ -39,4 +39,20 @@ describe('Business', () => {
     expect(updated.name).toBe('Nuevo'); expect(updated.legalName).toBeNull(); expect(updated.taxId).toBeNull();
     expect(updated.id).toBe('id'); expect(updated.businessNumber).toBe(7); expect(updated.status).toBe(BusinessStatus.ACTIVE); expect(updated.createdAt).toBe(createdAt); expect(updated.updatedAt.getTime()).toBeGreaterThanOrEqual(createdAt.getTime());
   });
+
+  it('archiva inmutablemente y preserva la información histórica', () => {
+    const createdAt = new Date('2026-01-01T00:00:00.000Z');
+    const active = Business.create({ id: 'id', businessNumber: 7, name: 'Original', legalName: 'Legal', taxId: 'RUC', timezone: 'America/Asuncion', currency: 'PYG', status: BusinessStatus.ACTIVE, createdAt, updatedAt: createdAt });
+
+    const archived = active.archive();
+
+    expect(archived).not.toBe(active);
+    expect(archived.status).toBe(BusinessStatus.ARCHIVED);
+    expect(archived.id).toBe(active.id);
+    expect(archived.businessNumber).toBe(active.businessNumber);
+    expect(archived.name).toBe(active.name);
+    expect(archived.createdAt).toBe(createdAt);
+    expect(archived.updatedAt.getTime()).toBeGreaterThanOrEqual(createdAt.getTime());
+    expect(archived.archive()).toBe(archived);
+  });
 });

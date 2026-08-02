@@ -9,6 +9,9 @@ Given('existen negocios registrados', function (this: TopWorld) {
 Given('existe un negocio con nombre, razón social, RUC, zona horaria y moneda', function (this: TopWorld) { assert.ok(this.app); });
 Given('existe un negocio con razón social y RUC', function (this: TopWorld) { assert.ok(this.app); });
 Given('existe un negocio', function (this: TopWorld) { assert.ok(this.app); });
+Given('existe un negocio activo', function (this: TopWorld) { assert.ok(this.app); });
+Given('existe un negocio archivado', async function (this: TopWorld) { await request(this.app?.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001/archive').send(); });
+Given('existe otro negocio activo', function (this: TopWorld) { assert.ok(this.app); });
 
 When('creo un negocio llamado {string}', async function (this: TopWorld, name: string) {
   this.response = await request(this.app?.getHttpServer()).post('/api/businesses').send({ name });
@@ -36,6 +39,14 @@ When('intento actualizarlo con una moneda distinta de PYG', async function (this
 
 When('intento actualizarlo con una zona horaria inválida', async function (this: TopWorld) {
   this.response = await request(this.app?.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001').send({ timezone: 'invalid' });
+});
+
+When('archivo el negocio', async function (this: TopWorld) {
+  this.response = await request(this.app?.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001/archive').send();
+});
+
+When('vuelvo a archivarlo', async function (this: TopWorld) {
+  this.response = await request(this.app?.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001/archive').send();
 });
 
 Then('recibo una respuesta de creación exitosa', function (this: TopWorld) {
@@ -71,3 +82,7 @@ Then('razón social y RUC quedan en null', function (this: TopWorld) { assert.eq
 Then('el negocio no se modifica', function (this: TopWorld) { assert.equal(this.response?.body.message, 'La moneda debe ser PYG.'); });
 Then('recibo el mensaje de zona horaria inválida', function (this: TopWorld) { assert.equal(this.response?.body.message, 'La zona horaria no es válida.'); });
 Then('la respuesta no contiene businessNumber', function (this: TopWorld) { assert.equal('businessNumber' in (this.response?.body ?? {}), false); });
+Then('su estado es ARCHIVED', function (this: TopWorld) { assert.equal(this.response?.body.status, 'ARCHIVED'); });
+Then('su estado permanece ARCHIVED', function (this: TopWorld) { assert.equal(this.response?.body.status, 'ARCHIVED'); });
+Then('el negocio conserva sus datos', function (this: TopWorld) { assert.equal(this.response?.body.name, 'Cabañas del Lago'); assert.equal(this.response?.body.businessNumber, undefined); });
+Then('recibo únicamente el negocio activo', function (this: TopWorld) { assert.deepEqual(this.response?.body.map((business: { id: string }) => business.id), ['f8c49800-e50e-4d0e-b82b-0b51c09a0002']); });

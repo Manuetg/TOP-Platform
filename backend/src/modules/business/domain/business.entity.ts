@@ -32,6 +32,14 @@ export class Business {
     return new Business({ ...this.props, ...changes, updatedAt: new Date() });
   }
 
+  archive(): Business {
+    if (this.props.status === BusinessStatus.ARCHIVED) {
+      return this;
+    }
+
+    return new Business({ ...this.props, status: BusinessStatus.ARCHIVED, updatedAt: new Date() });
+  }
+
   get id(): string {
     return this.props.id;
   }

@@ -22,7 +22,10 @@ export class PrismaBusinessRepository implements BusinessRepository {
   }
 
   async list(): Promise<Business[]> {
-    const businesses = await this.prisma.business.findMany({ orderBy: { createdAt: 'asc' } });
+    const businesses = await this.prisma.business.findMany({
+      where: { status: 'ACTIVE' },
+      orderBy: { createdAt: 'asc' },
+    });
 
     return businesses.map((business) => this.toDomain(business));
   }
@@ -36,6 +39,7 @@ export class PrismaBusinessRepository implements BusinessRepository {
         taxId: business.taxId,
         timezone: business.timezone,
         currency: business.currency,
+        status: business.status,
       },
     });
 

@@ -64,7 +64,7 @@ describe('PrismaBusinessRepository', () => {
 
     const businesses = await repository.list();
 
-    expect(findMany).toHaveBeenCalledWith({ orderBy: { createdAt: 'asc' } });
+    expect(findMany).toHaveBeenCalledWith({ where: { status: 'ACTIVE' }, orderBy: { createdAt: 'asc' } });
     expect(businesses.map((business) => business.id)).toEqual([record.id, laterRecord.id]);
     expect(businesses.map((business) => business.createdAt)).toEqual([createdAt, updatedAt]);
   });
@@ -73,7 +73,7 @@ describe('PrismaBusinessRepository', () => {
     const update = jest.fn().mockResolvedValue({ ...record, name: 'Actualizado', legalName: null, taxId: null });
     const repository = new PrismaBusinessRepository({ business: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update } } as never);
     const business = await repository.update(Business.create({ ...record, name: 'Actualizado', legalName: null, taxId: null, status: BusinessStatus.ACTIVE }));
-    expect(update).toHaveBeenCalledWith({ where: { id: record.id }, data: { name: 'Actualizado', legalName: null, taxId: null, timezone: 'America/Asuncion', currency: 'PYG' } });
+    expect(update).toHaveBeenCalledWith({ where: { id: record.id }, data: { name: 'Actualizado', legalName: null, taxId: null, timezone: 'America/Asuncion', currency: 'PYG', status: BusinessStatus.ACTIVE } });
     expect(business.legalName).toBeNull(); expect(business.taxId).toBeNull(); expect(business.businessNumber).toBe(42);
   });
 });
