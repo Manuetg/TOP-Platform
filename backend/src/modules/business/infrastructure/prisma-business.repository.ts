@@ -21,6 +21,12 @@ export class PrismaBusinessRepository implements BusinessRepository {
     return business ? this.toDomain(business) : null;
   }
 
+  async list(): Promise<Business[]> {
+    const businesses = await this.prisma.business.findMany({ orderBy: { createdAt: 'asc' } });
+
+    return businesses.map((business) => this.toDomain(business));
+  }
+
   private toDomain(business: PrismaBusiness): Business {
     return Business.create({
       id: business.id,

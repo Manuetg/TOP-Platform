@@ -20,7 +20,7 @@ describe('GetBusinessByIdUseCase', () => {
   it('retorna el negocio encontrado', async () => {
     const findById = jest.fn<ReturnType<BusinessRepository['findById']>, Parameters<BusinessRepository['findById']>>()
       .mockResolvedValue(business);
-    const useCase = new GetBusinessByIdUseCase({ create: jest.fn(), findById });
+    const useCase = new GetBusinessByIdUseCase({ create: jest.fn(), findById, list: jest.fn() });
 
     const result = await useCase.execute(business.id);
 
@@ -36,7 +36,7 @@ describe('GetBusinessByIdUseCase', () => {
   });
 
   it('rechaza cuando el negocio no existe', async () => {
-    const useCase = new GetBusinessByIdUseCase({ create: jest.fn(), findById: jest.fn().mockResolvedValue(null) });
+    const useCase = new GetBusinessByIdUseCase({ create: jest.fn(), findById: jest.fn().mockResolvedValue(null), list: jest.fn() });
 
     await expect(useCase.execute('f8c49800-e50e-4d0e-b82b-0b51c09a0002')).rejects.toThrow(BusinessNotFoundError);
     await expect(useCase.execute('f8c49800-e50e-4d0e-b82b-0b51c09a0002')).rejects.toThrow('El negocio no existe.');

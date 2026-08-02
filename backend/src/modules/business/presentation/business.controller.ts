@@ -2,6 +2,7 @@ import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, NotFo
 import { ApiBadRequestResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateBusinessUseCase, InvalidBusinessNameError } from '../application/create-business.use-case';
 import { BusinessNotFoundError, GetBusinessByIdUseCase } from '../application/get-business-by-id.use-case';
+import { ListBusinessesUseCase } from '../application/list-businesses.use-case';
 import { BusinessResponseDto } from './dto/business.response.dto';
 import { CreateBusinessRequestDto } from './dto/create-business.request.dto';
 
@@ -11,6 +12,7 @@ export class BusinessController {
   constructor(
     private readonly createBusinessUseCase: CreateBusinessUseCase,
     private readonly getBusinessByIdUseCase: GetBusinessByIdUseCase,
+    private readonly listBusinessesUseCase: ListBusinessesUseCase,
   ) {}
 
   @Post()
@@ -30,6 +32,15 @@ export class BusinessController {
 
       throw error;
     }
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Listar negocios' })
+  @ApiOkResponse({ type: BusinessResponseDto, isArray: true, description: 'Returns all businesses.' })
+  async list(): Promise<BusinessResponseDto[]> {
+    const businesses = await this.listBusinessesUseCase.execute();
+
+    return businesses.map((business) => BusinessResponseDto.fromDomain(business));
   }
 
   @Get(':id')

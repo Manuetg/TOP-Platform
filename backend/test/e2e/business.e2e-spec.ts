@@ -9,6 +9,7 @@ import { BUSINESS_REPOSITORY } from '../../src/modules/business/domain/business.
 
 describe('Business endpoint', () => {
   let app: INestApplication;
+  let listedBusinesses: Business[];
 
   beforeAll(async () => {
     const business = Business.create({
@@ -41,6 +42,7 @@ describe('Business endpoint', () => {
         }));
       },
       findById: (id: string): Promise<Business | null> => Promise.resolve(id === business.id ? business : null),
+      list: (): Promise<Business[]> => Promise.resolve(listedBusinesses),
     };
     const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(BUSINESS_REPOSITORY)
@@ -54,6 +56,10 @@ describe('Business endpoint', () => {
 
   afterAll(async () => {
     await app.close();
+  });
+
+  beforeEach(() => {
+    listedBusinesses = [];
   });
 
   it('crea un negocio mediante HTTP', async () => {
@@ -97,5 +103,28 @@ describe('Business endpoint', () => {
 
   it('responde 400 para un identificador inválido', async () => {
     await request(app.getHttpServer()).get('/api/businesses/no-es-uuid').expect(400);
+  });
+
+  it('retorna una lista vacía mediante HTTP', async () => {
+    await request(app.getHttpServer()).get('/api/businesses').expect(200).expect([]);
+  });
+
+  it('retorna negocios ordenados por fecha de creación sin exponer businessNumber', async () => {
+    const firstDate = new Date('2026-01-01T00:00:00.000Z');
+    const secondDate = new Date('2026-01-02T00:00:00.000Z');
+    listedBusinesses = [
+      Business.create({ id: 'f8c49800-e50e-4d0e-b82b-0b51c09a0003', businessNumber: 3, name: 'Primero', legalName: null, taxId: null, timezone: 'America/Asuncion', currency: 'PYG', status: BusinessStatus.ACTIVE, createdAt: firstDate, updatedAt: firstDate }),
+      Business.create({ id: 'f8c49800-e50e-4d0e-b82b-0b51c09a0004', businessNumber: 4, name: 'Segundo', legalName: null, taxId: null, timezone: 'America/Asuncion', currency: 'PYG', status: BusinessStatus.ACTIVE, createdAt: secondDate, updatedAt: secondDate }),
+    ];
+
+    await request(app.getHttpServer())
+      .get('/api/businesses')
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .expect(({ body }: { body: Array<Record<string, unknown>> }) => {
+        expect(body.map((business) => business.id)).toEqual([listedBusinesses[0].id, listedBusinesses[1].id]);
+        expect(body.map((business) => business.createdAt)).toEqual([firstDate.toISOString(), secondDate.toISOString()]);
+        expect(body.every((business) => !('businessNumber' in business))).toBe(true);
+      });
   });
 });
