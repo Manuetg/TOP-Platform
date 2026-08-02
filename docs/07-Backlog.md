@@ -11,10 +11,12 @@ Los endpoints no definidos expresamente se marcan como **Pendiente de definició
 ## Business
 
 - **BUS-001 — Create Business.** Estado: Completed. Dominio: Business. Prioridad: Alta. Endpoint: `POST /api/businesses`. Pruebas obligatorias: unitarias, integración, E2E y aceptación. Definition of Done: aplicada.
-- **BUS-002 — Get Business by Id.** Estado: Planned. Dominio: Business. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **BUS-003 — List Businesses.** Estado: Planned. Dominio: Business. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **BUS-004 — Update Business.** Estado: Planned. Dominio: Business. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **BUS-002 — Get Business by Id.** Estado: Completed. Dominio: Business. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **BUS-003 — List Businesses.** Estado: Completed. Dominio: Business. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **BUS-004 — Update Business.** Estado: Planned. Dominio: Business. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. Siguiente capacidad.
 - **BUS-005 — Archive Business.** Estado: Planned. Dominio: Business. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+
+Progreso de Business: 3 de 5 capacidades completadas (60%).
 
 ## Identity & Access
 
@@ -92,7 +94,7 @@ Los endpoints no definidos expresamente se marcan como **Pendiente de definició
 
 | Épica | Total | Completed | In Progress | Planned | Blocked |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Business | 5 | 1 | 0 | 4 | 0 |
+| Business | 5 | 3 | 0 | 2 | 0 |
 | Identity & Access | 8 | 0 | 0 | 8 | 0 |
 | Resource | 7 | 0 | 0 | 7 | 0 |
 | Pricing | 5 | 0 | 0 | 5 | 0 |
@@ -102,4 +104,4 @@ Los endpoints no definidos expresamente se marcan como **Pendiente de definició
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 0 | 0 | 3 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **50** | **1** | **0** | **49** | **0** |
+| **Total** | **50** | **3** | **0** | **47** | **0** |
