@@ -1,5 +1,35 @@
 import { MembershipRole } from '../domain/membership-role.enum';
-import { PrismaMembershipRepository } from './prisma-membership.repository';
 import { PrismaIdentityService } from './prisma-identity.service';
+import { PrismaMembershipRepository } from './prisma-membership.repository';
+
 const row = { id: '33333333-3333-4333-8333-333333333333', userId: '11111111-1111-4111-8111-111111111111', businessId: '22222222-2222-4222-8222-222222222222', role: MembershipRole.OWNER, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-01-02') };
-describe('PrismaMembershipRepository', () => { const prisma = new PrismaIdentityService(); const repository = new PrismaMembershipRepository(prisma); beforeEach(() => jest.restoreAllMocks()); it('consulta con la clave compuesta y mapea', async () => { const findUnique = jest.spyOn(prisma.userBusinessMembership, 'findUnique').mockResolvedValue(row); await expect(repository.findByUserAndBusiness(row.userId, row.businessId)).resolves.toMatchObject(row); expect(findUnique).toHaveBeenCalledWith({ where: { userId_businessId: { userId: row.userId, businessId: row.businessId } } }); }); it('retorna null cuando no existe', async () => { jest.spyOn(prisma.userBusinessMembership, 'findUnique').mockResolvedValue(null); await expect(repository.findByUserAndBusiness(row.userId, row.businessId)).resolves.toBeNull(); }); it('crea con datos exactos', async () => { const create = jest.spyOn(prisma.userBusinessMembership, 'create').mockResolvedValue(row); await expect(repository.create({ userId: row.userId, businessId: row.businessId, role: MembershipRole.OWNER })).resolves.toMatchObject(row); expect(create).toHaveBeenCalledWith({ data: { userId: row.userId, businessId: row.businessId, role: MembershipRole.OWNER } }); }); });
+
+describe('PrismaMembershipRepository', () => {
+  const prisma = new PrismaIdentityService();
+  const repository = new PrismaMembershipRepository(prisma);
+
+  beforeEach(() => jest.restoreAllMocks());
+
+  it('consulta con la clave compuesta y mapea', async () => {
+    const findUnique = jest.spyOn(prisma.userBusinessMembership, 'findUnique').mockResolvedValue(row);
+    await expect(repository.findByUserAndBusiness(row.userId, row.businessId)).resolves.toMatchObject(row);
+    expect(findUnique).toHaveBeenCalledWith({ where: { userId_businessId: { userId: row.userId, businessId: row.businessId } } });
+  });
+
+  it('retorna null cuando no existe', async () => {
+    jest.spyOn(prisma.userBusinessMembership, 'findUnique').mockResolvedValue(null);
+    await expect(repository.findByUserAndBusiness(row.userId, row.businessId)).resolves.toBeNull();
+  });
+
+  it('lista membresías ordenadas por creación y negocio', async () => {
+    const findMany = jest.spyOn(prisma.userBusinessMembership, 'findMany').mockResolvedValue([row]);
+    await expect(repository.findByUserId(row.userId)).resolves.toMatchObject([row]);
+    expect(findMany).toHaveBeenCalledWith({ where: { userId: row.userId }, orderBy: [{ createdAt: 'asc' }, { businessId: 'asc' }] });
+  });
+
+  it('crea con datos exactos', async () => {
+    const create = jest.spyOn(prisma.userBusinessMembership, 'create').mockResolvedValue(row);
+    await expect(repository.create({ userId: row.userId, businessId: row.businessId, role: MembershipRole.OWNER })).resolves.toMatchObject(row);
+    expect(create).toHaveBeenCalledWith({ data: { userId: row.userId, businessId: row.businessId, role: MembershipRole.OWNER } });
+  });
+});

@@ -16,6 +16,8 @@
     "src/modules/identity/application/**/*.ts",
     "src/modules/identity/domain/**/*.ts",
     "src/modules/identity/infrastructure/argon2-password-hasher.ts",
+    "src/modules/identity/infrastructure/jwt-access-token-issuer.ts",
+    "src/modules/identity/infrastructure/prisma-membership.repository.ts",
     "src/modules/identity/infrastructure/prisma-user.repository.ts",
     "!src/modules/identity/**/*.spec.ts"
   ],
