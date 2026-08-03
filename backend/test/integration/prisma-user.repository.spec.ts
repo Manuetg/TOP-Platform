@@ -1,5 +1,6 @@
 import { PrismaUserRepository } from '../../src/modules/identity/infrastructure/prisma-user.repository';
 import { PrismaIdentityService } from '../../src/modules/identity/infrastructure/prisma-identity.service';
+import { cleanTestDatabase } from './support/clean-test-database';
 
 const databaseUrl = process.env.DATABASE_URL;
 const describeWithPostgres = databaseUrl ? describe : describe.skip;
@@ -9,9 +10,9 @@ describeWithPostgres('PrismaUserRepository con PostgreSQL', () => {
   const prisma = new PrismaIdentityService();
   const repository = new PrismaUserRepository(prisma);
   beforeAll(async () => { if (!isTestDatabase) throw new Error('Las pruebas de integración de Identity requieren una DATABASE_URL cuyo nombre incluya "test".'); await prisma.$connect(); });
-  beforeEach(async () => { await prisma.localCredential.deleteMany(); await prisma.user.deleteMany(); });
-  afterEach(async () => { await prisma.localCredential.deleteMany(); await prisma.user.deleteMany(); });
-  afterAll(async () => { await prisma.$disconnect(); });
+  beforeEach(async () => { await cleanTestDatabase(prisma, databaseUrl); });
+  afterEach(async () => { await cleanTestDatabase(prisma, databaseUrl); });
+  afterAll(async () => { if (isTestDatabase) await cleanTestDatabase(prisma, databaseUrl); await prisma.$disconnect(); });
   it('persiste User ACTIVE y LocalCredential de forma uno a uno', async () => {
     const user = await repository.create({ email: 'user@example.com', passwordHash: 'hash-secreto' });
     const persisted = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, include: { localCredential: true } });

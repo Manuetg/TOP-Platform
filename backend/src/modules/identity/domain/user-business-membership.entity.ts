@@ -1,0 +1,3 @@
+import { MembershipRole } from './membership-role.enum';
+export interface UserBusinessMembershipProps { id: string; userId: string; businessId: string; role: MembershipRole; createdAt: Date; updatedAt: Date; }
+export class UserBusinessMembership { private constructor(private readonly props: UserBusinessMembershipProps) {} static create(props: UserBusinessMembershipProps): UserBusinessMembership { return new UserBusinessMembership(props); } get id(): string { return this.props.id; } get userId(): string { return this.props.userId; } get businessId(): string { return this.props.businessId; } get role(): MembershipRole { return this.props.role; } get createdAt(): Date { return this.props.createdAt; } get updatedAt(): Date { return this.props.updatedAt; } }

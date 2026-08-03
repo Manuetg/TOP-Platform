@@ -2,6 +2,7 @@ import { Given, Then, When } from '@cucumber/cucumber';
 import { strict as assert } from 'node:assert';
 import request from 'supertest';
 import { TopWorld } from '../support/world';
+import { addBusinessFake } from '../support/membership-repository.fake';
 
 Given('existen negocios registrados', function (this: TopWorld) {
   assert.ok(this.app);
@@ -9,7 +10,7 @@ Given('existen negocios registrados', function (this: TopWorld) {
 Given('existe un negocio con nombre, razón social, RUC, zona horaria y moneda', function (this: TopWorld) { assert.ok(this.app); });
 Given('existe un negocio con razón social y RUC', function (this: TopWorld) { assert.ok(this.app); });
 Given('existe un negocio', function (this: TopWorld) { assert.ok(this.app); });
-Given('existe un negocio activo', function (this: TopWorld) { assert.ok(this.app); });
+Given('existe un negocio activo', function (this: TopWorld) { assert.ok(this.app); addBusinessFake('22222222-2222-4222-8222-222222222222'); });
 Given('existe un negocio archivado', async function (this: TopWorld) { await request(this.app?.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001/archive').send(); });
 Given('existe otro negocio activo', function (this: TopWorld) { assert.ok(this.app); });
 
@@ -74,8 +75,6 @@ Then('recibo la lista ordenada de negocios', function (this: TopWorld) {
   assert.equal(this.response?.body.every((business: Record<string, unknown>) => !('businessNumber' in business)), true);
 });
 
-Then('recibo HTTP 200', function (this: TopWorld) { assert.equal(this.response?.status, 200); });
-Then('recibo HTTP 400', function (this: TopWorld) { assert.equal(this.response?.status, 400); });
 Then('el nombre y la razón social quedan actualizados', function (this: TopWorld) { assert.equal(this.response?.body.name, 'Cabañas Nuevas'); assert.equal(this.response?.body.legalName, 'Cabañas Nuevas S.A.'); });
 Then('el RUC, zona horaria y moneda permanecen sin cambios', function (this: TopWorld) { assert.equal(this.response?.body.taxId, '80000000-0'); assert.equal(this.response?.body.timezone, 'America/Asuncion'); assert.equal(this.response?.body.currency, 'PYG'); });
 Then('razón social y RUC quedan en null', function (this: TopWorld) { assert.equal(this.response?.body.legalName, null); assert.equal(this.response?.body.taxId, null); });

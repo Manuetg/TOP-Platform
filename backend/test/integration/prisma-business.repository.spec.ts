@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaBusinessRepository } from '../../src/modules/business/infrastructure/prisma-business.repository';
+import { cleanTestDatabase } from './support/clean-test-database';
 
 const databaseUrl = process.env.DATABASE_URL;
 const describeWithPostgres = databaseUrl ? describe : describe.skip;
@@ -24,16 +25,16 @@ describeWithPostgres('PrismaBusinessRepository con PostgreSQL', () => {
   });
 
   beforeEach(async () => {
-    await prisma.business.deleteMany();
+    await cleanTestDatabase(prisma, databaseUrl);
   });
 
   afterEach(async () => {
-    await prisma.business.deleteMany();
+    await cleanTestDatabase(prisma, databaseUrl);
   });
 
   afterAll(async () => {
     if (isTestDatabase) {
-      await prisma.business.deleteMany();
+      await cleanTestDatabase(prisma, databaseUrl);
     }
 
     await prisma.$disconnect();

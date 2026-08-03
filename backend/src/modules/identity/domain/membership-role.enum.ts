@@ -1,0 +1,1 @@
+export enum MembershipRole { OWNER = 'OWNER', ADMIN = 'ADMIN', RECEPTIONIST = 'RECEPTIONIST', VIEWER = 'VIEWER' }

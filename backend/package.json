@@ -9,7 +9,7 @@
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
     "test": "npm run test:unit",
     "test:unit": "jest --selectProjects unit",
-    "test:integration": "jest --selectProjects integration",
+    "test:integration": "jest --selectProjects integration --runInBand",
     "test:e2e": "jest --selectProjects e2e",
     "test:acceptance": "cucumber-js --config test/acceptance/cucumber.json",
     "test:coverage": "jest --selectProjects unit integration e2e --coverage",

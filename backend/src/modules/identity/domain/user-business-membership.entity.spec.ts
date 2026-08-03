@@ -1,0 +1,3 @@
+import { MembershipRole } from './membership-role.enum';
+import { UserBusinessMembership } from './user-business-membership.entity';
+describe('UserBusinessMembership', () => { it('expone todos los getters', () => { const createdAt = new Date('2026-01-01'); const updatedAt = new Date('2026-02-02'); const item = UserBusinessMembership.create({ id: 'id-a', userId: 'user-b', businessId: 'business-c', role: MembershipRole.RECEPTIONIST, createdAt, updatedAt }); expect(item.id).toBe('id-a'); expect(item.userId).toBe('user-b'); expect(item.businessId).toBe('business-c'); expect(item.role).toBe(MembershipRole.RECEPTIONIST); expect(item.createdAt).toBe(createdAt); expect(item.updatedAt).toBe(updatedAt); }); });

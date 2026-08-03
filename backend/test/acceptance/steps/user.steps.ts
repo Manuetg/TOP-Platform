@@ -15,11 +15,9 @@ When('intento crear otro usuario usando mayúsculas y espacios en el mismo email
 When('intento crearlo con una contraseña de 11 caracteres', async function (this: TopWorld) { this.response = await request(this.app?.getHttpServer()).post('/api/users').send({ email, password: 'x'.repeat(11) }); });
 When('lo creo con una contraseña Unicode de al menos 12 caracteres', async function (this: TopWorld) { this.response = await request(this.app?.getHttpServer()).post('/api/users').send({ email, password: 'contraseña ñ válida' }); });
 Then('el email queda normalizado', function (this: TopWorld) { assert.equal(this.response?.body.email, 'propietario+demo@ejemplo.com'); });
-Then('recibo HTTP 201', function (this: TopWorld) { assert.equal(this.response?.status, 201); });
 Then('el usuario queda ACTIVE', function (this: TopWorld) { assert.equal(this.response?.body.status, 'ACTIVE'); });
 Then('la respuesta no contiene password', function (this: TopWorld) { assert.equal('password' in (this.response?.body ?? {}), false); });
 Then('la respuesta no contiene passwordHash', function (this: TopWorld) { assert.equal('passwordHash' in (this.response?.body ?? {}), false); });
-Then('recibo HTTP 409', function (this: TopWorld) { assert.equal(this.response?.status, 409); });
 Then('no se crea un segundo usuario', function () { assert.equal(userCount(), 1); });
 Then('no se crea una segunda credencial', function () { assert.equal(credentialCount(), 1); });
 Then('no se persiste User', function () { assert.equal(userCount(), 0); });
