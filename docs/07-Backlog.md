@@ -38,8 +38,8 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 
 - **RES-001 — Create Resource.** Estado: Completed. Dominio: Resource. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/resources`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `d771f46`; migración `20260804193112_create_resource`; quality check aprobado; mutation score general 87,73%; Swagger manual validado.
 - **RES-002 — Get Resource.** Estado: Completed. Dominio: Resource. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/resources/:resourceId`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `df14b1e`; unit 28 suites y 113 tests, integración 9 suites y 27 tests, E2E 6 suites y 58 tests, aceptación 34 escenarios y 146 pasos; cobertura: líneas 96,39%, statements 95,17%, funciones 96,23% y branches 83,23%; arquitectura sin violaciones y Prisma válido; mutation segmentada: GetResourceUseCase 93,55% (31 mutantes), PrismaResourceRepository 100% (11 mutantes) y ResourceController 88% (25 mutantes); Swagger manual validado con 200 para Resource existente, 400 para UUID inválido, 404 para Resource inexistente y respuesta sin `props`. El último score global válido conocido se mantiene en 87,73%.
-- **RES-003 — List Resources.** Estado: Planned. Dominio: Resource. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. **Siguiente capacidad priorizada.**
-- **RES-004 — Update Resource.** Estado: Planned. Dominio: Resource. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **RES-003 — List Resources.** Estado: Completed. Dominio: Resource. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/resources`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `5c649ef`; orden `sortOrder ASC`, `name ASC`, `id ASC`; lista vacía `200 []`; incluye Resources `ACTIVE`, `OUT_OF_SERVICE` y `ARCHIVED`, permite Business archivado y mantiene aislamiento por `businessId`; unit 31 suites y 135 tests, integración 9 suites y 28 tests, E2E 6 suites y 59 tests, aceptación 36 escenarios y 154 pasos; cobertura: líneas 97,70%, statements 96,51%, funciones 97,91% y branches 87,71%; arquitectura sin violaciones y Prisma válido; mutation segmentada: ListResourcesUseCase 100%, PrismaResourceRepository 100% y ResourceController 96,97%; Swagger/HTTP manual validado; GitHub Actions run `30954710356` con `verify: success`. El último score global completo de mutation conocido se mantiene en 87,73%.
+- **RES-004 — Update Resource.** Estado: Planned. Dominio: Resource. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. **Siguiente capacidad priorizada.**
 - **RES-005 — Disable Resource.** Estado: Planned. Dominio: Resource. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **RES-006 — Upload Images.** Estado: Planned. Dominio: Resource. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **RES-007 — Resource Amenities.** Estado: Planned. Dominio: Resource. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
@@ -101,7 +101,7 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Business | 5 | 5 | 0 | 0 | 0 |
 | Identity & Access | 9 | 6 | 0 | 3 | 0 |
-| Resource | 7 | 2 | 0 | 5 | 0 |
+| Resource | 7 | 3 | 0 | 4 | 0 |
 | Pricing | 5 | 0 | 0 | 5 | 0 |
 | Availability | 4 | 0 | 0 | 4 | 0 |
 | Contact | 4 | 0 | 0 | 4 | 0 |
@@ -109,10 +109,10 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 0 | 0 | 3 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **14** | **0** | **37** | **0** |
+| **Total** | **51** | **15** | **0** | **36** | **0** |
 
 Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
-Progreso de Resource: 2 de 7 capacidades completadas (28,6%).
+Progreso de Resource: 3 de 7 capacidades completadas (42,9%).
 
-Progreso general del MVP: 14 de 51 capacidades completadas (27,5%).
+Progreso general del MVP: 15 de 51 capacidades completadas (29,4%).
