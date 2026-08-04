@@ -20,5 +20,6 @@ export class User {
   get status(): UserStatus { return this.props.status; }
   get createdAt(): Date { return this.props.createdAt; }
   get updatedAt(): Date { return this.props.updatedAt; }
+  updateEmail(email: string, updatedAt = new Date()): User { return User.create({ ...this.props, email, updatedAt }); }
   disable(updatedAt = new Date()): User { return User.create({ ...this.props, status: UserStatus.DISABLED, updatedAt }); }
 }

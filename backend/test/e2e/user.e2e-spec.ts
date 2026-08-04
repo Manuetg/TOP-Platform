@@ -23,6 +23,13 @@ describe('User endpoint', () => {
       usersById.set(user.id, user);
       return Promise.resolve(user);
     },
+    updateEmail: (user: User): Promise<User> => {
+      const previous = usersById.get(user.id);
+      if (previous) users.delete(previous.email);
+      users.set(user.email, user);
+      usersById.set(user.id, user);
+      return Promise.resolve(user);
+    },
   };
   const byIdLookup = { findById: (id: string): Promise<User | null> => Promise.resolve(usersById.get(id) ?? null) };
   const statusRepository = {
@@ -63,6 +70,24 @@ describe('User endpoint', () => {
   it('rechaza duplicados normalizados', async () => {
     await request(app.getHttpServer()).post('/api/users').send({ email: 'user@example.com', password: 'contraseña válida' }).expect(201);
     await request(app.getHttpServer()).post('/api/users').send({ email: ' USER@EXAMPLE.COM ', password: 'contraseña válida' }).expect(409);
+  });
+
+  it('actualiza el email de forma idempotente sin exponer datos sensibles', async () => {
+    const created = await request(app.getHttpServer()).post('/api/users').send({ email: 'user@example.com', password: 'contraseña válida' }).expect(201);
+    await request(app.getHttpServer()).patch(`/api/users/${created.body.id}`).send({ email: ' NUEVO+Demo@Ejemplo.COM ' }).expect(200).expect(({ body }) => {
+      expect(body.email).toBe('nuevo+demo@ejemplo.com');
+      expect(body).not.toHaveProperty('passwordHash');
+    });
+    await request(app.getHttpServer()).patch(`/api/users/${created.body.id}`).send({ email: 'nuevo+demo@ejemplo.com' }).expect(200);
+    await request(app.getHttpServer()).patch(`/api/users/${created.body.id}`).send({}).expect(400);
+    await request(app.getHttpServer()).patch('/api/users/invalid').send({ email: 'valid@example.com' }).expect(400);
+  });
+
+  it('rechaza email duplicado y usuario inexistente al actualizar', async () => {
+    const first = await request(app.getHttpServer()).post('/api/users').send({ email: 'first@example.com', password: 'contraseña válida' }).expect(201);
+    await request(app.getHttpServer()).post('/api/users').send({ email: 'second@example.com', password: 'contraseña válida' }).expect(201);
+    await request(app.getHttpServer()).patch(`/api/users/${first.body.id}`).send({ email: ' SECOND@EXAMPLE.COM ' }).expect(409);
+    await request(app.getHttpServer()).patch(`/api/users/${randomUUID()}`).send({ email: 'other@example.com' }).expect(404);
   });
 
   it('deshabilita un usuario activo sin exponer datos sensibles', async () => {

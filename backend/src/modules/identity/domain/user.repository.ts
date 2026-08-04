@@ -10,4 +10,5 @@ export interface CreateUserData {
 export interface UserRepository {
   findByEmail(email: string): Promise<User | null>;
   create(data: CreateUserData): Promise<User>;
+  updateEmail(user: User): Promise<User>;
 }

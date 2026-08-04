@@ -16,6 +16,13 @@ export const userRepositoryFake = {
     credentials.set(user.id, passwordHash);
     return Promise.resolve(user);
   },
+  updateEmail: (user: User): Promise<User> => {
+    const previous = usersById.get(user.id);
+    if (previous) users.delete(previous.email);
+    users.set(user.email, user);
+    usersById.set(user.id, user);
+    return Promise.resolve(user);
+  },
 };
 
 export const authenticationRepositoryFake = {

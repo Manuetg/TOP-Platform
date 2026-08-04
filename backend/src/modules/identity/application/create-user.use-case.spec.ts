@@ -5,7 +5,7 @@ import { UserStatus } from '../domain/user-status.enum';
 const user = (email: string): User => User.create({ id: '00000000-0000-4000-8000-000000000001', email, status: UserStatus.ACTIVE, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-01-01') });
 
 describe('CreateUserUseCase', () => {
-  const repository = { findByEmail: jest.fn<Promise<User | null>, [string]>(), create: jest.fn<Promise<User>, [{ email: string; passwordHash: string }]>() };
+  const repository = { findByEmail: jest.fn<Promise<User | null>, [string]>(), create: jest.fn<Promise<User>, [{ email: string; passwordHash: string }]>(), updateEmail: jest.fn<Promise<User>, [User]>() };
   const hasher = { hash: jest.fn<Promise<string>, [string]>(), verify: jest.fn() };
   const useCase = new CreateUserUseCase(repository, hasher);
   beforeEach(() => { jest.resetAllMocks(); repository.findByEmail.mockResolvedValue(null); hasher.hash.mockResolvedValue('hash'); repository.create.mockImplementation((data) => Promise.resolve(user(data.email))); });

@@ -20,6 +20,7 @@ export class PrismaUserRepository implements UserRepository, AuthenticationRepos
     return user ? this.toDomain(user) : null;
   }
   async update(user: User): Promise<User> { return this.toDomain(await this.prisma.user.update({ where: { id: user.id }, data: { status: user.status } })); }
+  async updateEmail(user: User): Promise<User> { return this.toDomain(await this.prisma.user.update({ where: { id: user.id }, data: { email: user.email } })); }
   async findForLoginByEmail(email: string): Promise<AuthenticationRecord | null> {
     const user = await this.prisma.user.findUnique({ where: { email }, include: { localCredential: true } });
     if (!user?.localCredential) return null;

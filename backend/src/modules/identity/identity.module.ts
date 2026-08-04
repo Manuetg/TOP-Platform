@@ -7,6 +7,7 @@ import { LoginUseCase } from './application/login.use-case';
 import { RefreshTokenUseCase } from './application/refresh-token.use-case';
 import { LogoutUseCase } from './application/logout.use-case';
 import { DisableUserUseCase } from './application/disable-user.use-case';
+import { UpdateUserUseCase } from './application/update-user.use-case';
 import { ACCESS_TOKEN_ISSUER } from './domain/access-token-issuer';
 import { AUTHENTICATION_REPOSITORY } from './domain/authentication.repository';
 import { BUSINESS_LOOKUP, MEMBERSHIP_REPOSITORY, USER_LOOKUP } from './domain/membership.repository';
@@ -56,6 +57,7 @@ import { UserController } from './presentation/user.controller';
     RefreshTokenUseCase,
     LogoutUseCase,
     DisableUserUseCase,
+    UpdateUserUseCase,
   ],
 })
 export class IdentityModule {}
