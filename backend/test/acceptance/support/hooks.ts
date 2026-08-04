@@ -17,14 +17,18 @@ import { businessRepositoryFake, resetBusinessRepositoryFake } from './business-
 import { authenticationRepositoryFake, passwordHasherFake, resetUserRepositoryFake, userByIdLookupFake, userRepositoryFake, userStatusRepositoryFake } from './user-repository.fake';
 import { businessLookupFake, membershipRepositoryFake, resetMembershipFakes, userLookupFake } from './membership-repository.fake';
 import { TopWorld } from './world';
+import { RESOURCE_REPOSITORY } from '../../../src/modules/resource/domain/resource.repository';
+import { resetResourceRepositoryFake, resourceRepositoryFake } from './resource-repository.fake';
 
 Before(async function (this: TopWorld) {
   resetBusinessRepositoryFake();
   resetUserRepositoryFake();
   resetMembershipFakes();
+  resetResourceRepositoryFake();
   const refreshSessions = new Map<string, RefreshSession>();
   const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(BUSINESS_REPOSITORY).useValue(businessRepositoryFake)
+    .overrideProvider(RESOURCE_REPOSITORY).useValue(resourceRepositoryFake)
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)
     .overrideProvider(PASSWORD_HASHER).useValue(passwordHasherFake)

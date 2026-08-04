@@ -1,0 +1,15 @@
+import { Given, Then, When } from '@cucumber/cucumber';
+import { strict as assert } from 'node:assert';
+import request from 'supertest';
+import { Resource } from '../../../src/modules/resource/domain/resource.entity';
+import { ResourceStatus } from '../../../src/modules/resource/domain/resource-status.enum';
+import { addResourceFake } from '../support/resource-repository.fake';
+import { TopWorld } from '../support/world';
+
+const businessId = 'f8c49800-e50e-4d0e-b82b-0b51c09a0001';
+const otherBusinessId = 'f8c49800-e50e-4d0e-b82b-0b51c09a0002';
+const resourceId = '33333333-3333-4333-8333-333333333333';
+Given('existe un recurso activo', function (): void { addResourceFake(Resource.create({ id: resourceId, businessId, name: 'Cabaña', internalCode: 'CAB-1', description: null, capacityMinimum: 1, capacityMaximum: 2, capacityMaximumChildren: 0, status: ResourceStatus.ACTIVE, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() })); });
+Given('existe un recurso de otro negocio', function (): void { addResourceFake(Resource.create({ id: resourceId, businessId: otherBusinessId, name: 'Habitación', internalCode: 'HAB-1', description: null, capacityMinimum: 1, capacityMaximum: 2, capacityMaximumChildren: 0, status: ResourceStatus.ACTIVE, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() })); });
+When('consulto el recurso existente', async function (this: TopWorld): Promise<void> { this.response = await request(this.app?.getHttpServer()).get(`/api/businesses/${businessId}/resources/${resourceId}`); });
+Then('recibo el recurso sin propiedades internas', function (this: TopWorld): void { assert.equal(this.response?.body.id, resourceId); assert.equal('props' in (this.response?.body ?? {}), false); });

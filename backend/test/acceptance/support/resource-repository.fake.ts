@@ -1,0 +1,11 @@
+import { Resource } from '../../../src/modules/resource/domain/resource.entity';
+import type { ResourceRepository } from '../../../src/modules/resource/domain/resource.repository';
+
+const resources = new Map<string, Resource>();
+export const resourceRepositoryFake: ResourceRepository = {
+  findByBusinessAndCode: (businessId, internalCode) => Promise.resolve([...resources.values()].find((resource) => resource.businessId === businessId && resource.internalCode === internalCode) ?? null),
+  findByIdAndBusinessId: (id, businessId) => Promise.resolve(resources.get(id)?.businessId === businessId ? resources.get(id) ?? null : null),
+  create: (): Promise<Resource> => Promise.reject(new Error('No se crea Resource en esta prueba de consulta.')),
+};
+export function addResourceFake(resource: Resource): void { resources.set(resource.id, resource); }
+export function resetResourceRepositoryFake(): void { resources.clear(); }

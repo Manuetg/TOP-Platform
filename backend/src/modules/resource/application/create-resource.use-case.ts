@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { BUSINESS_REPOSITORY, type BusinessRepository } from '../../business/domain/business.repository';
-import { BusinessStatus } from '../../business/domain/business-status.enum';
+import { BUSINESS_REPOSITORY, type BusinessRepository, BusinessStatus } from '../../business/business.contract';
 import { Resource } from '../domain/resource.entity';
 import { RESOURCE_REPOSITORY, type ResourceRepository } from '../domain/resource.repository';
 
