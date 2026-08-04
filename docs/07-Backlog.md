@@ -28,8 +28,8 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 - **IAM-009 — Manage User-Business Membership.** Estado: Completed. Dominio: Identity & Access. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/memberships` propuesto. Pruebas obligatorias: unitarias, integración PostgreSQL, E2E, aceptación Gherkin, mutation testing y seguridad. Definition of Done: aplicada. Evidencia técnica: commit `fe0998b`; quality check, integración PostgreSQL, E2E y aceptación aprobados; mutation score general 87.40% e Identity 84.26%. La confirmación de GitHub Actions para `fe0998b` está **Pendiente de confirmación manual**.
 - **IAM-007 — Roles.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **IAM-001 — Login.** Estado: Completed. Dominio: Identity & Access. Prioridad: Alta. Endpoint: `POST /api/auth/login`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Depende de User, membresías y roles. Evidencia técnica: commit `81560013`; Login mediante JWT Bearer con expiración de 900 segundos; quality check aprobado; mutation score general 85.10%, Identity 81.99% y LoginUseCase 98.21%; arquitectura sin violaciones.
-- **IAM-003 — Refresh Token.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. **Siguiente capacidad priorizada.**
-- **IAM-002 — Logout.** Estado: Planned. Dominio: Identity & Access. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **IAM-003 — Refresh Token.** Estado: Completed. Dominio: Identity & Access. Prioridad: Alta. Endpoint: `POST /api/auth/refresh`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `ec9347da`; refresh token opaco de 256 bits con hash SHA-256 persistido, rotación atómica y reutilización rechazada; Login entrega el refresh token inicial; TTL de 2.592.000 segundos; migración `20260804000000_add_refresh_session`; quality check aprobado; mutation score general 86.95%, Identity 85.57% y RefreshTokenUseCase 96.97%; arquitectura sin violaciones.
+- **IAM-002 — Logout.** Estado: Planned. Dominio: Identity & Access. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. **Siguiente capacidad priorizada.**
 - **IAM-006 — Disable User.** Estado: Planned. Dominio: Identity & Access. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **IAM-005 — Update User.** Estado: Planned. Dominio: Identity & Access. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **IAM-008 — Permissions.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
@@ -100,7 +100,7 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 | Épica | Total | Completed | In Progress | Planned | Blocked |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Business | 5 | 5 | 0 | 0 | 0 |
-| Identity & Access | 9 | 3 | 0 | 6 | 0 |
+| Identity & Access | 9 | 4 | 0 | 5 | 0 |
 | Resource | 7 | 0 | 0 | 7 | 0 |
 | Pricing | 5 | 0 | 0 | 5 | 0 |
 | Availability | 4 | 0 | 0 | 4 | 0 |
@@ -109,8 +109,8 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 0 | 0 | 3 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **8** | **0** | **43** | **0** |
+| **Total** | **51** | **9** | **0** | **42** | **0** |
 
-Progreso de Identity & Access: 3 de 9 capacidades completadas (33,3%).
+Progreso de Identity & Access: 4 de 9 capacidades completadas (44,4%).
 
-Progreso general del MVP: 8 de 51 capacidades completadas (15,7%).
+Progreso general del MVP: 9 de 51 capacidades completadas (17,6%).
