@@ -2,10 +2,21 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { JwtAccessTokenIssuer } from './jwt-access-token-issuer';
 
+function createConfigService(secret: string | undefined): ConfigService {
+  const configService = new ConfigService();
+  jest.spyOn(configService, 'get').mockImplementation((key: string) => (
+    key === 'JWT_ACCESS_SECRET' ? secret : undefined
+  ));
+  return configService;
+}
+
 describe('JwtAccessTokenIssuer', () => {
   it('emite un JWT con sub y expiración de 900 segundos', async () => {
     const secret = 'secret-for-test-only';
-    const issuer = new JwtAccessTokenIssuer(new JwtService(), new ConfigService({ JWT_ACCESS_SECRET: secret }));
+    const issuer = new JwtAccessTokenIssuer(
+      new JwtService(),
+      createConfigService(secret),
+    );
     const result = await issuer.issue({ sub: 'user-id' });
     const payload = await new JwtService().verifyAsync<{ sub: string; iat: number; exp: number }>(result.token, { secret });
 
@@ -18,6 +29,9 @@ describe('JwtAccessTokenIssuer', () => {
   });
 
   it('requiere un secret configurado', () => {
-    expect(() => new JwtAccessTokenIssuer(new JwtService(), new ConfigService())).toThrow('JWT_ACCESS_SECRET es obligatoria.');
+    expect(() => new JwtAccessTokenIssuer(
+      new JwtService(),
+      createConfigService(undefined),
+    )).toThrow('JWT_ACCESS_SECRET es obligatoria.');
   });
 });
