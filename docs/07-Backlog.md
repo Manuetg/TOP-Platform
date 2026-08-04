@@ -30,8 +30,8 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 - **IAM-001 — Login.** Estado: Completed. Dominio: Identity & Access. Prioridad: Alta. Endpoint: `POST /api/auth/login`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Depende de User, membresías y roles. Evidencia técnica: commit `81560013`; Login mediante JWT Bearer con expiración de 900 segundos; quality check aprobado; mutation score general 85.10%, Identity 81.99% y LoginUseCase 98.21%; arquitectura sin violaciones.
 - **IAM-003 — Refresh Token.** Estado: Completed. Dominio: Identity & Access. Prioridad: Alta. Endpoint: `POST /api/auth/refresh`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `ec9347da`; refresh token opaco de 256 bits con hash SHA-256 persistido, rotación atómica y reutilización rechazada; Login entrega el refresh token inicial; TTL de 2.592.000 segundos; migración `20260804000000_add_refresh_session`; quality check aprobado; mutation score general 86.95%, Identity 85.57% y RefreshTokenUseCase 96.97%; arquitectura sin violaciones.
 - **IAM-002 — Logout.** Estado: Completed. Dominio: Identity & Access. Prioridad: Media. Endpoint: `POST /api/auth/logout`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `2c44e78`; respuesta `204 No Content` idempotente para tokens activos, inexistentes, expirados, rotados o revocados; request inválido devuelve `400`; revocación por hash SHA-256 sin afectar otras sesiones ni access tokens; quality check, integración PostgreSQL, E2E, mutation testing y Prisma aprobados; arquitectura sin violaciones.
-- **IAM-006 — Disable User.** Estado: Planned. Dominio: Identity & Access. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. **Siguiente capacidad priorizada.**
-- **IAM-005 — Update User.** Estado: Planned. Dominio: Identity & Access. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **IAM-006 — Disable User.** Estado: Completed. Dominio: Identity & Access. Prioridad: Media. Endpoint: `PATCH /api/users/:id/disable`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `046ae17`; transición de `ACTIVE` a `DISABLED` idempotente; Login y Refresh posteriores rechazados con `403`; sin migración nueva; unit 24 suites y 94 tests, integración 8 suites y 24 tests, E2E 5 suites y 47 tests, aceptación 32 escenarios y 139 steps; cobertura: líneas 97,67%, statements 97,06%, funciones 97,94% y branches 89,09%; mutation score general 87,97%, Identity 87,21% y DisableUserUseCase 92,31%; arquitectura sin violaciones y Prisma válido.
+- **IAM-005 — Update User.** Estado: Planned. Dominio: Identity & Access. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. **Siguiente capacidad priorizada.**
 - **IAM-008 — Permissions.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 
 ## Resource
@@ -100,7 +100,7 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 | Épica | Total | Completed | In Progress | Planned | Blocked |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Business | 5 | 5 | 0 | 0 | 0 |
-| Identity & Access | 9 | 5 | 0 | 4 | 0 |
+| Identity & Access | 9 | 6 | 0 | 3 | 0 |
 | Resource | 7 | 0 | 0 | 7 | 0 |
 | Pricing | 5 | 0 | 0 | 5 | 0 |
 | Availability | 4 | 0 | 0 | 4 | 0 |
@@ -109,8 +109,8 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 0 | 0 | 3 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **10** | **0** | **41** | **0** |
+| **Total** | **51** | **11** | **0** | **40** | **0** |
 
-Progreso de Identity & Access: 5 de 9 capacidades completadas (55,6%).
+Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
-Progreso general del MVP: 10 de 51 capacidades completadas (19,6%).
+Progreso general del MVP: 11 de 51 capacidades completadas (21,6%).
