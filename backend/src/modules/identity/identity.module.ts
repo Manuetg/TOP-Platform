@@ -5,6 +5,7 @@ import { CreateUserUseCase } from './application/create-user.use-case';
 import { CreateMembershipUseCase } from './application/create-membership.use-case';
 import { LoginUseCase } from './application/login.use-case';
 import { RefreshTokenUseCase } from './application/refresh-token.use-case';
+import { LogoutUseCase } from './application/logout.use-case';
 import { ACCESS_TOKEN_ISSUER } from './domain/access-token-issuer';
 import { AUTHENTICATION_REPOSITORY } from './domain/authentication.repository';
 import { BUSINESS_LOOKUP, MEMBERSHIP_REPOSITORY, USER_LOOKUP } from './domain/membership.repository';
@@ -50,6 +51,7 @@ import { UserController } from './presentation/user.controller';
     CreateMembershipUseCase,
     LoginUseCase,
     RefreshTokenUseCase,
+    LogoutUseCase,
   ],
 })
 export class IdentityModule {}

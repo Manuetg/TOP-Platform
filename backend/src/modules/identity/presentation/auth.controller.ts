@@ -6,11 +6,12 @@ import { LoginRequestDto } from './dto/login.request.dto';
 import { LoginResponseDto } from './dto/login.response.dto';
 import { RefreshTokenRequestDto } from './dto/refresh-token.request.dto';
 import { RefreshTokenResponseDto } from './dto/refresh-token.response.dto';
+import { LogoutUseCase, InvalidLogoutInputError } from '../application/logout.use-case';
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly loginUseCase: LoginUseCase, private readonly refreshTokenUseCase: RefreshTokenUseCase) {}
+  constructor(private readonly loginUseCase: LoginUseCase, private readonly refreshTokenUseCase: RefreshTokenUseCase, private readonly logoutUseCase: LogoutUseCase) {}
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -44,6 +45,19 @@ export class AuthController {
       if (error instanceof InvalidRefreshTokenInputError) throw new BadRequestException(error.message);
       if (error instanceof InvalidRefreshTokenError) throw new UnauthorizedException(error.message);
       if (error instanceof RefreshUserDisabledError) throw new ForbiddenException(error.message);
+      throw error;
+    }
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Cerrar una sesión por refresh token' })
+  @ApiBadRequestResponse({ description: 'Refresh token inválido.' })
+  async logout(@Body() request: RefreshTokenRequestDto): Promise<void> {
+    try {
+      await this.logoutUseCase.execute(request.refreshToken);
+    } catch (error: unknown) {
+      if (error instanceof InvalidLogoutInputError) throw new BadRequestException(error.message);
       throw error;
     }
   }

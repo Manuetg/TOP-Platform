@@ -23,6 +23,17 @@ describe('PrismaRefreshSessionRepository', () => {
     expect(findUnique).toHaveBeenNthCalledWith(2, { where: { tokenHash: 'missing' } });
   });
 
+  it('revoca únicamente una sesión activa y omite una inexistente o revocada', async () => {
+    jest.spyOn(prisma.refreshSession, 'findUnique').mockResolvedValueOnce(row).mockResolvedValueOnce(null).mockResolvedValueOnce({ ...row, revokedAt: new Date('2026-02-01') });
+    const update = jest.spyOn(prisma.refreshSession, 'update').mockResolvedValue(row);
+    const revokedAt = new Date('2026-02-02');
+    await repository.revokeByTokenHash(row.tokenHash, revokedAt);
+    await repository.revokeByTokenHash('missing', revokedAt);
+    await repository.revokeByTokenHash('revoked', revokedAt);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledWith({ where: { id: row.id }, data: { revokedAt } });
+  });
+
   it('rota de forma transaccional creando la sucesora y revocando la anterior', async () => {
     const transaction = new PrismaIdentityService();
     const create = jest.spyOn(transaction.refreshSession, 'create').mockResolvedValue({ ...row, id: 'next-session-id' });

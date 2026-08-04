@@ -17,6 +17,12 @@ export class PrismaRefreshSessionRepository implements RefreshSessionRepository 
     return session ? this.toDomain(session) : null;
   }
 
+  async revokeByTokenHash(tokenHash: string, revokedAt: Date): Promise<void> {
+    const session = await this.prisma.refreshSession.findUnique({ where: { tokenHash } });
+    if (!session || session.revokedAt) return;
+    await this.prisma.refreshSession.update({ where: { id: session.id }, data: { revokedAt } });
+  }
+
   async rotate(previousSessionId: string, nextSession: CreateRefreshSessionData, revokedAt: Date): Promise<void> {
     await this.prisma.$transaction(async (transaction) => {
       const created = await transaction.refreshSession.create({ data: nextSession });

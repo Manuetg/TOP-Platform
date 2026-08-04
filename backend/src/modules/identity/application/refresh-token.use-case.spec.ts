@@ -19,7 +19,7 @@ describe('RefreshTokenUseCase', () => {
   const issue: jest.MockedFunction<AccessTokenIssuer['issue']> = jest.fn();
   const findById: jest.MockedFunction<UserByIdLookup['findById']> = jest.fn();
   const useCase = new RefreshTokenUseCase(
-    { create: jest.fn(), findByTokenHash, rotate }, { generate }, { hash }, { expiresAt }, { issue }, { findById },
+    { create: jest.fn(), findByTokenHash, revokeByTokenHash: jest.fn(), rotate }, { generate }, { hash }, { expiresAt }, { issue }, { findById },
   );
 
   beforeEach(() => {

@@ -30,4 +30,16 @@ describeWithPostgres('Persistencia de RefreshSession con PostgreSQL', () => {
     await repository.create({ userId: user.id, tokenHash: 'hash-two', expiresAt: new Date('2027-01-02') });
     await expect(repository.create({ userId: user.id, tokenHash: 'hash-one', expiresAt: new Date('2027-01-03') })).rejects.toThrow();
   });
+
+  it('revoca solo la sesión indicada de forma idempotente', async () => {
+    const user = await prisma.user.create({ data: { email: 'logout@example.com' } });
+    const first = await repository.create({ userId: user.id, tokenHash: 'logout-hash', expiresAt: new Date('2027-01-01') });
+    await repository.create({ userId: user.id, tokenHash: 'other-hash', expiresAt: new Date('2027-01-01') });
+    const revokedAt = new Date('2026-08-04');
+    await repository.revokeByTokenHash('logout-hash', revokedAt);
+    await repository.revokeByTokenHash('logout-hash', new Date('2026-08-05'));
+    await repository.revokeByTokenHash('missing-hash', revokedAt);
+    await expect(repository.findByTokenHash('logout-hash')).resolves.toMatchObject({ id: first.id, revokedAt });
+    await expect(repository.findByTokenHash('other-hash')).resolves.toMatchObject({ revokedAt: null });
+  });
 });

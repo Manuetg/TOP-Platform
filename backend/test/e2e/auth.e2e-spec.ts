@@ -42,6 +42,11 @@ describe('Auth endpoint', () => {
           return Promise.resolve(item);
         },
         findByTokenHash: (tokenHash: string) => Promise.resolve(sessions.get(tokenHash) ?? null),
+        revokeByTokenHash: (tokenHash: string) => {
+          const session = sessions.get(tokenHash);
+          if (session && !session.revokedAt) sessions.set(tokenHash, RefreshSession.create({ id: session.id, userId: session.userId, tokenHash: session.tokenHash, expiresAt: session.expiresAt, revokedAt: new Date(), replacedBySessionId: session.replacedBySessionId, createdAt: session.createdAt, updatedAt: new Date() }));
+          return Promise.resolve();
+        },
         rotate: (previousId: string, data: { userId: string; tokenHash: string; expiresAt: Date }) => {
           const previous = [...sessions.values()].find((item) => item.id === previousId);
           if (!previous) return Promise.reject(new Error('not found'));
@@ -113,5 +118,12 @@ describe('Auth endpoint', () => {
 
   it.each([{}, { refreshToken: '' }, { refreshToken: 'unknown-token' }])('rechaza refresh token inválido', async (body) => {
     await request(app.getHttpServer()).post('/api/auth/refresh').send(body).expect(body.refreshToken === undefined || body.refreshToken === '' ? 400 : 401);
+  });
+
+  it('cierra sesión de forma idempotente sin cuerpo', async () => {
+    const login = await request(app.getHttpServer()).post('/api/auth/login').send({ email: 'user@example.com', password: 'contraseña' }).expect(200);
+    await request(app.getHttpServer()).post('/api/auth/logout').send({ refreshToken: login.body.refreshToken }).expect(204).expect(({ body }) => expect(body).toEqual({}));
+    await request(app.getHttpServer()).post('/api/auth/logout').send({ refreshToken: login.body.refreshToken }).expect(204);
+    await request(app.getHttpServer()).post('/api/auth/logout').send({ refreshToken: 'unknown-token' }).expect(204);
   });
 });
