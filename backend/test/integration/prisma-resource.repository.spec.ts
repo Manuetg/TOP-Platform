@@ -27,4 +27,15 @@ describeWithPostgres('PrismaResourceRepository con PostgreSQL', () => {
       await expect(repository.findByIdAndBusinessId('11111111-1111-4111-8111-111111111111', firstBusiness.id)).resolves.toBeNull();
     },
   );
+
+  it('lista todos los estados con orden sortOrder, name e id en PostgreSQL', async () => {
+    const business = await prisma.business.create({ data: { name: 'Business de listado' } });
+    const otherBusiness = await prisma.business.create({ data: { name: 'Otro Business' } });
+    const third = await prisma.resource.create({ data: { businessId: business.id, name: 'Zulu', internalCode: 'Z', capacityMinimum: 1, capacityMaximum: 2, capacityMaximumChildren: 0, sortOrder: 2, status: ResourceStatus.ARCHIVED } });
+    const first = await prisma.resource.create({ data: { businessId: business.id, name: 'Alpha', internalCode: 'A', capacityMinimum: 1, capacityMaximum: 2, capacityMaximumChildren: 0, sortOrder: 1, status: ResourceStatus.ACTIVE } });
+    const second = await prisma.resource.create({ data: { businessId: business.id, name: 'Beta', internalCode: 'B', capacityMinimum: 1, capacityMaximum: 2, capacityMaximumChildren: 0, sortOrder: 1, status: ResourceStatus.OUT_OF_SERVICE } });
+    await prisma.resource.create({ data: { businessId: otherBusiness.id, name: 'Externo', internalCode: 'EXT', capacityMinimum: 1, capacityMaximum: 2, capacityMaximumChildren: 0, sortOrder: 0, status: ResourceStatus.ACTIVE } });
+    await expect(repository.listByBusinessId(business.id)).resolves.toMatchObject([{ id: first.id, status: ResourceStatus.ACTIVE }, { id: second.id, status: ResourceStatus.OUT_OF_SERVICE }, { id: third.id, status: ResourceStatus.ARCHIVED }]);
+    await expect(repository.listByBusinessId(otherBusiness.id)).resolves.toHaveLength(1);
+  });
 });

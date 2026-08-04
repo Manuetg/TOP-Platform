@@ -33,6 +33,7 @@ import {
   ResourceBusinessNotFoundError as GetBusinessNotFoundError,
   ResourceNotFoundError,
 } from '../application/get-resource.use-case';
+import { ListResourcesUseCase } from '../application/list-resources.use-case';
 import { CreateResourceRequestDto } from './dto/create-resource.request.dto';
 import { ResourceResponseDto } from './dto/resource.response.dto';
 
@@ -42,6 +43,7 @@ export class ResourceController {
   constructor(
     private readonly create: CreateResourceUseCase,
     private readonly getResource: GetResourceUseCase,
+    private readonly listResources: ListResourcesUseCase,
   ) {}
 
   @Post()
@@ -72,6 +74,21 @@ export class ResourceController {
       ) {
         throw new ConflictException(error.message);
       }
+      throw error;
+    }
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Lists all resources for a business.' })
+  @ApiOkResponse({ type: ResourceResponseDto, isArray: true })
+  @ApiBadRequestResponse()
+  @ApiNotFoundResponse()
+  async list(@Param('businessId') businessId: string): Promise<ResourceResponseDto[]> {
+    try {
+      return (await this.listResources.execute(businessId)).map((resource) => ResourceResponseDto.fromDomain(resource));
+    } catch (error: unknown) {
+      if (error instanceof InvalidBusinessIdError) throw new BadRequestException(error.message);
+      if (error instanceof GetBusinessNotFoundError) throw new NotFoundException(error.message);
       throw error;
     }
   }
