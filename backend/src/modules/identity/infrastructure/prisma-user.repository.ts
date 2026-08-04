@@ -5,10 +5,11 @@ import { UserStatus } from '../domain/user-status.enum';
 import type { AuthenticationRecord, AuthenticationRepository } from '../domain/authentication.repository';
 import type { CreateUserData, UserRepository } from '../domain/user.repository';
 import type { UserByIdLookup } from '../domain/user-by-id.lookup';
+import type { UserStatusRepository } from '../domain/user-status.repository';
 import { PrismaIdentityService } from './prisma-identity.service';
 
 @Injectable()
-export class PrismaUserRepository implements UserRepository, AuthenticationRepository, UserByIdLookup {
+export class PrismaUserRepository implements UserRepository, AuthenticationRepository, UserByIdLookup, UserStatusRepository {
   constructor(private readonly prisma: PrismaIdentityService) {}
   async findByEmail(email: string): Promise<User | null> {
     const user = await this.prisma.user.findUnique({ where: { email } });
@@ -18,6 +19,7 @@ export class PrismaUserRepository implements UserRepository, AuthenticationRepos
     const user = await this.prisma.user.findUnique({ where: { id } });
     return user ? this.toDomain(user) : null;
   }
+  async update(user: User): Promise<User> { return this.toDomain(await this.prisma.user.update({ where: { id: user.id }, data: { status: user.status } })); }
   async findForLoginByEmail(email: string): Promise<AuthenticationRecord | null> {
     const user = await this.prisma.user.findUnique({ where: { email }, include: { localCredential: true } });
     if (!user?.localCredential) return null;

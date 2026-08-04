@@ -1,13 +1,15 @@
-import { BadRequestException, Body, ConflictException, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiConflictResponse, ApiCreatedResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { BadRequestException, Body, ConflictException, Controller, HttpCode, HttpStatus, NotFoundException, Param, Patch, Post } from '@nestjs/common';
+import { ApiBadRequestResponse, ApiConflictResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateUserUseCase, InvalidUserInputError, UserAlreadyExistsError } from '../application/create-user.use-case';
 import { CreateUserRequestDto } from './dto/create-user.request.dto';
 import { UserResponseDto } from './dto/user.response.dto';
+import { DisableUserResponseDto } from './dto/disable-user.response.dto';
+import { DisableUserUseCase, InvalidUserIdError, UserNotFoundError } from '../application/disable-user.use-case';
 
 @ApiTags('Users')
 @Controller('users')
 export class UserController {
-  constructor(private readonly createUserUseCase: CreateUserUseCase) {}
+  constructor(private readonly createUserUseCase: CreateUserUseCase, private readonly disableUserUseCase: DisableUserUseCase) {}
   @Post() @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear un usuario administrativo provisional' })
   @ApiCreatedResponse({ type: UserResponseDto, description: 'No expone contraseña, hash ni tokens.' })
@@ -20,5 +22,14 @@ export class UserController {
       if (error instanceof UserAlreadyExistsError) throw new ConflictException(error.message);
       throw error;
     }
+  }
+  @Patch(':id/disable') @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Deshabilitar lógicamente un usuario' })
+  @ApiOkResponse({ type: DisableUserResponseDto })
+  @ApiBadRequestResponse({ description: 'El identificador del usuario no es válido.' })
+  @ApiNotFoundResponse({ description: 'El usuario no existe.' })
+  async disable(@Param('id') id: string): Promise<DisableUserResponseDto> {
+    try { return DisableUserResponseDto.fromDomain(await this.disableUserUseCase.execute(id)); }
+    catch (error: unknown) { if (error instanceof InvalidUserIdError) throw new BadRequestException(error.message); if (error instanceof UserNotFoundError) throw new NotFoundException(error.message); throw error; }
   }
 }

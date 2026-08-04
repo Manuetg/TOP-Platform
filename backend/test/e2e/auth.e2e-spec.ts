@@ -15,6 +15,7 @@ import { RefreshSession } from '../../src/modules/identity/domain/refresh-sessio
 import { REFRESH_SESSION_REPOSITORY } from '../../src/modules/identity/domain/refresh-session.repository';
 import { REFRESH_TOKEN_EXPIRATION, REFRESH_TOKEN_GENERATOR, REFRESH_TOKEN_HASHER } from '../../src/modules/identity/domain/refresh-token';
 import { USER_BY_ID_LOOKUP } from '../../src/modules/identity/domain/user-by-id.lookup';
+import { USER_STATUS_REPOSITORY } from '../../src/modules/identity/domain/user-status.repository';
 
 const userId = '11111111-1111-4111-8111-111111111111';
 const activeUser = (): User => User.create({ id: userId, email: 'user@example.com', status: UserStatus.ACTIVE, createdAt: new Date(), updatedAt: new Date() });
@@ -60,6 +61,7 @@ describe('Auth endpoint', () => {
       .overrideProvider(REFRESH_TOKEN_HASHER).useValue({ hash: (token: string) => `hash:${token}` })
       .overrideProvider(REFRESH_TOKEN_EXPIRATION).useValue({ expiresAt: () => new Date('2027-02-01') })
       .overrideProvider(USER_BY_ID_LOOKUP).useValue({ findById: () => Promise.resolve(record?.user ?? null) })
+      .overrideProvider(USER_STATUS_REPOSITORY).useValue({ update: (user: User) => { record = record ? { ...record, user } : null; return Promise.resolve(user); } })
       .compile();
     app = module.createNestApplication();
     configureApplication(app);
@@ -105,6 +107,13 @@ describe('Auth endpoint', () => {
   it('rechaza un usuario deshabilitado', async () => {
     record = { user: disabledUser(), passwordHash: 'hash' };
     await request(app.getHttpServer()).post('/api/auth/login').send({ email: 'user@example.com', password: 'contraseña' }).expect(403);
+  });
+
+  it('rechaza login y refresh después de deshabilitar al usuario', async () => {
+    const login = await request(app.getHttpServer()).post('/api/auth/login').send({ email: 'user@example.com', password: 'contraseña' }).expect(200);
+    await request(app.getHttpServer()).patch(`/api/users/${userId}/disable`).expect(200);
+    await request(app.getHttpServer()).post('/api/auth/login').send({ email: 'user@example.com', password: 'contraseña' }).expect(403);
+    await request(app.getHttpServer()).post('/api/auth/refresh').send({ refreshToken: login.body.refreshToken }).expect(403);
   });
 
   it('rota el refresh token y rechaza la reutilización del anterior', async () => {
