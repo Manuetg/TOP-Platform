@@ -36,8 +36,8 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 
 ## Resource
 
-- **RES-001 — Create Resource.** Estado: Planned. Dominio: Resource. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **RES-002 — Get Resource.** Estado: Planned. Dominio: Resource. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **RES-001 — Create Resource.** Estado: Completed. Dominio: Resource. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/resources`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `d771f46`; migración `20260804193112_create_resource`; quality check aprobado; mutation score general 87,73%; Swagger manual validado.
+- **RES-002 — Get Resource.** Estado: Planned. Dominio: Resource. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. **Siguiente capacidad priorizada.**
 - **RES-003 — List Resources.** Estado: Planned. Dominio: Resource. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **RES-004 — Update Resource.** Estado: Planned. Dominio: Resource. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **RES-005 — Disable Resource.** Estado: Planned. Dominio: Resource. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
@@ -101,7 +101,7 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Business | 5 | 5 | 0 | 0 | 0 |
 | Identity & Access | 9 | 6 | 0 | 3 | 0 |
-| Resource | 7 | 0 | 0 | 7 | 0 |
+| Resource | 7 | 1 | 0 | 6 | 0 |
 | Pricing | 5 | 0 | 0 | 5 | 0 |
 | Availability | 4 | 0 | 0 | 4 | 0 |
 | Contact | 4 | 0 | 0 | 4 | 0 |
@@ -109,8 +109,10 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 0 | 0 | 3 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **11** | **0** | **40** | **0** |
+| **Total** | **51** | **13** | **0** | **38** | **0** |
 
 Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
-Progreso general del MVP: 11 de 51 capacidades completadas (21,6%).
+Progreso de Resource: 1 de 7 capacidades completadas (14,3%).
+
+Progreso general del MVP: 13 de 51 capacidades completadas (25,5%).
