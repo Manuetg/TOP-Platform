@@ -1,4 +1,5 @@
 import { ResourceStatus } from '../domain/resource-status.enum';
+import { Resource } from '../domain/resource.entity';
 import { PrismaResourceRepository } from './prisma-resource.repository';
 
 describe('PrismaResourceRepository', () => {
@@ -23,20 +24,23 @@ describe('PrismaResourceRepository', () => {
     findFirst: jest.Mock;
     findMany: jest.Mock;
     findUnique: jest.Mock;
+    update: jest.Mock;
   } => {
     const create = overrides.create ?? jest.fn();
     const findFirst = overrides.findFirst ?? jest.fn();
     const findMany = overrides.findMany ?? jest.fn();
     const findUnique = overrides.findUnique ?? jest.fn();
+    const update = overrides.update ?? jest.fn();
 
     return {
       repository: new PrismaResourceRepository({
-        resource: { create, findFirst, findMany, findUnique },
+        resource: { create, findFirst, findMany, findUnique, update },
       } as never),
       create,
       findFirst,
       findMany,
       findUnique,
+      update,
     };
   };
 
@@ -128,5 +132,44 @@ describe('PrismaResourceRepository', () => {
 
     expect(create).toHaveBeenCalledWith({ data });
     expect(resource).toMatchObject(row);
+  });
+
+  it('actualiza solo los campos permitidos y conserva valores nulos', async () => {
+    const update = jest.fn().mockResolvedValue({
+      ...row,
+      name: 'Alpha actualizado',
+      description: null,
+      updatedAt: new Date('2026-01-03'),
+    });
+    const { repository } = createRepository({ update });
+    const updated = Resource.create({
+      ...row,
+      name: 'Alpha actualizado',
+      description: null,
+      updatedAt: new Date('2026-01-03'),
+    });
+
+    const result = await repository.update(updated);
+
+    expect(update).toHaveBeenCalledWith({
+      where: { id: row.id },
+      data: {
+        name: 'Alpha actualizado',
+        internalCode: row.internalCode,
+        description: null,
+        capacityMinimum: row.capacityMinimum,
+        capacityMaximum: row.capacityMaximum,
+        capacityMaximumChildren: row.capacityMaximumChildren,
+        sortOrder: row.sortOrder,
+      },
+    });
+    expect(result).toMatchObject({
+      id: row.id,
+      businessId: row.businessId,
+      name: 'Alpha actualizado',
+      description: null,
+      createdAt: row.createdAt,
+      updatedAt: new Date('2026-01-03'),
+    });
   });
 });

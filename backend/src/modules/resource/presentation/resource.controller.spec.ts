@@ -15,6 +15,12 @@ import {
   ResourceBusinessNotFoundError as GetBusinessNotFoundError,
   ResourceNotFoundError,
 } from '../application/get-resource.use-case';
+import {
+  InvalidResourceUpdateError,
+  ResourceArchivedError,
+  ResourceBusinessArchivedError,
+  ResourceCodeAlreadyExistsError as UpdateResourceCodeAlreadyExistsError,
+} from '../application/update-resource.use-case';
 import { Resource } from '../domain/resource.entity';
 import { ResourceStatus } from '../domain/resource-status.enum';
 import { ResourceController } from './resource.controller';
@@ -39,11 +45,13 @@ describe('ResourceController', () => {
     const create = { execute: jest.fn() };
     const get = { execute: jest.fn() };
     const list = { execute: jest.fn() };
+    const update = { execute: jest.fn() };
     return {
       create,
       get,
       list,
-      controller: new ResourceController(create as never, get as never, list as never),
+      update,
+      controller: new ResourceController(create as never, get as never, list as never, update as never),
     };
   };
 
@@ -176,5 +184,49 @@ describe('ResourceController', () => {
         NotFoundException,
       );
     }
+  });
+
+  it('actualiza mediante el caso de uso y expone solamente el DTO publico', async () => {
+    const { controller, update } = setup();
+    update.execute.mockResolvedValue(resource);
+    const body = { name: '  Cabana Sur  ', description: null, sortOrder: 4 };
+
+    const response = await controller.update(resource.businessId, resource.id, body);
+
+    expect(update.execute).toHaveBeenCalledWith({
+      businessId: resource.businessId,
+      resourceId: resource.id,
+      ...body,
+    });
+    expect(response).toMatchObject({ id: resource.id, name: resource.name });
+    expect(response).not.toHaveProperty('props');
+  });
+
+  it.each([
+    [new InvalidBusinessIdError('business invalido'), BadRequestException],
+    [new InvalidResourceIdError('resource invalido'), BadRequestException],
+    [new InvalidResourceUpdateError('entrada invalida'), BadRequestException],
+    [new GetBusinessNotFoundError('business inexistente'), NotFoundException],
+    [new ResourceNotFoundError('resource inexistente'), NotFoundException],
+    [new ResourceBusinessArchivedError('business archivado'), ConflictException],
+    [new ResourceArchivedError('resource archivado'), ConflictException],
+    [new UpdateResourceCodeAlreadyExistsError('codigo duplicado'), ConflictException],
+  ])('traduce errores de actualizacion a HTTP', async (error, exception) => {
+    const { controller, update } = setup();
+    update.execute.mockRejectedValue(error);
+
+    await expect(
+      controller.update(resource.businessId, resource.id, { name: resource.name }),
+    ).rejects.toBeInstanceOf(exception);
+  });
+
+  it('propaga errores inesperados de actualizacion', async () => {
+    const { controller, update } = setup();
+    const error = new Error('fallo inesperado');
+    update.execute.mockRejectedValue(error);
+
+    await expect(
+      controller.update(resource.businessId, resource.id, { name: resource.name }),
+    ).rejects.toBe(error);
   });
 });
