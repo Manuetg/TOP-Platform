@@ -5,6 +5,8 @@ import { MEMBERSHIP_REPOSITORY, type MembershipRepository } from '../domain/memb
 import { PASSWORD_HASHER, type PasswordHasher } from '../domain/password-hasher';
 import { MembershipRole } from '../domain/membership-role.enum';
 import { UserStatus } from '../domain/user-status.enum';
+import { REFRESH_SESSION_REPOSITORY, type RefreshSessionRepository } from '../domain/refresh-session.repository';
+import { REFRESH_TOKEN_EXPIRATION, REFRESH_TOKEN_GENERATOR, REFRESH_TOKEN_HASHER, type RefreshTokenExpiration, type RefreshTokenGenerator, type RefreshTokenHasher } from '../domain/refresh-token';
 
 const invalidCredentialsMessage = 'Las credenciales son inválidas.';
 const dummyPasswordHash = '$argon2id$v=19$m=65536,p=4,t=3$I7bOK5B/o9469vUd8ePTyA$oGK/iZ1v+SC5Vqp2/3bMvNM+97idUbFfoZZMy78fw4g';
@@ -20,6 +22,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   accessToken: string;
+  refreshToken: string;
   tokenType: 'Bearer';
   expiresIn: number;
   user: { id: string; email: string; status: UserStatus };
@@ -33,6 +36,10 @@ export class LoginUseCase {
     @Inject(PASSWORD_HASHER) private readonly passwordHasher: PasswordHasher,
     @Inject(MEMBERSHIP_REPOSITORY) private readonly membershipRepository: MembershipRepository,
     @Inject(ACCESS_TOKEN_ISSUER) private readonly tokenIssuer: AccessTokenIssuer,
+    @Inject(REFRESH_SESSION_REPOSITORY) private readonly sessions: RefreshSessionRepository,
+    @Inject(REFRESH_TOKEN_GENERATOR) private readonly refreshTokenGenerator: RefreshTokenGenerator,
+    @Inject(REFRESH_TOKEN_HASHER) private readonly refreshTokenHasher: RefreshTokenHasher,
+    @Inject(REFRESH_TOKEN_EXPIRATION) private readonly refreshTokenExpiration: RefreshTokenExpiration,
   ) {}
 
   async execute(request: LoginRequest): Promise<LoginResponse> {
@@ -54,9 +61,12 @@ export class LoginUseCase {
       this.membershipRepository.findByUserId(record.user.id),
       this.tokenIssuer.issue({ sub: record.user.id }),
     ]);
+    const refreshToken = this.refreshTokenGenerator.generate();
+    await this.sessions.create({ userId: record.user.id, tokenHash: this.refreshTokenHasher.hash(refreshToken), expiresAt: this.refreshTokenExpiration.expiresAt(new Date()) });
 
     return {
       accessToken: token.token,
+      refreshToken,
       tokenType: 'Bearer',
       expiresIn: token.expiresIn,
       user: { id: record.user.id, email: record.user.email, status: record.user.status },

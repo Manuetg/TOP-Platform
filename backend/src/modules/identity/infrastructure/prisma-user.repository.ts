@@ -4,13 +4,18 @@ import { User } from '../domain/user.entity';
 import { UserStatus } from '../domain/user-status.enum';
 import type { AuthenticationRecord, AuthenticationRepository } from '../domain/authentication.repository';
 import type { CreateUserData, UserRepository } from '../domain/user.repository';
+import type { UserByIdLookup } from '../domain/user-by-id.lookup';
 import { PrismaIdentityService } from './prisma-identity.service';
 
 @Injectable()
-export class PrismaUserRepository implements UserRepository, AuthenticationRepository {
+export class PrismaUserRepository implements UserRepository, AuthenticationRepository, UserByIdLookup {
   constructor(private readonly prisma: PrismaIdentityService) {}
   async findByEmail(email: string): Promise<User | null> {
     const user = await this.prisma.user.findUnique({ where: { email } });
+    return user ? this.toDomain(user) : null;
+  }
+  async findById(id: string): Promise<User | null> {
+    const user = await this.prisma.user.findUnique({ where: { id } });
     return user ? this.toDomain(user) : null;
   }
   async findForLoginByEmail(email: string): Promise<AuthenticationRecord | null> {

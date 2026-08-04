@@ -16,6 +16,7 @@ class LoginMembershipResponseDto {
 
 export class LoginResponseDto {
   @ApiProperty() accessToken!: string;
+  @ApiProperty({ description: 'Token opaco rotatorio para renovar la sesión.' }) refreshToken!: string;
   @ApiProperty({ example: 'Bearer' }) tokenType!: 'Bearer';
   @ApiProperty({ example: 900 }) expiresIn!: number;
   @ApiProperty({ type: LoginUserResponseDto }) user!: LoginUserResponseDto;

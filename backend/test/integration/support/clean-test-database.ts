@@ -8,6 +8,7 @@ export function assertTestDatabase(databaseUrl: string | undefined): void {
 
 export async function cleanTestDatabase(prisma: PrismaClient, databaseUrl: string | undefined): Promise<void> {
   assertTestDatabase(databaseUrl);
+  await prisma.refreshSession.deleteMany();
   await prisma.userBusinessMembership.deleteMany();
   await prisma.localCredential.deleteMany();
   await prisma.user.deleteMany();

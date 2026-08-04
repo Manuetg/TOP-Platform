@@ -6,6 +6,9 @@ import { BUSINESS_REPOSITORY } from '../../../src/modules/business/domain/busine
 import { PASSWORD_HASHER } from '../../../src/modules/identity/domain/password-hasher';
 import { AUTHENTICATION_REPOSITORY } from '../../../src/modules/identity/domain/authentication.repository';
 import { ACCESS_TOKEN_ISSUER } from '../../../src/modules/identity/domain/access-token-issuer';
+import { REFRESH_SESSION_REPOSITORY } from '../../../src/modules/identity/domain/refresh-session.repository';
+import { REFRESH_TOKEN_EXPIRATION, REFRESH_TOKEN_GENERATOR, REFRESH_TOKEN_HASHER } from '../../../src/modules/identity/domain/refresh-token';
+import { USER_BY_ID_LOOKUP } from '../../../src/modules/identity/domain/user-by-id.lookup';
 import { USER_REPOSITORY } from '../../../src/modules/identity/domain/user.repository';
 import { BUSINESS_LOOKUP, MEMBERSHIP_REPOSITORY, USER_LOOKUP } from '../../../src/modules/identity/domain/membership.repository';
 import { businessRepositoryFake, resetBusinessRepositoryFake } from './business-repository.fake';
@@ -23,6 +26,11 @@ Before(async function (this: TopWorld) {
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)
     .overrideProvider(PASSWORD_HASHER).useValue(passwordHasherFake)
     .overrideProvider(ACCESS_TOKEN_ISSUER).useValue({ issue: (payload: { sub: string }) => Promise.resolve({ token: `token:${payload.sub}`, expiresIn: 900 }) })
+    .overrideProvider(REFRESH_SESSION_REPOSITORY).useValue({ create: () => Promise.resolve({}), findByTokenHash: () => Promise.resolve(null), rotate: () => Promise.resolve() })
+    .overrideProvider(REFRESH_TOKEN_GENERATOR).useValue({ generate: () => 'refresh-token' })
+    .overrideProvider(REFRESH_TOKEN_HASHER).useValue({ hash: (token: string) => `hash:${token}` })
+    .overrideProvider(REFRESH_TOKEN_EXPIRATION).useValue({ expiresAt: () => new Date('2026-02-01') })
+    .overrideProvider(USER_BY_ID_LOOKUP).useValue({ findById: () => Promise.resolve(null) })
     .overrideProvider(MEMBERSHIP_REPOSITORY).useValue(membershipRepositoryFake)
     .overrideProvider(USER_LOOKUP).useValue(userLookupFake)
     .overrideProvider(BUSINESS_LOOKUP).useValue(businessLookupFake)

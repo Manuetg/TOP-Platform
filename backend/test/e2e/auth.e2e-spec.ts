@@ -11,6 +11,10 @@ import { MembershipRole } from '../../src/modules/identity/domain/membership-rol
 import { User } from '../../src/modules/identity/domain/user.entity';
 import { UserBusinessMembership } from '../../src/modules/identity/domain/user-business-membership.entity';
 import { UserStatus } from '../../src/modules/identity/domain/user-status.enum';
+import { RefreshSession } from '../../src/modules/identity/domain/refresh-session.entity';
+import { REFRESH_SESSION_REPOSITORY } from '../../src/modules/identity/domain/refresh-session.repository';
+import { REFRESH_TOKEN_EXPIRATION, REFRESH_TOKEN_GENERATOR, REFRESH_TOKEN_HASHER } from '../../src/modules/identity/domain/refresh-token';
+import { USER_BY_ID_LOOKUP } from '../../src/modules/identity/domain/user-by-id.lookup';
 
 const userId = '11111111-1111-4111-8111-111111111111';
 const activeUser = (): User => User.create({ id: userId, email: 'user@example.com', status: UserStatus.ACTIVE, createdAt: new Date(), updatedAt: new Date() });
@@ -22,6 +26,8 @@ describe('Auth endpoint', () => {
   let record: { user: User; passwordHash: string } | null;
   let memberships: UserBusinessMembership[];
   let passwordIsValid: boolean;
+  let sessions: Map<string, RefreshSession>;
+  let refreshTokenSequence: number;
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({ imports: [AppModule] })
@@ -29,6 +35,26 @@ describe('Auth endpoint', () => {
       .overrideProvider(PASSWORD_HASHER).useValue({ hash: () => Promise.resolve('hash'), verify: () => Promise.resolve(passwordIsValid) })
       .overrideProvider(MEMBERSHIP_REPOSITORY).useValue({ findByUserAndBusiness: () => Promise.resolve(null), findByUserId: () => Promise.resolve(memberships), create: () => Promise.reject(new Error('not used')) })
       .overrideProvider(ACCESS_TOKEN_ISSUER).useValue({ issue: () => Promise.resolve({ token: 'access-token', expiresIn: 900 }) })
+      .overrideProvider(REFRESH_SESSION_REPOSITORY).useValue({
+        create: (data: { userId: string; tokenHash: string; expiresAt: Date }) => {
+          const item = RefreshSession.create({ id: `session-${sessions.size + 1}`, ...data, revokedAt: null, replacedBySessionId: null, createdAt: new Date(), updatedAt: new Date() });
+          sessions.set(item.tokenHash, item);
+          return Promise.resolve(item);
+        },
+        findByTokenHash: (tokenHash: string) => Promise.resolve(sessions.get(tokenHash) ?? null),
+        rotate: (previousId: string, data: { userId: string; tokenHash: string; expiresAt: Date }) => {
+          const previous = [...sessions.values()].find((item) => item.id === previousId);
+          if (!previous) return Promise.reject(new Error('not found'));
+          const next = RefreshSession.create({ id: `session-${sessions.size + 1}`, ...data, revokedAt: null, replacedBySessionId: null, createdAt: new Date(), updatedAt: new Date() });
+          sessions.set(previous.tokenHash, RefreshSession.create({ id: previous.id, userId: previous.userId, tokenHash: previous.tokenHash, expiresAt: previous.expiresAt, revokedAt: new Date(), replacedBySessionId: next.id, createdAt: previous.createdAt, updatedAt: new Date() }));
+          sessions.set(next.tokenHash, next);
+          return Promise.resolve();
+        },
+      })
+      .overrideProvider(REFRESH_TOKEN_GENERATOR).useValue({ generate: () => `refresh-token-${++refreshTokenSequence}` })
+      .overrideProvider(REFRESH_TOKEN_HASHER).useValue({ hash: (token: string) => `hash:${token}` })
+      .overrideProvider(REFRESH_TOKEN_EXPIRATION).useValue({ expiresAt: () => new Date('2027-02-01') })
+      .overrideProvider(USER_BY_ID_LOOKUP).useValue({ findById: () => Promise.resolve(record?.user ?? null) })
       .compile();
     app = module.createNestApplication();
     configureApplication(app);
@@ -41,13 +67,15 @@ describe('Auth endpoint', () => {
     record = { user: activeUser(), passwordHash: 'hash' };
     memberships = [];
     passwordIsValid = true;
+    sessions = new Map();
+    refreshTokenSequence = 0;
   });
 
   it('inicia sesión y no expone datos sensibles ni contexto activo', async () => {
     memberships = [membership('business-a', MembershipRole.OWNER), membership('business-b', MembershipRole.VIEWER)];
     await request(app.getHttpServer()).post('/api/auth/login').send({ email: ' USER@EXAMPLE.COM ', password: 'contraseña' }).expect(200).expect(({ body }) => {
-      expect(body).toEqual({ accessToken: 'access-token', tokenType: 'Bearer', expiresIn: 900, user: { id: userId, email: 'user@example.com', status: 'ACTIVE' }, memberships: [{ businessId: 'business-a', role: 'OWNER' }, { businessId: 'business-b', role: 'VIEWER' }] });
-      ['password', 'passwordHash', 'refreshToken', 'permissions', 'businessId', 'activeBusiness'].forEach((property) => expect(body).not.toHaveProperty(property));
+      expect(body).toEqual({ accessToken: 'access-token', refreshToken: 'refresh-token-1', tokenType: 'Bearer', expiresIn: 900, user: { id: userId, email: 'user@example.com', status: 'ACTIVE' }, memberships: [{ businessId: 'business-a', role: 'OWNER' }, { businessId: 'business-b', role: 'VIEWER' }] });
+      ['password', 'passwordHash', 'tokenHash', 'permissions', 'businessId', 'activeBusiness'].forEach((property) => expect(body).not.toHaveProperty(property));
     });
   });
 
@@ -72,5 +100,18 @@ describe('Auth endpoint', () => {
   it('rechaza un usuario deshabilitado', async () => {
     record = { user: disabledUser(), passwordHash: 'hash' };
     await request(app.getHttpServer()).post('/api/auth/login').send({ email: 'user@example.com', password: 'contraseña' }).expect(403);
+  });
+
+  it('rota el refresh token y rechaza la reutilización del anterior', async () => {
+    const login = await request(app.getHttpServer()).post('/api/auth/login').send({ email: 'user@example.com', password: 'contraseÃ±a' }).expect(200);
+    await request(app.getHttpServer()).post('/api/auth/refresh').send({ refreshToken: login.body.refreshToken }).expect(200).expect(({ body }) => {
+      expect(body).toEqual({ accessToken: 'access-token', refreshToken: 'refresh-token-2', tokenType: 'Bearer', expiresIn: 900 });
+      expect(body).not.toHaveProperty('tokenHash');
+    });
+    await request(app.getHttpServer()).post('/api/auth/refresh').send({ refreshToken: login.body.refreshToken }).expect(401).expect(({ body }) => expect(body.message).toBe('La sesi\u00f3n no es v\u00e1lida.'));
+  });
+
+  it.each([{}, { refreshToken: '' }, { refreshToken: 'unknown-token' }])('rechaza refresh token inválido', async (body) => {
+    await request(app.getHttpServer()).post('/api/auth/refresh').send(body).expect(body.refreshToken === undefined || body.refreshToken === '' ? 400 : 401);
   });
 });

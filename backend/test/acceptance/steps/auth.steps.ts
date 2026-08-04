@@ -70,3 +70,8 @@ Then('recibo las membresías disponibles', function (this: TopWorld) {
     { businessId: '33333333-3333-4333-8333-333333333333', role: MembershipRole.VIEWER },
   ]);
 });
+
+Then('recibo un refresh token opaco', function (this: TopWorld) {
+  assert.equal(typeof this.response?.body.refreshToken, 'string');
+  assert.ok(this.response?.body.refreshToken.length > 0);
+});

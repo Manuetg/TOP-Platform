@@ -5,6 +5,7 @@ Feature: Inicio de sesión
     When inicio sesión con sus credenciales válidas
     Then recibo HTTP 200
     And recibo un token Bearer de 900 segundos
+    And recibo un refresh token opaco
 
   Scenario: Iniciar sesión con email normalizado
     Given existe un usuario habilitado para iniciar sesión
