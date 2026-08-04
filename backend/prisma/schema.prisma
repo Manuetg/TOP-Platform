@@ -25,12 +25,18 @@ enum MembershipRole {
   VIEWER
 }
 
+enum ResourceStatus {
+  ACTIVE
+  OUT_OF_SERVICE
+  ARCHIVED
+}
+
 model User {
-  id              String           @id @default(uuid())
-  email           String           @unique
-  status          UserStatus       @default(ACTIVE)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id              String                   @id @default(uuid())
+  email           String                   @unique
+  status          UserStatus               @default(ACTIVE)
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
   localCredential LocalCredential?
   memberships     UserBusinessMembership[]
   refreshSessions RefreshSession[]
@@ -59,31 +65,52 @@ model LocalCredential {
 }
 
 model RefreshSession {
-  id                  String   @id @default(uuid())
+  id                  String          @id @default(uuid())
   userId              String
-  tokenHash           String   @unique
+  tokenHash           String          @unique
   expiresAt           DateTime
   revokedAt           DateTime?
-  replacedBySessionId String?  @unique
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  user                User     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  replacedBySession   RefreshSession?  @relation("RefreshSessionReplacement", fields: [replacedBySessionId], references: [id], onDelete: Restrict)
-  replacedSession     RefreshSession?  @relation("RefreshSessionReplacement")
+  replacedBySessionId String?         @unique
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  user                User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  replacedBySession   RefreshSession? @relation("RefreshSessionReplacement", fields: [replacedBySessionId], references: [id], onDelete: Restrict)
+  replacedSession     RefreshSession? @relation("RefreshSessionReplacement")
 
   @@index([userId])
 }
 
 model Business {
-  id             String         @id @default(uuid())
+  id             String                   @id @default(uuid())
   businessNumber Int?
   name           String
   legalName      String?
   taxId          String?
-  timezone       String         @default("America/Asuncion")
-  currency       String         @default("PYG")
-  status         BusinessStatus @default(ACTIVE)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  timezone       String                   @default("America/Asuncion")
+  currency       String                   @default("PYG")
+  status         BusinessStatus           @default(ACTIVE)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
   memberships    UserBusinessMembership[]
+  resources      Resource[]
+}
+
+model Resource {
+  id                      String         @id @default(uuid())
+  businessId              String
+  name                    String
+  internalCode            String
+  description             String?
+  capacityMinimum         Int            @default(1)
+  capacityMaximum         Int
+  capacityMaximumChildren Int            @default(0)
+  status                  ResourceStatus @default(ACTIVE)
+  sortOrder               Int            @default(0)
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  business                Business       @relation(fields: [businessId], references: [id], onDelete: Restrict)
+
+  @@unique([businessId, internalCode])
+  @@index([businessId, status])
+  @@index([businessId, sortOrder])
 }

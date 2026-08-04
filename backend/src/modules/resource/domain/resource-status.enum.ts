@@ -1,0 +1,1 @@
+export enum ResourceStatus { ACTIVE = 'ACTIVE', OUT_OF_SERVICE = 'OUT_OF_SERVICE', ARCHIVED = 'ARCHIVED' }

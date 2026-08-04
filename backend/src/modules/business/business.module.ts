@@ -20,5 +20,6 @@ import { BusinessController } from './presentation/business.controller';
     ListBusinessesUseCase,
     UpdateBusinessUseCase,
   ],
+  exports: [BUSINESS_REPOSITORY, PrismaService],
 })
 export class BusinessModule {}
