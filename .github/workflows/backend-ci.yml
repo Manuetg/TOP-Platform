@@ -27,6 +27,7 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgresql://top:top@localhost:5432/top_test?schema=public
+      JWT_ACCESS_SECRET: ci-only-jwt-access-secret-not-for-production
     defaults:
       run:
         working-directory: backend
@@ -50,6 +51,8 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: backend } }
+    env:
+      JWT_ACCESS_SECRET: ci-only-jwt-access-secret-not-for-production
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
