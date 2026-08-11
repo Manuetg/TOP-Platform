@@ -38,4 +38,18 @@ describeWithPostgres('PrismaResourceRepository con PostgreSQL', () => {
     await expect(repository.listByBusinessId(business.id)).resolves.toMatchObject([{ id: first.id, status: ResourceStatus.ACTIVE }, { id: second.id, status: ResourceStatus.OUT_OF_SERVICE }, { id: third.id, status: ResourceStatus.ARCHIVED }]);
     await expect(repository.listByBusinessId(otherBusiness.id)).resolves.toHaveLength(1);
   });
+
+  it('persiste la deshabilitación sin alterar los demás campos del Resource', async () => {
+    const business = await prisma.business.create({ data: { name: 'Business de disable' } });
+    const row = await prisma.resource.create({ data: { businessId: business.id, name: 'Cabaña persistida', internalCode: 'DISABLE-1', description: 'Original', capacityMinimum: 1, capacityMaximum: 4, capacityMaximumChildren: 2, sortOrder: 9, status: ResourceStatus.ACTIVE } });
+    const original = await repository.findByIdAndBusinessId(row.id, business.id);
+
+    if (!original) throw new Error('El Resource de integración debe existir.');
+    const disabled = await repository.update(original.disable());
+    const persisted = await prisma.resource.findUniqueOrThrow({ where: { id: row.id } });
+
+    expect(disabled.status).toBe(ResourceStatus.OUT_OF_SERVICE);
+    expect(persisted).toMatchObject({ id: row.id, businessId: business.id, name: 'Cabaña persistida', internalCode: 'DISABLE-1', description: 'Original', capacityMinimum: 1, capacityMaximum: 4, capacityMaximumChildren: 2, sortOrder: 9, status: ResourceStatus.OUT_OF_SERVICE, createdAt: row.createdAt });
+    expect(persisted.updatedAt.getTime()).toBeGreaterThanOrEqual(row.updatedAt.getTime());
+  });
 });

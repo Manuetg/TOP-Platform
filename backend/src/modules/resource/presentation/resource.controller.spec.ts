@@ -46,12 +46,14 @@ describe('ResourceController', () => {
     const get = { execute: jest.fn() };
     const list = { execute: jest.fn() };
     const update = { execute: jest.fn() };
+    const disable = { execute: jest.fn() };
     return {
       create,
       get,
       list,
       update,
-      controller: new ResourceController(create as never, get as never, list as never, update as never),
+      disable,
+      controller: new ResourceController(create as never, get as never, list as never, update as never, disable as never),
     };
   };
 
@@ -228,5 +230,16 @@ describe('ResourceController', () => {
     await expect(
       controller.update(resource.businessId, resource.id, { name: resource.name }),
     ).rejects.toBe(error);
+  });
+
+  it('deshabilita mediante el caso de uso y traduce el DTO publico', async () => {
+    const { controller, disable } = setup();
+    const disabled = resource.disable();
+    disable.execute.mockResolvedValue(disabled);
+    await expect(controller.disable(resource.businessId, resource.id)).resolves.toMatchObject({
+      id: resource.id,
+      status: ResourceStatus.OUT_OF_SERVICE,
+    });
+    expect(disable.execute).toHaveBeenCalledWith({ businessId: resource.businessId, resourceId: resource.id });
   });
 });

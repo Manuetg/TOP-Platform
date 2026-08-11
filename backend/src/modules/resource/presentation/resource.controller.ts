@@ -35,6 +35,7 @@ import {
   ResourceNotFoundError,
 } from '../application/get-resource.use-case';
 import { ListResourcesUseCase } from '../application/list-resources.use-case';
+import { DisableResourceUseCase } from '../application/disable-resource.use-case';
 import { InvalidResourceUpdateError, ResourceArchivedError, ResourceBusinessArchivedError, ResourceCodeAlreadyExistsError as UpdateResourceCodeAlreadyExistsError, UpdateResourceUseCase } from '../application/update-resource.use-case';
 import { CreateResourceRequestDto } from './dto/create-resource.request.dto';
 import { ResourceResponseDto } from './dto/resource.response.dto';
@@ -48,6 +49,7 @@ export class ResourceController {
     private readonly getResource: GetResourceUseCase,
     private readonly listResources: ListResourcesUseCase,
     private readonly updateResource: UpdateResourceUseCase,
+    private readonly disableResource: DisableResourceUseCase,
   ) {}
 
   @Post()
@@ -93,6 +95,26 @@ export class ResourceController {
     } catch (error: unknown) {
       if (error instanceof InvalidBusinessIdError) throw new BadRequestException(error.message);
       if (error instanceof GetBusinessNotFoundError) throw new NotFoundException(error.message);
+      throw error;
+    }
+  }
+
+  @Patch(':resourceId/disable')
+  @ApiOperation({ summary: 'Takes a resource out of service. This operation is idempotent.' })
+  @ApiOkResponse({ type: ResourceResponseDto, description: 'Returns the resource with OUT_OF_SERVICE status.' })
+  @ApiBadRequestResponse()
+  @ApiNotFoundResponse()
+  @ApiConflictResponse()
+  async disable(
+    @Param('businessId') businessId: string,
+    @Param('resourceId') resourceId: string,
+  ): Promise<ResourceResponseDto> {
+    try {
+      return ResourceResponseDto.fromDomain(await this.disableResource.execute({ businessId, resourceId }));
+    } catch (error: unknown) {
+      if (error instanceof InvalidBusinessIdError || error instanceof InvalidResourceIdError) throw new BadRequestException(error.message);
+      if (error instanceof GetBusinessNotFoundError || error instanceof ResourceNotFoundError) throw new NotFoundException(error.message);
+      if (error instanceof ResourceBusinessArchivedError || error instanceof ResourceArchivedError) throw new ConflictException(error.message);
       throw error;
     }
   }

@@ -160,6 +160,7 @@ describe('PrismaResourceRepository', () => {
         capacityMinimum: row.capacityMinimum,
         capacityMaximum: row.capacityMaximum,
         capacityMaximumChildren: row.capacityMaximumChildren,
+        status: row.status,
         sortOrder: row.sortOrder,
       },
     });

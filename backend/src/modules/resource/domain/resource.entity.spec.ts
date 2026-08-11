@@ -48,4 +48,23 @@ describe('Resource', () => {
     expect(changed.createdAt).toBe(createdAt);
     expect(changed.updatedAt.getTime()).toBeGreaterThanOrEqual(updatedAt.getTime());
   });
+
+  it('deshabilita ACTIVE, conserva OUT_OF_SERVICE y no transforma ARCHIVED', () => {
+    const active = createResource();
+    const disabled = active.disable();
+    const unavailable = Resource.create({
+      id: 'u', businessId: 'b', name: 'U', internalCode: 'U1', description: null,
+      capacityMinimum: 1, capacityMaximum: 1, capacityMaximumChildren: 0,
+      status: ResourceStatus.OUT_OF_SERVICE, sortOrder: 0, createdAt, updatedAt,
+    });
+    const archived = Resource.create({
+      id: 'a', businessId: 'b', name: 'A', internalCode: 'A1', description: null,
+      capacityMinimum: 1, capacityMaximum: 1, capacityMaximumChildren: 0,
+      status: ResourceStatus.ARCHIVED, sortOrder: 0, createdAt, updatedAt,
+    });
+    expect(disabled).toMatchObject({ id: active.id, businessId: active.businessId, status: ResourceStatus.OUT_OF_SERVICE, createdAt });
+    expect(disabled.updatedAt.getTime()).toBeGreaterThanOrEqual(updatedAt.getTime());
+    expect(unavailable.disable()).toBe(unavailable);
+    expect(archived.disable()).toBe(archived);
+  });
 });

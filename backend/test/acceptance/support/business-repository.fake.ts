@@ -14,6 +14,16 @@ export function resetBusinessRepositoryFake(): void {
   ];
 }
 
+export function setBusinessStatus(id: string, status: BusinessStatus): void {
+  const business = businesses.find((item) => item.id === id);
+  if (!business) return;
+  businesses = businesses.map((item) => item.id === id ? Business.create({
+    id: item.id, businessNumber: item.businessNumber, name: item.name,
+    legalName: item.legalName, taxId: item.taxId, timezone: item.timezone,
+    currency: item.currency, status, createdAt: item.createdAt, updatedAt: item.updatedAt,
+  }) : item);
+}
+
 resetBusinessRepositoryFake();
 
 export const businessRepositoryFake = {

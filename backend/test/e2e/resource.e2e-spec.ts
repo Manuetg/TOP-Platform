@@ -37,4 +37,19 @@ describe('Resource endpoint', () => {
   it('actualiza parcialmente, normaliza y no expone props', async () => { await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceA}`).send({ name: ' Cabaña Sur ', internalCode: ' sur-1 ', description: '' }).expect(200).expect(({ body }: { body: Record<string, unknown> }) => { expect(body).toMatchObject({ name: 'Cabaña Sur', internalCode: 'SUR-1', description: null, status: ResourceStatus.ACTIVE }); expect(body).not.toHaveProperty('props'); }); });
   it.each([{},{ capacityMaximum: 0 }, { name: ' ' }, { internalCode: '!' }, { sortOrder: 10000 }])('rechaza PATCH inválido', async (body) => { await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceA}`).send(body).expect(400); });
   it('rechaza PATCH sobre Business o Resource archivados y preserva el aislamiento', async () => { businesses = [makeBusiness(businessA, BusinessStatus.ARCHIVED)]; await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceA}`).send({ name: 'Nueva' }).expect(409); businesses = [makeBusiness(businessA), makeBusiness(businessB)]; resources = [makeResource(ResourceStatus.ARCHIVED)]; await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceA}`).send({ name: 'Nueva' }).expect(409); resources = [makeResource(ResourceStatus.ACTIVE, resourceB, businessB)]; await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceB}`).send({ name: 'Nueva' }).expect(404); });
+
+  it('deshabilita un Resource, es idempotente y protege el tenant', async () => {
+    const first = await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceA}/disable`).expect(200);
+    expect(first.body).toMatchObject({ id: resourceA, status: ResourceStatus.OUT_OF_SERVICE });
+    expect(first.body).not.toHaveProperty('props');
+    const timestamp = first.body.updatedAt;
+    const second = await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceA}/disable`).expect(200);
+    expect(second.body.updatedAt).toBe(timestamp);
+    await request(app.getHttpServer()).patch('/api/businesses/invalido/resources/33333333-3333-4333-8333-333333333333/disable').expect(400);
+    await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceB}/disable`).expect(404);
+    businesses = [makeBusiness(businessA, BusinessStatus.ARCHIVED)];
+    await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceA}/disable`).expect(409);
+    businesses = [makeBusiness(businessA)]; resources = [makeResource(ResourceStatus.ARCHIVED)];
+    await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceA}/disable`).expect(409);
+  });
 });
