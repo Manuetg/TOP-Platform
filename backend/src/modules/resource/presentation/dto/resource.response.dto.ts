@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Resource } from '../../domain/resource.entity';
+import { ResourceAmenityResponseDto } from './amenity.response.dto';
 
 export class ResourceResponseDto {
   @ApiProperty() id!: string;
@@ -14,6 +15,7 @@ export class ResourceResponseDto {
   @ApiProperty() sortOrder!: number;
   @ApiProperty() createdAt!: Date;
   @ApiProperty() updatedAt!: Date;
+  @ApiProperty({ type: [ResourceAmenityResponseDto] }) amenities!: ResourceAmenityResponseDto[];
 
   static fromDomain(resource: Resource): ResourceResponseDto {
     return {
@@ -29,6 +31,7 @@ export class ResourceResponseDto {
       sortOrder: resource.sortOrder,
       createdAt: resource.createdAt,
       updatedAt: resource.updatedAt,
+      amenities: resource.amenities.map((amenity) => ResourceAmenityResponseDto.fromDomain(amenity)),
     };
   }
 }

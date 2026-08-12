@@ -31,6 +31,19 @@ enum ResourceStatus {
   ARCHIVED
 }
 
+enum AmenityCategory {
+  CONNECTIVITY
+  CLIMATE
+  BATHROOM
+  KITCHEN
+  ENTERTAINMENT
+  OUTDOOR
+  PARKING
+  SERVICES
+  ACCESSIBILITY
+  GENERAL
+}
+
 model User {
   id              String                   @id @default(uuid())
   email           String                   @unique
@@ -97,24 +110,52 @@ model Business {
 }
 
 model Resource {
-  id                      String          @id @default(uuid())
+  id                      String            @id @default(uuid())
   businessId              String
   name                    String
   internalCode            String
   description             String?
-  capacityMinimum         Int             @default(1)
+  capacityMinimum         Int               @default(1)
   capacityMaximum         Int
-  capacityMaximumChildren Int             @default(0)
-  status                  ResourceStatus  @default(ACTIVE)
-  sortOrder               Int             @default(0)
-  createdAt               DateTime        @default(now())
-  updatedAt               DateTime        @updatedAt
-  business                Business        @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  capacityMaximumChildren Int               @default(0)
+  status                  ResourceStatus    @default(ACTIVE)
+  sortOrder               Int               @default(0)
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  business                Business          @relation(fields: [businessId], references: [id], onDelete: Restrict)
   images                  ResourceImage[]
+  amenities               ResourceAmenity[]
 
   @@unique([businessId, internalCode])
   @@index([businessId, status])
   @@index([businessId, sortOrder])
+}
+
+model Amenity {
+  id                String            @id @default(uuid())
+  code              String            @unique
+  name              String
+  category          AmenityCategory
+  active            Boolean           @default(true)
+  sortOrder         Int               @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  resourceAmenities ResourceAmenity[]
+
+  @@index([active, category, sortOrder])
+}
+
+model ResourceAmenity {
+  resourceId String
+  amenityId  String
+  createdAt  DateTime @default(now())
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  amenity    Amenity  @relation(fields: [amenityId], references: [id], onDelete: Restrict)
+
+  @@id([resourceId, amenityId])
+  @@unique([resourceId, amenityId])
+  @@index([resourceId])
+  @@index([amenityId])
 }
 
 model ResourceImage {

@@ -10,6 +10,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -47,6 +48,8 @@ import { ResourceResponseDto } from './dto/resource.response.dto';
 import { UpdateResourceRequestDto } from './dto/update-resource.request.dto';
 import { ResourceImageResponseDto } from './dto/resource-image.response.dto';
 import { InvalidResourceImageInputError, ResourceImageLimitReachedError, UploadResourceImageUseCase } from '../application/upload-resource-image.use-case';
+import { AmenitiesNotFoundError, InactiveAmenitiesError, InvalidResourceAmenitiesInputError, ResourceAmenitiesArchivedError, ResourceAmenitiesBusinessArchivedError, ResourceAmenitiesBusinessNotFoundError, ResourceAmenitiesNotFoundError, SetResourceAmenitiesUseCase } from '../application/set-resource-amenities.use-case';
+import { SetResourceAmenitiesRequestDto } from './dto/set-resource-amenities.request.dto';
 
 @ApiTags('Resources')
 @Controller('businesses/:businessId/resources')
@@ -58,6 +61,7 @@ export class ResourceController {
     private readonly updateResource: UpdateResourceUseCase,
     private readonly disableResource: DisableResourceUseCase,
     private readonly uploadResourceImage: UploadResourceImageUseCase,
+    private readonly setResourceAmenities: SetResourceAmenitiesUseCase,
   ) {}
 
   @Post()
@@ -152,6 +156,27 @@ export class ResourceController {
       if (error instanceof InvalidBusinessIdError || error instanceof InvalidResourceIdError) throw new BadRequestException(error.message);
       if (error instanceof GetBusinessNotFoundError || error instanceof ResourceNotFoundError) throw new NotFoundException(error.message);
       if (error instanceof ResourceBusinessArchivedError || error instanceof ResourceArchivedError) throw new ConflictException(error.message);
+      throw error;
+    }
+  }
+
+  @Put(':resourceId/amenities')
+  @ApiOperation({ summary: 'Replaces all resource amenities. This operation is idempotent.' })
+  @ApiOkResponse({ type: ResourceResponseDto })
+  @ApiBadRequestResponse()
+  @ApiNotFoundResponse()
+  @ApiConflictResponse()
+  async setAmenities(
+    @Param('businessId') businessId: string,
+    @Param('resourceId') resourceId: string,
+    @Body() body: SetResourceAmenitiesRequestDto,
+  ): Promise<ResourceResponseDto> {
+    try {
+      return ResourceResponseDto.fromDomain(await this.setResourceAmenities.execute({ businessId, resourceId, amenityIds: body.amenityIds }));
+    } catch (error: unknown) {
+      if (error instanceof InvalidResourceAmenitiesInputError) throw new BadRequestException(error.message);
+      if (error instanceof ResourceAmenitiesBusinessNotFoundError || error instanceof ResourceAmenitiesNotFoundError || error instanceof AmenitiesNotFoundError) throw new NotFoundException(error.message);
+      if (error instanceof ResourceAmenitiesBusinessArchivedError || error instanceof ResourceAmenitiesArchivedError || error instanceof InactiveAmenitiesError) throw new ConflictException(error.message);
       throw error;
     }
   }

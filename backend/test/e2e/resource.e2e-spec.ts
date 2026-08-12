@@ -12,6 +12,9 @@ import { ResourceStatus } from '../../src/modules/resource/domain/resource-statu
 import { FILE_STORAGE } from '../../src/modules/resource/domain/file-storage.port';
 import { RESOURCE_IMAGE_REPOSITORY } from '../../src/modules/resource/domain/resource-image.repository';
 import { ResourceImage } from '../../src/modules/resource/domain/resource-image.entity';
+import { Amenity } from '../../src/modules/resource/domain/amenity.entity';
+import { AMENITY_REPOSITORY } from '../../src/modules/resource/domain/amenity.repository';
+import { RESOURCE_AMENITY_REPOSITORY } from '../../src/modules/resource/domain/resource-amenity.repository';
 
 const businessA = '11111111-1111-4111-8111-111111111111';
 const businessB = '22222222-2222-4222-8222-222222222222';
@@ -25,16 +28,20 @@ describe('Resource endpoint', () => {
   let businesses: Business[];
   let resources: Resource[];
   let images: ResourceImage[];
+  let amenities: Amenity[];
+  let assignments: string[];
   beforeAll(async () => {
     const module = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(BUSINESS_REPOSITORY).useValue({ findById: (id: string): Promise<Business | null> => Promise.resolve(businesses.find((item) => item.id === id) ?? null), create: jest.fn(), list: jest.fn(), update: jest.fn() })
       .overrideProvider(RESOURCE_REPOSITORY).useValue({ findByIdAndBusinessId: (id: string, businessId: string): Promise<Resource | null> => Promise.resolve(resources.find((item) => item.id === id && item.businessId === businessId) ?? null), listByBusinessId: (businessId: string): Promise<Resource[]> => Promise.resolve(resources.filter((item) => item.businessId === businessId)), findByBusinessAndCode: (businessId: string, internalCode: string): Promise<Resource | null> => Promise.resolve(resources.find((item) => item.businessId === businessId && item.internalCode === internalCode) ?? null), create: jest.fn(), update: (resource: Resource): Promise<Resource> => { resources = resources.map((item) => item.id === resource.id ? resource : item); return Promise.resolve(resource); } })
       .overrideProvider(RESOURCE_IMAGE_REPOSITORY).useValue({ countByResourceId: (id: string): Promise<number> => Promise.resolve(images.filter((image) => image.resourceId === id).length), getNextSortOrder: (id: string): Promise<number> => Promise.resolve(images.filter((image) => image.resourceId === id).reduce((maximum, image) => Math.max(maximum, image.sortOrder), -1) + 1), create: (image: ResourceImage): Promise<ResourceImage> => { images.push(image); return Promise.resolve(image); } })
-      .overrideProvider(FILE_STORAGE).useValue({ upload: (): Promise<void> => Promise.resolve(), delete: (): Promise<void> => Promise.resolve(), createSignedReadUrl: (key: string): Promise<string> => Promise.resolve(`https://signed.test/${key}`) }).compile();
+      .overrideProvider(FILE_STORAGE).useValue({ upload: (): Promise<void> => Promise.resolve(), delete: (): Promise<void> => Promise.resolve(), createSignedReadUrl: (key: string): Promise<string> => Promise.resolve(`https://signed.test/${key}`) })
+      .overrideProvider(AMENITY_REPOSITORY).useValue({ listActive: (): Promise<Amenity[]> => Promise.resolve(amenities.filter((item) => item.active)), findManyByIds: (ids: string[]): Promise<Amenity[]> => Promise.resolve(amenities.filter((item) => ids.includes(item.id))) })
+      .overrideProvider(RESOURCE_AMENITY_REPOSITORY).useValue({ replace: (_resourceId: string, ids: string[]): Promise<void> => { assignments = [...ids]; return Promise.resolve(); }, listByResourceId: (): Promise<Amenity[]> => Promise.resolve(amenities.filter((item) => assignments.includes(item.id))) }).compile();
     app = module.createNestApplication(); configureApplication(app); await app.init();
   });
   afterAll(async () => { await app.close(); });
-  beforeEach(() => { businesses = [makeBusiness(businessA), makeBusiness(businessB)]; resources = [makeResource(ResourceStatus.ACTIVE), makeResource(ResourceStatus.ACTIVE, resourceB, businessB)]; images = []; });
+  beforeEach(() => { businesses = [makeBusiness(businessA), makeBusiness(businessB)]; resources = [makeResource(ResourceStatus.ACTIVE), makeResource(ResourceStatus.ACTIVE, resourceB, businessB)]; images = []; assignments = []; amenities = [Amenity.create({ id: '55555555-5555-4555-8555-555555555555', code: 'WIFI', name: 'Wi-Fi', category: 'CONNECTIVITY', active: true, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() })]; });
   it.each([ResourceStatus.ACTIVE, ResourceStatus.OUT_OF_SERVICE, ResourceStatus.ARCHIVED])('retorna 200 para Resource %s sin propiedades internas', async (status) => { resources = [makeResource(status)]; await request(app.getHttpServer()).get(`/api/businesses/${businessA}/resources/${resourceA}`).expect(200).expect(({ body }: { body: Record<string, unknown> }) => { expect(body.status).toBe(status); expect(body).toMatchObject({ id: resourceA, businessId: businessA, internalCode: 'CAB-NORTE' }); expect(body).not.toHaveProperty('props'); }); });
   it('retorna 200 si el Business está archivado', async () => { businesses = [makeBusiness(businessA, BusinessStatus.ARCHIVED)]; await request(app.getHttpServer()).get(`/api/businesses/${businessA}/resources/${resourceA}`).expect(200); });
   it.each(['/api/businesses/invalido/resources/33333333-3333-4333-8333-333333333333', '/api/businesses/11111111-1111-4111-8111-111111111111/resources/invalido'])('retorna 400 con UUID inválido', async (url) => { await request(app.getHttpServer()).get(url).expect(400); });
@@ -66,5 +73,13 @@ describe('Resource endpoint', () => {
     expect(response.body).not.toHaveProperty('storageKey'); expect(response.body).not.toHaveProperty('businessId'); expect(response.body).not.toHaveProperty('props');
     await request(app.getHttpServer()).post(`/api/businesses/${businessA}/resources/${resourceA}/images`).attach('file', Buffer.from([1]), { filename: 'bad.svg', contentType: 'image/svg+xml' }).expect(400);
     await request(app.getHttpServer()).post(`/api/businesses/${businessA}/resources/${resourceB}/images`).attach('file', Buffer.from([1]), { filename: 'tenant.jpg', contentType: 'image/jpeg' }).expect(404);
+  });
+
+  it('lista el catálogo y reemplaza amenities de forma idempotente', async () => {
+    const amenityId = amenities[0].id;
+    await request(app.getHttpServer()).get('/api/amenities').expect(200).expect(({ body }: { body: Array<Record<string, unknown>> }) => { expect(body).toEqual([expect.objectContaining({ id: amenityId, code: 'WIFI', category: 'CONNECTIVITY', sortOrder: 0 })]); expect(body[0]).not.toHaveProperty('active'); });
+    await request(app.getHttpServer()).put(`/api/businesses/${businessA}/resources/${resourceA}/amenities`).send({ amenityIds: [amenityId] }).expect(200).expect(({ body }: { body: Record<string, unknown> }) => expect(body.amenities).toEqual([expect.objectContaining({ id: amenityId, code: 'WIFI' })]));
+    await request(app.getHttpServer()).put(`/api/businesses/${businessA}/resources/${resourceA}/amenities`).send({ amenityIds: [] }).expect(200).expect(({ body }: { body: Record<string, unknown> }) => expect(body.amenities).toEqual([]));
+    await request(app.getHttpServer()).put(`/api/businesses/${businessA}/resources/${resourceA}/amenities`).send({ amenityIds: [amenityId, amenityId] }).expect(400);
   });
 });

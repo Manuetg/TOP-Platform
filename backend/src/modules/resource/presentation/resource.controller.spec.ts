@@ -29,6 +29,8 @@ import { Resource } from '../domain/resource.entity';
 import { ResourceImage } from '../domain/resource-image.entity';
 import { ResourceStatus } from '../domain/resource-status.enum';
 import { ResourceController } from './resource.controller';
+import { Amenity } from '../domain/amenity.entity';
+import { AmenitiesNotFoundError, InactiveAmenitiesError, InvalidResourceAmenitiesInputError, ResourceAmenitiesArchivedError, ResourceAmenitiesBusinessArchivedError, ResourceAmenitiesBusinessNotFoundError, ResourceAmenitiesNotFoundError } from '../application/set-resource-amenities.use-case';
 
 describe('ResourceController', () => {
   const resource = Resource.create({
@@ -53,6 +55,7 @@ describe('ResourceController', () => {
     const update = { execute: jest.fn() };
     const disable = { execute: jest.fn() };
     const upload = { execute: jest.fn() };
+    const setAmenities = { execute: jest.fn() };
     return {
       create,
       get,
@@ -60,7 +63,8 @@ describe('ResourceController', () => {
       update,
       disable,
       upload,
-      controller: new ResourceController(create as never, get as never, list as never, update as never, disable as never, upload as never),
+      setAmenities,
+      controller: new ResourceController(create as never, get as never, list as never, update as never, disable as never, upload as never, setAmenities as never),
     };
   };
 
@@ -248,6 +252,26 @@ describe('ResourceController', () => {
       status: ResourceStatus.OUT_OF_SERVICE,
     });
     expect(disable.execute).toHaveBeenCalledWith({ businessId: resource.businessId, resourceId: resource.id });
+  });
+
+  it.each([
+    [new InvalidResourceAmenitiesInputError('entrada inválida'), BadRequestException],
+    [new ResourceAmenitiesBusinessNotFoundError('negocio inexistente'), NotFoundException],
+    [new ResourceAmenitiesNotFoundError('recurso inexistente'), NotFoundException],
+    [new AmenitiesNotFoundError('amenity inexistente'), NotFoundException],
+    [new ResourceAmenitiesBusinessArchivedError('negocio archivado'), ConflictException],
+    [new ResourceAmenitiesArchivedError('recurso archivado'), ConflictException],
+    [new InactiveAmenitiesError('amenity inactiva'), ConflictException],
+  ])('setea amenities, mapea DTO y traduce sus errores', async (error, exception) => {
+    const { controller, setAmenities } = setup();
+    const amenity = Amenity.create({ id: '55555555-5555-4555-8555-555555555555', code: 'WIFI', name: 'Wi-Fi', category: 'CONNECTIVITY', active: true, sortOrder: 0, createdAt: resource.createdAt, updatedAt: resource.updatedAt });
+    const enriched = Resource.create({ id: resource.id, businessId: resource.businessId, name: resource.name, internalCode: resource.internalCode, description: resource.description, capacityMinimum: resource.capacityMinimum, capacityMaximum: resource.capacityMaximum, capacityMaximumChildren: resource.capacityMaximumChildren, status: resource.status, sortOrder: resource.sortOrder, createdAt: resource.createdAt, updatedAt: resource.updatedAt, amenities: [amenity] });
+    setAmenities.execute.mockResolvedValueOnce(enriched).mockRejectedValueOnce(error);
+    const response = await controller.setAmenities(resource.businessId, resource.id, { amenityIds: [amenity.id] });
+    expect(setAmenities.execute).toHaveBeenCalledWith({ businessId: resource.businessId, resourceId: resource.id, amenityIds: [amenity.id] });
+    expect(response).toEqual(expect.objectContaining({ id: resource.id, amenities: [{ id: amenity.id, code: 'WIFI', name: 'Wi-Fi', category: 'CONNECTIVITY' }] }));
+    expect(response).not.toHaveProperty('props');
+    await expect(controller.setAmenities(resource.businessId, resource.id, { amenityIds: [amenity.id] })).rejects.toBeInstanceOf(exception);
   });
 
   it('carga una imagen y expone solo el DTO público', async () => {

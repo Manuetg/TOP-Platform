@@ -27,6 +27,10 @@
     "src/modules/resource/infrastructure/prisma-resource.repository.ts",
     "src/modules/resource/infrastructure/prisma-resource-image.repository.ts",
     "src/modules/resource/infrastructure/s3-file-storage.ts",
+    "src/modules/resource/infrastructure/prisma-amenity.repository.ts",
+    "src/modules/resource/infrastructure/prisma-resource-amenity.repository.ts",
+    "src/modules/resource/presentation/amenity.controller.ts",
+    "src/modules/resource/presentation/resource.controller.ts",
     "!src/modules/resource/**/*.spec.ts"
   ],
   "thresholds": { "high": 80, "low": 70, "break": 70 }

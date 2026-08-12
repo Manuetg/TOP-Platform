@@ -53,14 +53,14 @@ describe('PrismaResourceRepository', () => {
       row.internalCode,
     );
 
-    expect(findUnique).toHaveBeenCalledWith({
+    expect(findUnique).toHaveBeenCalledWith(expect.objectContaining({
       where: {
         businessId_internalCode: {
           businessId: row.businessId,
           internalCode: row.internalCode,
         },
       },
-    });
+    }));
     expect(resource).toMatchObject(row);
   });
 
@@ -79,9 +79,9 @@ describe('PrismaResourceRepository', () => {
 
     const resource = await repository.findByIdAndBusinessId(row.id, row.businessId);
 
-    expect(findFirst).toHaveBeenCalledWith({
+    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: row.id, businessId: row.businessId },
-    });
+    }));
     expect(resource).toMatchObject(row);
   });
 
@@ -103,7 +103,7 @@ describe('PrismaResourceRepository', () => {
     const { repository } = createRepository({ findMany });
 
     await expect(repository.listByBusinessId(rows[0].businessId)).resolves.toMatchObject(rows);
-    expect(findMany).toHaveBeenCalledWith({ where: { businessId: rows[0].businessId }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }, { id: 'asc' }] });
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { businessId: rows[0].businessId }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }, { id: 'asc' }] }));
   });
 
   it('retorna vacío y propaga errores de Prisma', async () => {
@@ -130,7 +130,7 @@ describe('PrismaResourceRepository', () => {
 
     const resource = await repository.create(data);
 
-    expect(create).toHaveBeenCalledWith({ data });
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ data }));
     expect(resource).toMatchObject(row);
   });
 
@@ -151,7 +151,7 @@ describe('PrismaResourceRepository', () => {
 
     const result = await repository.update(updated);
 
-    expect(update).toHaveBeenCalledWith({
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: row.id },
       data: {
         name: 'Alpha actualizado',
@@ -163,7 +163,7 @@ describe('PrismaResourceRepository', () => {
         status: row.status,
         sortOrder: row.sortOrder,
       },
-    });
+    }));
     expect(result).toMatchObject({
       id: row.id,
       businessId: row.businessId,

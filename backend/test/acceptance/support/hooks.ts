@@ -23,6 +23,9 @@ import { FILE_STORAGE } from '../../../src/modules/resource/domain/file-storage.
 import { RESOURCE_IMAGE_REPOSITORY } from '../../../src/modules/resource/domain/resource-image.repository';
 import { InMemoryFileStorage } from '../../../src/modules/resource/infrastructure/in-memory-file-storage';
 import { resetResourceImageRepositoryFake, resourceImageRepositoryFake } from './resource-image-repository.fake';
+import { AMENITY_REPOSITORY } from '../../../src/modules/resource/domain/amenity.repository';
+import { RESOURCE_AMENITY_REPOSITORY } from '../../../src/modules/resource/domain/resource-amenity.repository';
+import { amenityRepositoryFake, resetAmenityFakes, resourceAmenityRepositoryFake } from './amenity-repository.fake';
 
 Before(async function (this: TopWorld) {
   resetBusinessRepositoryFake();
@@ -30,11 +33,14 @@ Before(async function (this: TopWorld) {
   resetMembershipFakes();
   resetResourceRepositoryFake();
   resetResourceImageRepositoryFake();
+  resetAmenityFakes();
   const refreshSessions = new Map<string, RefreshSession>();
   const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(BUSINESS_REPOSITORY).useValue(businessRepositoryFake)
     .overrideProvider(RESOURCE_REPOSITORY).useValue(resourceRepositoryFake)
     .overrideProvider(RESOURCE_IMAGE_REPOSITORY).useValue(resourceImageRepositoryFake)
+    .overrideProvider(AMENITY_REPOSITORY).useValue(amenityRepositoryFake)
+    .overrideProvider(RESOURCE_AMENITY_REPOSITORY).useValue(resourceAmenityRepositoryFake)
     .overrideProvider(FILE_STORAGE).useValue(new InMemoryFileStorage())
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)

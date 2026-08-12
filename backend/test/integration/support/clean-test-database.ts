@@ -13,6 +13,7 @@ export async function cleanTestDatabase(prisma: PrismaClient, databaseUrl: strin
   await prisma.localCredential.deleteMany();
   await prisma.user.deleteMany();
   await prisma.resourceImage.deleteMany();
+  await prisma.resourceAmenity.deleteMany();
   await prisma.resource.deleteMany();
   await prisma.business.deleteMany();
 }
