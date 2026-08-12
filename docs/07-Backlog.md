@@ -41,8 +41,8 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 - **RES-003 — List Resources.** Estado: Completed. Dominio: Resource. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/resources`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `5c649ef`; orden `sortOrder ASC`, `name ASC`, `id ASC`; lista vacía `200 []`; incluye Resources `ACTIVE`, `OUT_OF_SERVICE` y `ARCHIVED`, permite Business archivado y mantiene aislamiento por `businessId`; unit 31 suites y 135 tests, integración 9 suites y 28 tests, E2E 6 suites y 59 tests, aceptación 36 escenarios y 154 pasos; cobertura: líneas 97,70%, statements 96,51%, funciones 97,91% y branches 87,71%; arquitectura sin violaciones y Prisma válido; mutation segmentada: ListResourcesUseCase 100%, PrismaResourceRepository 100% y ResourceController 96,97%; Swagger/HTTP manual validado; GitHub Actions run `30954710356` con `verify: success`. El último score global completo de mutation conocido se mantiene en 87,73%.
 - **RES-004 — Update Resource.** Estado: Completed. Dominio: Resource. Prioridad: Alta. Endpoint: `PATCH /api/businesses/:businessId/resources/:resourceId`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `79e9bf5`; actualización parcial de campos aprobados, normalización de nombre y código interno, descripción nula o vacía persistida como `null`, y capacidades validadas sobre el estado final; bloquea Business y Resource archivados, permite Resource `OUT_OF_SERVICE` y mantiene aislamiento por `businessId`; unit 32 suites y 193 tests, integración 9 suites y 28 tests, E2E 6 suites y 66 tests, aceptación 36 escenarios y 154 pasos; cobertura: líneas 97,90%, statements 96,77%, funciones 98,07% y branches 90,17%; arquitectura sin violaciones y Prisma válido; mutation segmentada: UpdateResourceUseCase 93,64%, PrismaResourceRepository 100%, ResourceController 98% y Resource entity 100%; Swagger/HTTP manual validado; GitHub Actions run `30960261669` con `verify: success`. El último score global completo de mutation conocido se mantiene en 87,73%.
 - **RES-005 — Disable Resource.** Estado: Completed. Dominio: Resource. Prioridad: Media. Endpoint: `PATCH /api/businesses/:businessId/resources/:resourceId/disable`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `dc0a50e`; transición `ACTIVE` a `OUT_OF_SERVICE` idempotente, bloqueo de Resource y Business archivados, aislamiento por `businessId` y preservación de atributos; defectos de routing y persistencia de `status` corregidos y protegidos; unit 33 suites y 201 tests, integración 9 suites y 29 tests, E2E 6 suites y 67 tests, aceptación 39 escenarios y 167 pasos; cobertura: statements 96,80%, branches 90,94%, funciones 98,12% y líneas 97,85%; quality check, Prisma y arquitectura sin violaciones aprobados; mutation segmentada: DisableResourceUseCase 95,35%, Resource entity 100% y ResourceController 82,54%; Swagger/HTTP manual validado; GitHub Actions run `31454662102` con `verify: success`. El último score global completo de mutation conocido se mantiene en 87,73%.
-- **RES-006 — Upload Images.** Estado: Planned. Dominio: Resource. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. **Siguiente capacidad priorizada.**
-- **RES-007 — Resource Amenities.** Estado: Planned. Dominio: Resource. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **RES-006 — Upload Images.** Estado: Completed. Dominio: Resource. Prioridad: Media. Endpoint: `POST /api/businesses/:businessId/resources/:resourceId/images`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `db06772`; carga `multipart/form-data` de JPEG, PNG y WEBP con límite de 5 MB y máximo de 10 imágenes, `sortOrder` automático, metadata `ResourceImage`, almacenamiento S3-compatible privado y URL firmada temporal; mantiene aislamiento por `businessId`, permite Resource `OUT_OF_SERVICE` y bloquea Business y Resource archivados; unit 38 suites y 240 tests, integración 10 suites y 30 tests, E2E 6 suites y 68 tests, aceptación 44 escenarios y 196 pasos; cobertura: statements 97,08%, branches 91,87%, funciones 98,36% y líneas 98,00%; arquitectura sin violaciones, Prisma y quality check aprobados; mutation segmentada: UploadResourceImageUseCase 100% (87/87), PrismaResourceImageRepository 100% (15/15), S3FileStorage 100% (35/35) y ResourceController 85,37%; Swagger/HTTP manual validado; GitHub Actions run `31623999986` con `verify: success`. El último score global completo de mutation conocido se mantiene en 87,73%.
+- **RES-007 — Resource Amenities.** Estado: Planned. Dominio: Resource. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. **Siguiente capacidad priorizada.**
 
 ## Pricing
 
@@ -101,7 +101,7 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Business | 5 | 5 | 0 | 0 | 0 |
 | Identity & Access | 9 | 6 | 0 | 3 | 0 |
-| Resource | 7 | 5 | 0 | 2 | 0 |
+| Resource | 7 | 6 | 0 | 1 | 0 |
 | Pricing | 5 | 0 | 0 | 5 | 0 |
 | Availability | 4 | 0 | 0 | 4 | 0 |
 | Contact | 4 | 0 | 0 | 4 | 0 |
@@ -109,10 +109,10 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 0 | 0 | 3 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **17** | **0** | **34** | **0** |
+| **Total** | **51** | **18** | **0** | **33** | **0** |
 
 Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
-Progreso de Resource: 5 de 7 capacidades completadas (71,4%).
+Progreso de Resource: 6 de 7 capacidades completadas (85,7%).
 
-Progreso general del MVP: 17 de 51 capacidades completadas (33,3%).
+Progreso general del MVP: 18 de 51 capacidades completadas (35,3%).
