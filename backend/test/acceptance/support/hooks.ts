@@ -19,16 +19,23 @@ import { businessLookupFake, membershipRepositoryFake, resetMembershipFakes, use
 import { TopWorld } from './world';
 import { RESOURCE_REPOSITORY } from '../../../src/modules/resource/domain/resource.repository';
 import { resetResourceRepositoryFake, resourceRepositoryFake } from './resource-repository.fake';
+import { FILE_STORAGE } from '../../../src/modules/resource/domain/file-storage.port';
+import { RESOURCE_IMAGE_REPOSITORY } from '../../../src/modules/resource/domain/resource-image.repository';
+import { InMemoryFileStorage } from '../../../src/modules/resource/infrastructure/in-memory-file-storage';
+import { resetResourceImageRepositoryFake, resourceImageRepositoryFake } from './resource-image-repository.fake';
 
 Before(async function (this: TopWorld) {
   resetBusinessRepositoryFake();
   resetUserRepositoryFake();
   resetMembershipFakes();
   resetResourceRepositoryFake();
+  resetResourceImageRepositoryFake();
   const refreshSessions = new Map<string, RefreshSession>();
   const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(BUSINESS_REPOSITORY).useValue(businessRepositoryFake)
     .overrideProvider(RESOURCE_REPOSITORY).useValue(resourceRepositoryFake)
+    .overrideProvider(RESOURCE_IMAGE_REPOSITORY).useValue(resourceImageRepositoryFake)
+    .overrideProvider(FILE_STORAGE).useValue(new InMemoryFileStorage())
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)
     .overrideProvider(PASSWORD_HASHER).useValue(passwordHasherFake)

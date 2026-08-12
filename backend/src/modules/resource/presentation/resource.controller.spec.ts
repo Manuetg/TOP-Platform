@@ -21,7 +21,12 @@ import {
   ResourceBusinessArchivedError,
   ResourceCodeAlreadyExistsError as UpdateResourceCodeAlreadyExistsError,
 } from '../application/update-resource.use-case';
+import {
+  InvalidResourceImageInputError,
+  ResourceImageLimitReachedError,
+} from '../application/upload-resource-image.use-case';
 import { Resource } from '../domain/resource.entity';
+import { ResourceImage } from '../domain/resource-image.entity';
 import { ResourceStatus } from '../domain/resource-status.enum';
 import { ResourceController } from './resource.controller';
 
@@ -47,13 +52,15 @@ describe('ResourceController', () => {
     const list = { execute: jest.fn() };
     const update = { execute: jest.fn() };
     const disable = { execute: jest.fn() };
+    const upload = { execute: jest.fn() };
     return {
       create,
       get,
       list,
       update,
       disable,
-      controller: new ResourceController(create as never, get as never, list as never, update as never, disable as never),
+      upload,
+      controller: new ResourceController(create as never, get as never, list as never, update as never, disable as never, upload as never),
     };
   };
 
@@ -241,5 +248,50 @@ describe('ResourceController', () => {
       status: ResourceStatus.OUT_OF_SERVICE,
     });
     expect(disable.execute).toHaveBeenCalledWith({ businessId: resource.businessId, resourceId: resource.id });
+  });
+
+  it('carga una imagen y expone solo el DTO público', async () => {
+    const { controller, upload } = setup();
+    const image = ResourceImage.create({
+      id: '44444444-4444-4444-8444-444444444444',
+      businessId: resource.businessId,
+      resourceId: resource.id,
+      storageKey: 'private.jpg',
+      mimeType: 'image/jpeg',
+      sizeBytes: 3,
+      sortOrder: 0,
+      createdAt: resource.createdAt,
+      updatedAt: resource.updatedAt,
+    });
+    const file = { buffer: Buffer.from([1, 2, 3]), mimetype: 'image/jpeg', size: 3 } as Express.Multer.File;
+    upload.execute.mockResolvedValue({ image, url: 'https://signed.test/image' });
+
+    const response = await controller.uploadImage(resource.businessId, resource.id, file);
+
+    expect(upload.execute).toHaveBeenCalledWith({
+      businessId: resource.businessId,
+      resourceId: resource.id,
+      file: { buffer: file.buffer, mimeType: file.mimetype, size: file.size },
+    });
+    expect(response).toMatchObject({ id: image.id, url: 'https://signed.test/image' });
+    expect(response).not.toHaveProperty('storageKey');
+    expect(response).not.toHaveProperty('businessId');
+    expect(response).not.toHaveProperty('props');
+  });
+
+  it.each([
+    [new InvalidBusinessIdError('business inválido'), BadRequestException],
+    [new InvalidResourceIdError('recurso inválido'), BadRequestException],
+    [new InvalidResourceImageInputError('imagen inválida'), BadRequestException],
+    [new GetBusinessNotFoundError('business inexistente'), NotFoundException],
+    [new ResourceNotFoundError('recurso inexistente'), NotFoundException],
+    [new ResourceBusinessArchivedError('business archivado'), ConflictException],
+    [new ResourceArchivedError('recurso archivado'), ConflictException],
+    [new ResourceImageLimitReachedError('límite alcanzado'), ConflictException],
+  ])('traduce errores de carga de imagen a HTTP', async (error, exception) => {
+    const { controller, upload } = setup();
+    upload.execute.mockRejectedValue(error);
+
+    await expect(controller.uploadImage(resource.businessId, resource.id, undefined)).rejects.toBeInstanceOf(exception);
   });
 });

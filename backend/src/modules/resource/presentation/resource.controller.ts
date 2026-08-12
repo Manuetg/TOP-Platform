@@ -10,11 +10,16 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBadRequestResponse,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiConsumes,
+  ApiBody,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -40,6 +45,8 @@ import { InvalidResourceUpdateError, ResourceArchivedError, ResourceBusinessArch
 import { CreateResourceRequestDto } from './dto/create-resource.request.dto';
 import { ResourceResponseDto } from './dto/resource.response.dto';
 import { UpdateResourceRequestDto } from './dto/update-resource.request.dto';
+import { ResourceImageResponseDto } from './dto/resource-image.response.dto';
+import { InvalidResourceImageInputError, ResourceImageLimitReachedError, UploadResourceImageUseCase } from '../application/upload-resource-image.use-case';
 
 @ApiTags('Resources')
 @Controller('businesses/:businessId/resources')
@@ -50,6 +57,7 @@ export class ResourceController {
     private readonly listResources: ListResourcesUseCase,
     private readonly updateResource: UpdateResourceUseCase,
     private readonly disableResource: DisableResourceUseCase,
+    private readonly uploadResourceImage: UploadResourceImageUseCase,
   ) {}
 
   @Post()
@@ -82,6 +90,35 @@ export class ResourceController {
       }
       throw error;
     }
+  }
+
+  @Post(':resourceId/images')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Uploads one descriptive image for a resource.' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: { type: 'object', required: ['file'], properties: { file: { type: 'string', format: 'binary', description: 'JPEG, PNG or WEBP up to 5 MB.' } } } })
+  @ApiCreatedResponse({ type: ResourceImageResponseDto })
+  @ApiBadRequestResponse()
+  @ApiNotFoundResponse()
+  @ApiConflictResponse()
+  async uploadImage(
+    @Param('businessId') businessId: string,
+    @Param('resourceId') resourceId: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ): Promise<ResourceImageResponseDto> {
+    try {
+      return ResourceImageResponseDto.fromApplication(await this.uploadResourceImage.execute({ businessId, resourceId, file: file ? { buffer: file.buffer, mimeType: file.mimetype, size: file.size } : undefined }));
+    } catch (error: unknown) {
+      this.throwUploadError(error);
+    }
+  }
+
+  private throwUploadError(error: unknown): never {
+    if (error instanceof InvalidBusinessIdError || error instanceof InvalidResourceIdError || error instanceof InvalidResourceImageInputError) throw new BadRequestException(error.message);
+    if (error instanceof GetBusinessNotFoundError || error instanceof ResourceNotFoundError) throw new NotFoundException(error.message);
+    if (error instanceof ResourceBusinessArchivedError || error instanceof ResourceArchivedError || error instanceof ResourceImageLimitReachedError) throw new ConflictException(error.message);
+    throw error;
   }
 
   @Get()

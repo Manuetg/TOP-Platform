@@ -93,24 +93,44 @@ model Business {
   updatedAt      DateTime                 @updatedAt
   memberships    UserBusinessMembership[]
   resources      Resource[]
+  resourceImages ResourceImage[]
 }
 
 model Resource {
-  id                      String         @id @default(uuid())
+  id                      String          @id @default(uuid())
   businessId              String
   name                    String
   internalCode            String
   description             String?
-  capacityMinimum         Int            @default(1)
+  capacityMinimum         Int             @default(1)
   capacityMaximum         Int
-  capacityMaximumChildren Int            @default(0)
-  status                  ResourceStatus @default(ACTIVE)
-  sortOrder               Int            @default(0)
-  createdAt               DateTime       @default(now())
-  updatedAt               DateTime       @updatedAt
-  business                Business       @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  capacityMaximumChildren Int             @default(0)
+  status                  ResourceStatus  @default(ACTIVE)
+  sortOrder               Int             @default(0)
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  business                Business        @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  images                  ResourceImage[]
 
   @@unique([businessId, internalCode])
   @@index([businessId, status])
   @@index([businessId, sortOrder])
+}
+
+model ResourceImage {
+  id         String   @id @default(uuid())
+  businessId String
+  resourceId String
+  storageKey String
+  mimeType   String
+  sizeBytes  Int
+  sortOrder  Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+
+  @@unique([resourceId, sortOrder])
+  @@index([businessId])
+  @@index([resourceId])
 }
