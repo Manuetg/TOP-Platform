@@ -26,6 +26,8 @@ import { resetResourceImageRepositoryFake, resourceImageRepositoryFake } from '.
 import { AMENITY_REPOSITORY } from '../../../src/modules/resource/domain/amenity.repository';
 import { RESOURCE_AMENITY_REPOSITORY } from '../../../src/modules/resource/domain/resource-amenity.repository';
 import { amenityRepositoryFake, resetAmenityFakes, resourceAmenityRepositoryFake } from './amenity-repository.fake';
+import { RATE_PLAN_REPOSITORY } from '../../../src/modules/pricing/domain/rate-plan.repository';
+import { ratePlanRepositoryFake } from './rate-plan-repository.fake';
 
 Before(async function (this: TopWorld) {
   resetBusinessRepositoryFake();
@@ -41,6 +43,7 @@ Before(async function (this: TopWorld) {
     .overrideProvider(RESOURCE_IMAGE_REPOSITORY).useValue(resourceImageRepositoryFake)
     .overrideProvider(AMENITY_REPOSITORY).useValue(amenityRepositoryFake)
     .overrideProvider(RESOURCE_AMENITY_REPOSITORY).useValue(resourceAmenityRepositoryFake)
+    .overrideProvider(RATE_PLAN_REPOSITORY).useValue(ratePlanRepositoryFake)
     .overrideProvider(FILE_STORAGE).useValue(new InMemoryFileStorage())
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)

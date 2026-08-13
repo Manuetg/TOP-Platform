@@ -1,0 +1,3 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsArray, IsInt, IsOptional, IsString, IsUUID } from 'class-validator';
+export class CreateRatePlanRequestDto { @ApiProperty() @IsString() name!: string; @ApiPropertyOptional({ nullable: true }) @IsOptional() description?: string | null; @ApiProperty({ example: 450000 }) @IsInt() baseNightlyAmountMinor!: number; @ApiPropertyOptional({ example: '2026-08-01' }) @IsOptional() @IsString() validFrom?: string; @ApiPropertyOptional({ example: '2026-12-01' }) @IsOptional() @IsString() validTo?: string; @ApiProperty({ type: [String], example: [] }) @IsArray() @IsUUID('4', { each: true }) resourceIds!: string[]; }

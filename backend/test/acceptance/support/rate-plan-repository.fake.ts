@@ -1,0 +1,2 @@
+import { RatePlan } from '../../../src/modules/pricing/domain/rate-plan.entity'; import { RatePlanStatus } from '../../../src/modules/pricing/domain/rate-plan-status.enum'; import type { CreateRatePlanData, RatePlanRepository } from '../../../src/modules/pricing/domain/rate-plan.repository';
+export const ratePlanRepositoryFake: RatePlanRepository = { create: (data: CreateRatePlanData) => Promise.resolve(RatePlan.create({ id: '99999999-9999-4999-8999-999999999999', ...data, status: RatePlanStatus.ACTIVE, resources: [], createdAt: new Date(), updatedAt: new Date() })) };

@@ -1,0 +1,3 @@
+import { Then, When } from '@cucumber/cucumber'; import { strict as assert } from 'node:assert'; import request from 'supertest'; import { TopWorld } from '../support/world';
+When('creo una tarifa base sin Resources', async function (this: TopWorld): Promise<void> { this.response = await request(this.app?.getHttpServer()).post('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001/rate-plans').send({ name: 'Tarifa estándar', baseNightlyAmountMinor: 450000, resourceIds: [] }); });
+Then('recibo la tarifa pública en PYG', function (this: TopWorld): void { assert.equal(this.response?.body.currency, 'PYG'); assert.equal(this.response?.body.baseNightlyAmountMinor, 450000); assert.equal('props' in (this.response?.body ?? {}), false); });

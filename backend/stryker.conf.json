@@ -31,7 +31,12 @@
     "src/modules/resource/infrastructure/prisma-resource-amenity.repository.ts",
     "src/modules/resource/presentation/amenity.controller.ts",
     "src/modules/resource/presentation/resource.controller.ts",
-    "!src/modules/resource/**/*.spec.ts"
+    "!src/modules/resource/**/*.spec.ts",
+    "src/modules/pricing/application/**/*.ts",
+    "src/modules/pricing/domain/**/*.ts",
+    "src/modules/pricing/infrastructure/prisma-rate-plan.repository.ts",
+    "src/modules/pricing/presentation/pricing.controller.ts",
+    "!src/modules/pricing/**/*.spec.ts"
   ],
   "thresholds": { "high": 80, "low": 70, "break": 70 }
 }

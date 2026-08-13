@@ -1,0 +1,8 @@
+import { BadRequestException, Body, ConflictException, Controller, HttpCode, HttpStatus, NotFoundException, Param, Post } from '@nestjs/common';
+import { ApiBadRequestResponse, ApiConflictResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CreateRatePlanUseCase, InvalidRatePlanInputError, RatePlanBusinessArchivedError, RatePlanBusinessNotFoundError, RatePlanResourceArchivedError, RatePlanResourceNotFoundError } from '../application/create-rate-plan.use-case';
+import { CreateRatePlanRequestDto } from './dto/create-rate-plan.request.dto';
+import { RatePlanResponseDto } from './dto/rate-plan.response.dto';
+@ApiTags('Pricing')
+@Controller('businesses/:businessId/rate-plans')
+export class PricingController { constructor(private readonly createRatePlan: CreateRatePlanUseCase) {} @Post() @HttpCode(HttpStatus.CREATED) @ApiOperation({ summary: 'Creates an active rate plan with an optional resource assignment.' }) @ApiCreatedResponse({ type: RatePlanResponseDto }) @ApiBadRequestResponse() @ApiNotFoundResponse() @ApiConflictResponse() async create(@Param('businessId') businessId: string, @Body() body: CreateRatePlanRequestDto): Promise<RatePlanResponseDto> { try { return RatePlanResponseDto.fromDomain(await this.createRatePlan.execute({ businessId, ...body })); } catch (error: unknown) { if (error instanceof InvalidRatePlanInputError) throw new BadRequestException(error.message); if (error instanceof RatePlanBusinessNotFoundError || error instanceof RatePlanResourceNotFoundError) throw new NotFoundException(error.message); if (error instanceof RatePlanBusinessArchivedError || error instanceof RatePlanResourceArchivedError) throw new ConflictException(error.message); throw error; } } }

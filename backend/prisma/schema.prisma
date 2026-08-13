@@ -44,6 +44,11 @@ enum AmenityCategory {
   GENERAL
 }
 
+enum RatePlanStatus {
+  ACTIVE
+  ARCHIVED
+}
+
 model User {
   id              String                   @id @default(uuid())
   email           String                   @unique
@@ -107,24 +112,26 @@ model Business {
   memberships    UserBusinessMembership[]
   resources      Resource[]
   resourceImages ResourceImage[]
+  ratePlans      RatePlan[]
 }
 
 model Resource {
-  id                      String            @id @default(uuid())
+  id                      String             @id @default(uuid())
   businessId              String
   name                    String
   internalCode            String
   description             String?
-  capacityMinimum         Int               @default(1)
+  capacityMinimum         Int                @default(1)
   capacityMaximum         Int
-  capacityMaximumChildren Int               @default(0)
-  status                  ResourceStatus    @default(ACTIVE)
-  sortOrder               Int               @default(0)
-  createdAt               DateTime          @default(now())
-  updatedAt               DateTime          @updatedAt
-  business                Business          @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  capacityMaximumChildren Int                @default(0)
+  status                  ResourceStatus     @default(ACTIVE)
+  sortOrder               Int                @default(0)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  business                Business           @relation(fields: [businessId], references: [id], onDelete: Restrict)
   images                  ResourceImage[]
   amenities               ResourceAmenity[]
+  ratePlanResources       RatePlanResource[]
 
   @@unique([businessId, internalCode])
   @@index([businessId, status])
@@ -173,5 +180,35 @@ model ResourceImage {
 
   @@unique([resourceId, sortOrder])
   @@index([businessId])
+  @@index([resourceId])
+}
+
+model RatePlan {
+  id                     String             @id @default(uuid())
+  businessId             String
+  name                   String
+  description            String?
+  baseNightlyAmountMinor Int
+  status                 RatePlanStatus     @default(ACTIVE)
+  validFrom              DateTime?          @db.Date
+  validTo                DateTime?          @db.Date
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  business               Business           @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  resources              RatePlanResource[]
+
+  @@index([businessId, status])
+  @@index([businessId, validFrom, validTo])
+}
+
+model RatePlanResource {
+  ratePlanId String
+  resourceId String
+  createdAt  DateTime @default(now())
+  ratePlan   RatePlan @relation(fields: [ratePlanId], references: [id], onDelete: Cascade)
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+
+  @@id([ratePlanId, resourceId])
+  @@unique([ratePlanId, resourceId])
   @@index([resourceId])
 }
