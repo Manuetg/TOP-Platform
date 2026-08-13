@@ -46,8 +46,8 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 
 ## Pricing
 
-- **PRI-001 — Create Rate Plan.** Estado: Planned. Dominio: Pricing. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. **Siguiente capacidad priorizada.**
-- **PRI-002 — Update Rate Plan.** Estado: Planned. Dominio: Pricing. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **PRI-001 — Create Rate Plan.** Estado: Completed. Dominio: Pricing. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/rate-plans`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `640ab50`; migración `20260813004610_create_rate_plans`; tarifa base `baseNightlyAmountMinor` positiva, moneda `PYG` derivada del Business, vigencia semiabierta `[validFrom, validTo)`, asignación opcional a 0..N Resources y persistencia atómica; validaciones HTTP manuales 201, 400, 404 y 409, incluyendo Business/Resource archivados y ausencia de persistencia parcial; quality gates aprobados; mutation segmentada: CreateRatePlanUseCase 93,79%, PrismaRatePlanRepository 89,66% y PricingController 100%; GitHub Actions run `31657454313` con `verify: success`.
+- **PRI-002 — Update Rate Plan.** Estado: Planned. Dominio: Pricing. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. **Siguiente capacidad priorizada.**
 - **PRI-003 — Seasonal Pricing.** Estado: Planned. Dominio: Pricing. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **PRI-004 — Manual Price Override.** Estado: Planned. Dominio: Pricing. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **PRI-005 — Calculate Price.** Estado: Planned. Dominio: Pricing. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
@@ -102,17 +102,19 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 | Business | 5 | 5 | 0 | 0 | 0 |
 | Identity & Access | 9 | 6 | 0 | 3 | 0 |
 | Resource | 7 | 7 | 0 | 0 | 0 |
-| Pricing | 5 | 0 | 0 | 5 | 0 |
+| Pricing | 5 | 1 | 0 | 4 | 0 |
 | Availability | 4 | 0 | 0 | 4 | 0 |
 | Contact | 4 | 0 | 0 | 4 | 0 |
 | Booking | 6 | 0 | 0 | 6 | 0 |
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 0 | 0 | 3 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **19** | **0** | **32** | **0** |
+| **Total** | **51** | **20** | **0** | **31** | **0** |
 
 Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
 Progreso de Resource: 7 de 7 capacidades completadas (100%).
 
-Progreso general del MVP: 19 de 51 capacidades completadas (37,3%).
+Progreso de Pricing: 1 de 5 capacidades completadas (20%).
+
+Progreso general del MVP: 20 de 51 capacidades completadas (39,2%).
