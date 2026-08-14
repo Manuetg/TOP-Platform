@@ -55,7 +55,7 @@ describe('CreateRatePlanUseCase', () => {
   const subject = new CreateRatePlanUseCase(
     { findById: findBusiness, create: jest.fn(), list: jest.fn(), update: jest.fn() },
     { findByIdAndBusinessId: findResource },
-    { create },
+    { create, findByIdAndBusinessId: jest.fn(), update: jest.fn() },
   );
   const input = {
     businessId,

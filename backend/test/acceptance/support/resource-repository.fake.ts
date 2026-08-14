@@ -10,4 +10,5 @@ export const resourceRepositoryFake: ResourceRepository = {
   update: (resource: Resource): Promise<Resource> => { resources.set(resource.id, resource); return Promise.resolve(resource); },
 };
 export function addResourceFake(resource: Resource): void { resources.set(resource.id, resource); }
+export function getResourceFake(id: string): Resource | undefined { return resources.get(id); }
 export function resetResourceRepositoryFake(): void { resources.clear(); }

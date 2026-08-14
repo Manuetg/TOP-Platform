@@ -1,0 +1,2 @@
+import { IsArray, IsInt, IsOptional, IsString, IsUUID } from 'class-validator';
+export class UpdateRatePlanRequestDto { @IsOptional() @IsString() name?:string; @IsOptional() description?:string|null; @IsOptional() @IsInt() baseNightlyAmountMinor?:number; @IsOptional() validFrom?:string|null; @IsOptional() validTo?:string|null; @IsOptional() @IsArray() @IsUUID('4',{each:true}) resourceIds?:string[]; }

@@ -27,7 +27,7 @@ import { AMENITY_REPOSITORY } from '../../../src/modules/resource/domain/amenity
 import { RESOURCE_AMENITY_REPOSITORY } from '../../../src/modules/resource/domain/resource-amenity.repository';
 import { amenityRepositoryFake, resetAmenityFakes, resourceAmenityRepositoryFake } from './amenity-repository.fake';
 import { RATE_PLAN_REPOSITORY } from '../../../src/modules/pricing/domain/rate-plan.repository';
-import { ratePlanRepositoryFake } from './rate-plan-repository.fake';
+import { ratePlanRepositoryFake, resetRatePlanRepositoryFake } from './rate-plan-repository.fake';
 
 Before(async function (this: TopWorld) {
   resetBusinessRepositoryFake();
@@ -36,6 +36,7 @@ Before(async function (this: TopWorld) {
   resetResourceRepositoryFake();
   resetResourceImageRepositoryFake();
   resetAmenityFakes();
+  resetRatePlanRepositoryFake();
   const refreshSessions = new Map<string, RefreshSession>();
   const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(BUSINESS_REPOSITORY).useValue(businessRepositoryFake)
