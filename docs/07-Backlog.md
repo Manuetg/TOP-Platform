@@ -48,9 +48,9 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 
 - **PRI-001 — Create Rate Plan.** Estado: Completed. Dominio: Pricing. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/rate-plans`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `640ab50`; migración `20260813004610_create_rate_plans`; tarifa base `baseNightlyAmountMinor` positiva, moneda `PYG` derivada del Business, vigencia semiabierta `[validFrom, validTo)`, asignación opcional a 0..N Resources y persistencia atómica; validaciones HTTP manuales 201, 400, 404 y 409, incluyendo Business/Resource archivados y ausencia de persistencia parcial; quality gates aprobados; mutation segmentada: CreateRatePlanUseCase 93,79%, PrismaRatePlanRepository 89,66% y PricingController 100%; GitHub Actions run `31657454313` con `verify: success`.
 - **PRI-002 — Update Rate Plan.** Estado: Completed. Dominio: Pricing. Prioridad: Alta. Endpoint: `PATCH /api/businesses/:businessId/rate-plans/:ratePlanId`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `03e7494`; actualización parcial de nombre, descripción, importe base, vigencia y Resources; `null` limpia descripción y límites de vigencia, `resourceIds` omitido preserva relaciones, presente las reemplaza y `[]` las elimina; aislamiento por tenant, bloqueo de Business, RatePlan y Resource archivados, `OUT_OF_SERVICE` permitido y persistencia atómica con rollback confirmado; unit 48 suites y 334 tests, integración 12 suites y 35 tests, E2E 7 suites y 79 tests, aceptación 55 escenarios y 239 pasos; cobertura: statements 97,71%, branches 94,17%, funciones 98,26% y líneas 98,26%; quality check, Prisma y arquitectura sin violaciones aprobados; mutation segmentada: UpdateRatePlanUseCase 94,90%, PrismaRatePlanRepository 95,71% y PricingController 100%; Swagger/HTTP manual validado; GitHub Actions run `31762428672` con `verify: success`. El último score global completo de mutation conocido se mantiene en 87,73%.
-- **PRI-003 — Seasonal Pricing.** Estado: Planned. Dominio: Pricing. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. **Siguiente capacidad priorizada.**
+- **PRI-003 — Seasonal Pricing.** Estado: Completed. Dominio: Pricing. Prioridad: Alta. Endpoint: `POST` y `GET /api/businesses/:businessId/rate-plans/:ratePlanId/seasonal-rates`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `1c2064d`; entidad SeasonalRate con intervalo semiabierto `[startDate, endDate)`, containment dentro de la vigencia de la tarifa, sin solapamiento y contigüidad permitida; aislamiento por tenant, constraint PostgreSQL con `btree_gist`, concurrencia real protegida e invariante de PRI-002 que impide excluir temporadas al reducir vigencia; unit 51 suites y 383 tests, integración 13 suites y 39 tests, E2E 7 suites y 87 tests, aceptación 64 escenarios y 273 pasos; cobertura: sentencias 97,81%, ramas 94,81%, funciones 98,42% y líneas 98,32%; arquitectura sin violaciones, Prisma y quality check aprobados; mutation segmentada: CreateSeasonalRateUseCase 93,85%, ListSeasonalRatesUseCase 96,77%, PrismaSeasonalRateRepository 94,52%, UpdateRatePlanUseCase 95,48% y PricingController 93,88%; CI run `31977875655` con `verify: success`. El último score global completo de mutation conocido se mantiene en 87,73%.
 - **PRI-004 — Manual Price Override.** Estado: Planned. Dominio: Pricing. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **PRI-005 — Calculate Price.** Estado: Planned. Dominio: Pricing. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **PRI-005 — Calculate Price.** Estado: Planned. Dominio: Pricing. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención. **Siguiente capacidad priorizada.**
 
 ## Availability
 
@@ -102,19 +102,19 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 | Business | 5 | 5 | 0 | 0 | 0 |
 | Identity & Access | 9 | 6 | 0 | 3 | 0 |
 | Resource | 7 | 7 | 0 | 0 | 0 |
-| Pricing | 5 | 2 | 0 | 3 | 0 |
+| Pricing | 5 | 3 | 0 | 2 | 0 |
 | Availability | 4 | 0 | 0 | 4 | 0 |
 | Contact | 4 | 0 | 0 | 4 | 0 |
 | Booking | 6 | 0 | 0 | 6 | 0 |
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 0 | 0 | 3 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **21** | **0** | **30** | **0** |
+| **Total** | **51** | **22** | **0** | **29** | **0** |
 
 Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
 Progreso de Resource: 7 de 7 capacidades completadas (100%).
 
-Progreso de Pricing: 2 de 5 capacidades completadas (40%).
+Progreso de Pricing: 3 de 5 capacidades completadas (60%).
 
-Progreso general del MVP: 21 de 51 capacidades completadas (41,2%).
+Progreso general del MVP: 22 de 51 capacidades completadas (43,1%).
