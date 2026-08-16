@@ -1,0 +1,3 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { SeasonalRate } from '../../domain/seasonal-rate.entity';
+export class SeasonalRateResponseDto { @ApiProperty() id!:string; @ApiProperty() ratePlanId!:string; @ApiProperty() name!:string; @ApiProperty() amountMinor!:number; @ApiProperty() currency!:string; @ApiProperty() startDate!:string; @ApiProperty() endDate!:string; @ApiProperty() createdAt!:Date; @ApiProperty() updatedAt!:Date; static fromDomain(rate:SeasonalRate):SeasonalRateResponseDto{return{id:rate.id,ratePlanId:rate.ratePlanId,name:rate.name,amountMinor:rate.amountMinor,currency:rate.currency,startDate:rate.startDate,endDate:rate.endDate,createdAt:rate.createdAt,updatedAt:rate.updatedAt};} }

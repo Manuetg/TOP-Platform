@@ -3,6 +3,7 @@ import { BusinessStatus } from '../../business/domain/business-status.enum';
 import type { BusinessRepository } from '../../business/domain/business.repository';
 import { InvalidRatePlanInputError, RatePlanBusinessArchivedError, RatePlanBusinessNotFoundError, RatePlanResourceArchivedError, RatePlanResourceNotFoundError } from './create-rate-plan.use-case';
 import { RatePlanArchivedError, RatePlanNotFoundError, UpdateRatePlanUseCase } from './update-rate-plan.use-case';
+import { SeasonalRateValidityConflictError } from './seasonal-rate.errors';
 import { RatePlan } from '../domain/rate-plan.entity';
 import type { RatePlanRepository } from '../domain/rate-plan.repository';
 import { RatePlanStatus } from '../domain/rate-plan-status.enum';
@@ -13,16 +14,16 @@ const ratePlanId = '22222222-2222-4222-8222-222222222222';
 const resourceId = '33333333-3333-4333-8333-333333333333';
 const resourceIdTwo = '44444444-4444-4444-8444-444444444444';
 const business = (status = BusinessStatus.ACTIVE): Business => Business.create({ id: businessId, businessNumber: null, name: 'TOP', legalName: null, taxId: null, timezone: 'America/Asuncion', currency: 'PYG', status, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-01-01') });
-const plan = (status = RatePlanStatus.ACTIVE): RatePlan => RatePlan.create({ id: ratePlanId, businessId, name: 'Plan original', description: 'Descripción inicial', baseNightlyAmountMinor: 450000, currency: 'PYG', status, validFrom: '2026-08-01', validTo: '2026-09-01', resources: [], createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-01-01') });
+const plan = (status = RatePlanStatus.ACTIVE, validFrom: string | null = '2026-08-01', validTo: string | null = '2026-09-01'): RatePlan => RatePlan.create({ id: ratePlanId, businessId, name: 'Plan original', description: 'Descripción inicial', baseNightlyAmountMinor: 450000, currency: 'PYG', status, validFrom, validTo, resources: [], createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-01-01') });
 
 describe('UpdateRatePlanUseCase', () => {
-  const findBusiness = jest.fn(); const findPlan = jest.fn(); const findResource = jest.fn(); const update = jest.fn();
+  const findBusiness = jest.fn(); const findPlan = jest.fn(); const findResource = jest.fn(); const update = jest.fn(); const hasOutsideValidity = jest.fn();
   const businesses: BusinessRepository = { findById: findBusiness, create: jest.fn(), list: jest.fn(), update: jest.fn() };
   const resources: PricingResourceLookup = { findByIdAndBusinessId: findResource };
   const plans: RatePlanRepository = { findByIdAndBusinessId: findPlan, update, create: jest.fn() };
-  const subject = new UpdateRatePlanUseCase(businesses, resources, plans);
+  const subject = new UpdateRatePlanUseCase(businesses, resources, plans, { create: jest.fn(), listByRatePlanId: jest.fn(), hasOverlap: jest.fn(), hasOutsideValidity });
   const input = { businessId, ratePlanId };
-  beforeEach(() => { jest.resetAllMocks(); findBusiness.mockResolvedValue(business()); findPlan.mockResolvedValue(plan()); findResource.mockResolvedValue({ id: resourceId, businessId, status: 'ACTIVE' }); update.mockResolvedValue(plan()); });
+  beforeEach(() => { jest.resetAllMocks(); findBusiness.mockResolvedValue(business()); findPlan.mockResolvedValue(plan()); findResource.mockResolvedValue({ id: resourceId, businessId, status: 'ACTIVE' }); update.mockResolvedValue(plan()); hasOutsideValidity.mockResolvedValue(false); });
 
   async function invalid(value: Record<string, unknown>, message: string): Promise<void> { await expect(subject.execute({ ...input, ...value })).rejects.toThrow(new InvalidRatePlanInputError(message)); }
 
@@ -75,5 +76,24 @@ describe('UpdateRatePlanUseCase', () => {
     findPlan.mockResolvedValue(null); await expect(subject.execute({ ...input, name: 'Nuevo' })).rejects.toThrow(new RatePlanNotFoundError('La tarifa no existe.'));
     findPlan.mockResolvedValue(plan(RatePlanStatus.ARCHIVED)); await expect(subject.execute({ ...input, name: 'Nuevo' })).rejects.toThrow(new RatePlanArchivedError('La tarifa está archivada.'));
     findPlan.mockResolvedValue(plan()); const failure = new Error('persistence'); update.mockRejectedValueOnce(failure); await expect(subject.execute({ ...input, name: 'Nuevo' })).rejects.toBe(failure);
+  });
+  it('blocks any final validity that would exclude an existing season before updating', async () => {
+    findPlan.mockResolvedValue(plan(RatePlanStatus.ACTIVE, '2026-12-01', '2027-01-06'));
+    hasOutsideValidity.mockResolvedValueOnce(true);
+    await expect(subject.execute({ ...input, validTo: '2026-12-15' })).rejects.toThrow(new SeasonalRateValidityConflictError('La vigencia de la tarifa no puede excluir temporadas existentes.'));
+    expect(hasOutsideValidity).toHaveBeenCalledWith(ratePlanId, '2026-12-01', '2026-12-15');
+    expect(update).not.toHaveBeenCalled();
+
+    findPlan.mockResolvedValueOnce(plan(RatePlanStatus.ACTIVE, '2026-12-01', '2027-01-06'));
+    hasOutsideValidity.mockResolvedValueOnce(true);
+    await expect(subject.execute({ ...input, validFrom: '2026-12-25' })).rejects.toThrow(new SeasonalRateValidityConflictError('La vigencia de la tarifa no puede excluir temporadas existentes.'));
+    expect(update).not.toHaveBeenCalled();
+  });
+  it('permits expanded or open-ended validity when seasons remain included', async () => {
+    findPlan.mockResolvedValue(plan(RatePlanStatus.ACTIVE, '2026-12-20', '2027-01-06'));
+    await subject.execute({ ...input, validFrom: '2026-07-01', validTo: '2027-01-01' });
+    expect(update).toHaveBeenLastCalledWith(expect.objectContaining({ validFrom: '2026-07-01', validTo: '2027-01-01' }));
+    await subject.execute({ ...input, validTo: null });
+    expect(update).toHaveBeenLastCalledWith(expect.objectContaining({ validTo: null }));
   });
 });

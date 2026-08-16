@@ -9,9 +9,9 @@ import { TopWorld } from '../support/world';
 
 const businessId = 'f8c49800-e50e-4d0e-b82b-0b51c09a0001'; const otherBusinessId = 'f8c49800-e50e-4d0e-b82b-0b51c09a0002';
 const oneId = '11111111-1111-4111-8111-111111111111'; const twoId = '22222222-2222-4222-8222-222222222222'; const threeId = '33333333-3333-4333-8333-333333333333';
-function planId(world: TopWorld): string { return world.response?.body.id as string; }
+function planId(world: TopWorld): string { return world.ratePlanId ?? (world.response?.body.id as string); }
 function addResource(id: string, status = ResourceStatus.ACTIVE, owner = businessId): void { addResourceFake(Resource.create({ id, businessId: owner, name: `Resource ${id.slice(0, 1)}`, internalCode: `RES-${id.slice(0, 1)}`, description: null, capacityMinimum: 1, capacityMaximum: 2, capacityMaximumChildren: 0, sortOrder: 0, status, createdAt: new Date(), updatedAt: new Date() })); }
-async function createPlan(world: TopWorld, resourceIds: string[] = []): Promise<void> { world.response = await request(world.app?.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans`).send({ name: 'Tarifa estándar', description: 'Inicial', baseNightlyAmountMinor: 450000, validFrom: '2026-08-01', validTo: '2026-09-01', resourceIds }); assert.equal(world.response.status, 201); }
+async function createPlan(world: TopWorld, resourceIds: string[] = []): Promise<void> { world.response = await request(world.app?.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans`).send({ name: 'Tarifa estándar', description: 'Inicial', baseNightlyAmountMinor: 450000, validFrom: '2026-08-01', validTo: '2026-09-01', resourceIds }); assert.equal(world.response.status, 201); world.ratePlanId = world.response.body.id as string; }
 
 When('creo una tarifa base sin Resources', async function (this: TopWorld): Promise<void> { this.response = await request(this.app?.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans`).send({ name: 'Tarifa estándar', baseNightlyAmountMinor: 450000, resourceIds: [] }); });
 Then('recibo la tarifa pública en PYG', function (this: TopWorld): void { assert.equal(this.response?.body.currency, 'PYG'); assert.equal(this.response?.body.baseNightlyAmountMinor, 450000); assert.equal('props' in (this.response?.body ?? {}), false); });
@@ -35,3 +35,19 @@ Then('la tarifa conserva una lista de Resources vacía', function (this: TopWorl
 Then('la tarifa queda solo con Resource dos y Resource tres', function (this: TopWorld): void { assert.deepEqual(this.response?.body.resources.map((item: { id: string }) => item.id), [twoId, threeId]); });
 Then('la tarifa se actualiza con éxito', function (this: TopWorld): void { assert.equal(this.response?.status, 200); });
 Then('la tarifa permanece sin cambios', function (this: TopWorld): void { assert.equal(this.response?.body.message, 'El recurso está archivado.'); });
+
+async function createSeason(world: TopWorld, body: Record<string, unknown>, owner = businessId): Promise<void> {
+  world.response = await request(world.app?.getHttpServer()).post(`/api/businesses/${owner}/rate-plans/${planId(world)}/seasonal-rates`).send(body);
+}
+
+Given('existe una temporada Navidad', async function (this: TopWorld): Promise<void> { await createSeason(this, { name: 'Navidad', amountMinor: 650000, startDate: '2026-08-20', endDate: '2026-08-25' }); assert.equal(this.response?.status, 201); });
+Given('existen dos temporadas contiguas', async function (this: TopWorld): Promise<void> { await createSeason(this, { name: 'Navidad', amountMinor: 650000, startDate: '2026-08-20', endDate: '2026-08-25' }); await createSeason(this, { name: 'Año nuevo', amountMinor: 700000, startDate: '2026-08-25', endDate: '2026-08-30' }); });
+When('creo la temporada Navidad', async function (this: TopWorld): Promise<void> { await createSeason(this, { name: 'Navidad', amountMinor: 650000, startDate: '2026-08-20', endDate: '2026-08-25' }); });
+When('creo una temporada contigua', async function (this: TopWorld): Promise<void> { await createSeason(this, { name: 'Año nuevo', amountMinor: 700000, startDate: '2026-08-25', endDate: '2026-08-30' }); });
+When('intento crear una temporada solapada', async function (this: TopWorld): Promise<void> { await createSeason(this, { name: 'Solapada', amountMinor: 700000, startDate: '2026-08-24', endDate: '2026-08-30' }); });
+When('intento crear una temporada fuera de vigencia', async function (this: TopWorld): Promise<void> { await createSeason(this, { name: 'Fuera', amountMinor: 700000, startDate: '2026-07-30', endDate: '2026-08-02' }); });
+When('creo una temporada desde otro negocio', async function (this: TopWorld): Promise<void> { await createSeason(this, { name: 'Navidad', amountMinor: 650000, startDate: '2026-08-20', endDate: '2026-08-25' }, otherBusinessId); });
+When('listo las temporadas de la tarifa', async function (this: TopWorld): Promise<void> { this.response = await request(this.app?.getHttpServer()).get(`/api/businesses/${businessId}/rate-plans/${planId(this)}/seasonal-rates`); });
+When('reduzco la vigencia final de la tarifa', async function (this: TopWorld): Promise<void> { this.response = await request(this.app?.getHttpServer()).patch(`/api/businesses/${businessId}/rate-plans/${planId(this)}`).send({ validTo: '2026-08-24' }); });
+Then('recibo la temporada pública Navidad', function (this: TopWorld): void { assert.equal(this.response?.body.name, 'Navidad'); assert.equal(this.response?.body.currency, 'PYG'); assert.equal('props' in (this.response?.body ?? {}), false); });
+Then('recibo las temporadas en orden', function (this: TopWorld): void { assert.deepEqual(this.response?.body.map((rate: { name: string }) => rate.name), ['Navidad', 'Año nuevo']); });

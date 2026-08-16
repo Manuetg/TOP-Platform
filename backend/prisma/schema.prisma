@@ -196,9 +196,25 @@ model RatePlan {
   updatedAt              DateTime           @updatedAt
   business               Business           @relation(fields: [businessId], references: [id], onDelete: Restrict)
   resources              RatePlanResource[]
+  seasonalRates          SeasonalRate[]
 
   @@index([businessId, status])
   @@index([businessId, validFrom, validTo])
+}
+
+model SeasonalRate {
+  id          String   @id @default(uuid())
+  ratePlanId  String
+  name        String
+  amountMinor Int
+  startDate   DateTime @db.Date
+  endDate     DateTime @db.Date
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  ratePlan    RatePlan @relation(fields: [ratePlanId], references: [id], onDelete: Cascade)
+
+  @@index([ratePlanId])
+  @@index([ratePlanId, startDate, endDate])
 }
 
 model RatePlanResource {

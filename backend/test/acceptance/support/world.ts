@@ -5,6 +5,7 @@ import type { Response } from 'supertest';
 export class TopWorld extends World {
   app?: INestApplication;
   response?: Response;
+  ratePlanId?: string;
 
   constructor(options: IWorldOptions) {
     super(options);

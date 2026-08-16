@@ -28,6 +28,8 @@ import { RESOURCE_AMENITY_REPOSITORY } from '../../../src/modules/resource/domai
 import { amenityRepositoryFake, resetAmenityFakes, resourceAmenityRepositoryFake } from './amenity-repository.fake';
 import { RATE_PLAN_REPOSITORY } from '../../../src/modules/pricing/domain/rate-plan.repository';
 import { ratePlanRepositoryFake, resetRatePlanRepositoryFake } from './rate-plan-repository.fake';
+import { SEASONAL_RATE_REPOSITORY } from '../../../src/modules/pricing/domain/seasonal-rate.repository';
+import { resetSeasonalRateRepositoryFake, seasonalRateRepositoryFake } from './seasonal-rate-repository.fake';
 
 Before(async function (this: TopWorld) {
   resetBusinessRepositoryFake();
@@ -37,6 +39,7 @@ Before(async function (this: TopWorld) {
   resetResourceImageRepositoryFake();
   resetAmenityFakes();
   resetRatePlanRepositoryFake();
+  resetSeasonalRateRepositoryFake();
   const refreshSessions = new Map<string, RefreshSession>();
   const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(BUSINESS_REPOSITORY).useValue(businessRepositoryFake)
@@ -45,6 +48,7 @@ Before(async function (this: TopWorld) {
     .overrideProvider(AMENITY_REPOSITORY).useValue(amenityRepositoryFake)
     .overrideProvider(RESOURCE_AMENITY_REPOSITORY).useValue(resourceAmenityRepositoryFake)
     .overrideProvider(RATE_PLAN_REPOSITORY).useValue(ratePlanRepositoryFake)
+    .overrideProvider(SEASONAL_RATE_REPOSITORY).useValue(seasonalRateRepositoryFake)
     .overrideProvider(FILE_STORAGE).useValue(new InMemoryFileStorage())
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)
