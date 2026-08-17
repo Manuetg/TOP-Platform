@@ -21,7 +21,7 @@ describe('UpdateRatePlanUseCase', () => {
   const businesses: BusinessRepository = { findById: findBusiness, create: jest.fn(), list: jest.fn(), update: jest.fn() };
   const resources: PricingResourceLookup = { findByIdAndBusinessId: findResource };
   const plans: RatePlanRepository = { findByIdAndBusinessId: findPlan, update, create: jest.fn() };
-  const subject = new UpdateRatePlanUseCase(businesses, resources, plans, { create: jest.fn(), listByRatePlanId: jest.fn(), hasOverlap: jest.fn(), hasOutsideValidity });
+  const subject = new UpdateRatePlanUseCase(businesses, resources, plans, { create: jest.fn(), listByRatePlanId: jest.fn(), listIntersectingRange: jest.fn(), hasOverlap: jest.fn(), hasOutsideValidity });
   const input = { businessId, ratePlanId };
   beforeEach(() => { jest.resetAllMocks(); findBusiness.mockResolvedValue(business()); findPlan.mockResolvedValue(plan()); findResource.mockResolvedValue({ id: resourceId, businessId, status: 'ACTIVE' }); update.mockResolvedValue(plan()); hasOutsideValidity.mockResolvedValue(false); });
 

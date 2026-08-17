@@ -47,6 +47,15 @@ describe('PrismaSeasonalRateRepository', () => {
     });
   });
 
+  it('lists only strictly intersecting seasons in deterministic order', async () => {
+    await repository.listIntersectingRange(row.ratePlanId, '2026-12-20', '2027-01-06');
+    expect(findMany).toHaveBeenCalledWith({
+      where: { ratePlanId: row.ratePlanId, startDate: { lt: new Date('2027-01-06T00:00:00.000Z') }, endDate: { gt: new Date('2026-12-20T00:00:00.000Z') } },
+      orderBy: [{ startDate: 'asc' }, { endDate: 'asc' }, { id: 'asc' }],
+      include,
+    });
+  });
+
   it('queries overlap using strict interval boundaries, allowing contiguous dates', async () => {
     await expect(repository.hasOverlap(row.ratePlanId, '2027-01-06', '2027-01-10')).resolves.toBe(false);
     expect(findFirst).toHaveBeenCalledWith({

@@ -27,7 +27,8 @@ import { AMENITY_REPOSITORY } from '../../../src/modules/resource/domain/amenity
 import { RESOURCE_AMENITY_REPOSITORY } from '../../../src/modules/resource/domain/resource-amenity.repository';
 import { amenityRepositoryFake, resetAmenityFakes, resourceAmenityRepositoryFake } from './amenity-repository.fake';
 import { RATE_PLAN_REPOSITORY } from '../../../src/modules/pricing/domain/rate-plan.repository';
-import { ratePlanRepositoryFake, resetRatePlanRepositoryFake } from './rate-plan-repository.fake';
+import { isRatePlanResourceAssignedFake, ratePlanRepositoryFake, resetRatePlanRepositoryFake } from './rate-plan-repository.fake';
+import { RATE_PLAN_RESOURCE_ASSIGNMENT_LOOKUP } from '../../../src/modules/pricing/domain/rate-plan-resource-assignment.lookup';
 import { SEASONAL_RATE_REPOSITORY } from '../../../src/modules/pricing/domain/seasonal-rate.repository';
 import { resetSeasonalRateRepositoryFake, seasonalRateRepositoryFake } from './seasonal-rate-repository.fake';
 
@@ -48,6 +49,7 @@ Before(async function (this: TopWorld) {
     .overrideProvider(AMENITY_REPOSITORY).useValue(amenityRepositoryFake)
     .overrideProvider(RESOURCE_AMENITY_REPOSITORY).useValue(resourceAmenityRepositoryFake)
     .overrideProvider(RATE_PLAN_REPOSITORY).useValue(ratePlanRepositoryFake)
+    .overrideProvider(RATE_PLAN_RESOURCE_ASSIGNMENT_LOOKUP).useValue({ isAssigned: (ratePlanId: string, resourceId: string) => Promise.resolve(isRatePlanResourceAssignedFake(ratePlanId, resourceId)) })
     .overrideProvider(SEASONAL_RATE_REPOSITORY).useValue(seasonalRateRepositoryFake)
     .overrideProvider(FILE_STORAGE).useValue(new InMemoryFileStorage())
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)

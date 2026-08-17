@@ -27,7 +27,7 @@ describe('ListSeasonalRatesUseCase', () => {
   const subject = new ListSeasonalRatesUseCase(
     { findById: findBusiness, create: jest.fn(), list: jest.fn(), update: jest.fn() },
     { create: jest.fn(), findByIdAndBusinessId: findRatePlan, update: jest.fn() },
-    { create: jest.fn(), listByRatePlanId, hasOverlap: jest.fn(), hasOutsideValidity: jest.fn() },
+    { create: jest.fn(), listByRatePlanId, listIntersectingRange: jest.fn(), hasOverlap: jest.fn(), hasOutsideValidity: jest.fn() },
   );
 
   beforeEach(() => {

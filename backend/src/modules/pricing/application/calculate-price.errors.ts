@@ -1,0 +1,9 @@
+export class InvalidCalculatePriceInputError extends Error {}
+export class CalculatePriceBusinessNotFoundError extends Error {}
+export class CalculatePriceBusinessArchivedError extends Error {}
+export class CalculatePriceResourceNotFoundError extends Error {}
+export class CalculatePriceResourceUnavailableError extends Error {}
+export class CalculatePriceRatePlanNotFoundError extends Error {}
+export class CalculatePriceRatePlanArchivedError extends Error {}
+export class CalculatePriceRatePlanNotAssignedError extends Error {}
+export class CalculatePriceOutsideValidityError extends Error {}

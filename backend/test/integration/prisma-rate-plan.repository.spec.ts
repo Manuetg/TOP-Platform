@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaBusinessRepository } from '../../src/modules/business/infrastructure/prisma-business.repository';
 import { UpdateRatePlanUseCase } from '../../src/modules/pricing/application/update-rate-plan.use-case';
+import { CalculatePriceUseCase } from '../../src/modules/pricing/application/calculate-price.use-case';
+import { PricingCalculator } from '../../src/modules/pricing/domain/pricing-calculator';
 import { PrismaRatePlanRepository } from '../../src/modules/pricing/infrastructure/prisma-rate-plan.repository';
 import { PrismaSeasonalRateRepository } from '../../src/modules/pricing/infrastructure/prisma-seasonal-rate.repository';
 import { PrismaResourceRepository } from '../../src/modules/resource/infrastructure/prisma-resource.repository';
@@ -12,6 +14,7 @@ const describeWithPostgres = databaseUrl?.includes('test') ? describe : describe
 describeWithPostgres('PrismaRatePlanRepository', () => {
   const prisma = new PrismaClient(); const repository = new PrismaRatePlanRepository(prisma); const seasons = new PrismaSeasonalRateRepository(prisma);
   const update = new UpdateRatePlanUseCase(new PrismaBusinessRepository(prisma), new PrismaResourceRepository(prisma), repository, seasons);
+  const calculate = new CalculatePriceUseCase(new PrismaBusinessRepository(prisma), new PrismaResourceRepository(prisma), repository, repository, seasons, new PricingCalculator());
   beforeAll(async () => prisma.$connect()); beforeEach(async () => cleanTestDatabase(prisma, databaseUrl)); afterEach(async () => cleanTestDatabase(prisma, databaseUrl)); afterAll(async () => { await cleanTestDatabase(prisma, databaseUrl); await prisma.$disconnect(); });
   async function fixture() {
     const business = await prisma.business.create({ data: { name: 'Pricing' } });
@@ -40,5 +43,17 @@ describeWithPostgres('PrismaRatePlanRepository', () => {
     await seasons.create({ ratePlanId: plan.id, name: 'Navidad', amountMinor: 650000, startDate: '2026-12-20', endDate: '2027-01-06', currency: 'PYG' });
     await expect(update.execute({ businessId: plan.businessId, ratePlanId: plan.id, validFrom: '2026-12-01', validTo: '2027-01-31' })).resolves.toMatchObject({ validFrom: '2026-12-01', validTo: '2027-01-31' });
     await expect(update.execute({ businessId: plan.businessId, ratePlanId: plan.id, validTo: null })).resolves.toMatchObject({ validTo: null });
+  });
+  it('calculates only assigned Resources with exactly intersecting seasonal rates and persists nothing', async () => {
+    const { resources, plan } = await fixture();
+    await seasons.create({ ratePlanId: plan.id, name: 'Navidad', amountMinor: 650000, startDate: '2026-12-20', endDate: '2026-12-22', currency: 'PYG' });
+    await seasons.create({ ratePlanId: plan.id, name: 'Antes', amountMinor: 900000, startDate: '2026-12-18', endDate: '2026-12-20', currency: 'PYG' });
+    await seasons.create({ ratePlanId: plan.id, name: 'Después', amountMinor: 900000, startDate: '2026-12-24', endDate: '2026-12-26', currency: 'PYG' });
+    const calculated = await calculate.execute({ businessId: plan.businessId, ratePlanId: plan.id, resourceId: resources[0].id, checkIn: '2026-12-20', checkOut: '2026-12-24' });
+    expect(calculated).toMatchObject({ nights: 4, totalAmountMinor: 2200000 });
+    expect(calculated.breakdown.map((night) => night.amountMinor)).toEqual([650000, 650000, 450000, 450000]);
+    const unassigned = await prisma.resource.create({ data: { businessId: plan.businessId, name: 'FOUR', internalCode: 'FOUR', capacityMaximum: 2 } });
+    await expect(calculate.execute({ businessId: plan.businessId, ratePlanId: plan.id, resourceId: unassigned.id, checkIn: '2026-12-20', checkOut: '2026-12-24' })).rejects.toThrow('no está asignada');
+    expect(await prisma.ratePlan.count()).toBe(1); expect(await prisma.ratePlanResource.count()).toBe(2);
   });
 });

@@ -14,6 +14,7 @@ export const seasonalRateRepositoryFake: SeasonalRateRepository = {
     return Promise.resolve(rate);
   },
   listByRatePlanId: (ratePlanId: string): Promise<SeasonalRate[]> => Promise.resolve(rates.filter((rate) => rate.ratePlanId === ratePlanId).sort((left, right) => left.startDate.localeCompare(right.startDate))),
+  listIntersectingRange: (ratePlanId: string, checkIn: string, checkOut: string): Promise<SeasonalRate[]> => Promise.resolve(rates.filter((rate) => rate.ratePlanId === ratePlanId && rate.startDate < checkOut && rate.endDate > checkIn).sort((left, right) => left.startDate.localeCompare(right.startDate) || left.endDate.localeCompare(right.endDate) || left.id.localeCompare(right.id))),
   hasOverlap: (ratePlanId: string, startDate: string, endDate: string): Promise<boolean> => Promise.resolve(rates.some((rate) => rate.ratePlanId === ratePlanId && rate.startDate < endDate && rate.endDate > startDate)),
   hasOutsideValidity: (ratePlanId: string, validFrom: string | null, validTo: string | null): Promise<boolean> => Promise.resolve(rates.some((rate) => rate.ratePlanId === ratePlanId && ((validFrom !== null && rate.startDate < validFrom) || (validTo !== null && rate.endDate > validTo)))),
 };

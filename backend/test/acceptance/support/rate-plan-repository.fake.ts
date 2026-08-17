@@ -12,6 +12,9 @@ export function archiveRatePlanFake(id: string): void {
   const plan = ratePlans.get(id); if (!plan) return;
   ratePlans.set(id, RatePlan.create({ id: plan.id, businessId: plan.businessId, name: plan.name, description: plan.description, baseNightlyAmountMinor: plan.baseNightlyAmountMinor, currency: plan.currency, status: RatePlanStatus.ARCHIVED, validFrom: plan.validFrom, validTo: plan.validTo, resources: plan.resources, createdAt: plan.createdAt, updatedAt: plan.updatedAt }));
 }
+export function isRatePlanResourceAssignedFake(ratePlanId: string, resourceId: string): boolean {
+  return ratePlans.get(ratePlanId)?.resources.some((resource) => resource.id === resourceId) ?? false;
+}
 export const ratePlanRepositoryFake: RatePlanRepository = {
   create: (data: CreateRatePlanData): Promise<RatePlan> => {
     const plan = RatePlan.create({ id: defaultId, ...data, status: RatePlanStatus.ACTIVE, resources: resourcesFor(data.resourceIds), createdAt: new Date('2026-08-01T00:00:00.000Z'), updatedAt: new Date('2026-08-01T00:00:00.000Z') });

@@ -11,6 +11,7 @@ import { RATE_PLAN_REPOSITORY, type UpdateRatePlanData } from '../../src/modules
 import { RatePlanStatus } from '../../src/modules/pricing/domain/rate-plan-status.enum';
 import { SeasonalRate } from '../../src/modules/pricing/domain/seasonal-rate.entity';
 import { SEASONAL_RATE_REPOSITORY, type CreateSeasonalRateData } from '../../src/modules/pricing/domain/seasonal-rate.repository';
+import { RATE_PLAN_RESOURCE_ASSIGNMENT_LOOKUP } from '../../src/modules/pricing/domain/rate-plan-resource-assignment.lookup';
 import { Resource } from '../../src/modules/resource/domain/resource.entity';
 import { RESOURCE_REPOSITORY } from '../../src/modules/resource/domain/resource.repository';
 import { ResourceStatus } from '../../src/modules/resource/domain/resource-status.enum';
@@ -26,7 +27,7 @@ const resource = (id: string, owner = businessId, status = ResourceStatus.ACTIVE
 const rate = (status = RatePlanStatus.ACTIVE) => RatePlan.create({ id: planId, businessId, name: 'Plan', description: 'Old', baseNightlyAmountMinor: 450000, currency: 'PYG', status, validFrom: '2026-08-01', validTo: '2026-12-01', resources: [], createdAt: new Date(), updatedAt: new Date() });
 
 describe('Pricing endpoint', () => {
-  let app: INestApplication; let currentBusiness: Business | null; let currentPlan: RatePlan | null; let resources: Resource[]; let seasons: SeasonalRate[];
+  let app: INestApplication; let currentBusiness: Business | null; let currentPlan: RatePlan | null; let resources: Resource[]; let seasons: SeasonalRate[]; let assigned: boolean;
   beforeAll(async () => {
     const module = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(BUSINESS_REPOSITORY).useValue({ findById: () => Promise.resolve(currentBusiness), create: jest.fn(), list: jest.fn(), update: jest.fn() })
@@ -38,14 +39,16 @@ describe('Pricing endpoint', () => {
           seasons.push(created); return Promise.resolve(created);
         },
         listByRatePlanId: (id: string) => Promise.resolve(seasons.filter((season) => season.ratePlanId === id).sort((left, right) => left.startDate.localeCompare(right.startDate))),
+        listIntersectingRange: (id: string, checkIn: string, checkOut: string) => Promise.resolve(seasons.filter((season) => season.ratePlanId === id && season.startDate < checkOut && season.endDate > checkIn)),
         hasOverlap: (id: string, startDate: string, endDate: string) => Promise.resolve(seasons.some((season) => season.ratePlanId === id && season.startDate < endDate && season.endDate > startDate)),
         hasOutsideValidity: (id: string, validFrom: string | null, validTo: string | null) => Promise.resolve(seasons.some((season) => season.ratePlanId === id && ((validFrom !== null && season.startDate < validFrom) || (validTo !== null && season.endDate > validTo)))),
       })
+      .overrideProvider(RATE_PLAN_RESOURCE_ASSIGNMENT_LOOKUP).useValue({ isAssigned: () => Promise.resolve(assigned) })
       .compile();
     app = module.createNestApplication(); configureApplication(app); await app.init();
   });
   afterAll(async () => app.close());
-  beforeEach(() => { currentBusiness = business(); currentPlan = rate(); resources = [resource(resourceId), resource(archivedResourceId, businessId, ResourceStatus.ARCHIVED), resource(foreignResourceId, otherBusinessId)]; seasons = []; });
+  beforeEach(() => { currentBusiness = business(); currentPlan = rate(); resources = [resource(resourceId), resource(archivedResourceId, businessId, ResourceStatus.ARCHIVED), resource(foreignResourceId, otherBusinessId)]; seasons = []; assigned = true; });
   it('actualiza parcialmente y expone DTO público', async () => {
     await request(app.getHttpServer()).patch(`/api/businesses/${businessId}/rate-plans/${planId}`).send({ baseNightlyAmountMinor: 500000 }).expect(200).expect(({ body }: { body: Record<string, unknown> }) => { expect(body).toMatchObject({ id: planId, baseNightlyAmountMinor: 500000, name: 'Plan', currency: 'PYG' }); expect(body).not.toHaveProperty('props'); });
   });
@@ -92,5 +95,28 @@ describe('Pricing endpoint', () => {
   it('rejects a RatePlan PATCH that would exclude an existing seasonal rate', async () => {
     await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/seasonal-rates`).send({ name: 'Navidad', amountMinor: 650000, startDate: '2026-10-10', endDate: '2026-10-20' }).expect(201);
     await request(app.getHttpServer()).patch(`/api/businesses/${businessId}/rate-plans/${planId}`).send({ validTo: '2026-10-15' }).expect(409);
+  });
+  it('calculates a public nightly breakdown without persisting it', async () => {
+    await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/seasonal-rates`).send({ name: 'Navidad', amountMinor: 650000, startDate: '2026-08-20', endDate: '2026-08-26' }).expect(201);
+    await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate`).send({ resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22' }).expect(200).expect(({ body }: { body: { nights: number; totalAmountMinor: number; breakdown: Array<{ source: string }> } }) => { expect(body.nights).toBe(4); expect(body.totalAmountMinor).toBe(2200000); expect(body.breakdown.map((night) => night.source)).toEqual(['BASE', 'BASE', 'SEASONAL', 'SEASONAL']); expect(body).not.toHaveProperty('props'); });
+  });
+  it.each([
+    ['invalid', planId, { resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22' }, 400],
+    [businessId, 'invalid', { resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22' }, 400],
+    [businessId, planId, { resourceId: 'invalid', checkIn: '2026-08-18', checkOut: '2026-08-22' }, 400],
+    [businessId, planId, { resourceId, checkIn: '2026-02-30', checkOut: '2026-08-22' }, 400],
+    [businessId, planId, { resourceId, checkIn: '2026-08-22', checkOut: '2026-08-22' }, 400],
+    [businessId, planId, { resourceId, checkIn: '2026-01-01', checkOut: '2027-01-02' }, 400],
+  ])('validates calculate input', async (owner, plan, body, status) => request(app.getHttpServer()).post(`/api/businesses/${owner}/rate-plans/${plan}/calculate`).send(body).expect(status));
+  it('returns expected calculate scope and operational conflicts', async () => {
+    currentBusiness = null; await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate`).send({ resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22' }).expect(404);
+    currentBusiness = business(BusinessStatus.ARCHIVED); await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate`).send({ resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22' }).expect(409);
+    currentBusiness = business(); await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate`).send({ resourceId: foreignResourceId, checkIn: '2026-08-18', checkOut: '2026-08-22' }).expect(404);
+    resources = [resource(resourceId, businessId, ResourceStatus.OUT_OF_SERVICE)]; await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate`).send({ resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22' }).expect(409);
+  });
+  it('rejects archived, unassigned and out-of-validity RatePlan calculations', async () => {
+    currentPlan = rate(RatePlanStatus.ARCHIVED); await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate`).send({ resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22' }).expect(409);
+    currentPlan = rate(); assigned = false; await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate`).send({ resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22' }).expect(409);
+    assigned = true; await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate`).send({ resourceId, checkIn: '2026-07-30', checkOut: '2026-08-02' }).expect(409);
   });
 });

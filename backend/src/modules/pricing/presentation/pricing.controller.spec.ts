@@ -6,12 +6,14 @@ import { RatePlan } from '../domain/rate-plan.entity';
 import { RatePlanStatus } from '../domain/rate-plan-status.enum';
 import { SeasonalRate } from '../domain/seasonal-rate.entity';
 import { PricingController } from './pricing.controller';
+import { NightlyPriceSource } from '../domain/pricing-calculator';
+import { InvalidCalculatePriceInputError } from '../application/calculate-price.errors';
 
 const ratePlan = RatePlan.create({ id: '11111111-1111-4111-8111-111111111111', businessId: '22222222-2222-4222-8222-222222222222', name: 'Plan', description: null, baseNightlyAmountMinor: 1, currency: 'PYG', status: RatePlanStatus.ACTIVE, validFrom: null, validTo: null, resources: [], createdAt: new Date(), updatedAt: new Date() });
 const seasonalRate = SeasonalRate.create({ id: '33333333-3333-4333-8333-333333333333', ratePlanId: ratePlan.id, name: 'Navidad', amountMinor: 650000, currency: 'PYG', startDate: '2026-12-20', endDate: '2027-01-06', createdAt: new Date(), updatedAt: new Date() });
 describe('PricingController', () => {
-  const createExecute = jest.fn(); const updateExecute = jest.fn(); const createSeasonExecute = jest.fn(); const listSeasonExecute = jest.fn();
-  const controller = new PricingController({ execute: createExecute } as never, { execute: updateExecute } as never, { execute: createSeasonExecute } as never, { execute: listSeasonExecute } as never);
+  const createExecute = jest.fn(); const updateExecute = jest.fn(); const createSeasonExecute = jest.fn(); const listSeasonExecute = jest.fn(); const calculateExecute = jest.fn();
+  const controller = new PricingController({ execute: createExecute } as never, { execute: updateExecute } as never, { execute: createSeasonExecute } as never, { execute: listSeasonExecute } as never, { execute: calculateExecute } as never);
   const body = { name: 'Plan', baseNightlyAmountMinor: 1, resourceIds: [] };
   beforeEach(() => jest.resetAllMocks());
 
@@ -38,6 +40,19 @@ describe('PricingController', () => {
     expect(listSeasonExecute).toHaveBeenCalledWith(ratePlan.businessId, ratePlan.id);
     expect(created).toMatchObject({ id: seasonalRate.id, currency: 'PYG' }); expect(created).not.toHaveProperty('props');
     expect(listed).toEqual([expect.objectContaining({ id: seasonalRate.id })]);
+  });
+  it('delegates calculate with exact scope and returns a public nightly breakdown', async () => {
+    const body = { resourceId: '44444444-4444-4444-8444-444444444444', checkIn: '2026-12-18', checkOut: '2026-12-19' };
+    calculateExecute.mockResolvedValueOnce({ businessId: ratePlan.businessId, resourceId: body.resourceId, ratePlanId: ratePlan.id, currency: 'PYG', checkIn: body.checkIn, checkOut: body.checkOut, nights: 1, baseNightlyAmountMinor: 1, totalAmountMinor: 1, breakdown: [{ date: body.checkIn, amountMinor: 1, source: NightlyPriceSource.BASE }] });
+    const result = await controller.calculate(ratePlan.businessId, ratePlan.id, body);
+    expect(calculateExecute).toHaveBeenCalledTimes(1);
+    expect(calculateExecute).toHaveBeenCalledWith({ businessId: ratePlan.businessId, ratePlanId: ratePlan.id, ...body });
+    expect(result).toEqual(expect.objectContaining({ totalAmountMinor: 1, breakdown: [{ date: body.checkIn, amountMinor: 1, source: NightlyPriceSource.BASE }] }));
+    expect(result).not.toHaveProperty('props'); expect(result.breakdown[0]).not.toHaveProperty('seasonalRateId');
+  });
+  it('translates calculate validation errors to HTTP 400', async () => {
+    calculateExecute.mockRejectedValueOnce(new InvalidCalculatePriceInputError('La fecha de entrada es inválida.'));
+    await expect(controller.calculate(ratePlan.businessId, ratePlan.id, { resourceId: ratePlan.id, checkIn: 'invalid', checkOut: '2026-12-19' })).rejects.toBeInstanceOf(BadRequestException);
   });
   it.each([
     [new InvalidRatePlanInputError('invalid'), BadRequestException], [new RatePlanBusinessNotFoundError('missing'), NotFoundException], [new RatePlanResourceNotFoundError('missing'), NotFoundException], [new RatePlanNotFoundError('missing'), NotFoundException], [new RatePlanBusinessArchivedError('archived'), ConflictException], [new RatePlanResourceArchivedError('archived'), ConflictException], [new RatePlanArchivedError('archived'), ConflictException],

@@ -106,6 +106,7 @@ describe('CreateSeasonalRateUseCase date validation', () => {
   const seasons: SeasonalRateRepository = {
     create,
     listByRatePlanId: jest.fn(),
+    listIntersectingRange: jest.fn(),
     hasOverlap,
     hasOutsideValidity: jest.fn(),
   };

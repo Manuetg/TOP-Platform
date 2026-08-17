@@ -14,9 +14,9 @@ const include = { business: { select: { currency: true } }, resources: { include
 const data = { businessId: row.businessId, name: row.name, description: null, baseNightlyAmountMinor: 450000, currency: 'PYG', validFrom: '2026-08-01', validTo: null, resourceIds: [row.resources[0].resource.id] };
 
 describe('PrismaRatePlanRepository', () => {
-  const create = jest.fn(); const update = jest.fn(); const findUniqueOrThrow = jest.fn(); const findFirst = jest.fn();
+  const create = jest.fn(); const update = jest.fn(); const findUniqueOrThrow = jest.fn(); const findFirst = jest.fn(); const assignmentFindUnique = jest.fn();
   const deleteMany = jest.fn(); const createMany = jest.fn(); const transaction = jest.fn();
-  const repository = new PrismaRatePlanRepository({ $transaction: transaction, ratePlan: { findFirst } } as never);
+  const repository = new PrismaRatePlanRepository({ $transaction: transaction, ratePlan: { findFirst }, ratePlanResource: { findUnique: assignmentFindUnique } } as never);
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -49,6 +49,14 @@ describe('PrismaRatePlanRepository', () => {
     expect(result).toMatchObject({ id: row.id, validFrom: '2026-08-01', validTo: '2026-09-01' });
     findFirst.mockResolvedValueOnce(null);
     await expect(repository.findByIdAndBusinessId(row.id, row.businessId)).resolves.toBeNull();
+  });
+
+  it('checks the exact RatePlan Resource assignment', async () => {
+    assignmentFindUnique.mockResolvedValueOnce({ ratePlanId: row.id });
+    await expect(repository.isAssigned(row.id, row.resources[0].resource.id)).resolves.toBe(true);
+    expect(assignmentFindUnique).toHaveBeenCalledWith({ where: { ratePlanId_resourceId: { ratePlanId: row.id, resourceId: row.resources[0].resource.id } }, select: { ratePlanId: true } });
+    assignmentFindUnique.mockResolvedValueOnce(null);
+    await expect(repository.isAssigned(row.id, '44444444-4444-4444-8444-444444444444')).resolves.toBe(false);
   });
 
   it('replaces relations atomically when resourceIds is present', async () => {
