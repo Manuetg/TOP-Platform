@@ -93,4 +93,20 @@ describe('Block use cases', () => {
     await expect(listUseCase.execute({ businessId, from: startsAt, to: startsAt })).rejects.toBeInstanceOf(InvalidBlockInputError);
     findBusiness.mockResolvedValueOnce(null); await expect(listUseCase.execute({ businessId })).rejects.toBeInstanceOf(BlockBusinessNotFoundError);
   });
+
+  it('BLK-001 differentiates exact contract errors before dependency lookups', async () => {
+    await expect(createUseCase.execute({ businessId: 'invalid', resourceId, type: BlockType.OTHER, reason: 'Uso propio', startsAt, endsAt })).rejects.toMatchObject({ message: 'El identificador del negocio no es válido.' });
+    await expect(createUseCase.execute({ businessId, resourceId: 'invalid', type: BlockType.OTHER, reason: 'Uso propio', startsAt, endsAt })).rejects.toMatchObject({ message: 'El identificador del Resource no es válido.' });
+    await expect(createUseCase.execute({ businessId, resourceId, type: BlockType.OTHER, reason: 'Uso propio', startsAt: 'invalid', endsAt })).rejects.toMatchObject({ message: 'El inicio es inválido.' });
+    await expect(createUseCase.execute({ businessId, resourceId, type: BlockType.OTHER, reason: 'Uso propio', startsAt, endsAt: 'invalid' })).rejects.toMatchObject({ message: 'El fin es inválido.' });
+    await expect(createUseCase.execute({ businessId, resourceId, type: BlockType.OTHER, reason: 'Uso propio', startsAt, endsAt: startsAt })).rejects.toMatchObject({ message: 'El fin debe ser posterior al inicio.' });
+    expect(findBusiness).not.toHaveBeenCalled(); expect(findResource).not.toHaveBeenCalled(); expect(create).not.toHaveBeenCalled();
+  });
+
+  it('BLK-001 propagates an unexpected repository error after validating all dependencies', async () => {
+    const unexpected = new Error('database unavailable'); create.mockRejectedValueOnce(unexpected);
+    await expect(createUseCase.execute({ businessId, resourceId, type: BlockType.OWNER_USE, reason: ' Uso propio ', notes: ' Nota ', startsAt, endsAt })).rejects.toBe(unexpected);
+    expect(findBusiness).toHaveBeenCalledWith(businessId); expect(findResource).toHaveBeenCalledWith(resourceId, businessId);
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ type: BlockType.OWNER_USE, reason: 'Uso propio', notes: 'Nota' }));
+  });
 });
