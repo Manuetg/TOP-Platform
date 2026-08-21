@@ -90,12 +90,12 @@ Cada regla indica ID, nombre, tipo, estado, dominios afectados, descripción, co
 
 ## 9. Block
 
-- **BR-052 — Alcance de Block.** Tipo: Integridad. Estado: Aprobada. Dominios: Block, Business, Resource. Descripción: pertenece a Negocio y afecta al menos un Resource del mismo. Comportamiento: se rechaza alcance cruzado. Excepciones: ninguna.
-- **BR-053 — Período y bloqueo.** Tipo: Integridad. Estado: Aprobada. Dominios: Block, Availability. Descripción: final es posterior a inicial; Programado/Activo bloquean, Cancelado no y Finalizado no bloquea futuro. Comportamiento: Availability consulta Block. Excepciones: ninguna.
-- **BR-054 — Conflictos de Block.** Tipo: Integridad. Estado: Aprobada. Dominios: Block, Booking. Descripción: no usa reservas ficticias; cambios detectan conflictos con Booking. Comportamiento: no se resuelven silenciosamente. Excepciones: ninguna.
-- **BR-055 — Historial y mantenimiento.** Tipo: Integridad. Estado: Aprobada. Dominios: Block. Descripción: Block es indisponibilidad, no mantenimiento; historial no se elimina. Comportamiento: se conserva. Excepciones: ninguna.
+- **BR-052 — Alcance de Block.** Tipo: Integridad. Estado: Aprobada. Dominios: Block, Business, Resource. Descripción: pertenece a un Negocio y afecta exactamente un Resource del mismo. Comportamiento: se rechaza alcance cruzado; varios Resources requieren un Block por Resource. Excepciones: ninguna.
+- **BR-053 — Período y bloqueo.** Tipo: Integridad. Estado: Aprobada. Dominios: Block, Availability. Descripción: `startsAt` y `endsAt` son RFC3339 con offset explícito, se persisten como instantes y forman `[startsAt, endsAt)`, con final estrictamente posterior al inicio. Comportamiento: `SCHEDULED` y el estado efectivo `ACTIVE` bloquean; `CANCELLED` no y `FINISHED` no bloquea futuro. Excepciones: ninguna.
+- **BR-054 — Conflictos de Block.** Tipo: Integridad. Estado: Aprobada. Dominios: Block, Booking. Descripción: no usa reservas ficticias; la validación de conflicto con Booking confirmada o en curso se incorpora cuando exista persistencia de Booking y antes del cierre de Availability o Booking. Comportamiento: no se resuelven conflictos silenciosamente. Excepciones: ninguna.
+- **BR-055 — Historial, estado y cancelación.** Tipo: Integridad. Estado: Aprobada. Dominios: Block. Descripción: Block es indisponibilidad, no mantenimiento; persiste como `SCHEDULED` o `CANCELLED`, mientras `ACTIVE` y `FINISHED` son estados efectivos derivados por tiempo. Comportamiento: no se elimina físicamente; cancelar requiere motivo de 2 a 500 caracteres; `CANCELLED` es idempotente y `FINISHED` devuelve conflicto. Excepciones: ninguna.
 
-**Pendientes:** tipos iniciales, conflicto con Booking, múltiples Resources, recurrencia, buffers, activación/finalización e integración Maintenance/Cleaning.
+**Pendientes:** conflicto con Booking, múltiples Resources en una sola operación, recurrencia, día completo, buffers e integración Maintenance/Cleaning.
 
 ## 10. Auditoría e historial
 

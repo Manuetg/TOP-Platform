@@ -84,9 +84,9 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 
 ## Block
 
-- **BLK-001 — Create Block.** Estado: Planned. Dominio: Block. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **BLK-002 — Remove Block.** Estado: Planned. Dominio: Block. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **BLK-003 — List Blocks.** Estado: Planned. Dominio: Block. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **BLK-001 — Create Block.** Estado: Planned. Dominio: Block. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/resources/:resourceId/blocks`. Pruebas obligatorias: según convención. Definition of Done: crea un Block `SCHEDULED` para un Resource del mismo Business, con tipo, motivo, observación opcional e intervalo RFC3339 semiabierto válido; valida Business operativo, Resource no archivado y aislamiento por tenant.
+- **BLK-002 — Remove Block.** Estado: Planned. Dominio: Block. Prioridad: Media. Endpoint: `PATCH /api/businesses/:businessId/blocks/:blockId/cancel`. Pruebas obligatorias: según convención. Definition of Done: cancela lógicamente un Block `SCHEDULED` o efectivo `ACTIVE` con motivo obligatorio; `CANCELLED` es idempotente y preserva sus datos de cancelación; `FINISHED` devuelve `409`; no hay eliminación física ni fuga entre tenants.
+- **BLK-003 — List Blocks.** Estado: Planned. Dominio: Block. Prioridad: Media. Endpoint: `GET /api/businesses/:businessId/blocks`. Pruebas obligatorias: según convención. Definition of Done: lista todo el historial del Business, incluidos `CANCELLED` y `FINISHED`, con filtros opcionales `resourceId`, `from` y `to`; la intersección usa `startsAt < to AND endsAt > from` y el orden es `startsAt ASC`, `endsAt ASC`, `id ASC`, sin N+1 ni fuga entre tenants.
 
 ## Dashboard
 
