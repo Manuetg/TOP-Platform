@@ -565,6 +565,16 @@ No se definen aún las cardinalidades técnicas de base de datos.
 
 ## Availability
 
+### Contrato MVP base
+
+Availability es derivada: no tiene tabla ni persiste una verdad propia. Calcula cada consulta con Resource, Booking y Block, usando intervalos semiabiertos `[inicio, fin)` e intersección `existing.start < requested.end AND existing.end > requested.start`.
+
+Solo un Resource `ACTIVE` puede resultar `AVAILABLE`; `OUT_OF_SERVICE` y `ARCHIVED` resultan `UNAVAILABLE`. Bloquean una Booking `PENDING`, `CONFIRMED` o `IN_PROGRESS`; no bloquean `DRAFT`, `COMPLETED`, `CANCELLED` ni `NO_SHOW`. Bloquean los Blocks `SCHEDULED` y efectivos `ACTIVE`; `CANCELLED` y `FINISHED` no bloquean futuro. No hay overbooking, buffers, capacidad de huéspedes, auto-assignment ni alternativas inteligentes en este slice.
+
+El resultado mínimo es `AVAILABLE` o `UNAVAILABLE`, con razones sin duplicados: `RESOURCE_OUT_OF_SERVICE`, `RESOURCE_ARCHIVED`, `BOOKING_CONFLICT` y `BLOCK_CONFLICT`. `AVL-001` consulta un Resource por `businessId`, `resourceId`, `from` y `to` estrictos `YYYY-MM-DD`, sin persistir, Pricing ni Payments. `AVL-002` será una vista derivada por Resource/fecha; `AVL-003` definirá configuración futura, mientras el MVP fija PENDING bloqueante, buffers cero y overbooking deshabilitado; `AVL-004` reutilizará esta misma semántica antes de confirmar Booking.
+
+Secuencia: BKG-001..004 Draft → AVL-001 → AVL-002 → AVL-003 → AVL-004 → Booking PENDING/Confirm → BKG-005 → BKG-006. Confirmación, transición a PENDING, Pricing Snapshot, Payments y cancelaciones permanecen fuera de este contrato.
+
 ### 1. Propósito
 
 Determinar si uno o más Resources pueden reservarse durante un período específico, considerando reservas, bloqueos y estado operativo del Resource.

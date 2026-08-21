@@ -54,10 +54,10 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 
 ## Availability
 
-- **AVL-001 — Check Availability.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **AVL-002 — Availability Calendar.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **AVL-003 — Availability Rules.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **AVL-004 — Overbooking Validation.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **AVL-001 — Check Availability.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/availability?resourceId=<uuid>&from=YYYY-MM-DD&to=YYYY-MM-DD`. Pruebas obligatorias: según convención. Definition of Done: consulta derivada sin persistencia que valida IDs/fechas, aísla tenant y devuelve `AVAILABLE`/`UNAVAILABLE` con razones por Resource, Booking y Block.
+- **AVL-002 — Availability Calendar.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: vista derivada por Resource/fecha, sin persistencia, Pricing ni auto-assignment.
+- **AVL-003 — Availability Rules.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: mantiene la política MVP: PENDING bloquea, buffers cero y overbooking deshabilitado; configuración avanzada posterior.
+- **AVL-004 — Overbooking Validation.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: validación reutilizable con la misma semántica central, preparada para revalidar antes de Confirm Booking sin duplicar intersecciones.
 
 ## Contact
 
