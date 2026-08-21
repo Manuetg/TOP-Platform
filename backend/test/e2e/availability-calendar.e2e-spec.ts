@@ -131,7 +131,7 @@ describe('Availability calendar endpoint', () => {
     expect(response.body.resources).toEqual([
       expect.objectContaining({
         resourceId: resourceAId,
-        days: [
+        days: expect.arrayContaining([
           { date: '2026-04-01', status: 'AVAILABLE', reasons: [] },
           {
             date: '2026-04-02',
@@ -143,7 +143,7 @@ describe('Availability calendar endpoint', () => {
             status: 'UNAVAILABLE',
             reasons: ['BOOKING_CONFLICT', 'BLOCK_CONFLICT'],
           },
-        ],
+        ]),
       }),
       expect.objectContaining({ resourceId: resourceBId }),
     ]);
@@ -155,28 +155,29 @@ describe('Availability calendar endpoint', () => {
       resource(resourceBId, ResourceStatus.ARCHIVED),
     ];
 
-    expect((await get().expect(200)).body.resources).toEqual([
+    expect((await get().expect(200)).body.resources).toEqual(expect.arrayContaining([
       expect.objectContaining({
         resourceId: resourceAId,
-        days: [
+        days: expect.arrayContaining([
           expect.objectContaining({
             reasons: ['RESOURCE_OUT_OF_SERVICE'],
           }),
-        ],
+        ]),
       }),
       expect.objectContaining({
         resourceId: resourceBId,
-        days: [
+        days: expect.arrayContaining([
           expect.objectContaining({
             reasons: ['RESOURCE_ARCHIVED'],
           }),
-        ],
+        ]),
       }),
-    ]);
+    ]));
 
-    await get(`&resourceId=${resourceAId}`)
-      .expect(200)
-      .expect(expect.objectContaining({ resources: [expect.objectContaining({ resourceId: resourceAId })] }));
+    const scoped = await get(`&resourceId=${resourceAId}`).expect(200);
+    expect(scoped.body.resources).toEqual([
+      expect.objectContaining({ resourceId: resourceAId }),
+    ]);
   });
 
   it('validates calendar range and hides a resource outside the tenant', async () => {

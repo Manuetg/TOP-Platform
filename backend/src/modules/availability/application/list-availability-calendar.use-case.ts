@@ -22,7 +22,7 @@ import {
   AvailabilityBusinessUnavailableError,
   AvailabilityResourceNotFoundError,
   InvalidAvailabilityInputError,
-} from './check-availability.use-case';
+} from './availability.errors';
 import { deriveAvailability } from './availability.derivation';
 import {
   assertAvailabilityUuid,

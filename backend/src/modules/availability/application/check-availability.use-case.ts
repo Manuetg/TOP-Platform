@@ -22,6 +22,12 @@ import {
   parseAvailabilityDate,
 } from './availability.validation';
 import type { AvailabilityResult } from './availability.types';
+import {
+  AvailabilityBusinessNotFoundError,
+  AvailabilityBusinessUnavailableError,
+  AvailabilityResourceNotFoundError,
+  InvalidAvailabilityInputError,
+} from './availability.errors';
 
 export type {
   AvailabilityReason,
@@ -29,10 +35,12 @@ export type {
   AvailabilityStatus,
 } from './availability.types';
 
-export class InvalidAvailabilityInputError extends Error {}
-export class AvailabilityBusinessNotFoundError extends Error {}
-export class AvailabilityBusinessUnavailableError extends Error {}
-export class AvailabilityResourceNotFoundError extends Error {}
+export {
+  AvailabilityBusinessNotFoundError,
+  AvailabilityBusinessUnavailableError,
+  AvailabilityResourceNotFoundError,
+  InvalidAvailabilityInputError,
+} from './availability.errors';
 
 @Injectable()
 export class CheckAvailabilityUseCase {
