@@ -6,6 +6,7 @@ export class TopWorld extends World {
   app?: INestApplication;
   response?: Response;
   ratePlanId?: string;
+  contactId?: string;
 
   constructor(options: IWorldOptions) {
     super(options);

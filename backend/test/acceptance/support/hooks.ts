@@ -31,6 +31,8 @@ import { isRatePlanResourceAssignedFake, ratePlanRepositoryFake, resetRatePlanRe
 import { RATE_PLAN_RESOURCE_ASSIGNMENT_LOOKUP } from '../../../src/modules/pricing/domain/rate-plan-resource-assignment.lookup';
 import { SEASONAL_RATE_REPOSITORY } from '../../../src/modules/pricing/domain/seasonal-rate.repository';
 import { resetSeasonalRateRepositoryFake, seasonalRateRepositoryFake } from './seasonal-rate-repository.fake';
+import { CONTACT_REPOSITORY } from '../../../src/modules/contact/domain/contact.repository';
+import { contactRepositoryFake, resetContactRepositoryFake } from './contact-repository.fake';
 
 Before(async function (this: TopWorld) {
   resetBusinessRepositoryFake();
@@ -41,6 +43,7 @@ Before(async function (this: TopWorld) {
   resetAmenityFakes();
   resetRatePlanRepositoryFake();
   resetSeasonalRateRepositoryFake();
+  resetContactRepositoryFake();
   const refreshSessions = new Map<string, RefreshSession>();
   const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(BUSINESS_REPOSITORY).useValue(businessRepositoryFake)
@@ -51,6 +54,7 @@ Before(async function (this: TopWorld) {
     .overrideProvider(RATE_PLAN_REPOSITORY).useValue(ratePlanRepositoryFake)
     .overrideProvider(RATE_PLAN_RESOURCE_ASSIGNMENT_LOOKUP).useValue({ isAssigned: (ratePlanId: string, resourceId: string) => Promise.resolve(isRatePlanResourceAssignedFake(ratePlanId, resourceId)) })
     .overrideProvider(SEASONAL_RATE_REPOSITORY).useValue(seasonalRateRepositoryFake)
+    .overrideProvider(CONTACT_REPOSITORY).useValue(contactRepositoryFake)
     .overrideProvider(FILE_STORAGE).useValue(new InMemoryFileStorage())
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)
