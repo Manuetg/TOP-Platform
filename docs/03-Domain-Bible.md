@@ -977,17 +977,18 @@ Tampoco elimina historial, modifica automáticamente el Pricing Snapshot de una 
 
 #### Identidad
 
-- Id interno, Número visible secuencial por Negocio, Negocio, Estado operativo.
+- Id interno, Negocio y Estado operativo.
 - Fecha de creación, Fecha de modificación, Usuario creador, Usuario modificador.
 
 #### Estadía
 
-- Fecha de entrada, Fecha de salida, Hora de check-in prevista opcional, Hora de check-out prevista opcional.
-- Cantidad de adultos, Cantidad de menores, Cantidad total de huéspedes y lista opcional de huéspedes adicionales.
+- Fecha de entrada y Fecha de salida opcionales en el borrador, ambas como `YYYY-MM-DD` cuando existen.
+- Cantidad de adultos y menores opcionales en el borrador. Las validaciones de capacidad y huéspedes adicionales quedan fuera de este primer slice.
 
 #### Relaciones
 
-- Contact responsable, uno o más Resources, Pricing Snapshot, plan de pagos y pagos relacionados.
+- Contact responsable opcional y cero o más Resources en el borrador mediante `BookingResource`.
+- Pricing Snapshot, plan de pagos y pagos relacionados se incorporan fuera de este primer slice.
 - Archivos adjuntos, comentarios, actividad y auditoría.
 
 #### Información operativa
@@ -1005,7 +1006,10 @@ Booking referencia esta información, pero Pricing y Payment conservan sus respo
 
 - Toda Booking pertenece exactamente a un Negocio y debe tener un Contact responsable y al menos un Resource antes de confirmarse.
 - En el MVP, los Resources reservados son unidades indivisibles; una Booking puede contener más de un Resource.
-- La fecha de salida debe ser posterior a la fecha de entrada.
+- El primer slice `BKG-001` a `BKG-004` crea y modifica exclusivamente `DRAFT`. Un borrador puede existir con cualquier combinación incompleta de Contact, Resources, fechas y huéspedes, incluido un body vacío al crearse.
+- Si ambas fechas existen en un `DRAFT`, la fecha de salida debe ser posterior a la fecha de entrada. Puede existir solo una fecha. Adultos y menores, cuando existen, son enteros mayores o iguales a cero.
+- En el primer slice, `contactId` debe pertenecer al mismo Negocio; los Resources asociados no pueden repetirse y pertenecen al mismo Negocio. Un Resource `ARCHIVED` no puede asociarse a un nuevo borrador; `OUT_OF_SERVICE` puede quedar asociado, sin que ello lo haga reservable o confirmable.
+- `notes` es opcional, se normaliza con `trim`, una cadena vacía se guarda como `null` y no supera 1000 caracteres.
 - Un borrador puede existir con información incompleta; una reserva pendiente debe contener la información mínima para ser evaluada.
 - Una reserva confirmada debe tener Contact, fechas válidas, Resource disponible y Pricing Snapshot; Availability debe revalidarse inmediatamente antes de confirmar.
 - Confirmada y En curso bloquean disponibilidad; Cancelada y Finalizada no bloquean disponibilidad futura; Pendiente puede bloquear según configuración y Borrador nunca bloquea.
@@ -1014,10 +1018,15 @@ Booking referencia esta información, pero Pricing y Payment conservan sus respo
 - Ninguna Booking se elimina físicamente y una cancelada conserva su historial.
 - Check-in y check-out son eventos, no estados; No Show es distinto de Cancelada; Finalizada es irreversible en el MVP.
 - Los huéspedes adicionales no necesitan ser Contacts. El número visible es único dentro del Negocio.
+- Crear o actualizar un `DRAFT` no consulta Availability ni Blocks, no valida conflictos, no calcula Pricing, no crea Pricing Snapshot ni Payments y no bloquea disponibilidad.
 
 ### 7. Estados
 
 Estados operativos: Borrador, Pendiente, Confirmada, En curso, Finalizada, Cancelada y No Show.
+
+Valores persistidos: `DRAFT`, `PENDING`, `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED` y `NO_SHOW`.
+
+En `BKG-001` a `BKG-004` el estado inicial es `DRAFT` y solo un `DRAFT` puede modificarse. El endpoint de actualización no modifica el estado.
 
 Transiciones conceptuales:
 
@@ -1042,8 +1051,8 @@ No se asume una implementación técnica basada en mensajería o event bus.
 
 ### 9. Relaciones
 
-- Booking pertenece a Business y referencia un Contact responsable.
-- Puede asociarse a uno o más Resource; depende de Availability y solicita cálculos a Pricing.
+- Booking pertenece a Business y en `DRAFT` puede no tener Contact responsable.
+- Puede asociarse a cero o más Resource en `DRAFT`; depende de Availability y solicita cálculos a Pricing antes de confirmar.
 - Conserva un Pricing Snapshot, puede tener plan de pagos y múltiples Payment, huéspedes adicionales, Activity, Comments, Files y Audit.
 - No comparte información entre Negocios.
 
@@ -1051,14 +1060,17 @@ No se definen aún las cardinalidades técnicas de base de datos.
 
 ### 10. Capacidades
 
-- Crear borrador o reserva; actualizar, consultar, buscar, confirmar, cancelar y marcar No Show.
-- Cambiar fechas, Resource o Contact responsable; modificar huéspedes; aplicar o cambiar Pricing Snapshot según reglas.
+- `BKG-001`: crear un `DRAFT` mediante `POST /api/businesses/:businessId/bookings`.
+- `BKG-002`: consultar una Booking del Negocio mediante `GET /api/businesses/:businessId/bookings/:bookingId`.
+- `BKG-003`: listar Bookings del Negocio mediante `GET /api/businesses/:businessId/bookings`, con filtros iniciales opcionales `status`, `contactId` y `resourceId`, y orden `createdAt DESC`, `id ASC`.
+- `BKG-004`: actualizar parcialmente un `DRAFT` mediante `PATCH /api/businesses/:businessId/bookings/:bookingId`; los campos omitidos se preservan, `contactId` y fechas `null` limpian, `resourceIds: []` elimina asociaciones y la presencia de `resourceIds` reemplaza la relación atómicamente.
 - Asociar plan de pagos, registrar observaciones, adjuntar archivos, hacer check-in, check-out y finalizar.
 - Consultar historial, duplicar una reserva como base para otra y consultar por fecha, Contact, Resource, estado o número visible.
 
 ### 11. Restricciones
 
 - No confirmar sin revalidar Availability, Contact responsable, al menos un Resource, fechas válidas y Pricing Snapshot.
+- En este primer slice no se implementan número visible, horarios exactos de check-in/check-out, Availability, overbooking, transiciones de estado, confirmación, Pricing Snapshot, cancelación, timeline, capacidad de huéspedes ni Payments.
 - No modificar silenciosamente el precio confirmado, eliminar físicamente una reserva ni mezclar estado operativo y financiero.
 - No permitir doble reserva salvo política explícita de overbooking, ni usar check-in/check-out como estados persistentes independientes.
 - No crear huéspedes como Contacts automáticamente, ni incluir CRM de consultas, notificaciones, WhatsApp, marketplace, inventario, limpieza o mantenimiento dentro de Booking.
@@ -1066,7 +1078,7 @@ No se definen aún las cardinalidades técnicas de base de datos.
 
 ### 12. Pendientes
 
-- Información mínima exacta para pasar de Borrador a Pendiente.
+- Información mínima exacta para pasar de Borrador a Pendiente y transición `DRAFT` a `PENDING`.
 - Regla definitiva para confirmar automáticamente tras un primer pago.
 - Comportamiento definitivo de reservas Pendientes sobre Availability.
 - Política de cancelación y penalizaciones.
@@ -1075,11 +1087,11 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - Reglas de modificación de reservas en curso.
 - Tratamiento de early check-in y late check-out.
 - Regla exacta para reservas con múltiples Resources.
-- Numeración inicial y formato visible.
+- Numeración inicial y formato visible, pendiente antes de confirmación.
 - Reglas exactas de autorización por rol.
 - Validaciones de adultos, menores y capacidad.
 - Campos obligatorios de huéspedes adicionales.
-- Tratamiento de zonas horarias.
+- Semántica temporal de Availability, incluyendo solapamiento horario y tratamiento de zonas horarias.
 - Política de archivado.
 - Alcance de duplicar reserva en el MVP.
 

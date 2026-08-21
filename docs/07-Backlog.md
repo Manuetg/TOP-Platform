@@ -68,10 +68,10 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 
 ## Booking
 
-- **BKG-001 — Create Booking.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **BKG-002 — Get Booking.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **BKG-003 — List Bookings.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **BKG-004 — Update Booking.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **BKG-001 — Create Booking.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/bookings`. Pruebas obligatorias: según convención. Definition of Done: crea exclusivamente un `DRAFT` con campos opcionales, valida tenant de Contact/Resources, fecha final cuando ambas existen y no consulta Availability, Blocks, Pricing ni Payments.
+- **BKG-002 — Get Booking.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/bookings/:bookingId`. Pruebas obligatorias: según convención. Definition of Done: devuelve DTO público con `resourceIds`, valida UUID estricto y oculta acceso cross-tenant como inexistente.
+- **BKG-003 — List Bookings.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/bookings`. Pruebas obligatorias: según convención. Definition of Done: lista `[]` cuando no hay resultados, permite filtros opcionales `status`, `contactId` y `resourceId`, y ordena por `createdAt DESC`, `id ASC`, sin N+1 ni fuga entre tenants.
+- **BKG-004 — Update Booking.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: `PATCH /api/businesses/:businessId/bookings/:bookingId`. Pruebas obligatorias: según convención. Definition of Done: actualiza parcialmente solo `DRAFT`, preserva campos omitidos y valida el estado final; `contactId` y fechas `null` limpian, `resourceIds` presente reemplaza atómicamente y `[]` elimina asociaciones; body vacío devuelve `400` y no edita estado ni Business.
 - **BKG-005 — Cancel Booking.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **BKG-006 — Booking Timeline.** Estado: Planned. Dominio: Booking. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 
