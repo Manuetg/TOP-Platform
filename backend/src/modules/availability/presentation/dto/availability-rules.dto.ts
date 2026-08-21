@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsInt, IsOptional, Min } from 'class-validator';
 
 export class AvailabilityRulesResponseDto {
   @ApiProperty() businessId!: string;
@@ -8,7 +9,7 @@ export class AvailabilityRulesResponseDto {
 }
 
 export class UpdateAvailabilityRulesRequestDto {
-  @ApiPropertyOptional() pendingBlocksAvailability?: boolean;
-  @ApiPropertyOptional() bufferBeforeDays?: number;
-  @ApiPropertyOptional() bufferAfterDays?: number;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() pendingBlocksAvailability?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(0) bufferBeforeDays?: number;
+  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(0) bufferAfterDays?: number;
 }
