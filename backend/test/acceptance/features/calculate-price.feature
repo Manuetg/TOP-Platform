@@ -9,3 +9,9 @@ Feature: Calcular precio de estadía
     Given una tarifa tiene Resource uno y Resource dos
     When cotizo para Resource tres no asignado
     Then recibo HTTP 409
+
+  Scenario: Aplicar un precio manual al total sugerido
+    Given una tarifa tiene Resource uno y Resource dos
+    When aplico un precio manual de 1600000 a Resource uno
+    Then recibo HTTP 200
+    And recibo el precio manual público con el desglose sugerido

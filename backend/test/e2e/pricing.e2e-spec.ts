@@ -101,6 +101,34 @@ describe('Pricing endpoint', () => {
     await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate`).send({ resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22' }).expect(200).expect(({ body }: { body: { nights: number; totalAmountMinor: number; breakdown: Array<{ source: string }> } }) => { expect(body.nights).toBe(4); expect(body.totalAmountMinor).toBe(2200000); expect(body.breakdown.map((night) => night.source)).toEqual(['BASE', 'BASE', 'SEASONAL', 'SEASONAL']); expect(body).not.toHaveProperty('props'); });
   });
   it.each([
+    [2000000, -200000],
+    [2200000, 0],
+    [2400000, 200000],
+    [0, -2200000],
+  ])('applies a manual agreed total while retaining the server-side suggested breakdown', async (agreedAmountMinor, adjustmentAmountMinor) => {
+    await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/seasonal-rates`).send({ name: 'Navidad', amountMinor: 650000, startDate: '2026-08-20', endDate: '2026-08-26' }).expect(201);
+    await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate/override`).send({ resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22', agreedAmountMinor, overrideReason: ' Descuento comercial ' }).expect(200).expect(({ body }: { body: { pricingMode: string; suggestedAmountMinor: number; agreedAmountMinor: number; adjustmentAmountMinor: number; overrideReason: string; breakdown?: unknown; suggestedBreakdown: Array<{ source: string }> } }) => {
+      expect(body).toMatchObject({ pricingMode: 'MANUAL_OVERRIDE', suggestedAmountMinor: 2200000, agreedAmountMinor, adjustmentAmountMinor, overrideReason: 'Descuento comercial' });
+      expect(body.suggestedBreakdown.map((night) => night.source)).toEqual(['BASE', 'BASE', 'SEASONAL', 'SEASONAL']); expect(body).not.toHaveProperty('props'); expect(body).not.toHaveProperty('breakdown');
+    });
+  });
+  it.each([
+    [{ resourceId, checkIn: '2026-02-30', checkOut: '2026-08-22', agreedAmountMinor: 1, overrideReason: 'Motivo válido' }, 400],
+    [{ resourceId, checkIn: '2026-08-22', checkOut: '2026-08-22', agreedAmountMinor: 1, overrideReason: 'Motivo válido' }, 400],
+    [{ resourceId, checkIn: '2026-01-01', checkOut: '2027-01-02', agreedAmountMinor: 1, overrideReason: 'Motivo válido' }, 400],
+    [{ resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22', agreedAmountMinor: -1, overrideReason: 'Motivo válido' }, 400],
+    [{ resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22', agreedAmountMinor: 1, overrideReason: ' ' }, 400],
+    [{ resourceId: foreignResourceId, checkIn: '2026-08-18', checkOut: '2026-08-22', agreedAmountMinor: 1, overrideReason: 'Motivo válido' }, 404],
+  ])('validates manual overrides and preserves tenant isolation', async (body, status) => request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate/override`).send(body).expect(status));
+  it('inherits calculation operational conflicts for manual overrides', async () => {
+    const body = { resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22', agreedAmountMinor: 1, overrideReason: 'Motivo válido' };
+    currentBusiness = business(BusinessStatus.ARCHIVED); await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate/override`).send(body).expect(409);
+    currentBusiness = business(); resources = [resource(resourceId, businessId, ResourceStatus.OUT_OF_SERVICE)]; await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate/override`).send(body).expect(409);
+    resources = [resource(resourceId)]; currentPlan = rate(RatePlanStatus.ARCHIVED); await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate/override`).send(body).expect(409);
+    currentPlan = rate(); assigned = false; await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate/override`).send(body).expect(409);
+    assigned = true; await request(app.getHttpServer()).post(`/api/businesses/${businessId}/rate-plans/${planId}/calculate/override`).send({ ...body, checkIn: '2026-07-30', checkOut: '2026-08-02' }).expect(409);
+  });
+  it.each([
     ['invalid', planId, { resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22' }, 400],
     [businessId, 'invalid', { resourceId, checkIn: '2026-08-18', checkOut: '2026-08-22' }, 400],
     [businessId, planId, { resourceId: 'invalid', checkIn: '2026-08-18', checkOut: '2026-08-22' }, 400],

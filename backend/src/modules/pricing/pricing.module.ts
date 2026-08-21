@@ -6,6 +6,7 @@ import { UpdateRatePlanUseCase } from './application/update-rate-plan.use-case';
 import { CreateSeasonalRateUseCase } from './application/create-seasonal-rate.use-case';
 import { ListSeasonalRatesUseCase } from './application/list-seasonal-rates.use-case';
 import { CalculatePriceUseCase } from './application/calculate-price.use-case';
+import { ApplyManualPriceOverrideUseCase } from './application/apply-manual-price-override.use-case';
 import { PricingCalculator } from './domain/pricing-calculator';
 import { RATE_PLAN_REPOSITORY } from './domain/rate-plan.repository';
 import { SEASONAL_RATE_REPOSITORY } from './domain/seasonal-rate.repository';
@@ -15,4 +16,4 @@ import { PrismaRatePlanRepository } from './infrastructure/prisma-rate-plan.repo
 import { PrismaSeasonalRateRepository } from './infrastructure/prisma-seasonal-rate.repository';
 import { PricingController } from './presentation/pricing.controller';
 import { RESOURCE_REPOSITORY } from '../resource/resource.contract';
-@Module({ imports: [BusinessModule, ResourceModule], controllers: [PricingController], providers: [PrismaRatePlanRepository, PrismaSeasonalRateRepository, PricingCalculator, { provide: RATE_PLAN_REPOSITORY, useExisting: PrismaRatePlanRepository }, { provide: RATE_PLAN_RESOURCE_ASSIGNMENT_LOOKUP, useExisting: PrismaRatePlanRepository }, { provide: SEASONAL_RATE_REPOSITORY, useExisting: PrismaSeasonalRateRepository }, { provide: PRICING_RESOURCE_LOOKUP, useExisting: RESOURCE_REPOSITORY }, CreateRatePlanUseCase, UpdateRatePlanUseCase, CreateSeasonalRateUseCase, ListSeasonalRatesUseCase, CalculatePriceUseCase] }) export class PricingModule {}
+@Module({ imports: [BusinessModule, ResourceModule], controllers: [PricingController], providers: [PrismaRatePlanRepository, PrismaSeasonalRateRepository, PricingCalculator, { provide: RATE_PLAN_REPOSITORY, useExisting: PrismaRatePlanRepository }, { provide: RATE_PLAN_RESOURCE_ASSIGNMENT_LOOKUP, useExisting: PrismaRatePlanRepository }, { provide: SEASONAL_RATE_REPOSITORY, useExisting: PrismaSeasonalRateRepository }, { provide: PRICING_RESOURCE_LOOKUP, useExisting: RESOURCE_REPOSITORY }, CreateRatePlanUseCase, UpdateRatePlanUseCase, CreateSeasonalRateUseCase, ListSeasonalRatesUseCase, CalculatePriceUseCase, ApplyManualPriceOverrideUseCase] }) export class PricingModule {}
