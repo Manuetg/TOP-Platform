@@ -84,9 +84,11 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 
 ## Block
 
-- **BLK-001 — Create Block.** Estado: Planned. Dominio: Block. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/resources/:resourceId/blocks`. Pruebas obligatorias: según convención. Definition of Done: crea un Block `SCHEDULED` para un Resource del mismo Business, con tipo, motivo, observación opcional e intervalo RFC3339 semiabierto válido; valida Business operativo, Resource no archivado y aislamiento por tenant.
-- **BLK-002 — Remove Block.** Estado: Planned. Dominio: Block. Prioridad: Media. Endpoint: `PATCH /api/businesses/:businessId/blocks/:blockId/cancel`. Pruebas obligatorias: según convención. Definition of Done: cancela lógicamente un Block `SCHEDULED` o efectivo `ACTIVE` con motivo obligatorio; `CANCELLED` es idempotente y preserva sus datos de cancelación; `FINISHED` devuelve `409`; no hay eliminación física ni fuga entre tenants.
-- **BLK-003 — List Blocks.** Estado: Planned. Dominio: Block. Prioridad: Media. Endpoint: `GET /api/businesses/:businessId/blocks`. Pruebas obligatorias: según convención. Definition of Done: lista todo el historial del Business, incluidos `CANCELLED` y `FINISHED`, con filtros opcionales `resourceId`, `from` y `to`; la intersección usa `startsAt < to AND endsAt > from` y el orden es `startsAt ASC`, `endsAt ASC`, `id ASC`, sin N+1 ni fuga entre tenants.
+- **BLK-001 — Create Block.** Estado: Completed. Dominio: Block. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/resources/:resourceId/blocks`. Pruebas obligatorias: según convención. Definition of Done: aplicada.
+- **BLK-002 — Remove Block.** Estado: Completed. Dominio: Block. Prioridad: Media. Endpoint: `PATCH /api/businesses/:businessId/blocks/:blockId/cancel`. Pruebas obligatorias: según convención. Definition of Done: aplicada.
+- **BLK-003 — List Blocks.** Estado: Completed. Dominio: Block. Prioridad: Media. Endpoint: `GET /api/businesses/:businessId/blocks`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commits `3f22907`, `bb9f1b4`, `e77e108` y `c7d08ea`; Prisma, E2E, quality check, integración y aceptación aprobados; cobertura global: statements 97,90%, branches 93,77%, functions 99,00% y lines 98,79%; arquitectura sin violaciones; mutation: core application+domain 86,21%, `block.entity.ts` 100%, `PrismaBlockRepository` 100% y `BlockController` 81,48%.
+
+Dependencia futura explícita: Availability deberá considerar conjuntamente Booking, Block y el estado operativo del Resource. La validación de conflictos Booking↔Block no está implementada todavía.
 
 ## Dashboard
 
@@ -107,9 +109,9 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 | Contact | 4 | 4 | 0 | 0 | 0 |
 | Booking | 6 | 0 | 0 | 6 | 0 |
 | Payment | 4 | 0 | 0 | 4 | 0 |
-| Block | 3 | 0 | 0 | 3 | 0 |
+| Block | 3 | 3 | 0 | 0 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **28** | **0** | **23** | **0** |
+| **Total** | **51** | **31** | **0** | **20** | **0** |
 
 Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
@@ -119,4 +121,6 @@ Progreso de Pricing: 5 de 5 capacidades completadas (100%).
 
 Progreso de Contact: 4 de 4 capacidades completadas (100%).
 
-Progreso general del MVP: 28 de 51 capacidades completadas (54,9%).
+Progreso de Block: 3 de 3 capacidades completadas (100%).
+
+Progreso general del MVP: 31 de 51 capacidades completadas (60,8%).
