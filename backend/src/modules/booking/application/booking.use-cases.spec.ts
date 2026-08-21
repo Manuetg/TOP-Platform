@@ -2,7 +2,7 @@ import { BusinessStatus } from '../../business/business.contract';
 import { ResourceStatus } from '../../resource/resource.contract';
 import { Booking } from '../domain/booking.entity';
 import { BookingStatus } from '../domain/booking-status.enum';
-import { BookingNotDraftError, BookingResourceUnavailableError, InvalidBookingInputError } from './booking.errors';
+import { BookingNotDraftError, BookingNotFoundError, BookingResourceUnavailableError, InvalidBookingInputError } from './booking.errors';
 import { CreateBookingUseCase } from './create-booking.use-case';
 import { GetBookingUseCase } from './get-booking.use-case';
 import { ListBookingsUseCase } from './list-bookings.use-case';
@@ -74,5 +74,22 @@ describe('Booking use cases', () => {
     const error = new Error('repository'); findBooking.mockRejectedValueOnce(error); await expect(getUseCase.execute(businessId, bookingId)).rejects.toBe(error);
     list.mockResolvedValueOnce([expected]); await expect(listUseCase.execute(businessId, {})).resolves.toEqual([expected]); expect(list).toHaveBeenLastCalledWith(businessId, { status: null, contactId: null, resourceId: null });
     list.mockRejectedValueOnce(error); await expect(listUseCase.execute(businessId, { status: BookingStatus.DRAFT, contactId: '44444444-4444-4444-8444-444444444444', resourceId })).rejects.toBe(error);
+  });
+  it('validates present resource replacements, permits active and out-of-service resources, and rejects archived ones', async () => {
+    const current = booking();
+    for (const status of [ResourceStatus.ACTIVE, ResourceStatus.OUT_OF_SERVICE]) {
+      findBooking.mockResolvedValueOnce(current); findResource.mockResolvedValueOnce({ status }); update.mockImplementationOnce((value: Booking) => Promise.resolve(value));
+      await expect(updateUseCase.execute({ businessId, bookingId, resourceIds: [resourceId] })).resolves.toMatchObject({ resourceIds: [resourceId] });
+      expect(findResource).toHaveBeenLastCalledWith(resourceId, businessId); expect(update).toHaveBeenLastCalledWith(expect.objectContaining({ resourceIds: [resourceId] }), true);
+    }
+    findBooking.mockResolvedValueOnce(current); findResource.mockResolvedValueOnce({ status: ResourceStatus.ARCHIVED });
+    await expect(updateUseCase.execute({ businessId, bookingId, resourceIds: [resourceId] })).rejects.toBeInstanceOf(BookingResourceUnavailableError); expect(update).toHaveBeenCalledTimes(2);
+  });
+  it('reports a missing booking for GET and PATCH without persisting', async () => {
+    findBooking.mockResolvedValueOnce(null); await expect(getUseCase.execute(businessId, bookingId)).rejects.toBeInstanceOf(BookingNotFoundError); expect(findBooking).toHaveBeenLastCalledWith(bookingId, businessId);
+    findBooking.mockResolvedValueOnce(null); await expect(updateUseCase.execute({ businessId, bookingId, notes: 'Nueva' })).rejects.toBeInstanceOf(BookingNotFoundError); expect(update).not.toHaveBeenCalled();
+  });
+  it('passes present contact and resource list filters exactly to the repository', async () => {
+    const contactId = '44444444-4444-4444-8444-444444444444'; list.mockResolvedValueOnce([]); await listUseCase.execute(businessId, { contactId }); expect(list).toHaveBeenLastCalledWith(businessId, { status: null, contactId, resourceId: null }); list.mockResolvedValueOnce([]); await listUseCase.execute(businessId, { resourceId }); expect(list).toHaveBeenLastCalledWith(businessId, { status: null, contactId: null, resourceId });
   });
 });
