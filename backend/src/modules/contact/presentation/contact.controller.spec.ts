@@ -11,4 +11,10 @@ describe('ContactController', () => {
   beforeEach(() => jest.resetAllMocks());
   it('maps create, get, search and patch through public DTOs', async () => { create.mockResolvedValueOnce(contact); get.mockResolvedValueOnce(contact); search.mockResolvedValueOnce([contact]); update.mockResolvedValueOnce(contact); await expect(controller.createContact(businessId, { name: 'María', phone: '0981123456' })).resolves.toMatchObject({ id: contactId, fullName: 'María' }); await expect(controller.get(businessId, contactId)).resolves.toMatchObject({ businessId }); await expect(controller.searchContacts(businessId, 'María')).resolves.toHaveLength(1); await expect(controller.update(businessId, contactId, { city: 'Asunción' })).resolves.toMatchObject({ id: contactId }); expect(update).toHaveBeenCalledWith({ businessId, contactId, city: 'Asunción' }); });
   it.each([[new InvalidContactInputError('invalid'), BadRequestException], [new ContactBusinessNotFoundError('missing'), NotFoundException], [new ContactNotFoundError('missing'), NotFoundException], [new ContactBusinessUnavailableError('archived'), ConflictException]])('maps contact errors', async (error, exception) => { create.mockRejectedValueOnce(error); await expect(controller.createContact(businessId, {} as never)).rejects.toBeInstanceOf(exception); });
+  it('maps errors raised by PATCH without exposing a domain error', async () => {
+    update.mockRejectedValueOnce(new ContactBusinessUnavailableError('archived'));
+
+    await expect(controller.update(businessId, contactId, { city: 'Asunción' })).rejects.toBeInstanceOf(ConflictException);
+    expect(update).toHaveBeenCalledWith({ businessId, contactId, city: 'Asunción' });
+  });
 });
