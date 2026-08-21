@@ -7,6 +7,7 @@ import { UpdateContactUseCase } from './application/update-contact.use-case';
 import { CONTACT_REPOSITORY } from './domain/contact.repository';
 import { PrismaContactRepository } from './infrastructure/prisma-contact.repository';
 import { ContactController } from './presentation/contact.controller';
+import { CONTACT_LOOKUP } from './contact.contract';
 
-@Module({ imports: [BusinessModule], controllers: [ContactController], providers: [PrismaContactRepository, { provide: CONTACT_REPOSITORY, useExisting: PrismaContactRepository }, CreateContactUseCase, GetContactUseCase, SearchContactsUseCase, UpdateContactUseCase], exports: [CONTACT_REPOSITORY] })
+@Module({ imports: [BusinessModule], controllers: [ContactController], providers: [PrismaContactRepository, { provide: CONTACT_REPOSITORY, useExisting: PrismaContactRepository }, { provide: CONTACT_LOOKUP, useExisting: PrismaContactRepository }, CreateContactUseCase, GetContactUseCase, SearchContactsUseCase, UpdateContactUseCase], exports: [CONTACT_REPOSITORY, CONTACT_LOOKUP] })
 export class ContactModule {}

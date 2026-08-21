@@ -1,11 +1,11 @@
 import { Inject } from '@nestjs/common';
 import { BUSINESS_REPOSITORY, BusinessStatus, type BusinessRepository } from '../../business/business.contract';
-import { CONTACT_REPOSITORY, type ContactRepository } from '../../contact/domain/contact.repository';
+import { CONTACT_LOOKUP, type ContactLookup } from '../../contact/contact.contract';
 import { RESOURCE_REPOSITORY, ResourceStatus, type ResourceRepository } from '../../resource/resource.contract';
 import { BookingBusinessNotFoundError, BookingBusinessUnavailableError, BookingContactNotFoundError, BookingResourceNotFoundError, BookingResourceUnavailableError } from './booking.errors';
 
 export abstract class BookingBase {
-  constructor(@Inject(BUSINESS_REPOSITORY) protected readonly businesses: BusinessRepository, @Inject(CONTACT_REPOSITORY) protected readonly contacts: ContactRepository, @Inject(RESOURCE_REPOSITORY) protected readonly resources: ResourceRepository) {}
+  constructor(@Inject(BUSINESS_REPOSITORY) protected readonly businesses: BusinessRepository, @Inject(CONTACT_LOOKUP) protected readonly contacts: ContactLookup, @Inject(RESOURCE_REPOSITORY) protected readonly resources: ResourceRepository) {}
   protected async activeBusiness(businessId: string): Promise<void> {
     const business = await this.businesses.findById(businessId);
     if (!business) throw new BookingBusinessNotFoundError('El negocio no existe.');
