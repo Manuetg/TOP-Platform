@@ -34,4 +34,13 @@ describeWithPostgres('PrismaBlockRepository', () => {
     await expect(repository.listByBusinessId(owner.id, { resourceId: firstResource.id })).resolves.toEqual([expect.objectContaining({ id: first.id }), expect.objectContaining({ id: second.id })]);
     await expect(repository.listByBusinessId(owner.id, { from: new Date('2026-12-21T10:00:00Z'), to: new Date('2026-12-22T10:00:00Z') })).resolves.toEqual([expect.objectContaining({ id: second.id })]);
   });
+
+  it('detects only intersecting scheduled blocks for the requested tenant and resource', async () => {
+    const owner = await createBusiness('Owner'); const other = await createBusiness('Other'); const resource = await createResource(owner.id, 'R1'); const foreignResource = await createResource(other.id, 'R2');
+    const scheduled = await repository.create(data(owner.id, resource.id)); const cancelled = await repository.create(data(owner.id, resource.id, new Date('2026-12-22T10:00:00Z'), new Date('2026-12-23T10:00:00Z'))); await repository.update(cancelled.cancel('Cambio', new Date('2026-01-01T00:00:00Z'))); await repository.create(data(other.id, foreignResource.id));
+    await expect(repository.hasBlockingBlock(owner.id, resource.id, new Date('2026-12-20T12:00:00Z'), new Date('2026-12-21T12:00:00Z'))).resolves.toBe(true);
+    await expect(repository.hasBlockingBlock(owner.id, resource.id, new Date('2026-12-21T10:00:00Z'), new Date('2026-12-22T10:00:00Z'))).resolves.toBe(false);
+    await expect(repository.hasBlockingBlock(other.id, resource.id, new Date('2026-12-20T12:00:00Z'), new Date('2026-12-21T12:00:00Z'))).resolves.toBe(false);
+    expect(scheduled.id).toBeDefined();
+  });
 });

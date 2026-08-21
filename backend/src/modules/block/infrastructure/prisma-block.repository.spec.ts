@@ -66,4 +66,17 @@ describe('PrismaBlockRepository', () => {
     if (operation === 'findMany') { findMany.mockRejectedValueOnce(error); await expect(repository.listByBusinessId(row.businessId, {})).rejects.toBe(error); }
     if (operation === 'update') { update.mockRejectedValueOnce(error); await expect(repository.update(Block.create(row))).rejects.toBe(error); }
   });
+
+  it('finds only scheduled blocks intersecting the requested tenant and resource range', async () => {
+    const { repository, findFirst } = setup(); const from = new Date('2026-12-20T00:00:00.000Z'); const to = new Date('2026-12-22T00:00:00.000Z');
+    findFirst.mockResolvedValueOnce({ id: row.id }).mockResolvedValueOnce(null);
+    await expect(repository.hasBlockingBlock(row.businessId, row.resourceId, from, to)).resolves.toBe(true);
+    await expect(repository.hasBlockingBlock(row.businessId, row.resourceId, from, to)).resolves.toBe(false);
+    expect(findFirst).toHaveBeenNthCalledWith(1, { where: { businessId: row.businessId, resourceId: row.resourceId, status: BlockStatus.SCHEDULED, startsAt: { lt: to }, endsAt: { gt: from } }, select: { id: true } });
+  });
+
+  it('propagates Prisma failures while looking up blocking blocks', async () => {
+    const { repository, findFirst } = setup(); const error = new Error('lookup failed'); findFirst.mockRejectedValueOnce(error);
+    await expect(repository.hasBlockingBlock(row.businessId, row.resourceId, row.startsAt, row.endsAt)).rejects.toBe(error);
+  });
 });

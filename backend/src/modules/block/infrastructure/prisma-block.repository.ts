@@ -18,5 +18,6 @@ export class PrismaBlockRepository implements BlockRepository {
     return (await this.prisma.block.findMany({ where: { businessId, ...(filters.resourceId === undefined ? {} : { resourceId: filters.resourceId }), ...(filters.from === undefined ? {} : { endsAt: { gt: filters.from } }), ...(filters.to === undefined ? {} : { startsAt: { lt: filters.to } }) }, orderBy: [{ startsAt: 'asc' }, { endsAt: 'asc' }, { id: 'asc' }] })).map((row) => this.map(row));
   }
   async update(block: Block): Promise<Block> { return this.map(await this.prisma.block.update({ where: { id: block.id }, data: { status: block.status, cancellationReason: block.cancellationReason, cancelledAt: block.cancelledAt } })); }
+  async hasBlockingBlock(businessId:string,resourceId:string,from:Date,to:Date):Promise<boolean>{return (await this.prisma.block.findFirst({where:{businessId,resourceId,status:'SCHEDULED',startsAt:{lt:to},endsAt:{gt:from}},select:{id:true}}))!==null;}
   private map(row: PrismaBlock): Block { return Block.create({ ...row, type: row.type as BlockType, status: row.status as BlockStatus }); }
 }

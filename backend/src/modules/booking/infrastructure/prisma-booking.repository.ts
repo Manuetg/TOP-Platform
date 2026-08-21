@@ -34,5 +34,6 @@ export class PrismaBookingRepository implements BookingRepository {
     });
     return this.map(row);
   }
+  async hasBlockingBooking(businessId:string,resourceId:string,from:Date,to:Date):Promise<boolean>{return (await this.prisma.booking.findFirst({where:{businessId,status:{in:['PENDING','CONFIRMED','IN_PROGRESS']},resources:{some:{resourceId}},checkInDate:{lt:to},checkOutDate:{gt:from}},select:{id:true}}))!==null;}
   private map(row: BookingRow): Booking { return Booking.create({ id: row.id, businessId: row.businessId, status: row.status as BookingStatus, contactId: row.contactId, resourceIds: row.resources.map((resource) => resource.resourceId), checkInDate: row.checkInDate, checkOutDate: row.checkOutDate, adults: row.adults, children: row.children, notes: row.notes, createdAt: row.createdAt, updatedAt: row.updatedAt }); }
 }
