@@ -1,0 +1,6 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Booking } from '../../domain/booking.entity';
+export class BookingResponseDto {
+  @ApiProperty() id!: string; @ApiProperty() businessId!: string; @ApiProperty() status!: string; @ApiPropertyOptional({ nullable: true }) contactId!: string | null; @ApiProperty({ type: [String] }) resourceIds!: string[]; @ApiPropertyOptional({ nullable: true }) checkInDate!: string | null; @ApiPropertyOptional({ nullable: true }) checkOutDate!: string | null; @ApiPropertyOptional({ nullable: true }) adults!: number | null; @ApiPropertyOptional({ nullable: true }) children!: number | null; @ApiPropertyOptional({ nullable: true }) notes!: string | null; @ApiProperty() createdAt!: Date; @ApiProperty() updatedAt!: Date;
+  static fromDomain(booking: Booking): BookingResponseDto { return { id: booking.id, businessId: booking.businessId, status: booking.status, contactId: booking.contactId, resourceIds: booking.resourceIds, checkInDate: booking.checkInDate?.toISOString().slice(0, 10) ?? null, checkOutDate: booking.checkOutDate?.toISOString().slice(0, 10) ?? null, adults: booking.adults, children: booking.children, notes: booking.notes, createdAt: booking.createdAt, updatedAt: booking.updatedAt }; }
+}

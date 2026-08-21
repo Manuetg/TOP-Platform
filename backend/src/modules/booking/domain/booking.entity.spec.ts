@@ -1,0 +1,3 @@
+import { Booking } from './booking.entity';
+import { BookingStatus } from './booking-status.enum';
+describe('Booking', () => { it('preserves draft fields and returns immutable resource identifiers', () => { const booking = Booking.create({ id: 'id', businessId: 'business', status: BookingStatus.DRAFT, contactId: null, resourceIds: ['resource'], checkInDate: null, checkOutDate: null, adults: 0, children: 1, notes: null, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-01-02') }); const ids = booking.resourceIds; ids.push('other'); expect(booking.resourceIds).toEqual(['resource']); expect(booking.status).toBe(BookingStatus.DRAFT); expect(booking.adults).toBe(0); }); });

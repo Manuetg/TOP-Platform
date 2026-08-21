@@ -17,6 +17,8 @@ export async function cleanTestDatabase(prisma: PrismaClient, databaseUrl: strin
   await prisma.seasonalRate.deleteMany();
   await prisma.ratePlanResource.deleteMany();
   await prisma.ratePlan.deleteMany();
+  await prisma.bookingResource.deleteMany();
+  await prisma.booking.deleteMany();
   await prisma.block.deleteMany();
   await prisma.resource.deleteMany();
   await prisma.contact.deleteMany();

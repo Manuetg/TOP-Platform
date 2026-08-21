@@ -66,6 +66,16 @@ enum BlockStatus {
   CANCELLED
 }
 
+enum BookingStatus {
+  DRAFT
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
 model User {
   id              String                   @id @default(uuid())
   email           String                   @unique
@@ -132,6 +142,7 @@ model Business {
   ratePlans      RatePlan[]
   contacts       Contact[]
   blocks         Block[]
+  bookings       Booking[]
 }
 
 model Contact {
@@ -150,6 +161,7 @@ model Contact {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   business       Business      @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  bookings       Booking[]
 
   @@index([businessId, name, lastName])
   @@index([businessId, phone])
@@ -175,6 +187,7 @@ model Resource {
   amenities               ResourceAmenity[]
   ratePlanResources       RatePlanResource[]
   blocks                  Block[]
+  bookingResources        BookingResource[]
 
   @@unique([businessId, internalCode])
   @@index([businessId, status])
@@ -291,4 +304,35 @@ model Block {
 
   @@index([businessId, startsAt, endsAt, id])
   @@index([businessId, resourceId, startsAt])
+}
+
+model Booking {
+  id           String            @id @default(uuid())
+  businessId   String
+  status       BookingStatus     @default(DRAFT)
+  contactId    String?
+  checkInDate  DateTime?         @db.Date
+  checkOutDate DateTime?         @db.Date
+  adults       Int?
+  children     Int?
+  notes        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  business     Business          @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  contact      Contact?          @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  resources    BookingResource[]
+
+  @@index([businessId, status, createdAt])
+  @@index([businessId, contactId])
+}
+
+model BookingResource {
+  bookingId  String
+  resourceId String
+  createdAt  DateTime @default(now())
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+
+  @@id([bookingId, resourceId])
+  @@index([resourceId])
 }
