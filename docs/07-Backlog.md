@@ -68,12 +68,14 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 
 ## Booking
 
-- **BKG-001 — Create Booking.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/bookings`. Pruebas obligatorias: según convención. Definition of Done: crea exclusivamente un `DRAFT` con campos opcionales, valida tenant de Contact/Resources, fecha final cuando ambas existen y no consulta Availability, Blocks, Pricing ni Payments.
-- **BKG-002 — Get Booking.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/bookings/:bookingId`. Pruebas obligatorias: según convención. Definition of Done: devuelve DTO público con `resourceIds`, valida UUID estricto y oculta acceso cross-tenant como inexistente.
-- **BKG-003 — List Bookings.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/bookings`. Pruebas obligatorias: según convención. Definition of Done: lista `[]` cuando no hay resultados, permite filtros opcionales `status`, `contactId` y `resourceId`, y ordena por `createdAt DESC`, `id ASC`, sin N+1 ni fuga entre tenants.
-- **BKG-004 — Update Booking.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: `PATCH /api/businesses/:businessId/bookings/:bookingId`. Pruebas obligatorias: según convención. Definition of Done: actualiza parcialmente solo `DRAFT`, preserva campos omitidos y valida el estado final; `contactId` y fechas `null` limpian, `resourceIds` presente reemplaza atómicamente y `[]` elimina asociaciones; body vacío devuelve `400` y no edita estado ni Business.
+- **BKG-001 — Create Booking.** Estado: Completed. Dominio: Booking. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/bookings`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica BKG-001..004: implementación base exclusivamente `DRAFT`, aislamiento por Business, Contact y Resources tenant-scoped, PATCH parcial y reemplazo atómico de Resources; integración PostgreSQL, E2E Booking, Acceptance Booking y quality check aprobados; arquitectura sin violaciones; cobertura global: statements 98,14%, branches 94,44%, functions 99,10% y lines 98,98%; mutation Booking: validation 87,90%, entity 87,50%, controller 80,65%, use cases/base 76,85% y PrismaBookingRepository 100%; commits `bcb1114`, `44c0065`, `8bfc82b`, `3bf0e0f`, `48bb7c8`, `a336739` y `693a483`.
+- **BKG-002 — Get Booking.** Estado: Completed. Dominio: Booking. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/bookings/:bookingId`. Pruebas obligatorias: según convención. Definition of Done: aplicada.
+- **BKG-003 — List Bookings.** Estado: Completed. Dominio: Booking. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/bookings`. Pruebas obligatorias: según convención. Definition of Done: aplicada.
+- **BKG-004 — Update Booking.** Estado: Completed. Dominio: Booking. Prioridad: Alta. Endpoint: `PATCH /api/businesses/:businessId/bookings/:bookingId`. Pruebas obligatorias: según convención. Definition of Done: aplicada.
 - **BKG-005 — Cancel Booking.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **BKG-006 — Booking Timeline.** Estado: Planned. Dominio: Booking. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+
+Fuera de este cierre permanecen Availability, conflictos Booking↔Block, transición `DRAFT` a `PENDING`, Confirm, Pricing Snapshot, Payments, BKG-005 y BKG-006.
 
 ## Payment
 
@@ -107,11 +109,11 @@ Dependencia futura explícita: Availability deberá considerar conjuntamente Boo
 | Pricing | 5 | 5 | 0 | 0 | 0 |
 | Availability | 4 | 0 | 0 | 4 | 0 |
 | Contact | 4 | 4 | 0 | 0 | 0 |
-| Booking | 6 | 0 | 0 | 6 | 0 |
+| Booking | 6 | 4 | 0 | 2 | 0 |
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 3 | 0 | 0 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **31** | **0** | **20** | **0** |
+| **Total** | **51** | **35** | **0** | **16** | **0** |
 
 Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
@@ -121,6 +123,8 @@ Progreso de Pricing: 5 de 5 capacidades completadas (100%).
 
 Progreso de Contact: 4 de 4 capacidades completadas (100%).
 
+Progreso de Booking: 4 de 6 capacidades completadas (66,7%).
+
 Progreso de Block: 3 de 3 capacidades completadas (100%).
 
-Progreso general del MVP: 31 de 51 capacidades completadas (60,8%).
+Progreso general del MVP: 35 de 51 capacidades completadas (68,6%).
