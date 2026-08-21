@@ -33,6 +33,7 @@ import type {
   AvailabilityReason,
   AvailabilityStatus,
 } from './availability.types';
+import { AVAILABILITY_RULES_REPOSITORY, DEFAULT_AVAILABILITY_RULES, type AvailabilityRulesRepository } from '../domain/availability-rules.repository';
 
 const MAXIMUM_CALENDAR_DAYS = 31;
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
@@ -65,6 +66,8 @@ export class ListAvailabilityCalendarUseCase {
     private readonly bookings: BookingAvailabilityLookup,
     @Inject(BLOCK_AVAILABILITY_LOOKUP)
     private readonly blocks: BlockAvailabilityLookup,
+    @Inject(AVAILABILITY_RULES_REPOSITORY)
+    private readonly rules: AvailabilityRulesRepository,
   ) {}
 
   async execute(input: {
@@ -80,11 +83,13 @@ export class ListAvailabilityCalendarUseCase {
       ? await this.findResource(input.resourceId, input.businessId)
       : await this.resources.listByBusinessId(input.businessId);
 
+    const rules = await this.rules.findByBusinessId(input.businessId) ?? { businessId: input.businessId, ...DEFAULT_AVAILABILITY_RULES };
     const [bookingConflicts, blockConflicts] = await Promise.all([
       this.bookings.listBlockingBookings(
         input.businessId,
-        range.from,
-        range.to,
+        this.addDays(range.from, -rules.bufferAfterDays),
+        this.addDays(range.to, rules.bufferBeforeDays),
+        rules.pendingBlocksAvailability,
       ),
       this.blocks.listBlockingBlocks(input.businessId, range.from, range.to),
     ]);
@@ -100,11 +105,13 @@ export class ListAvailabilityCalendarUseCase {
           resource.id,
           resource.status,
           bookingConflicts,
-          blockConflicts,
+          blockConflicts, rules,
         ),
       })),
     };
   }
+
+  private addDays(date: Date, days: number): Date { return new Date(date.getTime() + days * DAY_IN_MILLISECONDS); }
 
   private validateRange(input: {
     businessId: string;
@@ -167,6 +174,7 @@ export class ListAvailabilityCalendarUseCase {
     blockConflicts: Awaited<
       ReturnType<BlockAvailabilityLookup['listBlockingBlocks']>
     >,
+    rules: { bufferBeforeDays: number; bufferAfterDays: number },
   ): AvailabilityCalendarDay[] {
     const days: AvailabilityCalendarDay[] = [];
 
@@ -179,8 +187,8 @@ export class ListAvailabilityCalendarUseCase {
       const hasBookingConflict = bookingConflicts.some(
         (conflict) =>
           conflict.resourceId === resourceId &&
-          conflict.checkInDate < end &&
-          conflict.checkOutDate > start,
+          this.addDays(conflict.checkInDate, -rules.bufferBeforeDays) < end &&
+          this.addDays(conflict.checkOutDate, rules.bufferAfterDays) > start,
       );
       const hasBlockConflict = blockConflicts.some(
         (conflict) =>

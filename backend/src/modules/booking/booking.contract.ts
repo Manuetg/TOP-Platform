@@ -12,10 +12,12 @@ export interface BookingAvailabilityLookup {
     resourceId: string,
     from: Date,
     to: Date,
+    pendingBlocksAvailability?: boolean,
   ): Promise<boolean>;
   listBlockingBookings(
     businessId: string,
     from: Date,
     to: Date,
+    pendingBlocksAvailability?: boolean,
   ): Promise<BlockingBooking[]>;
 }

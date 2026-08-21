@@ -40,6 +40,8 @@ import { BLOCK_REPOSITORY } from '../../../src/modules/block/domain/block.reposi
 import { blockRepositoryFake, resetBlockRepositoryFake } from './block-repository.fake';
 import { BOOKING_AVAILABILITY_LOOKUP } from '../../../src/modules/booking/booking.contract';
 import { BLOCK_AVAILABILITY_LOOKUP } from '../../../src/modules/block/block.contract';
+import { AVAILABILITY_RULES_REPOSITORY } from '../../../src/modules/availability/domain/availability-rules.repository';
+import { availabilityRulesRepositoryFake, resetAvailabilityRulesRepositoryFake } from './availability-rules.repository.fake';
 
 Before(async function (this: TopWorld) {
   resetBusinessRepositoryFake();
@@ -53,6 +55,7 @@ Before(async function (this: TopWorld) {
   resetContactRepositoryFake();
   resetBookingRepositoryFake();
   resetBlockRepositoryFake();
+  resetAvailabilityRulesRepositoryFake();
   const refreshSessions = new Map<string, RefreshSession>();
   const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(BUSINESS_REPOSITORY).useValue(businessRepositoryFake)
@@ -69,6 +72,7 @@ Before(async function (this: TopWorld) {
     .overrideProvider(BLOCK_REPOSITORY).useValue(blockRepositoryFake)
     .overrideProvider(BOOKING_AVAILABILITY_LOOKUP).useValue(bookingRepositoryFake)
     .overrideProvider(BLOCK_AVAILABILITY_LOOKUP).useValue(blockRepositoryFake)
+    .overrideProvider(AVAILABILITY_RULES_REPOSITORY).useValue(availabilityRulesRepositoryFake)
     .overrideProvider(FILE_STORAGE).useValue(new InMemoryFileStorage())
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)

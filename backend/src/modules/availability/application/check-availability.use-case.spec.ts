@@ -6,16 +6,17 @@ const businessId = '11111111-1111-4111-8111-111111111111';
 const resourceId = '22222222-2222-4222-8222-222222222222';
 
 describe('CheckAvailabilityUseCase', () => {
-  const findBusiness = jest.fn(); const findResource = jest.fn(); const booking = jest.fn(); const block = jest.fn();
+  const findBusiness = jest.fn(); const findResource = jest.fn(); const booking = jest.fn(); const block = jest.fn(); const findRules = jest.fn();
   const useCase = new CheckAvailabilityUseCase(
     { findById: findBusiness, create: jest.fn(), list: jest.fn(), update: jest.fn() },
     { findByIdAndBusinessId: findResource, findByBusinessAndCode: jest.fn(), listByBusinessId: jest.fn(), create: jest.fn(), update: jest.fn() },
     { hasBlockingBooking: booking, listBlockingBookings: jest.fn() },
     { hasBlockingBlock: block, listBlockingBlocks: jest.fn() },
+    { findByBusinessId: findRules, save: jest.fn() },
   );
 
   beforeEach(() => {
-    jest.resetAllMocks(); findBusiness.mockResolvedValue({ status: BusinessStatus.ACTIVE }); findResource.mockResolvedValue({ status: ResourceStatus.ACTIVE }); booking.mockResolvedValue(false); block.mockResolvedValue(false);
+    jest.resetAllMocks(); findBusiness.mockResolvedValue({ status: BusinessStatus.ACTIVE }); findResource.mockResolvedValue({ status: ResourceStatus.ACTIVE }); booking.mockResolvedValue(false); block.mockResolvedValue(false); findRules.mockResolvedValue(null);
   });
 
   it('validates strict identifiers and ranges before dependencies', async () => {
@@ -30,13 +31,20 @@ describe('CheckAvailabilityUseCase', () => {
 
   it('returns available without conflicts and delegates the exact semi-open range', async () => {
     await expect(useCase.execute({ businessId, resourceId, from: '2026-02-01', to: '2026-02-02' })).resolves.toEqual({ resourceId, from: '2026-02-01', to: '2026-02-02', status: 'AVAILABLE', reasons: [] });
-    expect(booking).toHaveBeenCalledWith(businessId, resourceId, new Date('2026-02-01'), new Date('2026-02-02'));
+    expect(booking).toHaveBeenCalledWith(businessId, resourceId, new Date('2026-02-01'), new Date('2026-02-02'), true);
     expect(block).toHaveBeenCalledWith(businessId, resourceId, new Date('2026-02-01'), new Date('2026-02-02'));
   });
 
   it('reports each blocking source once, including simultaneous Booking and Block conflicts', async () => {
     booking.mockResolvedValueOnce(true); block.mockResolvedValueOnce(true);
     await expect(useCase.execute({ businessId, resourceId, from: '2026-02-01', to: '2026-02-02' })).resolves.toMatchObject({ status: 'UNAVAILABLE', reasons: ['BOOKING_CONFLICT', 'BLOCK_CONFLICT'] });
+  });
+
+  it('uses one effective rule for PENDING and Booking buffers without altering Block ranges', async () => {
+    findRules.mockResolvedValueOnce({ businessId, pendingBlocksAvailability: false, bufferBeforeDays: 2, bufferAfterDays: 1 });
+    await useCase.execute({ businessId, resourceId, from: '2026-02-03', to: '2026-02-04' });
+    expect(booking).toHaveBeenCalledWith(businessId, resourceId, new Date('2026-02-02'), new Date('2026-02-06'), false);
+    expect(block).toHaveBeenCalledWith(businessId, resourceId, new Date('2026-02-03'), new Date('2026-02-04'));
   });
 
   it.each([[ResourceStatus.OUT_OF_SERVICE, 'RESOURCE_OUT_OF_SERVICE'], [ResourceStatus.ARCHIVED, 'RESOURCE_ARCHIVED']] as const)('short circuits %s resources without conflict lookups', async (status, reason) => {

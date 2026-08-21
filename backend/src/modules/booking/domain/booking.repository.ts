@@ -10,10 +10,11 @@ export interface BookingRepository {
   findByIdAndBusinessId(id: string, businessId: string): Promise<Booking | null>;
   listByBusinessId(businessId: string, filters: BookingListFilters): Promise<Booking[]>;
   update(booking: Booking, replaceResources: boolean): Promise<Booking>;
-  hasBlockingBooking(businessId:string, resourceId:string, from:Date, to:Date):Promise<boolean>;
+  hasBlockingBooking(businessId:string, resourceId:string, from:Date, to:Date, pendingBlocksAvailability?: boolean):Promise<boolean>;
   listBlockingBookings(
     businessId: string,
     from: Date,
     to: Date,
+    pendingBlocksAvailability?: boolean,
   ): Promise<BlockingBooking[]>;
 }

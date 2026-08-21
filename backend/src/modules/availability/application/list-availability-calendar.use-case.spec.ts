@@ -38,6 +38,7 @@ describe('ListAvailabilityCalendarUseCase', () => {
   const listResources = jest.fn();
   const listBookings = jest.fn();
   const listBlocks = jest.fn();
+  const findRules = jest.fn();
 
   const useCase = new ListAvailabilityCalendarUseCase(
     { findById: findBusiness, create: jest.fn(), list: jest.fn(), update: jest.fn() },
@@ -50,6 +51,7 @@ describe('ListAvailabilityCalendarUseCase', () => {
     },
     { hasBlockingBooking: jest.fn(), listBlockingBookings: listBookings },
     { hasBlockingBlock: jest.fn(), listBlockingBlocks: listBlocks },
+    { findByBusinessId: findRules, save: jest.fn() },
   );
 
   beforeEach(() => {
@@ -61,6 +63,7 @@ describe('ListAvailabilityCalendarUseCase', () => {
     ]);
     listBookings.mockResolvedValue([]);
     listBlocks.mockResolvedValue([]);
+    findRules.mockResolvedValue(null);
   });
 
   it('builds an ordered resource by day matrix with one range query per conflict source', async () => {
@@ -122,6 +125,7 @@ describe('ListAvailabilityCalendarUseCase', () => {
       businessId,
       new Date('2026-04-01'),
       new Date('2026-04-04'),
+      true,
     );
     expect(listBlocks).toHaveBeenCalledTimes(1);
     expect(listBlocks).toHaveBeenCalledWith(
@@ -340,5 +344,15 @@ describe('ListAvailabilityCalendarUseCase', () => {
       status: 'AVAILABLE',
       reasons: [],
     });
+  });
+
+  it('applies Booking-only day buffers using the same effective rule', async () => {
+    listResources.mockResolvedValue([makeResource(resourceAId)]);
+    findRules.mockResolvedValueOnce({ businessId, pendingBlocksAvailability: false, bufferBeforeDays: 1, bufferAfterDays: 0 });
+    listBookings.mockResolvedValue([{ resourceId: resourceAId, checkInDate: new Date('2026-04-02'), checkOutDate: new Date('2026-04-03') }]);
+    listBlocks.mockResolvedValue([{ resourceId: resourceAId, startsAt: new Date('2026-04-01'), endsAt: new Date('2026-04-02') }]);
+    const result = await useCase.execute({ businessId, from: '2026-04-01', to: '2026-04-03' });
+    expect(listBookings).toHaveBeenCalledWith(businessId, new Date('2026-04-01'), new Date('2026-04-04'), false);
+    expect(result.resources[0]?.days).toEqual([{ date: '2026-04-01', status: 'UNAVAILABLE', reasons: ['BOOKING_CONFLICT', 'BLOCK_CONFLICT'] }, { date: '2026-04-02', status: 'UNAVAILABLE', reasons: ['BOOKING_CONFLICT'] }]);
   });
 });

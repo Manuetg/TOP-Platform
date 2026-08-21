@@ -126,23 +126,34 @@ model RefreshSession {
 }
 
 model Business {
-  id             String                   @id @default(uuid())
-  businessNumber Int?
-  name           String
-  legalName      String?
-  taxId          String?
-  timezone       String                   @default("America/Asuncion")
-  currency       String                   @default("PYG")
-  status         BusinessStatus           @default(ACTIVE)
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
-  memberships    UserBusinessMembership[]
-  resources      Resource[]
-  resourceImages ResourceImage[]
-  ratePlans      RatePlan[]
-  contacts       Contact[]
-  blocks         Block[]
-  bookings       Booking[]
+  id               String                   @id @default(uuid())
+  businessNumber   Int?
+  name             String
+  legalName        String?
+  taxId            String?
+  timezone         String                   @default("America/Asuncion")
+  currency         String                   @default("PYG")
+  status           BusinessStatus           @default(ACTIVE)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  memberships      UserBusinessMembership[]
+  resources        Resource[]
+  resourceImages   ResourceImage[]
+  ratePlans        RatePlan[]
+  contacts         Contact[]
+  blocks           Block[]
+  bookings         Booking[]
+  availabilityRule AvailabilityRule?
+}
+
+model AvailabilityRule {
+  businessId                String   @id
+  pendingBlocksAvailability Boolean  @default(true)
+  bufferBeforeDays          Int      @default(0)
+  bufferAfterDays           Int      @default(0)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  business                  Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
 
 model Contact {

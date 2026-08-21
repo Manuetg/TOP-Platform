@@ -28,6 +28,7 @@ import {
   AvailabilityResourceNotFoundError,
   InvalidAvailabilityInputError,
 } from './availability.errors';
+import { AVAILABILITY_RULES_REPOSITORY, DEFAULT_AVAILABILITY_RULES, type AvailabilityRulesRepository } from '../domain/availability-rules.repository';
 
 export type {
   AvailabilityReason,
@@ -53,6 +54,8 @@ export class CheckAvailabilityUseCase {
     private readonly bookings: BookingAvailabilityLookup,
     @Inject(BLOCK_AVAILABILITY_LOOKUP)
     private readonly blocks: BlockAvailabilityLookup,
+    @Inject(AVAILABILITY_RULES_REPOSITORY)
+    private readonly rules: AvailabilityRulesRepository,
   ) {}
 
   async execute(input: {
@@ -76,12 +79,16 @@ export class CheckAvailabilityUseCase {
       return this.out(input, shortCircuit);
     }
 
+    const rules = await this.rules.findByBusinessId(input.businessId) ?? { businessId: input.businessId, ...DEFAULT_AVAILABILITY_RULES };
+    const bookingFrom = this.addDays(range.from, -rules.bufferAfterDays);
+    const bookingTo = this.addDays(range.to, rules.bufferBeforeDays);
     const [hasBookingConflict, hasBlockConflict] = await Promise.all([
       this.bookings.hasBlockingBooking(
         input.businessId,
         input.resourceId,
-        range.from,
-        range.to,
+        bookingFrom,
+        bookingTo,
+        rules.pendingBlocksAvailability,
       ),
       this.blocks.hasBlockingBlock(
         input.businessId,
@@ -95,6 +102,8 @@ export class CheckAvailabilityUseCase {
       deriveAvailability(resource.status, hasBookingConflict, hasBlockConflict),
     );
   }
+
+  private addDays(date: Date, days: number): Date { return new Date(date.getTime() + days * 24 * 60 * 60 * 1000); }
 
   private range(input: {
     businessId: string;
