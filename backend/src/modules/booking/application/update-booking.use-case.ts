@@ -36,7 +36,7 @@ export class UpdateBookingUseCase extends BookingBase {
     const notes = notesPatch === undefined ? current.notes : notesPatch;
     const finalResourceIds = resourceIds === undefined ? current.resourceIds : resourceIds;
     assertDateRange(checkInDate, checkOutDate);
-    await this.validateContact(businessId, contactId);
+    await this.validatePatchedContact(businessId, contactPatch);
     await this.validatePatchedResources(businessId, resourceIds);
     return this.bookings.update(Booking.create({ id: current.id, businessId: current.businessId, status: current.status, contactId, resourceIds: finalResourceIds, checkInDate, checkOutDate, adults, children, notes, createdAt: current.createdAt, updatedAt: current.updatedAt }), resourceIds !== undefined);
   }

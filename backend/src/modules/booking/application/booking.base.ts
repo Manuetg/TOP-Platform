@@ -14,6 +14,7 @@ export abstract class BookingBase {
   protected async validateContact(businessId: string, contactId: string | null): Promise<void> {
     if (contactId !== null && !(await this.contacts.findByIdAndBusinessId(contactId, businessId))) throw new BookingContactNotFoundError('El contacto no existe.');
   }
+  protected async validatePatchedContact(businessId: string, contactId: string | null | undefined): Promise<void> { if (contactId !== undefined) await this.validateContact(businessId, contactId); }
   protected async validateResources(businessId: string, resourceIds: string[]): Promise<void> {
     for (const resourceId of resourceIds) {
       const resource = await this.resources.findByIdAndBusinessId(resourceId, businessId);

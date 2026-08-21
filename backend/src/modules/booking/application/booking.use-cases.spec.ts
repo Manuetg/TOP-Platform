@@ -47,4 +47,32 @@ describe('Booking use cases', () => {
     await expect(updateUseCase.execute({ businessId, bookingId, notes: 'nota' })).rejects.toBeInstanceOf(BookingNotDraftError);
     expect(update).not.toHaveBeenCalled();
   });
+  it.each([
+    [{ contactId: null }, { contactId: null }],
+    [{ checkInDate: null }, { checkInDate: null }],
+    [{ checkOutDate: null }, { checkOutDate: null }],
+    [{ adults: 0 }, { adults: 0 }],
+    [{ children: 3 }, { children: 3 }],
+    [{ notes: ' Nueva nota ' }, { notes: 'Nueva nota' }],
+    [{ resourceIds: [] }, { resourceIds: [] }],
+  ])('updates only the supplied draft field and preserves distinctive values', async (patch, expected) => {
+    const current = booking({ contactId: '44444444-4444-4444-8444-444444444444', resourceIds: [resourceId], checkInDate: new Date('2026-04-01'), checkOutDate: new Date('2026-04-03'), adults: 4, children: 2, notes: 'Anterior' });
+    findBooking.mockResolvedValueOnce(current); update.mockImplementationOnce((value: Booking) => Promise.resolve(value));
+    const result = await updateUseCase.execute({ businessId, bookingId, ...patch });
+    expect(result.id).toBe(bookingId); expect(result.businessId).toBe(businessId); expect(result.status).toBe(BookingStatus.DRAFT); expect(result.createdAt).toEqual(current.createdAt);
+    expect(result).toMatchObject(expected); expect(update).toHaveBeenCalledWith(expect.objectContaining(expected), Object.prototype.hasOwnProperty.call(patch, 'resourceIds'));
+  });
+  it('preserves all fields and avoids dependent lookups when patch fields are omitted', async () => {
+    const current = booking({ contactId: '44444444-4444-4444-8444-444444444444', resourceIds: [resourceId], checkInDate: new Date('2026-04-01'), checkOutDate: new Date('2026-04-03'), adults: 4, children: 2, notes: 'Anterior' }); findBooking.mockResolvedValueOnce(current); update.mockImplementationOnce((value: Booking) => Promise.resolve(value));
+    await updateUseCase.execute({ businessId, bookingId, notes: undefined });
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ contactId: current.contactId, resourceIds: current.resourceIds, checkInDate: current.checkInDate, checkOutDate: current.checkOutDate, adults: current.adults, children: current.children, notes: current.notes }), false);
+    expect(findContact).not.toHaveBeenCalled(); expect(findResource).not.toHaveBeenCalled();
+  });
+  it('separately validates get and list identifiers, exact delegation and repository errors', async () => {
+    await expect(getUseCase.execute('bad', bookingId)).rejects.toBeInstanceOf(InvalidBookingInputError); await expect(getUseCase.execute(businessId, 'bad')).rejects.toBeInstanceOf(InvalidBookingInputError);
+    const expected = booking(); findBooking.mockResolvedValueOnce(expected); await expect(getUseCase.execute(businessId, bookingId)).resolves.toBe(expected); expect(findBooking).toHaveBeenCalledWith(bookingId, businessId);
+    const error = new Error('repository'); findBooking.mockRejectedValueOnce(error); await expect(getUseCase.execute(businessId, bookingId)).rejects.toBe(error);
+    list.mockResolvedValueOnce([expected]); await expect(listUseCase.execute(businessId, {})).resolves.toEqual([expected]); expect(list).toHaveBeenLastCalledWith(businessId, { status: null, contactId: null, resourceId: null });
+    list.mockRejectedValueOnce(error); await expect(listUseCase.execute(businessId, { status: BookingStatus.DRAFT, contactId: '44444444-4444-4444-8444-444444444444', resourceId })).rejects.toBe(error);
+  });
 });
