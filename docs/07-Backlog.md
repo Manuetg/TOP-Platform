@@ -61,10 +61,10 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 
 ## Contact
 
-- **CON-001 — Create Contact.** Estado: Planned. Dominio: Contact. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **CON-002 — Get Contact.** Estado: Planned. Dominio: Contact. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **CON-003 — Search Contact.** Estado: Planned. Dominio: Contact. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
-- **CON-004 — Update Contact.** Estado: Planned. Dominio: Contact. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **CON-001 — Create Contact.** Estado: Completed. Dominio: Contact. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/contacts`. Pruebas obligatorias: según convención. Definition of Done: aplicada.
+- **CON-002 — Get Contact.** Estado: Completed. Dominio: Contact. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/contacts/:contactId`. Pruebas obligatorias: según convención. Definition of Done: aplicada.
+- **CON-003 — Search Contact.** Estado: Completed. Dominio: Contact. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/contacts`. Pruebas obligatorias: según convención. Definition of Done: aplicada.
+- **CON-004 — Update Contact.** Estado: Completed. Dominio: Contact. Prioridad: Media. Endpoint: `PATCH /api/businesses/:businessId/contacts/:contactId`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commits `9be931b`, `5482cd2` y `6c26d63`; unit 57 suites y 456 tests, integración 14 suites y 42 tests, E2E 8 suites y 114 tests, aceptación 69 escenarios y 296 pasos; cobertura: statements 97,77%, branches 93,54%, funciones 98,68% y líneas 98,72%; arquitectura sin violaciones; mutation de Contact 81,39% total y 85,11% covered; GitHub Actions con `verify: success`.
 
 ## Booking
 
@@ -104,12 +104,12 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 | Resource | 7 | 7 | 0 | 0 | 0 |
 | Pricing | 5 | 5 | 0 | 0 | 0 |
 | Availability | 4 | 0 | 0 | 4 | 0 |
-| Contact | 4 | 0 | 0 | 4 | 0 |
+| Contact | 4 | 4 | 0 | 0 | 0 |
 | Booking | 6 | 0 | 0 | 6 | 0 |
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 0 | 0 | 3 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **22** | **0** | **29** | **0** |
+| **Total** | **51** | **28** | **0** | **23** | **0** |
 
 Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
@@ -117,4 +117,6 @@ Progreso de Resource: 7 de 7 capacidades completadas (100%).
 
 Progreso de Pricing: 5 de 5 capacidades completadas (100%).
 
-Progreso general del MVP: 24 de 51 capacidades completadas (47,1%).
+Progreso de Contact: 4 de 4 capacidades completadas (100%).
+
+Progreso general del MVP: 28 de 51 capacidades completadas (54,9%).
