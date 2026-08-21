@@ -79,4 +79,12 @@ describe('PrismaBlockRepository', () => {
     const { repository, findFirst } = setup(); const error = new Error('lookup failed'); findFirst.mockRejectedValueOnce(error);
     await expect(repository.hasBlockingBlock(row.businessId, row.resourceId, row.startsAt, row.endsAt)).rejects.toBe(error);
   });
+
+  it('loads scheduled blocks once for the complete calendar range', async () => {
+    const { repository, findMany } = setup(); const from = new Date('2026-12-20T00:00:00.000Z'); const to = new Date('2026-12-22T00:00:00.000Z');
+    const conflicts = [{ resourceId: row.resourceId, startsAt: row.startsAt, endsAt: row.endsAt }];
+    findMany.mockResolvedValueOnce(conflicts);
+    await expect(repository.listBlockingBlocks(row.businessId, from, to)).resolves.toEqual(conflicts);
+    expect(findMany).toHaveBeenCalledWith({ where: { businessId: row.businessId, status: BlockStatus.SCHEDULED, startsAt: { lt: to }, endsAt: { gt: from } }, select: { resourceId: true, startsAt: true, endsAt: true } });
+  });
 });

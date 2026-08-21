@@ -5,6 +5,7 @@ import { Block } from '../domain/block.entity';
 import { BlockStatus } from '../domain/block-status.enum';
 import { BlockType } from '../domain/block-type.enum';
 import type { BlockListFilters, BlockRepository, CreateBlockData } from '../domain/block.repository';
+import type { BlockingBlock } from '../block.contract';
 
 @Injectable()
 export class PrismaBlockRepository implements BlockRepository {
@@ -19,5 +20,20 @@ export class PrismaBlockRepository implements BlockRepository {
   }
   async update(block: Block): Promise<Block> { return this.map(await this.prisma.block.update({ where: { id: block.id }, data: { status: block.status, cancellationReason: block.cancellationReason, cancelledAt: block.cancelledAt } })); }
   async hasBlockingBlock(businessId:string,resourceId:string,from:Date,to:Date):Promise<boolean>{return (await this.prisma.block.findFirst({where:{businessId,resourceId,status:'SCHEDULED',startsAt:{lt:to},endsAt:{gt:from}},select:{id:true}}))!==null;}
+  async listBlockingBlocks(businessId: string, from: Date, to: Date): Promise<BlockingBlock[]> {
+    return this.prisma.block.findMany({
+      where: {
+        businessId,
+        status: 'SCHEDULED',
+        startsAt: { lt: to },
+        endsAt: { gt: from },
+      },
+      select: {
+        resourceId: true,
+        startsAt: true,
+        endsAt: true,
+      },
+    });
+  }
   private map(row: PrismaBlock): Block { return Block.create({ ...row, type: row.type as BlockType, status: row.status as BlockStatus }); }
 }

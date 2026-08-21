@@ -24,4 +24,10 @@ describeWithPostgres('PrismaBookingRepository', () => {
     await expect(repository.hasBlockingBooking(owner.business.id, owner.resources[0].id, new Date('2026-04-03'), to)).resolves.toBe(false);
     expect(draft.id).toBeDefined();
   });
+  it('loads all blocking booking assignments for a range in one scoped lookup', async () => {
+    const { business, resources } = await fixture('Calendar');
+    const booking = await repository.create({ businessId: business.id, contactId: null, resourceIds: resources.map((resource) => resource.id), checkInDate: new Date('2026-04-02'), checkOutDate: new Date('2026-04-04'), adults: null, children: null, notes: null });
+    await prisma.booking.update({ where: { id: booking.id }, data: { status: BookingStatus.IN_PROGRESS } });
+    await expect(repository.listBlockingBookings(business.id, new Date('2026-04-01'), new Date('2026-04-04'))).resolves.toEqual(expect.arrayContaining(resources.map((resource) => expect.objectContaining({ resourceId: resource.id, checkInDate: new Date('2026-04-02'), checkOutDate: new Date('2026-04-04') }))));
+  });
 });

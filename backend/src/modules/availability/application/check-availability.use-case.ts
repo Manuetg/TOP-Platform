@@ -1,5 +1,130 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { BUSINESS_REPOSITORY, BusinessStatus, type BusinessRepository } from '../../business/business.contract'; import { RESOURCE_REPOSITORY, ResourceStatus, type ResourceRepository } from '../../resource/resource.contract'; import { BOOKING_AVAILABILITY_LOOKUP, type BookingAvailabilityLookup } from '../../booking/booking.contract'; import { BLOCK_AVAILABILITY_LOOKUP, type BlockAvailabilityLookup } from '../../block/block.contract';
-export type AvailabilityStatus='AVAILABLE'|'UNAVAILABLE'; export type AvailabilityReason='RESOURCE_OUT_OF_SERVICE'|'RESOURCE_ARCHIVED'|'BOOKING_CONFLICT'|'BLOCK_CONFLICT'; export interface AvailabilityResult{resourceId:string;from:string;to:string;status:AvailabilityStatus;reasons:AvailabilityReason[]} export class InvalidAvailabilityInputError extends Error{} export class AvailabilityBusinessNotFoundError extends Error{} export class AvailabilityBusinessUnavailableError extends Error{} export class AvailabilityResourceNotFoundError extends Error{}
-const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i; const date=(v:string,n:string)=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(v))throw new InvalidAvailabilityInputError(`${n} es inválida.`);const d=new Date(`${v}T00:00:00.000Z`);if(Number.isNaN(d.getTime())||d.toISOString().slice(0,10)!==v)throw new InvalidAvailabilityInputError(`${n} es inválida.`);return d;};
-@Injectable() export class CheckAvailabilityUseCase{constructor(@Inject(BUSINESS_REPOSITORY)private readonly businesses:BusinessRepository,@Inject(RESOURCE_REPOSITORY)private readonly resources:ResourceRepository,@Inject(BOOKING_AVAILABILITY_LOOKUP)private readonly bookings:BookingAvailabilityLookup,@Inject(BLOCK_AVAILABILITY_LOOKUP)private readonly blocks:BlockAvailabilityLookup){} async execute(i:{businessId:string;resourceId:string;from:string;to:string}):Promise<AvailabilityResult>{const r=this.range(i);await this.business(i.businessId);const resource=await this.resources.findByIdAndBusinessId(i.resourceId,i.businessId);if(!resource)throw new AvailabilityResourceNotFoundError('El recurso no existe.');const reason=resource.status===ResourceStatus.OUT_OF_SERVICE?'RESOURCE_OUT_OF_SERVICE':resource.status===ResourceStatus.ARCHIVED?'RESOURCE_ARCHIVED':undefined;if(reason)return this.out(i,[reason]);const reasons:AvailabilityReason[]=[];if(await this.bookings.hasBlockingBooking(i.businessId,i.resourceId,r.from,r.to))reasons.push('BOOKING_CONFLICT');if(await this.blocks.hasBlockingBlock(i.businessId,i.resourceId,r.from,r.to))reasons.push('BLOCK_CONFLICT');return this.out(i,reasons);} private range(i:{businessId:string;resourceId:string;from:string;to:string}){if(!uuid.test(i.businessId)||!uuid.test(i.resourceId))throw new InvalidAvailabilityInputError('El identificador no es válido.');const from=date(i.from,'La fecha inicial'),to=date(i.to,'La fecha final');if(to<=from)throw new InvalidAvailabilityInputError('La fecha final debe ser posterior a la fecha inicial.');return{from,to};} private async business(id:string){const b=await this.businesses.findById(id);if(!b)throw new AvailabilityBusinessNotFoundError('El negocio no existe.');if(b.status!==BusinessStatus.ACTIVE)throw new AvailabilityBusinessUnavailableError('El negocio no está activo.');} private out(i:{resourceId:string;from:string;to:string},reasons:AvailabilityReason[]):AvailabilityResult{return{resourceId:i.resourceId,from:i.from,to:i.to,status:reasons.length?'UNAVAILABLE':'AVAILABLE',reasons};}}
+import {
+  BUSINESS_REPOSITORY,
+  BusinessStatus,
+  type BusinessRepository,
+} from '../../business/business.contract';
+import {
+  BLOCK_AVAILABILITY_LOOKUP,
+  type BlockAvailabilityLookup,
+} from '../../block/block.contract';
+import {
+  BOOKING_AVAILABILITY_LOOKUP,
+  type BookingAvailabilityLookup,
+} from '../../booking/booking.contract';
+import {
+  RESOURCE_REPOSITORY,
+  type ResourceRepository,
+} from '../../resource/resource.contract';
+import { deriveAvailability } from './availability.derivation';
+import {
+  assertAvailabilityUuid,
+  parseAvailabilityDate,
+} from './availability.validation';
+import type { AvailabilityResult } from './availability.types';
+
+export type {
+  AvailabilityReason,
+  AvailabilityResult,
+  AvailabilityStatus,
+} from './availability.types';
+
+export class InvalidAvailabilityInputError extends Error {}
+export class AvailabilityBusinessNotFoundError extends Error {}
+export class AvailabilityBusinessUnavailableError extends Error {}
+export class AvailabilityResourceNotFoundError extends Error {}
+
+@Injectable()
+export class CheckAvailabilityUseCase {
+  constructor(
+    @Inject(BUSINESS_REPOSITORY)
+    private readonly businesses: BusinessRepository,
+    @Inject(RESOURCE_REPOSITORY)
+    private readonly resources: ResourceRepository,
+    @Inject(BOOKING_AVAILABILITY_LOOKUP)
+    private readonly bookings: BookingAvailabilityLookup,
+    @Inject(BLOCK_AVAILABILITY_LOOKUP)
+    private readonly blocks: BlockAvailabilityLookup,
+  ) {}
+
+  async execute(input: {
+    businessId: string;
+    resourceId: string;
+    from: string;
+    to: string;
+  }): Promise<AvailabilityResult> {
+    const range = this.range(input);
+    await this.business(input.businessId);
+    const resource = await this.resources.findByIdAndBusinessId(
+      input.resourceId,
+      input.businessId,
+    );
+    if (!resource) {
+      throw new AvailabilityResourceNotFoundError('El recurso no existe.');
+    }
+
+    const shortCircuit = deriveAvailability(resource.status, false, false);
+    if (shortCircuit.reasons.length > 0) {
+      return this.out(input, shortCircuit);
+    }
+
+    const [hasBookingConflict, hasBlockConflict] = await Promise.all([
+      this.bookings.hasBlockingBooking(
+        input.businessId,
+        input.resourceId,
+        range.from,
+        range.to,
+      ),
+      this.blocks.hasBlockingBlock(
+        input.businessId,
+        input.resourceId,
+        range.from,
+        range.to,
+      ),
+    ]);
+    return this.out(
+      input,
+      deriveAvailability(resource.status, hasBookingConflict, hasBlockConflict),
+    );
+  }
+
+  private range(input: {
+    businessId: string;
+    resourceId: string;
+    from: string;
+    to: string;
+  }): { from: Date; to: Date } {
+    assertAvailabilityUuid(input.businessId);
+    assertAvailabilityUuid(input.resourceId);
+    const from = parseAvailabilityDate(input.from, 'La fecha inicial');
+    const to = parseAvailabilityDate(input.to, 'La fecha final');
+    if (to <= from) {
+      throw new InvalidAvailabilityInputError(
+        'La fecha final debe ser posterior a la fecha inicial.',
+      );
+    }
+    return { from, to };
+  }
+
+  private async business(id: string): Promise<void> {
+    const business = await this.businesses.findById(id);
+    if (!business) {
+      throw new AvailabilityBusinessNotFoundError('El negocio no existe.');
+    }
+    if (business.status !== BusinessStatus.ACTIVE) {
+      throw new AvailabilityBusinessUnavailableError('El negocio no está activo.');
+    }
+  }
+
+  private out(
+    input: Pick<AvailabilityResult, 'resourceId' | 'from' | 'to'>,
+    availability: Pick<AvailabilityResult, 'status' | 'reasons'>,
+  ): AvailabilityResult {
+    return {
+      resourceId: input.resourceId,
+      from: input.from,
+      to: input.to,
+      ...availability,
+    };
+  }
+}

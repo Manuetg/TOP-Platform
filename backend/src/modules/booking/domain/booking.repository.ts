@@ -1,5 +1,6 @@
 import { Booking } from './booking.entity';
 import { BookingStatus } from './booking-status.enum';
+import type { BlockingBooking } from '../booking.contract';
 
 export const BOOKING_REPOSITORY = Symbol('BOOKING_REPOSITORY');
 export interface BookingData { businessId: string; contactId: string | null; resourceIds: string[]; checkInDate: Date | null; checkOutDate: Date | null; adults: number | null; children: number | null; notes: string | null; }
@@ -10,4 +11,9 @@ export interface BookingRepository {
   listByBusinessId(businessId: string, filters: BookingListFilters): Promise<Booking[]>;
   update(booking: Booking, replaceResources: boolean): Promise<Booking>;
   hasBlockingBooking(businessId:string, resourceId:string, from:Date, to:Date):Promise<boolean>;
+  listBlockingBookings(
+    businessId: string,
+    from: Date,
+    to: Date,
+  ): Promise<BlockingBooking[]>;
 }

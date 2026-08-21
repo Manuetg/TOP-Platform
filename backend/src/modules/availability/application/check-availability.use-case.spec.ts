@@ -10,7 +10,8 @@ describe('CheckAvailabilityUseCase', () => {
   const useCase = new CheckAvailabilityUseCase(
     { findById: findBusiness, create: jest.fn(), list: jest.fn(), update: jest.fn() },
     { findByIdAndBusinessId: findResource, findByBusinessAndCode: jest.fn(), listByBusinessId: jest.fn(), create: jest.fn(), update: jest.fn() },
-    { hasBlockingBooking: booking }, { hasBlockingBlock: block },
+    { hasBlockingBooking: booking, listBlockingBookings: jest.fn() },
+    { hasBlockingBlock: block, listBlockingBlocks: jest.fn() },
   );
 
   beforeEach(() => {

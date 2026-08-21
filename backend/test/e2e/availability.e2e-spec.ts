@@ -16,8 +16,8 @@ describe('Availability endpoint', () => {
     const module = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(BUSINESS_REPOSITORY).useValue({ findById: (id: string) => Promise.resolve(id === businessId ? { status: businessStatus } : null), create: jest.fn(), list: jest.fn(), update: jest.fn() })
       .overrideProvider(RESOURCE_REPOSITORY).useValue({ findByIdAndBusinessId: (id: string, owner: string) => Promise.resolve(id === resourceId && owner === businessId ? { status: resourceStatus } : null), findByBusinessAndCode: jest.fn(), listByBusinessId: jest.fn(), create: jest.fn(), update: jest.fn() })
-      .overrideProvider(BOOKING_AVAILABILITY_LOOKUP).useValue({ hasBlockingBooking: () => Promise.resolve(bookingConflict) })
-      .overrideProvider(BLOCK_AVAILABILITY_LOOKUP).useValue({ hasBlockingBlock: () => Promise.resolve(blockConflict) }).compile();
+      .overrideProvider(BOOKING_AVAILABILITY_LOOKUP).useValue({ hasBlockingBooking: () => Promise.resolve(bookingConflict), listBlockingBookings: () => Promise.resolve([]) })
+      .overrideProvider(BLOCK_AVAILABILITY_LOOKUP).useValue({ hasBlockingBlock: () => Promise.resolve(blockConflict), listBlockingBlocks: () => Promise.resolve([]) }).compile();
     app = module.createNestApplication(); configureApplication(app); await app.init();
   });
   afterAll(async () => app.close());

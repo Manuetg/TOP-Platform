@@ -37,4 +37,10 @@ describe('PrismaBookingRepository', () => {
     const error = new Error('lookup failed'); booking.findFirst.mockRejectedValueOnce(error);
     await expect(repository.hasBlockingBooking(businessId, resourceId, new Date('2026-04-01'), new Date('2026-04-03'))).rejects.toBe(error);
   });
+  it('loads blocking bookings for the complete calendar range and flattens resource assignments', async () => {
+    const from = new Date('2026-04-01'); const to = new Date('2026-04-04'); const second = '44444444-4444-4444-8444-444444444444';
+    booking.findMany.mockResolvedValueOnce([{ checkInDate: new Date('2026-04-02'), checkOutDate: new Date('2026-04-04'), resources: [{ resourceId }, { resourceId: second }] }]);
+    await expect(repository.listBlockingBookings(businessId, from, to)).resolves.toEqual([{ resourceId, checkInDate: new Date('2026-04-02'), checkOutDate: new Date('2026-04-04') }, { resourceId: second, checkInDate: new Date('2026-04-02'), checkOutDate: new Date('2026-04-04') }]);
+    expect(booking.findMany).toHaveBeenCalledWith({ where: { businessId, status: { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS'] }, checkInDate: { lt: to }, checkOutDate: { gt: from } }, select: { checkInDate: true, checkOutDate: true, resources: { select: { resourceId: true } } } });
+  });
 });

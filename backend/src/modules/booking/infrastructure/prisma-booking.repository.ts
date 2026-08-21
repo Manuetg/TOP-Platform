@@ -4,6 +4,7 @@ import { PrismaService } from '../../business/infrastructure/prisma.service';
 import { Booking } from '../domain/booking.entity';
 import { BookingStatus } from '../domain/booking-status.enum';
 import type { BookingData, BookingListFilters, BookingRepository } from '../domain/booking.repository';
+import type { BlockingBooking } from '../booking.contract';
 
 type BookingRow = PrismaBooking & { resources: BookingResource[] };
 const includeResources = { resources: { orderBy: { resourceId: 'asc' as const } } };
@@ -35,5 +36,27 @@ export class PrismaBookingRepository implements BookingRepository {
     return this.map(row);
   }
   async hasBlockingBooking(businessId:string,resourceId:string,from:Date,to:Date):Promise<boolean>{return (await this.prisma.booking.findFirst({where:{businessId,status:{in:['PENDING','CONFIRMED','IN_PROGRESS']},resources:{some:{resourceId}},checkInDate:{lt:to},checkOutDate:{gt:from}},select:{id:true}}))!==null;}
+  async listBlockingBookings(businessId: string, from: Date, to: Date): Promise<BlockingBooking[]> {
+    const rows = await this.prisma.booking.findMany({
+      where: {
+        businessId,
+        status: { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS'] },
+        checkInDate: { lt: to },
+        checkOutDate: { gt: from },
+      },
+      select: {
+        checkInDate: true,
+        checkOutDate: true,
+        resources: { select: { resourceId: true } },
+      },
+    });
+    return rows.flatMap((row) =>
+      row.resources.map((resource) => ({
+        resourceId: resource.resourceId,
+        checkInDate: row.checkInDate!,
+        checkOutDate: row.checkOutDate!,
+      })),
+    );
+  }
   private map(row: BookingRow): Booking { return Booking.create({ id: row.id, businessId: row.businessId, status: row.status as BookingStatus, contactId: row.contactId, resourceIds: row.resources.map((resource) => resource.resourceId), checkInDate: row.checkInDate, checkOutDate: row.checkOutDate, adults: row.adults, children: row.children, notes: row.notes, createdAt: row.createdAt, updatedAt: row.updatedAt }); }
 }

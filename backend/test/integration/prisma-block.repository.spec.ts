@@ -43,4 +43,11 @@ describeWithPostgres('PrismaBlockRepository', () => {
     await expect(repository.hasBlockingBlock(other.id, resource.id, new Date('2026-12-20T12:00:00Z'), new Date('2026-12-21T12:00:00Z'))).resolves.toBe(false);
     expect(scheduled.id).toBeDefined();
   });
+  it('loads scheduled blocks for the complete calendar range and excludes cancelled blocks', async () => {
+    const business = await createBusiness('Calendar'); const resource = await createResource(business.id, 'R1');
+    const scheduled = await repository.create(data(business.id, resource.id));
+    const cancelled = await repository.create(data(business.id, resource.id, new Date('2026-12-21T10:00:00Z'), new Date('2026-12-22T10:00:00Z')));
+    await repository.update(cancelled.cancel('Cambio', new Date('2026-01-01T00:00:00Z')));
+    await expect(repository.listBlockingBlocks(business.id, new Date('2026-12-20T12:00:00Z'), new Date('2026-12-21T12:00:00Z'))).resolves.toEqual([{ resourceId: resource.id, startsAt: scheduled.startsAt, endsAt: scheduled.endsAt }]);
+  });
 });
