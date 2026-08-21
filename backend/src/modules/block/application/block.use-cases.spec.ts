@@ -66,4 +66,31 @@ describe('Block use cases', () => {
     expect(block().effectiveStatus(new Date('2026-12-21T13:00:00Z'))).toBe(EffectiveBlockStatus.FINISHED);
     expect(block({ status: BlockStatus.CANCELLED }).effectiveStatus(new Date('2026-12-20T14:00:00Z'))).toBe(EffectiveBlockStatus.CANCELLED);
   });
+
+  it('BLK-002 rejects unavailable businesses, keeps unknown errors and validates its identifiers', async () => {
+    findBusiness.mockResolvedValueOnce(null); await expect(cancelUseCase.execute({ businessId, blockId, reason: 'Cambio' })).rejects.toBeInstanceOf(BlockBusinessNotFoundError);
+    findBusiness.mockResolvedValueOnce({ status: BusinessStatus.SUSPENDED }); await expect(cancelUseCase.execute({ businessId, blockId, reason: 'Cambio' })).rejects.toBeInstanceOf(BlockBusinessUnavailableError);
+    await expect(cancelUseCase.execute({ businessId: `prefix${businessId}`, blockId, reason: 'Cambio' })).rejects.toBeInstanceOf(InvalidBlockInputError);
+    const unexpected = new Error('unexpected'); findBlock.mockResolvedValueOnce({ cancel: () => { throw unexpected; } });
+    await expect(cancelUseCase.execute({ businessId, blockId, reason: 'Cambio' })).rejects.toBe(unexpected);
+  });
+
+  it('BLK-003 handles each approved filter combination and absence of filters', async () => {
+    for (const filters of [{}, { resourceId }, { from: startsAt }, { to: endsAt }]) {
+      list.mockResolvedValueOnce([]);
+      await expect(listUseCase.execute({ businessId, ...filters })).resolves.toEqual([]);
+    }
+    expect(list).toHaveBeenNthCalledWith(1, businessId, { resourceId: undefined, from: undefined, to: undefined });
+    expect(list).toHaveBeenNthCalledWith(2, businessId, { resourceId, from: undefined, to: undefined });
+    expect(list).toHaveBeenNthCalledWith(3, businessId, { resourceId: undefined, from: new Date(startsAt), to: undefined });
+    expect(list).toHaveBeenNthCalledWith(4, businessId, { resourceId: undefined, from: undefined, to: new Date(endsAt) });
+  });
+
+  it('BLK-003 rejects invalid identifiers, dates, equal ranges and missing businesses', async () => {
+    await expect(listUseCase.execute({ businessId: `prefix${businessId}` })).rejects.toBeInstanceOf(InvalidBlockInputError);
+    await expect(listUseCase.execute({ businessId, resourceId: `${resourceId}suffix` })).rejects.toBeInstanceOf(InvalidBlockInputError);
+    await expect(listUseCase.execute({ businessId, from: 'bad' })).rejects.toBeInstanceOf(InvalidBlockInputError);
+    await expect(listUseCase.execute({ businessId, from: startsAt, to: startsAt })).rejects.toBeInstanceOf(InvalidBlockInputError);
+    findBusiness.mockResolvedValueOnce(null); await expect(listUseCase.execute({ businessId })).rejects.toBeInstanceOf(BlockBusinessNotFoundError);
+  });
 });
