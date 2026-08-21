@@ -585,6 +585,16 @@ Los errores de AVL-002 son `400` para IDs, fechas o rango inválidos —incluido
 
 Secuencia: BKG-001..004 Draft → AVL-001 → AVL-002 → AVL-003 → AVL-004 → Booking PENDING/Confirm → BKG-005 → BKG-006. Confirmación, transición a PENDING, Pricing Snapshot, Payments y cancelaciones permanecen fuera de este contrato.
 
+### Contrato AVL-003 — Availability Rules
+
+`AVL-003` definirá una configuración única por Business, consultable y actualizable mediante `GET` y `PATCH /api/businesses/:businessId/availability-rules`. La configuración no persiste disponibilidad ni reemplaza la derivación de AVL-001/AVL-002: ambos casos de uso deben consumir la misma regla efectiva para ese Business.
+
+La ausencia de registro usa defaults compatibles con el comportamiento vigente: `pendingBlocksAvailability: true`, `bufferBeforeDays: 0` y `bufferAfterDays: 0`. La configuración propuesta contiene únicamente esos tres campos: `pendingBlocksAvailability` es booleano; ambos buffers son enteros no negativos expresados en días. No se permite configurar estados de Booking distintos de `PENDING`, ni estado de Resource, Block, Pricing, Payments, capacidad, alternativas o auto-asignación.
+
+`pendingBlocksAvailability: true` hace que `PENDING` bloquee, junto con `CONFIRMED` e `IN_PROGRESS`; con `false`, `PENDING` no bloquea. Los demás estados mantienen exactamente la semántica de AVL-001. Los buffers aplican solo a Booking: amplían su intervalo `[checkInDate, checkOutDate)` antes y después sin cambiar la intersección semiabierta, por lo que la evaluación será contra `[checkInDate - bufferBeforeDays, checkOutDate + bufferAfterDays)`. Un Block conserva siempre sus instantes exactos `[startsAt, endsAt)` y no recibe buffers.
+
+No se requiere zona horaria para AVL-003: los buffers usan la misma granularidad diaria de las fechas de Booking. AVL-001/AVL-002 conservan sus resultados actuales mientras ambos buffers permanezcan en `0`.
+
 ### 1. Propósito
 
 Determinar si uno o más Resources pueden reservarse durante un período específico, considerando reservas, bloqueos y estado operativo del Resource.
