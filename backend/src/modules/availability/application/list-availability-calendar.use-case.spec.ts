@@ -250,4 +250,95 @@ describe('ListAvailabilityCalendarUseCase', () => {
     expect(listBookings).not.toHaveBeenCalled();
     expect(listBlocks).not.toHaveBeenCalled();
   });
+
+  it('rejects an invalid scoped resource and an inactive business before range lookups', async () => {
+    await expect(
+      useCase.execute({
+        businessId,
+        resourceId: 'invalid',
+        from: '2026-04-01',
+        to: '2026-04-02',
+      }),
+    ).rejects.toBeInstanceOf(InvalidAvailabilityInputError);
+    expect(findBusiness).not.toHaveBeenCalled();
+
+    findBusiness.mockResolvedValueOnce({ status: BusinessStatus.ARCHIVED });
+    await expect(
+      useCase.execute({
+        businessId,
+        from: '2026-04-01',
+        to: '2026-04-02',
+      }),
+    ).rejects.toMatchObject({
+      message: 'El negocio no está activo.',
+    });
+    expect(listResources).not.toHaveBeenCalled();
+    expect(listBookings).not.toHaveBeenCalled();
+    expect(listBlocks).not.toHaveBeenCalled();
+  });
+
+  it('uses strict daily intersections and ignores unrelated conflicts', async () => {
+    findResource.mockResolvedValue(makeResource(resourceAId));
+    listBookings.mockResolvedValue([
+      {
+        resourceId: resourceAId,
+        checkInDate: new Date('2026-04-01'),
+        checkOutDate: new Date('2026-04-02'),
+      },
+      {
+        resourceId: resourceBId,
+        checkInDate: new Date('2026-04-01'),
+        checkOutDate: new Date('2026-04-02'),
+      },
+    ]);
+    listBlocks.mockResolvedValue([
+      {
+        resourceId: resourceAId,
+        startsAt: new Date('2026-04-01'),
+        endsAt: new Date('2026-04-02'),
+      },
+      {
+        resourceId: resourceBId,
+        startsAt: new Date('2026-04-01'),
+        endsAt: new Date('2026-04-02'),
+      },
+    ]);
+
+    const withConflicts = await useCase.execute({
+      businessId,
+      resourceId: resourceAId,
+      from: '2026-04-01',
+      to: '2026-04-02',
+    });
+    expect(withConflicts.resources[0]?.days[0]).toMatchObject({
+      status: 'UNAVAILABLE',
+      reasons: ['BOOKING_CONFLICT', 'BLOCK_CONFLICT'],
+    });
+
+    listBookings.mockResolvedValue([
+      {
+        resourceId: resourceAId,
+        checkInDate: new Date('2026-03-31'),
+        checkOutDate: new Date('2026-04-01'),
+      },
+    ]);
+    listBlocks.mockResolvedValue([
+      {
+        resourceId: resourceAId,
+        startsAt: new Date('2026-03-31'),
+        endsAt: new Date('2026-04-01'),
+      },
+    ]);
+    const contiguous = await useCase.execute({
+      businessId,
+      resourceId: resourceAId,
+      from: '2026-04-01',
+      to: '2026-04-02',
+    });
+    expect(contiguous.resources[0]?.days[0]).toEqual({
+      date: '2026-04-01',
+      status: 'AVAILABLE',
+      reasons: [],
+    });
+  });
 });
