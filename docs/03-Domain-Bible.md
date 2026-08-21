@@ -573,6 +573,16 @@ Solo un Resource `ACTIVE` puede resultar `AVAILABLE`; `OUT_OF_SERVICE` y `ARCHIV
 
 El resultado mínimo es `AVAILABLE` o `UNAVAILABLE`, con razones sin duplicados: `RESOURCE_OUT_OF_SERVICE`, `RESOURCE_ARCHIVED`, `BOOKING_CONFLICT` y `BLOCK_CONFLICT`. `AVL-001` consulta un Resource por `businessId`, `resourceId`, `from` y `to` estrictos `YYYY-MM-DD`, sin persistir, Pricing ni Payments. `AVL-002` será una vista derivada por Resource/fecha; `AVL-003` definirá configuración futura, mientras el MVP fija PENDING bloqueante, buffers cero y overbooking deshabilitado; `AVL-004` reutilizará esta misma semántica antes de confirmar Booking.
 
+### Contrato AVL-002 — Availability Calendar
+
+`GET /api/businesses/:businessId/availability/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD[&resourceId=<uuid>]` devuelve una matriz derivada por Resource y día, sin persistir el calendario ni crear una segunda lógica de disponibilidad. El rango global es semiabierto `[from, to)`, con `from` incluido, `to` excluido, `to > from` y un máximo de 31 días; cada celda `date` representa `[date, date + 1 day)` y reutiliza exactamente las reglas, estados y razones de AVL-001.
+
+Sin `resourceId`, el calendario incluye todos los Resources del Business —incluidos `OUT_OF_SERVICE` y `ARCHIVED`, que se muestran como `UNAVAILABLE` con su razón— en el orden estable existente `sortOrder ASC`, `name ASC`, `id ASC`. Con `resourceId`, devuelve solo el Resource del Business; uno inexistente o de otro Business se oculta como inexistente. Los días se ordenan ascendentemente y las razones no se duplican ni cambian de orden.
+
+La respuesta contiene `from`, `to` y `resources[]`; cada elemento tiene `resourceId` y `days[]`, y cada día tiene `date`, `status` (`AVAILABLE` o `UNAVAILABLE`) y `reasons[]`. Booking se evalúa individualmente por Resource con los mismos estados bloqueantes de AVL-001; un Block intersectante aplica la misma semántica vigente. La implementación futura cargará el scope de Resources y los conflictos de Booking y Block para el rango completo, y derivará la matriz en memoria de forma determinista, sin invocar AVL-001 por cada celda ni incurrir en consultas N×M.
+
+Los errores de AVL-002 son `400` para IDs, fechas o rango inválidos —incluido un rango superior a 31 días— y `404` para Business o Resource inexistente/cross-tenant. El comportamiento de Business no operativo será el mismo de AVL-001. Quedan fuera Pricing, Payments, capacidad, buffers configurables, overbooking configurable, recomendaciones, auto-asignación, Booking, caché persistente, métricas y Dashboard.
+
 Secuencia: BKG-001..004 Draft → AVL-001 → AVL-002 → AVL-003 → AVL-004 → Booking PENDING/Confirm → BKG-005 → BKG-006. Confirmación, transición a PENDING, Pricing Snapshot, Payments y cancelaciones permanecen fuera de este contrato.
 
 ### 1. Propósito
