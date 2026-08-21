@@ -38,6 +38,8 @@ import { bookingRepositoryFake, resetBookingRepositoryFake } from './booking-rep
 import { contactRepositoryFake, resetContactRepositoryFake } from './contact-repository.fake';
 import { BLOCK_REPOSITORY } from '../../../src/modules/block/domain/block.repository';
 import { blockRepositoryFake, resetBlockRepositoryFake } from './block-repository.fake';
+import { BOOKING_AVAILABILITY_LOOKUP } from '../../../src/modules/booking/booking.contract';
+import { BLOCK_AVAILABILITY_LOOKUP } from '../../../src/modules/block/block.contract';
 
 Before(async function (this: TopWorld) {
   resetBusinessRepositoryFake();
@@ -65,6 +67,8 @@ Before(async function (this: TopWorld) {
     .overrideProvider(CONTACT_LOOKUP).useValue(contactRepositoryFake)
     .overrideProvider(BOOKING_REPOSITORY).useValue(bookingRepositoryFake)
     .overrideProvider(BLOCK_REPOSITORY).useValue(blockRepositoryFake)
+    .overrideProvider(BOOKING_AVAILABILITY_LOOKUP).useValue(bookingRepositoryFake)
+    .overrideProvider(BLOCK_AVAILABILITY_LOOKUP).useValue(blockRepositoryFake)
     .overrideProvider(FILE_STORAGE).useValue(new InMemoryFileStorage())
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)
