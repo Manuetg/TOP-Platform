@@ -55,6 +55,17 @@ enum ContactStatus {
   ARCHIVED
 }
 
+enum BlockType {
+  MAINTENANCE
+  OWNER_USE
+  OTHER
+}
+
+enum BlockStatus {
+  SCHEDULED
+  CANCELLED
+}
+
 model User {
   id              String                   @id @default(uuid())
   email           String                   @unique
@@ -120,6 +131,7 @@ model Business {
   resourceImages ResourceImage[]
   ratePlans      RatePlan[]
   contacts       Contact[]
+  blocks         Block[]
 }
 
 model Contact {
@@ -162,6 +174,7 @@ model Resource {
   images                  ResourceImage[]
   amenities               ResourceAmenity[]
   ratePlanResources       RatePlanResource[]
+  blocks                  Block[]
 
   @@unique([businessId, internalCode])
   @@index([businessId, status])
@@ -257,4 +270,25 @@ model RatePlanResource {
   @@id([ratePlanId, resourceId])
   @@unique([ratePlanId, resourceId])
   @@index([resourceId])
+}
+
+model Block {
+  id                 String      @id @default(uuid())
+  businessId         String
+  resourceId         String
+  type               BlockType
+  reason             String
+  notes              String?
+  startsAt           DateTime
+  endsAt             DateTime
+  status             BlockStatus @default(SCHEDULED)
+  cancellationReason String?
+  cancelledAt        DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  business           Business    @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  resource           Resource    @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, startsAt, endsAt, id])
+  @@index([businessId, resourceId, startsAt])
 }

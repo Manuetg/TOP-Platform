@@ -33,6 +33,8 @@ import { SEASONAL_RATE_REPOSITORY } from '../../../src/modules/pricing/domain/se
 import { resetSeasonalRateRepositoryFake, seasonalRateRepositoryFake } from './seasonal-rate-repository.fake';
 import { CONTACT_REPOSITORY } from '../../../src/modules/contact/domain/contact.repository';
 import { contactRepositoryFake, resetContactRepositoryFake } from './contact-repository.fake';
+import { BLOCK_REPOSITORY } from '../../../src/modules/block/domain/block.repository';
+import { blockRepositoryFake, resetBlockRepositoryFake } from './block-repository.fake';
 
 Before(async function (this: TopWorld) {
   resetBusinessRepositoryFake();
@@ -44,6 +46,7 @@ Before(async function (this: TopWorld) {
   resetRatePlanRepositoryFake();
   resetSeasonalRateRepositoryFake();
   resetContactRepositoryFake();
+  resetBlockRepositoryFake();
   const refreshSessions = new Map<string, RefreshSession>();
   const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(BUSINESS_REPOSITORY).useValue(businessRepositoryFake)
@@ -55,6 +58,7 @@ Before(async function (this: TopWorld) {
     .overrideProvider(RATE_PLAN_RESOURCE_ASSIGNMENT_LOOKUP).useValue({ isAssigned: (ratePlanId: string, resourceId: string) => Promise.resolve(isRatePlanResourceAssignedFake(ratePlanId, resourceId)) })
     .overrideProvider(SEASONAL_RATE_REPOSITORY).useValue(seasonalRateRepositoryFake)
     .overrideProvider(CONTACT_REPOSITORY).useValue(contactRepositoryFake)
+    .overrideProvider(BLOCK_REPOSITORY).useValue(blockRepositoryFake)
     .overrideProvider(FILE_STORAGE).useValue(new InMemoryFileStorage())
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)
