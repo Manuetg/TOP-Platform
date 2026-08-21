@@ -571,7 +571,7 @@ AVL-001 — Check Availability está completada mediante `GET /api/businesses/:b
 
 Solo un Resource `ACTIVE` puede resultar `AVAILABLE`; `OUT_OF_SERVICE` y `ARCHIVED` resultan `UNAVAILABLE`. Bloquean una Booking `PENDING`, `CONFIRMED` o `IN_PROGRESS`; no bloquean `DRAFT`, `FINISHED`, `CANCELLED` ni `NO_SHOW`. Un Block intersectante no cancelado bloquea: `SCHEDULED` y efectivo `ACTIVE`; `CANCELLED` y `FINISHED` no bloquean futuro. No hay Pricing, Payments, overbooking configurable, buffers configurables, capacidad de huéspedes, auto-assignment ni alternativas inteligentes en este slice.
 
-El resultado mínimo es `AVAILABLE` o `UNAVAILABLE`, con razones sin duplicados: `RESOURCE_OUT_OF_SERVICE`, `RESOURCE_ARCHIVED`, `BOOKING_CONFLICT` y `BLOCK_CONFLICT`. `AVL-001` consulta un Resource por `businessId`, `resourceId`, `from` y `to` estrictos `YYYY-MM-DD`, sin persistir, Pricing ni Payments. `AVL-002` está completada como una vista derivada por Resource/fecha; `AVL-003` definirá configuración futura, mientras el MVP fija PENDING bloqueante, buffers cero y overbooking deshabilitado; `AVL-004` reutilizará esta misma semántica antes de confirmar Booking.
+El resultado mínimo es `AVAILABLE` o `UNAVAILABLE`, con razones sin duplicados: `RESOURCE_OUT_OF_SERVICE`, `RESOURCE_ARCHIVED`, `BOOKING_CONFLICT` y `BLOCK_CONFLICT`. `AVL-001` consulta un Resource por `businessId`, `resourceId`, `from` y `to` estrictos `YYYY-MM-DD`, sin persistir, Pricing ni Payments. `AVL-002` está completada como una vista derivada por Resource/fecha; `AVL-003` está completada como configuración de reglas por Business, con defaults compatibles; `AVL-004` reutilizará esta misma semántica antes de confirmar Booking.
 
 ### Contrato AVL-002 — Availability Calendar
 
@@ -587,9 +587,9 @@ Secuencia: BKG-001..004 Draft → AVL-001 → AVL-002 → AVL-003 → AVL-004 �
 
 ### Contrato AVL-003 — Availability Rules
 
-`AVL-003` definirá una configuración única por Business, consultable y actualizable mediante `GET` y `PATCH /api/businesses/:businessId/availability-rules`. La configuración no persiste disponibilidad ni reemplaza la derivación de AVL-001/AVL-002: ambos casos de uso deben consumir la misma regla efectiva para ese Business.
+`AVL-003` está completada como una configuración única por Business, consultable y actualizable mediante `GET` y `PATCH /api/businesses/:businessId/availability-rules`. La configuración no persiste disponibilidad ni reemplaza la derivación de AVL-001/AVL-002: ambos casos de uso consumen la misma regla efectiva para ese Business.
 
-La ausencia de registro usa defaults compatibles con el comportamiento vigente: `pendingBlocksAvailability: true`, `bufferBeforeDays: 0` y `bufferAfterDays: 0`. La configuración propuesta contiene únicamente esos tres campos: `pendingBlocksAvailability` es booleano; ambos buffers son enteros no negativos expresados en días. No se permite configurar estados de Booking distintos de `PENDING`, ni estado de Resource, Block, Pricing, Payments, capacidad, alternativas o auto-asignación.
+La ausencia de registro usa defaults compatibles con el comportamiento vigente: `pendingBlocksAvailability: true`, `bufferBeforeDays: 0` y `bufferAfterDays: 0`. La configuración contiene únicamente esos tres campos: `pendingBlocksAvailability` es booleano; ambos buffers son enteros no negativos expresados en días. No se permite configurar estados de Booking distintos de `PENDING`, ni estado de Resource, Block, Pricing, Payments, capacidad, alternativas o auto-asignación.
 
 `pendingBlocksAvailability: true` hace que `PENDING` bloquee, junto con `CONFIRMED` e `IN_PROGRESS`; con `false`, `PENDING` no bloquea. Los demás estados mantienen exactamente la semántica de AVL-001. Los buffers aplican solo a Booking: amplían su intervalo `[checkInDate, checkOutDate)` antes y después sin cambiar la intersección semiabierta, por lo que la evaluación será contra `[checkInDate - bufferBeforeDays, checkOutDate + bufferAfterDays)`. Un Block conserva siempre sus instantes exactos `[startsAt, endsAt)` y no recibe buffers.
 

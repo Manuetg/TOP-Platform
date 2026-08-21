@@ -56,7 +56,7 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 
 - **AVL-001 — Check Availability.** Estado: Completed. Dominio: Availability. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/availability?resourceId=<uuid>&from=YYYY-MM-DD&to=YYYY-MM-DD`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: disponibilidad derivada sin persistencia propia, con intervalos semiabiertos `[from, to)`, aislamiento por tenant y resultados `AVAILABLE`/`UNAVAILABLE`; `OUT_OF_SERVICE` y `ARCHIVED` devuelven sus razones específicas, Bookings `PENDING`, `CONFIRMED` e `IN_PROGRESS` y Blocks intersectantes no cancelados bloquean; no incluye Pricing, Payments, capacidad, buffers configurables ni overbooking configurable. Arquitectura aprobada sin violaciones; E2E AVL-001: 6 tests aprobados; aceptación: 8 escenarios y 28 pasos aprobados; quality check aprobado; mutation segmentada: CheckAvailabilityUseCase 81,40% y AvailabilityController 90,91%, sin sobrevivientes funcionalmente relevantes.
 - **AVL-002 — Availability Calendar.** Estado: Completed. Dominio: Availability. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/availability/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD[&resourceId=<uuid>]`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commits `4490401`, `360a47e` y `e609737`; calendario derivado con rango `[from, to)` de hasta 31 días, matriz Resource×día para todos los Resources o un `resourceId` tenant-scoped, mismos estados y razones de AVL-001, orden determinista y consultas de Booking/Block por rango completo sin patrón N×M; sin persistencia, Pricing ni auto-assignment; arquitectura y quality gate aprobados; mutation segmentada: calendario 89,09%, controller 100% y lookups batch 100%.
-- **AVL-003 — Availability Rules.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: `GET` y `PATCH /api/businesses/:businessId/availability-rules`. Pruebas obligatorias: según convención. Definition of Done: configuración única tenant-scoped con defaults compatibles (`pendingBlocksAvailability: true`, `bufferBeforeDays: 0`, `bufferAfterDays: 0`), validación de booleano y buffers enteros no negativos, y consumo centralizado por AVL-001/AVL-002 sin duplicar derivación. Los buffers aplican solo a Booking; Block conserva sus instantes exactos.
+- **AVL-003 — Availability Rules.** Estado: Completed. Dominio: Availability. Prioridad: Alta. Endpoint: `GET` y `PATCH /api/businesses/:businessId/availability-rules`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commits `9364b4b`, `f9d48b6` y `a261a94`; configuración única tenant-scoped con defaults compatibles (`pendingBlocksAvailability: true`, `bufferBeforeDays: 0`, `bufferAfterDays: 0`), validación de booleano y buffers enteros no negativos, y consumo centralizado por AVL-001/AVL-002 sin duplicar derivación. Los buffers aplican solo a Booking; Block conserva sus instantes exactos. Arquitectura sin violaciones, E2E y Acceptance focalizados, quality check y mutation segmentada 92,06% aprobados.
 - **AVL-004 — Overbooking Validation.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: validación reutilizable con la misma semántica central, preparada para revalidar antes de Confirm Booking sin duplicar intersecciones.
 
 ## Contact
@@ -107,13 +107,13 @@ Dependencia futura explícita: Availability deberá considerar conjuntamente Boo
 | Identity & Access | 9 | 6 | 0 | 3 | 0 |
 | Resource | 7 | 7 | 0 | 0 | 0 |
 | Pricing | 5 | 5 | 0 | 0 | 0 |
-| Availability | 4 | 2 | 0 | 2 | 0 |
+| Availability | 4 | 3 | 0 | 1 | 0 |
 | Contact | 4 | 4 | 0 | 0 | 0 |
 | Booking | 6 | 4 | 0 | 2 | 0 |
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 3 | 0 | 0 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **36** | **0** | **15** | **0** |
+| **Total** | **51** | **38** | **0** | **13** | **0** |
 
 Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
@@ -121,7 +121,7 @@ Progreso de Resource: 7 de 7 capacidades completadas (100%).
 
 Progreso de Pricing: 5 de 5 capacidades completadas (100%).
 
-Progreso de Availability: 2 de 4 capacidades completadas (50%).
+Progreso de Availability: 3 de 4 capacidades completadas (75%).
 
 Progreso de Contact: 4 de 4 capacidades completadas (100%).
 
@@ -129,4 +129,4 @@ Progreso de Booking: 4 de 6 capacidades completadas (66,7%).
 
 Progreso de Block: 3 de 3 capacidades completadas (100%).
 
-Progreso general del MVP: 37 de 51 capacidades completadas (72,5%).
+Progreso general del MVP: 38 de 51 capacidades completadas (74,5%).
