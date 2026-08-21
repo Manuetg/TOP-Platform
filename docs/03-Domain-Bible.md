@@ -567,9 +567,9 @@ No se definen aún las cardinalidades técnicas de base de datos.
 
 ### Contrato MVP base
 
-Availability es derivada: no tiene tabla ni persiste una verdad propia. Calcula cada consulta con Resource, Booking y Block, usando intervalos semiabiertos `[inicio, fin)` e intersección `existing.start < requested.end AND existing.end > requested.start`.
+AVL-001 — Check Availability está completada mediante `GET /api/businesses/:businessId/availability?resourceId=<uuid>&from=YYYY-MM-DD&to=YYYY-MM-DD`. Availability es derivada: no tiene tabla ni persiste una verdad propia. Calcula cada consulta con Resource, Booking y Block, usando intervalos semiabiertos `[from, to)` e intersección `existing.start < requested.to AND existing.end > requested.from`.
 
-Solo un Resource `ACTIVE` puede resultar `AVAILABLE`; `OUT_OF_SERVICE` y `ARCHIVED` resultan `UNAVAILABLE`. Bloquean una Booking `PENDING`, `CONFIRMED` o `IN_PROGRESS`; no bloquean `DRAFT`, `COMPLETED`, `CANCELLED` ni `NO_SHOW`. Bloquean los Blocks `SCHEDULED` y efectivos `ACTIVE`; `CANCELLED` y `FINISHED` no bloquean futuro. No hay overbooking, buffers, capacidad de huéspedes, auto-assignment ni alternativas inteligentes en este slice.
+Solo un Resource `ACTIVE` puede resultar `AVAILABLE`; `OUT_OF_SERVICE` y `ARCHIVED` resultan `UNAVAILABLE`. Bloquean una Booking `PENDING`, `CONFIRMED` o `IN_PROGRESS`; no bloquean `DRAFT`, `FINISHED`, `CANCELLED` ni `NO_SHOW`. Un Block intersectante no cancelado bloquea: `SCHEDULED` y efectivo `ACTIVE`; `CANCELLED` y `FINISHED` no bloquean futuro. No hay Pricing, Payments, overbooking configurable, buffers configurables, capacidad de huéspedes, auto-assignment ni alternativas inteligentes en este slice.
 
 El resultado mínimo es `AVAILABLE` o `UNAVAILABLE`, con razones sin duplicados: `RESOURCE_OUT_OF_SERVICE`, `RESOURCE_ARCHIVED`, `BOOKING_CONFLICT` y `BLOCK_CONFLICT`. `AVL-001` consulta un Resource por `businessId`, `resourceId`, `from` y `to` estrictos `YYYY-MM-DD`, sin persistir, Pricing ni Payments. `AVL-002` será una vista derivada por Resource/fecha; `AVL-003` definirá configuración futura, mientras el MVP fija PENDING bloqueante, buffers cero y overbooking deshabilitado; `AVL-004` reutilizará esta misma semántica antes de confirmar Booking.
 

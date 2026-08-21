@@ -44,8 +44,8 @@ Cada regla indica ID, nombre, tipo, estado, dominios afectados, descripción, co
 ## 5. Availability
 
 - **BR-025 — Disponibilidad calculada.** Tipo: Integridad. Estado: Aprobada. Dominios: Availability. Descripción: no es fuente persistente independiente. Comportamiento: se calcula. Excepciones: ninguna.
-- **BR-026 — Bloqueo por Booking.** Tipo: Integridad. Estado: Aprobada. Dominios: Availability, Booking. Descripción: Borrador no bloquea; Confirmada y En curso bloquean; Cancelada y Finalizada no bloquean futuro. Comportamiento: se calcula por estado. Excepciones: ninguna.
-- **BR-027 — Pendiente configurable.** Tipo: Configurable. Estado: Aprobada. Dominios: Availability, Booking. Descripción: Pendiente bloquea según Negocio. Comportamiento: se aplica configuración. Excepciones: ninguna.
+- **BR-026 — Bloqueo por Booking.** Tipo: Integridad. Estado: Aprobada. Dominios: Availability, Booking. Descripción: Borrador no bloquea; Pendiente, Confirmada y En curso bloquean; Cancelada, Finalizada y No Show no bloquean. Comportamiento: AVL-001 lo calcula por estado y por intersección semiabierta. Excepciones: ninguna.
+- **BR-027 — Pendiente configurable.** Tipo: Configurable. Estado: Aprobada. Dominios: Availability, Booking. Descripción: en AVL-001 Pendiente bloquea. Comportamiento: cualquier configuración por Negocio queda para una capacidad posterior y no altera la consulta implementada. Excepciones: ninguna.
 - **BR-028 — Bloqueos y Resources.** Tipo: Integridad. Estado: Aprobada. Dominios: Availability, Block, Resource. Descripción: Block Programado/Activo bloquea; solo Resource Activo es elegible. Comportamiento: se excluye lo no reservable. Excepciones: ninguna.
 - **BR-029 — Revalidación.** Tipo: Integridad. Estado: Aprobada. Dominios: Availability, Booking. Descripción: se revalida al confirmar. Comportamiento: no se permite doble reserva. Excepciones: overbooking habilitado.
 - **BR-030 — Overbooking.** Tipo: Configurable. Estado: Aprobada. Dominios: Availability. Descripción: está deshabilitado por defecto. Comportamiento: solo se aplica si se habilita. Excepciones: ninguna.
@@ -53,7 +53,7 @@ Cada regla indica ID, nombre, tipo, estado, dominios afectados, descripción, co
 - **BR-032 — Mismo día.** Tipo: Integridad. Estado: Aprobada. Dominios: Availability, Booking. Descripción: entrada y salida pueden coexistir sin solapamiento horario. Comportamiento: se evalúan horarios. Excepciones: ninguna.
 - **BR-032A — Semántica temporal inicial.** Tipo: Integridad. Estado: Aprobada. Dominios: Availability, Booking, Block. Descripción: Availability usa `[inicio, fin)` e intersección estricta `existing.start < requested.end AND existing.end > requested.start`. Comportamiento: extremos contiguos no entran en conflicto. Excepciones: ninguna.
 - **BR-032B — Resultado inicial.** Tipo: Integridad. Estado: Aprobada. Dominios: Availability. Descripción: solo devuelve `AVAILABLE` o `UNAVAILABLE` con razones `RESOURCE_OUT_OF_SERVICE`, `RESOURCE_ARCHIVED`, `BOOKING_CONFLICT` y `BLOCK_CONFLICT`. Comportamiento: Resource no activo no está disponible; no hay alternativas ni auto-asignación. Excepciones: ninguna.
-- **BR-032C — Política MVP.** Tipo: Restricción del MVP. Estado: Aprobada. Dominios: Availability. Descripción: PENDING bloquea; buffers son cero y overbooking está deshabilitado. Comportamiento: DRAFT, COMPLETED, CANCELLED y NO_SHOW no bloquean; configuración avanzada queda posterior. Excepciones: ninguna.
+- **BR-032C — Política MVP.** Tipo: Restricción del MVP. Estado: Aprobada. Dominios: Availability. Descripción: PENDING bloquea; buffers son cero y overbooking está deshabilitado. Comportamiento: DRAFT, FINISHED, CANCELLED y NO_SHOW no bloquean; configuración avanzada queda posterior. Excepciones: ninguna.
 
 **Pendientes:** solapamiento exacto, No Show, buffers, concurrencia, orden de alternativas y adultos/menores.
 

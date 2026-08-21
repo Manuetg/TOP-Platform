@@ -54,7 +54,7 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 
 ## Availability
 
-- **AVL-001 — Check Availability.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/availability?resourceId=<uuid>&from=YYYY-MM-DD&to=YYYY-MM-DD`. Pruebas obligatorias: según convención. Definition of Done: consulta derivada sin persistencia que valida IDs/fechas, aísla tenant y devuelve `AVAILABLE`/`UNAVAILABLE` con razones por Resource, Booking y Block.
+- **AVL-001 — Check Availability.** Estado: Completed. Dominio: Availability. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/availability?resourceId=<uuid>&from=YYYY-MM-DD&to=YYYY-MM-DD`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: disponibilidad derivada sin persistencia propia, con intervalos semiabiertos `[from, to)`, aislamiento por tenant y resultados `AVAILABLE`/`UNAVAILABLE`; `OUT_OF_SERVICE` y `ARCHIVED` devuelven sus razones específicas, Bookings `PENDING`, `CONFIRMED` e `IN_PROGRESS` y Blocks intersectantes no cancelados bloquean; no incluye Pricing, Payments, capacidad, buffers configurables ni overbooking configurable. Arquitectura aprobada sin violaciones; E2E AVL-001: 6 tests aprobados; aceptación: 8 escenarios y 28 pasos aprobados; quality check aprobado; mutation segmentada: CheckAvailabilityUseCase 81,40% y AvailabilityController 90,91%, sin sobrevivientes funcionalmente relevantes.
 - **AVL-002 — Availability Calendar.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: vista derivada por Resource/fecha, sin persistencia, Pricing ni auto-assignment.
 - **AVL-003 — Availability Rules.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: mantiene la política MVP: PENDING bloquea, buffers cero y overbooking deshabilitado; configuración avanzada posterior.
 - **AVL-004 — Overbooking Validation.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: validación reutilizable con la misma semántica central, preparada para revalidar antes de Confirm Booking sin duplicar intersecciones.
@@ -107,13 +107,13 @@ Dependencia futura explícita: Availability deberá considerar conjuntamente Boo
 | Identity & Access | 9 | 6 | 0 | 3 | 0 |
 | Resource | 7 | 7 | 0 | 0 | 0 |
 | Pricing | 5 | 5 | 0 | 0 | 0 |
-| Availability | 4 | 0 | 0 | 4 | 0 |
+| Availability | 4 | 1 | 0 | 3 | 0 |
 | Contact | 4 | 4 | 0 | 0 | 0 |
 | Booking | 6 | 4 | 0 | 2 | 0 |
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 3 | 0 | 0 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **35** | **0** | **16** | **0** |
+| **Total** | **51** | **36** | **0** | **15** | **0** |
 
 Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
@@ -121,10 +121,12 @@ Progreso de Resource: 7 de 7 capacidades completadas (100%).
 
 Progreso de Pricing: 5 de 5 capacidades completadas (100%).
 
+Progreso de Availability: 1 de 4 capacidades completadas (25%).
+
 Progreso de Contact: 4 de 4 capacidades completadas (100%).
 
 Progreso de Booking: 4 de 6 capacidades completadas (66,7%).
 
 Progreso de Block: 3 de 3 capacidades completadas (100%).
 
-Progreso general del MVP: 35 de 51 capacidades completadas (68,6%).
+Progreso general del MVP: 36 de 51 capacidades completadas (70,6%).
