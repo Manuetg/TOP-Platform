@@ -355,4 +355,10 @@ describe('ListAvailabilityCalendarUseCase', () => {
     expect(listBookings).toHaveBeenCalledWith(businessId, new Date('2026-04-01'), new Date('2026-04-04'), false);
     expect(result.resources[0]?.days).toEqual([{ date: '2026-04-01', status: 'UNAVAILABLE', reasons: ['BOOKING_CONFLICT', 'BLOCK_CONFLICT'] }, { date: '2026-04-02', status: 'UNAVAILABLE', reasons: ['BOOKING_CONFLICT'] }]);
   });
+
+  it('widens the batch lookup backwards for a Booking after-buffer', async () => {
+    findRules.mockResolvedValueOnce({ businessId, pendingBlocksAvailability: true, bufferBeforeDays: 0, bufferAfterDays: 2 });
+    await useCase.execute({ businessId, from: '2026-04-03', to: '2026-04-04' });
+    expect(listBookings).toHaveBeenCalledWith(businessId, new Date('2026-04-01'), new Date('2026-04-04'), true);
+  });
 });

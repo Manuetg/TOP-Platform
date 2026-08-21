@@ -23,6 +23,10 @@ describe('Availability rules use cases', () => {
     expect(save).toHaveBeenCalledWith({ businessId, pendingBlocksAvailability: false, bufferBeforeDays: 0, bufferAfterDays: 2 });
   });
 
+  it.each([{ pendingBlocksAvailability: false }, { bufferBeforeDays: 0 }, { bufferAfterDays: 0 }])('accepts each individual partial rule %#', async (input) => {
+    await expect(update.execute({ businessId, ...input })).resolves.toMatchObject(input);
+  });
+
   it.each([{ bufferBeforeDays: -1 }, { bufferAfterDays: 1.5 }, { bufferAfterDays: '1' }, { pendingBlocksAvailability: 'false' }, {}])('rejects invalid rule input %#', async (input) => {
     await expect(update.execute({ businessId, ...input })).rejects.toBeInstanceOf(InvalidAvailabilityInputError);
     expect(save).not.toHaveBeenCalled();
