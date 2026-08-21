@@ -1,6 +1,6 @@
 import { BusinessStatus } from '../../business/business.contract';
 import { ResourceStatus } from '../../resource/resource.contract';
-import { AvailabilityBusinessNotFoundError, CheckAvailabilityUseCase, InvalidAvailabilityInputError } from './check-availability.use-case';
+import { AvailabilityBusinessNotFoundError, AvailabilityBusinessUnavailableError, AvailabilityResourceNotFoundError, CheckAvailabilityUseCase, InvalidAvailabilityInputError } from './check-availability.use-case';
 
 const businessId = '11111111-1111-4111-8111-111111111111';
 const resourceId = '22222222-2222-4222-8222-222222222222';
@@ -20,7 +20,9 @@ describe('CheckAvailabilityUseCase', () => {
   it('validates strict identifiers and ranges before dependencies', async () => {
     await expect(useCase.execute({ businessId: 'bad', resourceId, from: '2026-02-01', to: '2026-02-02' })).rejects.toBeInstanceOf(InvalidAvailabilityInputError);
     await expect(useCase.execute({ businessId, resourceId: 'bad', from: '2026-02-01', to: '2026-02-02' })).rejects.toBeInstanceOf(InvalidAvailabilityInputError);
+    await expect(useCase.execute({ businessId: `${businessId}x`, resourceId, from: '2026-02-01', to: '2026-02-02' })).rejects.toBeInstanceOf(InvalidAvailabilityInputError);
     await expect(useCase.execute({ businessId, resourceId, from: '2026-02-30', to: '2026-03-01' })).rejects.toBeInstanceOf(InvalidAvailabilityInputError);
+    await expect(useCase.execute({ businessId, resourceId, from: 'x2026-02-01', to: '2026-03-01' })).rejects.toBeInstanceOf(InvalidAvailabilityInputError);
     await expect(useCase.execute({ businessId, resourceId, from: '2026-02-01', to: '2026-02-01' })).rejects.toBeInstanceOf(InvalidAvailabilityInputError);
     expect(findBusiness).not.toHaveBeenCalled();
   });
@@ -46,5 +48,13 @@ describe('CheckAvailabilityUseCase', () => {
     findBusiness.mockResolvedValueOnce(null);
     await expect(useCase.execute({ businessId, resourceId, from: '2026-02-01', to: '2026-02-02' })).rejects.toBeInstanceOf(AvailabilityBusinessNotFoundError);
     expect(findResource).not.toHaveBeenCalled(); expect(booking).not.toHaveBeenCalled(); expect(block).not.toHaveBeenCalled();
+  });
+
+  it('rejects inactive businesses and missing resources before conflict lookups', async () => {
+    findBusiness.mockResolvedValueOnce({ status: BusinessStatus.ARCHIVED });
+    await expect(useCase.execute({ businessId, resourceId, from: '2026-02-01', to: '2026-02-02' })).rejects.toBeInstanceOf(AvailabilityBusinessUnavailableError);
+    findResource.mockResolvedValueOnce(null);
+    await expect(useCase.execute({ businessId, resourceId, from: '2026-02-01', to: '2026-02-02' })).rejects.toBeInstanceOf(AvailabilityResourceNotFoundError);
+    expect(booking).not.toHaveBeenCalled(); expect(block).not.toHaveBeenCalled();
   });
 });
