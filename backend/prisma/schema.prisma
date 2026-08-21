@@ -49,6 +49,12 @@ enum RatePlanStatus {
   ARCHIVED
 }
 
+enum ContactStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
 model User {
   id              String                   @id @default(uuid())
   email           String                   @unique
@@ -113,6 +119,30 @@ model Business {
   resources      Resource[]
   resourceImages ResourceImage[]
   ratePlans      RatePlan[]
+  contacts       Contact[]
+}
+
+model Contact {
+  id             String        @id @default(uuid())
+  businessId     String
+  name           String
+  lastName       String?
+  phone          String?
+  whatsapp       String?
+  email          String?
+  documentType   String?
+  documentNumber String?
+  country        String?
+  city           String?
+  status         ContactStatus @default(ACTIVE)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  business       Business      @relation(fields: [businessId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, name, lastName])
+  @@index([businessId, phone])
+  @@index([businessId, email])
+  @@index([businessId, documentNumber])
 }
 
 model Resource {

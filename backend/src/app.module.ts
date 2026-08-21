@@ -4,11 +4,12 @@ import { BusinessModule } from './modules/business/business.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { ResourceModule } from './modules/resource/resource.module';
 import { PricingModule } from './modules/pricing/pricing.module';
+import { ContactModule } from './modules/contact/contact.module';
 import { HealthService } from './shared/application/health.service';
 import { HealthController } from './shared/presentation/health.controller';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), BusinessModule, IdentityModule, ResourceModule, PricingModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), BusinessModule, IdentityModule, ResourceModule, PricingModule, ContactModule],
   controllers: [HealthController],
   providers: [HealthService],
 })
