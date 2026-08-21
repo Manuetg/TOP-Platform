@@ -8,6 +8,7 @@ export class TopWorld extends World {
   ratePlanId?: string;
   contactId?: string;
   blockId?: string;
+  bookingId?: string;
 
   constructor(options: IWorldOptions) {
     super(options);

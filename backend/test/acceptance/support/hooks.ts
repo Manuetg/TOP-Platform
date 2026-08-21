@@ -32,6 +32,9 @@ import { RATE_PLAN_RESOURCE_ASSIGNMENT_LOOKUP } from '../../../src/modules/prici
 import { SEASONAL_RATE_REPOSITORY } from '../../../src/modules/pricing/domain/seasonal-rate.repository';
 import { resetSeasonalRateRepositoryFake, seasonalRateRepositoryFake } from './seasonal-rate-repository.fake';
 import { CONTACT_REPOSITORY } from '../../../src/modules/contact/domain/contact.repository';
+import { CONTACT_LOOKUP } from '../../../src/modules/contact/contact.contract';
+import { BOOKING_REPOSITORY } from '../../../src/modules/booking/domain/booking.repository';
+import { bookingRepositoryFake, resetBookingRepositoryFake } from './booking-repository.fake';
 import { contactRepositoryFake, resetContactRepositoryFake } from './contact-repository.fake';
 import { BLOCK_REPOSITORY } from '../../../src/modules/block/domain/block.repository';
 import { blockRepositoryFake, resetBlockRepositoryFake } from './block-repository.fake';
@@ -46,6 +49,7 @@ Before(async function (this: TopWorld) {
   resetRatePlanRepositoryFake();
   resetSeasonalRateRepositoryFake();
   resetContactRepositoryFake();
+  resetBookingRepositoryFake();
   resetBlockRepositoryFake();
   const refreshSessions = new Map<string, RefreshSession>();
   const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
@@ -58,6 +62,8 @@ Before(async function (this: TopWorld) {
     .overrideProvider(RATE_PLAN_RESOURCE_ASSIGNMENT_LOOKUP).useValue({ isAssigned: (ratePlanId: string, resourceId: string) => Promise.resolve(isRatePlanResourceAssignedFake(ratePlanId, resourceId)) })
     .overrideProvider(SEASONAL_RATE_REPOSITORY).useValue(seasonalRateRepositoryFake)
     .overrideProvider(CONTACT_REPOSITORY).useValue(contactRepositoryFake)
+    .overrideProvider(CONTACT_LOOKUP).useValue(contactRepositoryFake)
+    .overrideProvider(BOOKING_REPOSITORY).useValue(bookingRepositoryFake)
     .overrideProvider(BLOCK_REPOSITORY).useValue(blockRepositoryFake)
     .overrideProvider(FILE_STORAGE).useValue(new InMemoryFileStorage())
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)

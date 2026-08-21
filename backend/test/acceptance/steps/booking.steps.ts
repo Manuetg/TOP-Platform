@@ -1,0 +1,13 @@
+import { Given, Then, When } from '@cucumber/cucumber';
+import { strict as assert } from 'node:assert';
+import request from 'supertest';
+import { bookingRepositoryFake } from '../support/booking-repository.fake';
+import { TopWorld } from '../support/world';
+const businessId = 'f8c49800-e50e-4d0e-b82b-0b51c09a0001'; const otherBusinessId = 'f8c49800-e50e-4d0e-b82b-0b51c09a0002';
+Given('existe un Draft de Booking', async function (this: TopWorld): Promise<void> { const booking = await bookingRepositoryFake.create({ businessId, contactId: null, resourceIds: [], checkInDate: null, checkOutDate: null, adults: null, children: null, notes: null }); this.bookingId = booking.id; });
+Given('existe un Draft de Booking en otro negocio', async function (this: TopWorld): Promise<void> { const booking = await bookingRepositoryFake.create({ businessId: otherBusinessId, contactId: null, resourceIds: [], checkInDate: null, checkOutDate: null, adults: null, children: null, notes: null }); this.bookingId = booking.id; });
+When('creo un Draft mínimo', async function (this: TopWorld): Promise<void> { this.response = await request(this.app?.getHttpServer()).post(`/api/businesses/${businessId}/bookings`).send({}); this.bookingId = this.response.body.id as string; });
+When('actualizo las notas del Draft', async function (this: TopWorld): Promise<void> { this.response = await request(this.app?.getHttpServer()).patch(`/api/businesses/${businessId}/bookings/${this.bookingId}`).send({ notes: ' Nota ' }); });
+When('consulto ese Booking desde mi negocio', async function (this: TopWorld): Promise<void> { this.response = await request(this.app?.getHttpServer()).get(`/api/businesses/${businessId}/bookings/${this.bookingId}`); });
+Then('el Booking queda en DRAFT', function (this: TopWorld): void { assert.equal(this.response?.body.status, 'DRAFT'); assert.equal('props' in (this.response?.body ?? {}), false); });
+Then('el Booking público contiene las notas actualizadas', function (this: TopWorld): void { assert.equal(this.response?.body.notes, 'Nota'); });
