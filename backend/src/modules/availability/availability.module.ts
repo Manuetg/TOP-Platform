@@ -10,4 +10,7 @@ import { PrismaAvailabilityRulesRepository } from './infrastructure/prisma-avail
 import { AVAILABILITY_RULES_REPOSITORY } from './domain/availability-rules.repository';
 import { GetAvailabilityRulesUseCase, UpdateAvailabilityRulesUseCase } from './application/availability-rules.use-cases';
 import { AvailabilityRulesController } from './presentation/availability-rules.controller';
-@Module({ imports: [BusinessModule, ResourceModule, BookingModule, BlockModule], controllers: [AvailabilityController, AvailabilityRulesController], providers: [PrismaAvailabilityRulesRepository, { provide: AVAILABILITY_RULES_REPOSITORY, useExisting: PrismaAvailabilityRulesRepository }, CheckAvailabilityUseCase, ListAvailabilityCalendarUseCase, GetAvailabilityRulesUseCase, UpdateAvailabilityRulesUseCase] }) export class AvailabilityModule {}
+import { ValidateOverbookingUseCase } from './application/validate-overbooking.use-case';
+import { AVAILABILITY_OVERBOOKING_VALIDATOR } from './availability.contract';
+
+@Module({ imports: [BusinessModule, ResourceModule, BookingModule, BlockModule], controllers: [AvailabilityController, AvailabilityRulesController], providers: [PrismaAvailabilityRulesRepository, { provide: AVAILABILITY_RULES_REPOSITORY, useExisting: PrismaAvailabilityRulesRepository }, CheckAvailabilityUseCase, ListAvailabilityCalendarUseCase, GetAvailabilityRulesUseCase, UpdateAvailabilityRulesUseCase, ValidateOverbookingUseCase, { provide: AVAILABILITY_OVERBOOKING_VALIDATOR, useExisting: ValidateOverbookingUseCase }], exports: [AVAILABILITY_OVERBOOKING_VALIDATOR] }) export class AvailabilityModule {}
