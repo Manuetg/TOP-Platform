@@ -143,6 +143,7 @@ model Business {
   contacts         Contact[]
   blocks           Block[]
   bookings         Booking[]
+  pricingSnapshots PricingSnapshot[]
   availabilityRule AvailabilityRule?
 }
 
@@ -318,20 +319,21 @@ model Block {
 }
 
 model Booking {
-  id           String            @id @default(uuid())
-  businessId   String
-  status       BookingStatus     @default(DRAFT)
-  contactId    String?
-  checkInDate  DateTime?         @db.Date
-  checkOutDate DateTime?         @db.Date
-  adults       Int?
-  children     Int?
-  notes        String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  business     Business          @relation(fields: [businessId], references: [id], onDelete: Restrict)
-  contact      Contact?          @relation(fields: [contactId], references: [id], onDelete: Restrict)
-  resources    BookingResource[]
+  id              String            @id @default(uuid())
+  businessId      String
+  status          BookingStatus     @default(DRAFT)
+  contactId       String?
+  checkInDate     DateTime?         @db.Date
+  checkOutDate    DateTime?         @db.Date
+  adults          Int?
+  children        Int?
+  notes           String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  business        Business          @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  contact         Contact?          @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  resources       BookingResource[]
+  pricingSnapshot PricingSnapshot?
 
   @@index([businessId, status, createdAt])
   @@index([businessId, contactId])
@@ -346,4 +348,19 @@ model BookingResource {
 
   @@id([bookingId, resourceId])
   @@index([resourceId])
+}
+
+model PricingSnapshot {
+  id               String   @id @default(uuid())
+  businessId       String
+  bookingId        String   @unique
+  currency         String
+  totalAmountMinor Int
+  items            Json
+  createdAt        DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  booking  Booking  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, createdAt])
 }
