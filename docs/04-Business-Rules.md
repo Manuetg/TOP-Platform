@@ -84,7 +84,7 @@ Cada regla indica ID, nombre, tipo, estado, dominios afectados, descripción, co
 - **BR-045 — Transiciones válidas.** Tipo: Integridad. Estado: Aprobada. Dominios: Booking. Descripción: Borrador→Pendiente/Cancelada; Pendiente→Confirmada/Cancelada; Confirmada→En curso/Cancelada/No Show; En curso→Finalizada. Comportamiento: solo se permiten estas transiciones. Excepciones: ninguna.
 - **BR-046 — Transiciones inválidas.** Tipo: Integridad. Estado: Aprobada. Dominios: Booking. Descripción: Finalizada no vuelve, Cancelada no confirma, No Show no entra en curso y En curso no vuelve a Pendiente. Comportamiento: se rechazan. Excepciones: ninguna.
 
-**Pendientes:** información mínima Pendiente, confirmación tras pago, Pendiente en Availability, cancelaciones/penalizaciones, No Show, cambios en estadía, early/late check-in, múltiple Resources en confirmación, archivado y duplicación. La semántica temporal de Availability se definirá después de `BKG-001` a `BKG-004`; Availability consumirá Booking, Block y estado operativo de Resource. Confirm Booking deberá revalidar Availability y exigir Pricing Snapshot. La validación de conflicto Booking↔Block no está implementada todavía.
+**Pendientes:** confirmación automática tras pago, penalizaciones de cancelación, No Show, cambios en estadía confirmada, early/late check-in, archivado y duplicación. BKG-005 define la información mínima para `PENDING` y agrupa Submit, Confirm y Cancel. `PENDING` usa la regla efectiva de Availability; AVL-004 valida múltiples Resources y conflictos de Booking/Block antes de crear un estado bloqueante y antes de Confirm. Confirm Booking exige Pricing Snapshot y revalidación inmediata de Availability.
 
 ## 8. Payment
 

@@ -1064,7 +1064,7 @@ Booking referencia esta información, pero Pricing y Payment conservan sus respo
 
 Estados operativos: Borrador, Pendiente, Confirmada, En curso, Finalizada, Cancelada y No Show.
 
-Valores persistidos: `DRAFT`, `PENDING`, `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED` y `NO_SHOW`.
+Valores persistidos: `DRAFT`, `PENDING`, `CONFIRMED`, `IN_PROGRESS`, `FINISHED`, `CANCELLED` y `NO_SHOW`.
 
 En `BKG-001` a `BKG-004` el estado inicial es `DRAFT` y solo un `DRAFT` puede modificarse. El endpoint de actualización no modifica el estado.
 
@@ -1104,13 +1104,14 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - `BKG-002`: consultar una Booking del Negocio mediante `GET /api/businesses/:businessId/bookings/:bookingId`.
 - `BKG-003`: listar Bookings del Negocio mediante `GET /api/businesses/:businessId/bookings`, con filtros iniciales opcionales `status`, `contactId` y `resourceId`, y orden `createdAt DESC`, `id ASC`.
 - `BKG-004`: actualizar parcialmente un `DRAFT` mediante `PATCH /api/businesses/:businessId/bookings/:bookingId`; los campos omitidos se preservan, `contactId` y fechas `null` limpian, `resourceIds: []` elimina asociaciones y la presencia de `resourceIds` reemplaza la relación atómicamente.
+- `BKG-005 — Booking Lifecycle`: administra `DRAFT → PENDING`, `PENDING → CONFIRMED` y cancelación de estados permitidos. Submit exige Contact responsable, al menos un Resource y fechas completas válidas; valida Availability antes de crear un estado potencialmente bloqueante. Confirm exige además Pricing Snapshot y revalida AVL-004 inmediatamente antes de persistir `CONFIRMED`. La confirmación debe mantener la garantía de concurrencia definida por BR-062.
 - Asociar plan de pagos, registrar observaciones, adjuntar archivos, hacer check-in, check-out y finalizar.
 - Consultar historial, duplicar una reserva como base para otra y consultar por fecha, Contact, Resource, estado o número visible.
 
 ### 11. Restricciones
 
 - No confirmar sin revalidar Availability, Contact responsable, al menos un Resource, fechas válidas y Pricing Snapshot.
-- En este primer slice no se implementan número visible, horarios exactos de check-in/check-out, Availability, overbooking, transiciones de estado, confirmación, Pricing Snapshot, cancelación, timeline, capacidad de huéspedes ni Payments.
+- BKG-001 a BKG-004 no implementan transiciones de estado. Availability y la validación de overbooking ya están disponibles mediante AVL-001 a AVL-004. BKG-005 incorpora el lifecycle `DRAFT → PENDING → CONFIRMED` y cancelación; BKG-006 mantiene Timeline. Pricing Snapshot, check-in/check-out, capacidad de huéspedes y Payments conservan sus alcances propios.
 - No modificar silenciosamente el precio confirmado, eliminar físicamente una reserva ni mezclar estado operativo y financiero.
 - No permitir doble reserva salvo política explícita de overbooking, ni usar check-in/check-out como estados persistentes independientes.
 - No crear huéspedes como Contacts automáticamente, ni incluir CRM de consultas, notificaciones, WhatsApp, marketplace, inventario, limpieza o mantenimiento dentro de Booking.
@@ -1118,20 +1119,20 @@ No se definen aún las cardinalidades técnicas de base de datos.
 
 ### 12. Pendientes
 
-- Información mínima exacta para pasar de Borrador a Pendiente y transición `DRAFT` a `PENDING`.
+- La información mínima para pasar de `DRAFT` a `PENDING` queda definida por BKG-005: Contact responsable, al menos un Resource y rango completo `[checkInDate, checkOutDate)` válido.
 - Regla definitiva para confirmar automáticamente tras un primer pago.
-- Comportamiento definitivo de reservas Pendientes sobre Availability.
+- `PENDING` consume la regla efectiva `pendingBlocksAvailability` de Availability; al entrar en `PENDING` se valida disponibilidad con la misma semántica central.
 - Política de cancelación y penalizaciones.
 - Tratamiento de reembolsos.
 - Regla exacta de No Show y liberación de disponibilidad.
 - Reglas de modificación de reservas en curso.
 - Tratamiento de early check-in y late check-out.
-- Regla exacta para reservas con múltiples Resources.
+- BKG-005 valida conjuntamente todos los Resources de la Booking mediante la capacidad reutilizable AVL-004 antes de crear un estado bloqueante o confirmar.
 - Numeración inicial y formato visible, pendiente antes de confirmación.
 - Reglas exactas de autorización por rol.
 - Validaciones de adultos, menores y capacidad.
 - Campos obligatorios de huéspedes adicionales.
-- Semántica temporal de Availability, incluyendo solapamiento horario y tratamiento de zonas horarias.
+- La semántica temporal MVP usa fechas `YYYY-MM-DD` e intervalos semiabiertos; horarios exactos y tratamiento horario avanzado permanecen fuera de este slice.
 - Política de archivado.
 - Alcance de duplicar reserva en el MVP.
 
