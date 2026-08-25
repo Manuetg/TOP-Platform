@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { BusinessModule } from '../business/business.module';
 import { ResourceModule } from '../resource/resource.module';
 import { BookingModule } from '../booking/booking.module';
@@ -13,4 +13,4 @@ import { AvailabilityRulesController } from './presentation/availability-rules.c
 import { ValidateOverbookingUseCase } from './application/validate-overbooking.use-case';
 import { AVAILABILITY_OVERBOOKING_VALIDATOR } from './availability.contract';
 
-@Module({ imports: [BusinessModule, ResourceModule, BookingModule, BlockModule], controllers: [AvailabilityController, AvailabilityRulesController], providers: [PrismaAvailabilityRulesRepository, { provide: AVAILABILITY_RULES_REPOSITORY, useExisting: PrismaAvailabilityRulesRepository }, CheckAvailabilityUseCase, ListAvailabilityCalendarUseCase, GetAvailabilityRulesUseCase, UpdateAvailabilityRulesUseCase, ValidateOverbookingUseCase, { provide: AVAILABILITY_OVERBOOKING_VALIDATOR, useExisting: ValidateOverbookingUseCase }], exports: [AVAILABILITY_OVERBOOKING_VALIDATOR] }) export class AvailabilityModule {}
+@Module({ imports: [BusinessModule, ResourceModule, forwardRef(() => BookingModule), BlockModule], controllers: [AvailabilityController, AvailabilityRulesController], providers: [PrismaAvailabilityRulesRepository, { provide: AVAILABILITY_RULES_REPOSITORY, useExisting: PrismaAvailabilityRulesRepository }, CheckAvailabilityUseCase, ListAvailabilityCalendarUseCase, GetAvailabilityRulesUseCase, UpdateAvailabilityRulesUseCase, ValidateOverbookingUseCase, { provide: AVAILABILITY_OVERBOOKING_VALIDATOR, useExisting: ValidateOverbookingUseCase }], exports: [AVAILABILITY_OVERBOOKING_VALIDATOR] }) export class AvailabilityModule {}

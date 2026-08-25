@@ -30,4 +30,5 @@ export class Booking {
   get notes(): string | null { return this.props.notes; }
   get createdAt(): Date { return this.props.createdAt; }
   get updatedAt(): Date { return this.props.updatedAt; }
+  withStatus(status: BookingStatus): Booking { return Booking.create({ ...this.props, status }); }
 }

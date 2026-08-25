@@ -35,6 +35,9 @@ export class PrismaBookingRepository implements BookingRepository {
     });
     return this.map(row);
   }
+  async markPending(id: string): Promise<Booking> {
+    return this.map(await this.prisma.booking.update({ where: { id }, data: { status: BookingStatus.PENDING }, include: includeResources }));
+  }
   async hasBlockingBooking(businessId:string,resourceId:string,from:Date,to:Date,pendingBlocksAvailability = true):Promise<boolean>{return (await this.prisma.booking.findFirst({where:{businessId,status:{in: this.blockingStatuses(pendingBlocksAvailability)},resources:{some:{resourceId}},checkInDate:{lt:to},checkOutDate:{gt:from}},select:{id:true}}))!==null;}
   async listBlockingBookings(businessId: string, from: Date, to: Date, pendingBlocksAvailability = true): Promise<BlockingBooking[]> {
     const rows = await this.prisma.booking.findMany({

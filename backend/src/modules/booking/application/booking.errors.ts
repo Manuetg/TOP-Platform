@@ -6,3 +6,7 @@ export class BookingResourceNotFoundError extends Error {}
 export class BookingResourceUnavailableError extends Error {}
 export class BookingNotFoundError extends Error {}
 export class BookingNotDraftError extends Error {}
+export class BookingContactRequiredError extends Error {}
+export class BookingResourcesRequiredError extends Error {}
+export class BookingDatesRequiredError extends Error {}
+export class BookingAvailabilityConflictError extends Error {}
