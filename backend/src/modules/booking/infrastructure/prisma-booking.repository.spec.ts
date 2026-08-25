@@ -34,6 +34,56 @@ describe('PrismaBookingRepository', () => {
     await expect(repository.hasBlockingBooking(businessId, resourceId, from, to)).resolves.toBe(false);
     expect(booking.findFirst).toHaveBeenNthCalledWith(1, { where: { businessId, status: { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS'] }, resources: { some: { resourceId } }, checkInDate: { lt: to }, checkOutDate: { gt: from } }, select: { id: true } });
   });
+  it('excludes the current Booking from blocking availability when requested', async () => {
+    const from = new Date('2026-04-01');
+    const to = new Date('2026-04-03');
+    const excludeBookingId =
+      '44444444-4444-4444-8444-444444444444';
+
+    booking.findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      repository.hasBlockingBooking(
+        businessId,
+        resourceId,
+        from,
+        to,
+        true,
+        excludeBookingId,
+      ),
+    ).resolves.toBe(false);
+
+    expect(booking.findFirst).toHaveBeenCalledWith({
+      where: {
+        businessId,
+        id: {
+          not: excludeBookingId,
+        },
+        status: {
+          in: [
+            'PENDING',
+            'CONFIRMED',
+            'IN_PROGRESS',
+          ],
+        },
+        resources: {
+          some: {
+            resourceId,
+          },
+        },
+        checkInDate: {
+          lt: to,
+        },
+        checkOutDate: {
+          gt: from,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+  });
+
   it('propagates Prisma failures while looking up blocking bookings', async () => {
     const error = new Error('lookup failed'); booking.findFirst.mockRejectedValueOnce(error);
     await expect(repository.hasBlockingBooking(businessId, resourceId, new Date('2026-04-01'), new Date('2026-04-03'))).rejects.toBe(error);

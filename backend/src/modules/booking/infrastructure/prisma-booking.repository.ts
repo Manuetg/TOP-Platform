@@ -38,7 +38,48 @@ export class PrismaBookingRepository implements BookingRepository {
   async markPending(id: string): Promise<Booking> {
     return this.map(await this.prisma.booking.update({ where: { id }, data: { status: BookingStatus.PENDING }, include: includeResources }));
   }
-  async hasBlockingBooking(businessId:string,resourceId:string,from:Date,to:Date,pendingBlocksAvailability = true):Promise<boolean>{return (await this.prisma.booking.findFirst({where:{businessId,status:{in: this.blockingStatuses(pendingBlocksAvailability)},resources:{some:{resourceId}},checkInDate:{lt:to},checkOutDate:{gt:from}},select:{id:true}}))!==null;}
+  async hasBlockingBooking(
+  businessId: string,
+  resourceId: string,
+  from: Date,
+  to: Date,
+  pendingBlocksAvailability = true,
+  excludeBookingId?: string,
+  ): Promise<boolean> {
+    const booking = await this.prisma.booking.findFirst({
+      where: {
+        businessId,
+        ...(excludeBookingId !== undefined
+          ? {
+              id: {
+                not: excludeBookingId,
+              },
+            }
+          : {}),
+        status: {
+          in: this.blockingStatuses(
+            pendingBlocksAvailability,
+          ),
+        },
+        resources: {
+          some: {
+            resourceId,
+          },
+        },
+        checkInDate: {
+          lt: to,
+        },
+        checkOutDate: {
+          gt: from,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return booking !== null;
+  }
   async listBlockingBookings(businessId: string, from: Date, to: Date, pendingBlocksAvailability = true): Promise<BlockingBooking[]> {
     const rows = await this.prisma.booking.findMany({
       where: {

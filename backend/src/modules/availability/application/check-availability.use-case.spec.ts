@@ -31,7 +31,7 @@ describe('CheckAvailabilityUseCase', () => {
 
   it('returns available without conflicts and delegates the exact semi-open range', async () => {
     await expect(useCase.execute({ businessId, resourceId, from: '2026-02-01', to: '2026-02-02' })).resolves.toEqual({ resourceId, from: '2026-02-01', to: '2026-02-02', status: 'AVAILABLE', reasons: [] });
-    expect(booking).toHaveBeenCalledWith(businessId, resourceId, new Date('2026-02-01'), new Date('2026-02-02'), true);
+    expect(booking).toHaveBeenCalledWith(businessId, resourceId, new Date('2026-02-01'), new Date('2026-02-02'), true, undefined,);
     expect(block).toHaveBeenCalledWith(businessId, resourceId, new Date('2026-02-01'), new Date('2026-02-02'));
   });
 
@@ -43,7 +43,7 @@ describe('CheckAvailabilityUseCase', () => {
   it('uses one effective rule for PENDING and Booking buffers without altering Block ranges', async () => {
     findRules.mockResolvedValueOnce({ businessId, pendingBlocksAvailability: false, bufferBeforeDays: 2, bufferAfterDays: 1 });
     await useCase.execute({ businessId, resourceId, from: '2026-02-03', to: '2026-02-04' });
-    expect(booking).toHaveBeenCalledWith(businessId, resourceId, new Date('2026-02-02'), new Date('2026-02-06'), false);
+    expect(booking).toHaveBeenCalledWith(businessId, resourceId, new Date('2026-02-02'), new Date('2026-02-06'), false, undefined,);
     expect(block).toHaveBeenCalledWith(businessId, resourceId, new Date('2026-02-03'), new Date('2026-02-04'));
   });
 

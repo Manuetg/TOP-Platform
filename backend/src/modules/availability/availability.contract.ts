@@ -5,6 +5,7 @@ export interface OverbookingValidationInput {
   resourceIds: string[];
   checkInDate: string;
   checkOutDate: string;
+  excludeBookingId?: string;
 }
 
 export interface OverbookingConflict {

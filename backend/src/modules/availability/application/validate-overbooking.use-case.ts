@@ -6,13 +6,18 @@ import type {
 } from '../availability.contract';
 import { InvalidAvailabilityInputError } from './availability.errors';
 import { CheckAvailabilityUseCase } from './check-availability.use-case';
-import { assertAvailabilityUuid, parseAvailabilityDate } from './availability.validation';
+import {
+  assertAvailabilityUuid,
+  parseAvailabilityDate,
+} from './availability.validation';
 
 @Injectable()
 export class ValidateOverbookingUseCase
   implements AvailabilityOverbookingValidator
 {
-  constructor(private readonly availability: CheckAvailabilityUseCase) {}
+  constructor(
+    private readonly availability: CheckAvailabilityUseCase,
+  ) {}
 
   async validate(
     input: OverbookingValidationInput,
@@ -26,39 +31,59 @@ export class ValidateOverbookingUseCase
           resourceId,
           from: input.checkInDate,
           to: input.checkOutDate,
+          excludeBookingId: input.excludeBookingId,
         }),
       ),
     );
 
     const conflicts = results
       .filter((result) => result.status === 'UNAVAILABLE')
-      .map(({ resourceId, reasons }) => ({ resourceId, reasons }));
+      .map(({ resourceId, reasons }) => ({
+        resourceId,
+        reasons,
+      }));
 
-    return { valid: conflicts.length === 0, conflicts };
+    return {
+      valid: conflicts.length === 0,
+      conflicts,
+    };
   }
 
-  private validateInput(input: OverbookingValidationInput): void {
+  private validateInput(
+    input: OverbookingValidationInput,
+  ): void {
     assertAvailabilityUuid(input.businessId);
 
-    if (!Array.isArray(input.resourceIds) || input.resourceIds.length === 0) {
+    this.validateExcludeBookingId(
+      input.excludeBookingId,
+    );
+
+    if (
+      !Array.isArray(input.resourceIds) ||
+      input.resourceIds.length === 0
+    ) {
       throw new InvalidAvailabilityInputError(
         'Debe informar al menos un recurso.',
       );
     }
 
     const resourceIds = new Set<string>();
+
     for (const resourceId of input.resourceIds) {
       if (typeof resourceId !== 'string') {
         throw new InvalidAvailabilityInputError(
           'El identificador no es válido.',
         );
       }
+
       assertAvailabilityUuid(resourceId);
+
       if (resourceIds.has(resourceId)) {
         throw new InvalidAvailabilityInputError(
           'Los recursos no pueden repetirse.',
         );
       }
+
       resourceIds.add(resourceId);
     }
 
@@ -66,21 +91,41 @@ export class ValidateOverbookingUseCase
       typeof input.checkInDate !== 'string' ||
       typeof input.checkOutDate !== 'string'
     ) {
-      throw new InvalidAvailabilityInputError('Las fechas son inválidas.');
+      throw new InvalidAvailabilityInputError(
+        'Las fechas son inválidas.',
+      );
     }
 
     const checkIn = parseAvailabilityDate(
       input.checkInDate,
       'La fecha inicial',
     );
+
     const checkOut = parseAvailabilityDate(
       input.checkOutDate,
       'La fecha final',
     );
+
     if (checkOut <= checkIn) {
       throw new InvalidAvailabilityInputError(
         'La fecha final debe ser posterior a la fecha inicial.',
       );
     }
+  }
+
+  private validateExcludeBookingId(
+    excludeBookingId: string | undefined,
+  ): void {
+    if (excludeBookingId === undefined) {
+      return;
+    }
+
+    if (typeof excludeBookingId !== 'string') {
+      throw new InvalidAvailabilityInputError(
+        'El identificador no es válido.',
+      );
+    }
+
+    assertAvailabilityUuid(excludeBookingId);
   }
 }

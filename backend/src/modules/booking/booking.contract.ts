@@ -13,7 +13,9 @@ export interface BookingAvailabilityLookup {
     from: Date,
     to: Date,
     pendingBlocksAvailability?: boolean,
+    excludeBookingId?: string,
   ): Promise<boolean>;
+
   listBlockingBookings(
     businessId: string,
     from: Date,
