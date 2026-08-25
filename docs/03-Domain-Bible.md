@@ -595,6 +595,16 @@ La ausencia de registro usa defaults compatibles con el comportamiento vigente: 
 
 No se requiere zona horaria para AVL-003: los buffers usan la misma granularidad diaria de las fechas de Booking. AVL-001/AVL-002 conservan sus resultados actuales mientras ambos buffers permanezcan en `0`.
 
+### Contrato AVL-004 — Overbooking Validation
+
+`AVL-004` define una validación interna reutilizable para Booking; no expone un endpoint público independiente ni persiste resultados. Recibe `businessId`, uno o más `resourceIds` únicos y un rango estricto `checkInDate`/`checkOutDate` en formato `YYYY-MM-DD`, con intervalo semiabierto `[checkInDate, checkOutDate)` y salida posterior a entrada. Su consumidor inicial será la futura Confirmación de Booking, que deberá invocarla inmediatamente antes de cambiar el estado; esa transición no forma parte de AVL-004.
+
+La validación reutiliza la semántica central y los contratos públicos de AVL-001, AVL-002 y AVL-003, sin duplicar intersecciones: verifica Business y Resources dentro del mismo tenant, estado operativo del Resource, Bookings bloqueantes, Blocks efectivos y la regla efectiva del Business. Aplica `pendingBlocksAvailability` y los buffers diarios solo a Bookings; los Blocks conservan sus instantes exactos. Un Resource `OUT_OF_SERVICE` o `ARCHIVED`, una Booking bloqueante o un Block efectivo intersectante producen conflicto. Con overbooking deshabilitado, cualquier conflicto bloqueante hace fallar la validación; sin conflictos, el resultado es válido.
+
+El resultado contractual contiene `valid` y `conflicts[]`, con un elemento por Resource en conflicto formado por `resourceId` y `reasons[]`. Las razones reutilizan exactamente `RESOURCE_OUT_OF_SERVICE`, `RESOURCE_ARCHIVED`, `BOOKING_CONFLICT` y `BLOCK_CONFLICT`, sin duplicados y en el orden determinista vigente de Availability. No hay auto-asignación, cálculo de Pricing, Payments, Pricing Snapshot ni escritura de Availability.
+
+La Definition of Done de AVL-004 requiere una capacidad interna reusable que cubra uno y múltiples Resources, tenant isolation, reglas efectivas, intersección semiabierta y buffers de Booking; resultado determinista por Resource; y evidencia unitaria, integración y de la futura revalidación de confirmación cuando esa capacidad exista. Quedan fuera de este contrato la transición/Confirm Booking, un endpoint público, configuración que habilite overbooking, capacidad, alternativas y cualquier persistencia.
+
 ### 1. Propósito
 
 Determinar si uno o más Resources pueden reservarse durante un período específico, considerando reservas, bloqueos y estado operativo del Resource.
