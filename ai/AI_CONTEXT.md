@@ -18,6 +18,7 @@ Establecer un contexto único y un protocolo de trabajo para los agentes de IA d
 10. [ADRs](../docs/13-adr/).
 
 Para cambios de backend, leer también [Principios de ingeniería](ENGINEERING_PRINCIPLES.md).
+Para tareas de diseño, leer también [Design Context](../docs/design/DESIGN.md) y [Brand Book v1](../docs/10-Brand-Book-v1.md). `08-Fundamentos-de-Diseno-de-Producto.md` contiene decisiones visuales provisionales anteriores.
 
 ## Principios compartidos
 
