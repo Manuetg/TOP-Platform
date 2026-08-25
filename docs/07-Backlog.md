@@ -57,7 +57,7 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 - **AVL-001 — Check Availability.** Estado: Completed. Dominio: Availability. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/availability?resourceId=<uuid>&from=YYYY-MM-DD&to=YYYY-MM-DD`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: disponibilidad derivada sin persistencia propia, con intervalos semiabiertos `[from, to)`, aislamiento por tenant y resultados `AVAILABLE`/`UNAVAILABLE`; `OUT_OF_SERVICE` y `ARCHIVED` devuelven sus razones específicas, Bookings `PENDING`, `CONFIRMED` e `IN_PROGRESS` y Blocks intersectantes no cancelados bloquean; no incluye Pricing, Payments, capacidad, buffers configurables ni overbooking configurable. Arquitectura aprobada sin violaciones; E2E AVL-001: 6 tests aprobados; aceptación: 8 escenarios y 28 pasos aprobados; quality check aprobado; mutation segmentada: CheckAvailabilityUseCase 81,40% y AvailabilityController 90,91%, sin sobrevivientes funcionalmente relevantes.
 - **AVL-002 — Availability Calendar.** Estado: Completed. Dominio: Availability. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/availability/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD[&resourceId=<uuid>]`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commits `4490401`, `360a47e` y `e609737`; calendario derivado con rango `[from, to)` de hasta 31 días, matriz Resource×día para todos los Resources o un `resourceId` tenant-scoped, mismos estados y razones de AVL-001, orden determinista y consultas de Booking/Block por rango completo sin patrón N×M; sin persistencia, Pricing ni auto-assignment; arquitectura y quality gate aprobados; mutation segmentada: calendario 89,09%, controller 100% y lookups batch 100%.
 - **AVL-003 — Availability Rules.** Estado: Completed. Dominio: Availability. Prioridad: Alta. Endpoint: `GET` y `PATCH /api/businesses/:businessId/availability-rules`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commits `9364b4b`, `f9d48b6` y `a261a94`; configuración única tenant-scoped con defaults compatibles (`pendingBlocksAvailability: true`, `bufferBeforeDays: 0`, `bufferAfterDays: 0`), validación de booleano y buffers enteros no negativos, y consumo centralizado por AVL-001/AVL-002 sin duplicar derivación. Los buffers aplican solo a Booking; Block conserva sus instantes exactos. Arquitectura sin violaciones, E2E y Acceptance focalizados, quality check y mutation segmentada 92,06% aprobados.
-- **AVL-004 — Overbooking Validation.** Estado: Planned. Dominio: Availability. Prioridad: Alta. Endpoint: no expone endpoint público; validación interna reutilizable para la futura Confirm Booking. Pruebas obligatorias: según convención. Definition of Done: valida uno o varios Resources tenant-scoped con rango estricto `[checkInDate, checkOutDate)`, reutiliza AVL-001/002/003 para estado operativo, Bookings, Blocks, `pendingBlocksAvailability` y buffers diarios sin duplicar intersecciones; devuelve conflictos deterministas por Resource con razones de Availability y falla ante cualquier conflicto mientras overbooking permanezca deshabilitado. No persiste resultados ni implementa Confirm, auto-asignación, Pricing, Payments, capacidad o alternativas.
+- **AVL-004 — Overbooking Validation.** Estado: Completed. Dominio: Availability. Prioridad: Alta. Endpoint: no expone endpoint público; validación interna reutilizable para la futura Confirm Booking. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commits `40180ea` y `d9ad979`; `ValidateOverbookingUseCase` valida uno o varios Resources tenant-scoped sobre `[checkInDate, checkOutDate)`, delega la semántica central a `CheckAvailabilityUseCase` sin duplicar intersecciones, aplica estados, Bookings, Blocks, `pendingBlocksAvailability` y buffers diarios y devuelve conflictos deterministas por Resource. Unit e integración focalizados, lint, build, quality check, Acceptance y arquitectura aprobados; mutation segmentada 88,89% (26 killed, 22 timeout, 6 survived, 0 no coverage), por encima del threshold vigente y sin bloqueo funcional relevante.
 
 ## Contact
 
@@ -75,7 +75,7 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 - **BKG-005 — Cancel Booking.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **BKG-006 — Booking Timeline.** Estado: Planned. Dominio: Booking. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 
-Fuera de este cierre permanecen Availability, conflictos Booking↔Block, transición `DRAFT` a `PENDING`, Confirm, Pricing Snapshot, Payments, BKG-005 y BKG-006.
+Fuera del cierre BKG-001..004 permanecen la transición `DRAFT` a `PENDING`, Confirm, Pricing Snapshot, Payments, BKG-005 y BKG-006. La validación central de conflictos de Availability para una futura Confirm Booking ya está disponible mediante AVL-004.
 
 ## Payment
 
@@ -90,7 +90,7 @@ Fuera de este cierre permanecen Availability, conflictos Booking↔Block, transi
 - **BLK-002 — Remove Block.** Estado: Completed. Dominio: Block. Prioridad: Media. Endpoint: `PATCH /api/businesses/:businessId/blocks/:blockId/cancel`. Pruebas obligatorias: según convención. Definition of Done: aplicada.
 - **BLK-003 — List Blocks.** Estado: Completed. Dominio: Block. Prioridad: Media. Endpoint: `GET /api/businesses/:businessId/blocks`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commits `3f22907`, `bb9f1b4`, `e77e108` y `c7d08ea`; Prisma, E2E, quality check, integración y aceptación aprobados; cobertura global: statements 97,90%, branches 93,77%, functions 99,00% y lines 98,79%; arquitectura sin violaciones; mutation: core application+domain 86,21%, `block.entity.ts` 100%, `PrismaBlockRepository` 100% y `BlockController` 81,48%.
 
-Dependencia futura explícita: Availability deberá considerar conjuntamente Booking, Block y el estado operativo del Resource. La validación de conflictos Booking↔Block no está implementada todavía.
+Availability ya considera conjuntamente Booking, Block y el estado operativo del Resource. AVL-004 reutiliza esa semántica para la validación interna de conflictos previa a una futura Confirm Booking.
 
 ## Dashboard
 
@@ -107,13 +107,13 @@ Dependencia futura explícita: Availability deberá considerar conjuntamente Boo
 | Identity & Access | 9 | 6 | 0 | 3 | 0 |
 | Resource | 7 | 7 | 0 | 0 | 0 |
 | Pricing | 5 | 5 | 0 | 0 | 0 |
-| Availability | 4 | 3 | 0 | 1 | 0 |
+| Availability | 4 | 4 | 0 | 0 | 0 |
 | Contact | 4 | 4 | 0 | 0 | 0 |
 | Booking | 6 | 4 | 0 | 2 | 0 |
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 3 | 0 | 0 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **37** | **0** | **14** | **0** |
+| **Total** | **51** | **38** | **0** | **13** | **0** |
 
 Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
@@ -121,7 +121,7 @@ Progreso de Resource: 7 de 7 capacidades completadas (100%).
 
 Progreso de Pricing: 5 de 5 capacidades completadas (100%).
 
-Progreso de Availability: 3 de 4 capacidades completadas (75%).
+Progreso de Availability: 4 de 4 capacidades completadas (100%).
 
 Progreso de Contact: 4 de 4 capacidades completadas (100%).
 
@@ -129,4 +129,4 @@ Progreso de Booking: 4 de 6 capacidades completadas (66,7%).
 
 Progreso de Block: 3 de 3 capacidades completadas (100%).
 
-Progreso general del MVP: 37 de 51 capacidades completadas (72,5%).
+Progreso general del MVP: 38 de 51 capacidades completadas (74,5%).
