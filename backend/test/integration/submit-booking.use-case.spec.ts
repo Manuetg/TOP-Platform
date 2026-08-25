@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { SubmitBookingUseCase } from '../../src/modules/booking/application/submit-booking.use-case';
+import { SubmitBookingUseCase } from '../../src/modules/booking-lifecycle/application/submit-booking.use-case';
 import { BookingAvailabilityConflictError, BookingNotFoundError } from '../../src/modules/booking/application/booking.errors';
 import { PrismaBookingRepository } from '../../src/modules/booking/infrastructure/prisma-booking.repository';
 import { PrismaBusinessRepository } from '../../src/modules/business/infrastructure/prisma-business.repository';
@@ -30,7 +30,6 @@ describeWithPostgres('SubmitBookingUseCase', () => {
   const useCase = new SubmitBookingUseCase(
     businesses,
     contacts,
-    resources,
     bookings,
     availability,
   );

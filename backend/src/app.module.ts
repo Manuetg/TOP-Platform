@@ -8,11 +8,12 @@ import { ContactModule } from './modules/contact/contact.module';
 import { BlockModule } from './modules/block/block.module';
 import { BookingModule } from './modules/booking/booking.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
+import { BookingLifecycleModule } from './modules/booking-lifecycle/booking-lifecycle.module';
 import { HealthService } from './shared/application/health.service';
 import { HealthController } from './shared/presentation/health.controller';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), BusinessModule, IdentityModule, ResourceModule, PricingModule, ContactModule, BlockModule, BookingModule, AvailabilityModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), BusinessModule, IdentityModule, ResourceModule, PricingModule, ContactModule, BlockModule, BookingModule, AvailabilityModule, BookingLifecycleModule],
   controllers: [HealthController],
   providers: [HealthService],
 })
