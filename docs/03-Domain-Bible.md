@@ -569,7 +569,7 @@ No se definen aún las cardinalidades técnicas de base de datos.
 
 AVL-001 — Check Availability está completada mediante `GET /api/businesses/:businessId/availability?resourceId=<uuid>&from=YYYY-MM-DD&to=YYYY-MM-DD`. Availability es derivada: no tiene tabla ni persiste una verdad propia. Calcula cada consulta con Resource, Booking y Block, usando intervalos semiabiertos `[from, to)` e intersección `existing.start < requested.to AND existing.end > requested.from`.
 
-Solo un Resource `ACTIVE` puede resultar `AVAILABLE`; `OUT_OF_SERVICE` y `ARCHIVED` resultan `UNAVAILABLE`. Bloquean una Booking `PENDING`, `CONFIRMED` o `IN_PROGRESS`; no bloquean `DRAFT`, `FINISHED`, `CANCELLED` ni `NO_SHOW`. Un Block intersectante no cancelado bloquea: `SCHEDULED` y efectivo `ACTIVE`; `CANCELLED` y `FINISHED` no bloquean futuro. No hay Pricing, Payments, overbooking configurable, buffers configurables, capacidad de huéspedes, auto-assignment ni alternativas inteligentes en este slice.
+Solo un Resource `ACTIVE` puede resultar `AVAILABLE`; `OUT_OF_SERVICE` y `ARCHIVED` resultan `UNAVAILABLE`. Bloquean una Booking `PENDING`, `CONFIRMED` o `IN_PROGRESS`; no bloquean `DRAFT`, `COMPLETED`, `CANCELLED` ni `NO_SHOW`. Un Block intersectante no cancelado bloquea: `SCHEDULED` y efectivo `ACTIVE`; `CANCELLED` y `COMPLETED` no bloquean futuro. No hay Pricing, Payments, overbooking configurable, buffers configurables, capacidad de huéspedes, auto-assignment ni alternativas inteligentes en este slice.
 
 El resultado mínimo es `AVAILABLE` o `UNAVAILABLE`, con razones sin duplicados: `RESOURCE_OUT_OF_SERVICE`, `RESOURCE_ARCHIVED`, `BOOKING_CONFLICT` y `BLOCK_CONFLICT`. `AVL-001` consulta un Resource por `businessId`, `resourceId`, `from` y `to` estrictos `YYYY-MM-DD`, sin persistir, Pricing ni Payments. `AVL-002` está completada como una vista derivada por Resource/fecha; `AVL-003` está completada como configuración de reglas por Business, con defaults compatibles; `AVL-004` reutilizará esta misma semántica antes de confirmar Booking.
 
@@ -1064,7 +1064,7 @@ Booking referencia esta información, pero Pricing y Payment conservan sus respo
 
 Estados operativos: Borrador, Pendiente, Confirmada, En curso, Finalizada, Cancelada y No Show.
 
-Valores persistidos: `DRAFT`, `PENDING`, `CONFIRMED`, `IN_PROGRESS`, `FINISHED`, `CANCELLED` y `NO_SHOW`.
+Valores persistidos: `DRAFT`, `PENDING`, `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED` y `NO_SHOW`.
 
 En `BKG-001` a `BKG-004` el estado inicial es `DRAFT` y solo un `DRAFT` puede modificarse. El endpoint de actualización no modifica el estado.
 
@@ -1308,7 +1308,7 @@ No ejecuta mantenimiento, órdenes de trabajo, reparaciones o limpiezas; no modi
 - Todo Block pertenece exactamente a un Negocio y afecta exactamente un Resource que pertenece al mismo Negocio. Bloquear varios Resources requiere crear un Block por Resource.
 - El tipo es `MAINTENANCE`, `OWNER_USE` u `OTHER`. El motivo es obligatorio, se normaliza con `trim` y su longitud final es de 2 a 120 caracteres. La observación es opcional, admite `null`, se normaliza con `trim` y no supera 500 caracteres.
 - Inicio y fin son instantes RFC3339 con offset explícito y forman el intervalo semiabierto `[startsAt, endsAt)`, donde `endsAt` es estrictamente posterior a `startsAt`. No se implementan bloqueos de día completo ni recurrencia en el MVP.
-- Un Block `SCHEDULED` antes de `startsAt` tiene estado efectivo `SCHEDULED`; desde `startsAt` inclusive hasta `endsAt` exclusivo tiene estado efectivo `ACTIVE`; desde `endsAt` inclusive tiene estado efectivo `FINISHED`. Un Block `CANCELLED` siempre tiene estado efectivo `CANCELLED`.
+- Un Block `SCHEDULED` antes de `startsAt` tiene estado efectivo `SCHEDULED`; desde `startsAt` inclusive hasta `endsAt` exclusivo tiene estado efectivo `ACTIVE`; desde `endsAt` inclusive tiene estado efectivo `COMPLETED`. Un Block `CANCELLED` siempre tiene estado efectivo `CANCELLED`.
 - Un Block programado o efectivo activo impide reservas del período afectado; Cancelado no afecta Availability y Finalizado no afecta disponibilidad futura.
 - Los bloqueos no se representan mediante reservas ficticias. Un Resource Fuera de servicio puede coexistir con Blocks históricos, pero su indisponibilidad permanente depende de Resource.
 - Un Block debe conservarse históricamente sin eliminación física.
@@ -1319,9 +1319,9 @@ No ejecuta mantenimiento, órdenes de trabajo, reparaciones o limpiezas; no modi
 
 - Estados persistidos: `SCHEDULED` y `CANCELLED`.
 
-Estados efectivos derivados: `SCHEDULED`, `ACTIVE`, `FINISHED` y `CANCELLED`, según el intervalo y la regla definida para `startsAt`, `endsAt` y `now`.
+Estados efectivos derivados: `SCHEDULED`, `ACTIVE`, `COMPLETED` y `CANCELLED`, según el intervalo y la regla definida para `startsAt`, `endsAt` y `now`.
 
-`SCHEDULED` y un Block efectivo `ACTIVE` pueden cancelarse. `CANCELLED` es idempotente y preserva su motivo y fecha de cancelación originales. `FINISHED` no puede cancelarse. No se permite eliminación física como mecanismo normal.
+`SCHEDULED` y un Block efectivo `ACTIVE` pueden cancelarse. `CANCELLED` es idempotente y preserva su motivo y fecha de cancelación originales. `COMPLETED` no puede cancelarse. No se permite eliminación física como mecanismo normal.
 
 ### 8. Eventos
 
