@@ -113,7 +113,7 @@ Dependencia futura explícita: Availability deberá considerar conjuntamente Boo
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 3 | 0 | 0 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **38** | **0** | **13** | **0** |
+| **Total** | **51** | **37** | **0** | **14** | **0** |
 
 Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
@@ -129,4 +129,4 @@ Progreso de Booking: 4 de 6 capacidades completadas (66,7%).
 
 Progreso de Block: 3 de 3 capacidades completadas (100%).
 
-Progreso general del MVP: 38 de 51 capacidades completadas (74,5%).
+Progreso general del MVP: 37 de 51 capacidades completadas (72,5%).
