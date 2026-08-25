@@ -120,14 +120,18 @@ describe('ValidateOverbookingUseCase', () => {
   });
 
   it.each([
-    [{ ...input(), resourceIds: [] }],
-    [{ ...input(), resourceIds: [firstResourceId, firstResourceId] }],
-    [{ ...input(), resourceIds: ['invalid'] }],
-    [{ ...input(), checkInDate: '2026-02-30' }],
-    [{ ...input(), checkInDate: '2026-03-12', checkOutDate: '2026-03-12' }],
-  ])('rejects invalid request data before Availability lookups', async (invalid) => {
-    await expect(useCase.validate(invalid)).rejects.toBeInstanceOf(
-      InvalidAvailabilityInputError,
+    [{ ...input(), resourceIds: [] }, 'Debe informar al menos un recurso.'],
+    [{ ...input(), resourceIds: [firstResourceId, firstResourceId] }, 'Los recursos no pueden repetirse.'],
+    [{ ...input(), resourceIds: ['invalid'] }, 'El identificador no es válido.'],
+    [{ ...input(), resourceIds: [1] as never }, 'El identificador no es válido.'],
+    [{ ...input(), checkInDate: 1 as never }, 'Las fechas son inválidas.'],
+    [{ ...input(), checkOutDate: 1 as never }, 'Las fechas son inválidas.'],
+    [{ ...input(), checkInDate: '2026-02-30' }, 'La fecha inicial es inválida.'],
+    [{ ...input(), checkInDate: '2026-03-12', checkOutDate: '2026-03-12' }, 'La fecha final debe ser posterior a la fecha inicial.'],
+    [{ ...input(), checkInDate: '2026-03-13', checkOutDate: '2026-03-12' }, 'La fecha final debe ser posterior a la fecha inicial.'],
+  ])('rejects invalid request data before Availability lookups', async (invalid, message) => {
+    await expect(useCase.validate(invalid)).rejects.toEqual(
+      new InvalidAvailabilityInputError(message),
     );
     expect(findBusiness).not.toHaveBeenCalled();
   });
