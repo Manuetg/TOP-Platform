@@ -62,6 +62,7 @@ describe('SubmitBookingUseCase', () => {
       listByBusinessId: jest.fn(),
       update: jest.fn(),
       markPending,
+      markCancelled: jest.fn(),
       hasBlockingBooking: jest.fn(),
       listBlockingBookings: jest.fn(),
     },

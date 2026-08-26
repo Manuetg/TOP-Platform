@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   BookingAvailabilityConflictError,
+  BookingCancellationNotAllowedError,
   BookingNotFoundError,
   BookingStatus,
 } from '../../booking/booking.contract';
@@ -48,10 +49,15 @@ describe('BookingLifecycleController', () => {
     execute: jest.fn(),
   };
 
+  const cancel = {
+    execute: jest.fn(),
+  };
+
   const controller =
     new BookingLifecycleController(
       submit as never,
       confirm as never,
+      cancel as never,
     );
 
   beforeEach(() => {
@@ -323,5 +329,15 @@ describe('BookingLifecycleController', () => {
         },
       ),
     ).rejects.toBe(error);
+  });
+
+  it('delegates cancellation and maps invalid lifecycle states to HTTP 409', async () => {
+    cancel.execute.mockResolvedValueOnce(
+      booking.withStatus(BookingStatus.CANCELLED),
+    );
+    await expect(controller.cancel(businessId, bookingId)).resolves.toMatchObject({ status: BookingStatus.CANCELLED });
+    expect(cancel.execute).toHaveBeenCalledWith({ businessId, bookingId });
+    cancel.execute.mockRejectedValueOnce(new BookingCancellationNotAllowedError('invalid'));
+    await expect(controller.cancel(businessId, bookingId)).rejects.toBeInstanceOf(ConflictException);
   });
 });

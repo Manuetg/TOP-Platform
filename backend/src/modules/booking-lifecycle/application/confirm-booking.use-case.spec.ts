@@ -71,6 +71,7 @@ describe('ConfirmBookingUseCase', () => {
       listByBusinessId: jest.fn(),
       update: jest.fn(),
       markPending: jest.fn(),
+      markCancelled: jest.fn(),
       hasBlockingBooking: jest.fn(),
       listBlockingBookings: jest.fn(),
     },
@@ -498,6 +499,33 @@ describe('ConfirmBookingUseCase', () => {
     expect(confirm).not.toHaveBeenCalled();
   });
 
+  it.each([null, []])(
+    'rejects a non-object pricing item before confirmation',
+    async (invalidItem) => {
+      await expect(
+        useCase.execute({
+          businessId,
+          bookingId,
+          pricing: [invalidItem] as never,
+        }),
+      ).rejects.toBeInstanceOf(InvalidBookingPricingInputError);
+
+      expect(confirm).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects a pricing item without identifiers before confirmation', async () => {
+    await expect(
+      useCase.execute({
+        businessId,
+        bookingId,
+        pricing: [{}] as never,
+      }),
+    ).rejects.toBeInstanceOf(InvalidBookingInputError);
+
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
   it('rejects a pricing Resource that does not belong to the Booking', async () => {
     await expect(
       useCase.execute({
@@ -878,5 +906,78 @@ describe('ConfirmBookingUseCase', () => {
     expect(findBusiness).not.toHaveBeenCalled();
     expect(findBooking).not.toHaveBeenCalled();
     expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('rejects an explicitly empty pricing list before entering the transaction', async () => {
+    await expect(useCase.execute({ businessId, bookingId, pricing: [] })).rejects.toBeInstanceOf(BookingPricingRequiredError);
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('maps a Booking removed during confirmation to BookingNotFoundError', async () => {
+    findBooking.mockReset().mockResolvedValueOnce(booking()).mockResolvedValueOnce(null);
+
+    await expect(useCase.execute({
+      businessId,
+      bookingId,
+      pricing: [{ resourceId, ratePlanId }],
+    })).rejects.toBeInstanceOf(BookingNotFoundError);
+  });
+
+  it('rejects a calculated snapshot with mixed currencies', async () => {
+    findBooking.mockReset().mockResolvedValueOnce(booking({ resourceIds: [resourceId, secondResourceId] }));
+    calculatePrice
+      .mockResolvedValueOnce({ businessId, resourceId, ratePlanId, currency: 'PYG', checkIn: '2026-05-10', checkOut: '2026-05-12', nights: 2, breakdown: [], totalAmountMinor: 300000 })
+      .mockResolvedValueOnce({ businessId, resourceId: secondResourceId, ratePlanId: secondRatePlanId, currency: 'USD', checkIn: '2026-05-10', checkOut: '2026-05-12', nights: 2, breakdown: [], totalAmountMinor: 200000 });
+
+    await expect(useCase.execute({
+      businessId,
+      bookingId,
+      pricing: [{ resourceId, ratePlanId }, { resourceId: secondResourceId, ratePlanId: secondRatePlanId }],
+    })).rejects.toBeInstanceOf(InvalidBookingPricingInputError);
+  });
+
+  it.each([-1, Number.MAX_SAFE_INTEGER + 1])('rejects an invalid calculated total', async (totalAmountMinor) => {
+    calculatePrice.mockResolvedValueOnce({ businessId, resourceId, ratePlanId, currency: 'PYG', checkIn: '2026-05-10', checkOut: '2026-05-12', nights: 2, breakdown: [], totalAmountMinor });
+
+    await expect(useCase.execute({
+      businessId,
+      bookingId,
+      pricing: [{ resourceId, ratePlanId }],
+    })).rejects.toBeInstanceOf(InvalidBookingPricingInputError);
+  });
+
+  it('accepts a zero calculated total without treating it as negative', async () => {
+    calculatePrice.mockResolvedValueOnce({ businessId, resourceId, ratePlanId, currency: 'PYG', checkIn: '2026-05-10', checkOut: '2026-05-12', nights: 2, breakdown: [], totalAmountMinor: 0 });
+
+    await expect(useCase.execute({
+      businessId,
+      bookingId,
+      pricing: [{ resourceId, ratePlanId }],
+    })).resolves.toMatchObject({ status: BookingStatus.CONFIRMED });
+  });
+
+  it('uses the override validation when only an agreed amount is supplied', async () => {
+    await useCase.execute({
+      businessId,
+      bookingId,
+      pricing: [{ resourceId, ratePlanId, agreedAmountMinor: 250000 }],
+    });
+
+    expect(applyManualPriceOverride).toHaveBeenCalledWith(expect.objectContaining({ agreedAmountMinor: 250000, overrideReason: undefined }));
+    expect(calculatePrice).not.toHaveBeenCalled();
+  });
+
+  it('uses the override validation when only a reason is supplied', async () => {
+    await useCase.execute({
+      businessId,
+      bookingId,
+      pricing: [{ resourceId, ratePlanId, overrideReason: 'Cortesía' }],
+    });
+
+    expect(applyManualPriceOverride).toHaveBeenCalledWith(expect.objectContaining({
+      agreedAmountMinor: undefined,
+      overrideReason: 'Cortesía',
+    }));
+    expect(calculatePrice).not.toHaveBeenCalled();
   });
 });
