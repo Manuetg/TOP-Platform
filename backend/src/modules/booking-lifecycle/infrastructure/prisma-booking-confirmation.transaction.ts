@@ -138,7 +138,7 @@ export class PrismaBookingConfirmationTransaction
     transaction: TransactionClient,
     resourceId: string,
   ): Promise<void> {
-    await transaction.$queryRaw(
+    await transaction.$executeRaw(
       Prisma.sql`
         SELECT pg_advisory_xact_lock(
           hashtextextended(${resourceId}, 0)

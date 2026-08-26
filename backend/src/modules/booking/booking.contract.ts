@@ -30,6 +30,7 @@ export type { Booking } from './domain/booking.entity';
 export { requireBookingUuid } from './application/booking.validation';
 export {
   BookingAvailabilityConflictError,
+  BookingCancellationNotAllowedError,
   BookingBusinessNotFoundError,
   BookingBusinessUnavailableError,
   BookingContactNotFoundError,

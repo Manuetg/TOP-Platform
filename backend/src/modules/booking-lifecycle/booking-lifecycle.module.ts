@@ -5,6 +5,7 @@ import { BusinessModule } from '../business/business.module';
 import { ContactModule } from '../contact/contact.module';
 import { PricingModule } from '../pricing/pricing.module';
 import { ConfirmBookingUseCase } from './application/confirm-booking.use-case';
+import { CancelBookingUseCase } from './application/cancel-booking.use-case';
 import { SubmitBookingUseCase } from './application/submit-booking.use-case';
 import {
   BOOKING_CONFIRMATION_TRANSACTION,
@@ -33,6 +34,7 @@ import { BookingLifecycleController } from './presentation/booking-lifecycle.con
     },
     SubmitBookingUseCase,
     ConfirmBookingUseCase,
+    CancelBookingUseCase,
   ],
 })
 export class BookingLifecycleModule {}

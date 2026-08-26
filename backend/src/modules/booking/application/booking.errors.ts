@@ -10,3 +10,4 @@ export class BookingContactRequiredError extends Error {}
 export class BookingResourcesRequiredError extends Error {}
 export class BookingDatesRequiredError extends Error {}
 export class BookingAvailabilityConflictError extends Error {}
+export class BookingCancellationNotAllowedError extends Error {}

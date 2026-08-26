@@ -38,6 +38,9 @@ export class PrismaBookingRepository implements BookingRepository {
   async markPending(id: string): Promise<Booking> {
     return this.map(await this.prisma.booking.update({ where: { id }, data: { status: BookingStatus.PENDING }, include: includeResources }));
   }
+  async markCancelled(id: string): Promise<Booking> {
+    return this.map(await this.prisma.booking.update({ where: { id }, data: { status: BookingStatus.CANCELLED }, include: includeResources }));
+  }
   async hasBlockingBooking(
   businessId: string,
   resourceId: string,

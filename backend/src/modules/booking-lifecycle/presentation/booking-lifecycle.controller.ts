@@ -23,6 +23,7 @@ import {
   BookingBusinessUnavailableError,
   BookingContactNotFoundError,
   BookingContactRequiredError,
+  BookingCancellationNotAllowedError,
   BookingDatesRequiredError,
   BookingNotDraftError,
   BookingNotFoundError,
@@ -48,6 +49,7 @@ import {
   InvalidBookingPricingInputError,
 } from '../application/confirm-booking.errors';
 import { ConfirmBookingUseCase } from '../application/confirm-booking.use-case';
+import { CancelBookingUseCase } from '../application/cancel-booking.use-case';
 import { SubmitBookingUseCase } from '../application/submit-booking.use-case';
 import { ConfirmBookingRequestDto } from './dto/confirm-booking.request.dto';
 
@@ -57,6 +59,7 @@ export class BookingLifecycleController {
   constructor(
     private readonly submitBooking: SubmitBookingUseCase,
     private readonly confirmBooking: ConfirmBookingUseCase,
+    private readonly cancelBooking: CancelBookingUseCase,
   ) {}
 
   @Post(':bookingId/submit')
@@ -116,6 +119,26 @@ export class BookingLifecycleController {
           bookingId,
           pricing: body.pricing,
         }),
+      );
+    } catch (error: unknown) {
+      throw this.mapError(error);
+    }
+  }
+
+  @Post(':bookingId/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cancels a draft, pending, or confirmed booking.' })
+  @ApiOkResponse({ type: BookingResponseDto })
+  @ApiBadRequestResponse()
+  @ApiNotFoundResponse()
+  @ApiConflictResponse()
+  async cancel(
+    @Param('businessId') businessId: string,
+    @Param('bookingId') bookingId: string,
+  ): Promise<BookingResponseDto> {
+    try {
+      return BookingResponseDto.fromDomain(
+        await this.cancelBooking.execute({ businessId, bookingId }),
       );
     } catch (error: unknown) {
       throw this.mapError(error);
@@ -186,6 +209,7 @@ export class BookingLifecycleController {
       BookingBusinessUnavailableError,
       BookingNotDraftError,
       BookingNotPendingError,
+      BookingCancellationNotAllowedError,
       BookingContactRequiredError,
       BookingResourcesRequiredError,
       BookingDatesRequiredError,
