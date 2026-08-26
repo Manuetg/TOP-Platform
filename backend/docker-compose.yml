@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: top
       POSTGRES_PASSWORD: top
@@ -9,5 +10,29 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U top -d top"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://top:top@postgres:5432/top?schema=public
+      PORT: 3000
+      CORS_ORIGIN: http://localhost:3001
+      JWT_ACCESS_SECRET: top-local-development-secret-change-in-production
+      REFRESH_TOKEN_TTL_SECONDS: 2592000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["sh", "-c", "npx prisma migrate deploy && npm run start"]
+
 volumes:
   postgres_data:

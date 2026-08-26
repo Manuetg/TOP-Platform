@@ -18,7 +18,7 @@ Lines, Statements y Functions: 85%. Branches: 80%. Domain y Application Core: 90
 
 ## Mutation testing
 
-Mutation score general mínimo: 70%; Booking, Availability, Pricing y Payment críticos: 80%.
+Mutation score general mínimo configurado: 70%; el umbral alto configurado es 80%. Los umbrales específicos por dominio solo aplican cuando ese dominio está incluido en el alcance de mutación vigente; no se debe declarar un dominio validado si no forma parte de esa ejecución.
 
 ## Complejidad ciclomática
 
@@ -34,7 +34,7 @@ Toda consulta operativa requiere `businessId`; pruebas cubren aislamiento y acce
 
 ## Procedimiento de QA
 
-Ejecutar `npm run quality:check`, `npx prisma validate` y mutation testing según el flujo de CI. Cubrir concurrencia e idempotencia cuando aplique.
+Ejecutar `npm run quality:check`, `npx prisma validate` y mutation testing según el flujo de CI y la capacidad modificada. Cubrir concurrencia e idempotencia cuando aplique.
 
 ## Excepciones y aprobación
 

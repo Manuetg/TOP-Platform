@@ -19,6 +19,8 @@ Diseñar experiencias simples, mobile first y rápidas para la operación turís
 - [Domain Bible](../docs/03-Domain-Bible.md).
 - [Business Rules](../docs/04-Business-Rules.md).
 - [Backlog](../docs/07-Backlog.md).
+- [Design Context](../docs/design/DESIGN.md).
+- [Brand Book v1](../docs/10-Brand-Book-v1.md).
 
 ## Puede modificar
 
@@ -33,6 +35,8 @@ Diseñar experiencias simples, mobile first y rápidas para la operación turís
 ## Forma de trabajo
 
 Trabajar por capacidad aprobada, declarar supuestos, usar estados vacíos, carga, error y éxito, y validar que ningún flujo suponga un único Business por usuario.
+
+Para decisiones visuales vigentes, prevalecen Brand Book v1 y Design Context. El documento `08-Fundamentos-de-Diseno-de-Producto.md` solo se consulta como referencia histórica provisional.
 
 ## Definición de éxito
 
