@@ -72,10 +72,10 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 - **BKG-002 — Get Booking.** Estado: Completed. Dominio: Booking. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/bookings/:bookingId`. Pruebas obligatorias: según convención. Definition of Done: aplicada.
 - **BKG-003 — List Bookings.** Estado: Completed. Dominio: Booking. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/bookings`. Pruebas obligatorias: según convención. Definition of Done: aplicada.
 - **BKG-004 — Update Booking.** Estado: Completed. Dominio: Booking. Prioridad: Alta. Endpoint: `PATCH /api/businesses/:businessId/bookings/:bookingId`. Pruebas obligatorias: según convención. Definition of Done: aplicada.
-- **BKG-005 — Booking Lifecycle.** Estado: Planned. Dominio: Booking. Prioridad: Alta. Endpoints propuestos: `POST /api/businesses/:businessId/bookings/:bookingId/submit`, `POST /api/businesses/:businessId/bookings/:bookingId/confirm` y `POST /api/businesses/:businessId/bookings/:bookingId/cancel`. Pruebas obligatorias: unitarias, integración PostgreSQL, E2E y aceptación según convención, más mutation focalizada. Definition of Done: implementa `DRAFT → PENDING`, `PENDING → CONFIRMED` y cancelación de estados permitidos; Submit exige Contact responsable, al menos un Resource y rango completo válido, y valida Availability antes de crear un estado potencialmente bloqueante; Confirm exige Pricing Snapshot y revalida AVL-004 inmediatamente antes de cambiar estado, preservando la garantía de concurrencia de BR-062; Cancel conserva historial y respeta las transiciones aprobadas. No incorpora check-in, check-out, No Show, Payments ni Timeline.
+- **BKG-005 — Booking Lifecycle.** Estado: Completed. Dominio: Booking. Prioridad: Alta. Endpoints: `POST /api/businesses/:businessId/bookings/:bookingId/submit`, `POST /api/businesses/:businessId/bookings/:bookingId/confirm` y `POST /api/businesses/:businessId/bookings/:bookingId/cancel`. Pruebas obligatorias: unitarias, integración PostgreSQL, E2E y aceptación según convención, más mutation focalizada. Definition of Done: aplicada. Evidencia técnica: commits `2b0de37`, `b810654`, `3106568` y `ee536ae`; Submit realiza `DRAFT → PENDING` tras validar Contact, Resources, rango y AVL-004. Confirm realiza `PENDING → CONFIRMED`, excluye la propia Booking de Availability, recalcula Pricing en backend, soporta override manual válido y persiste PricingSnapshot inmutable junto con el estado confirmado en una única transacción con protección de concurrencia. Cancel realiza `DRAFT`, `PENDING` o `CONFIRMED → CANCELLED`, es idempotente para `CANCELLED`, rechaza `IN_PROGRESS`, `COMPLETED` y `NO_SHOW` y preserva historial, Contact, Resources y PricingSnapshot. Validación local: Prisma generate/validate, lint, build, unit 78 suites/686 tests, integración 19 suites/58 tests, E2E 13 suites/132 tests, aceptación 89 escenarios/367 pasos, cobertura global statements 97,54%, branches 93,62%, functions 97,49% y lines 97,97%, arquitectura sin violaciones y quality check aprobados; mutation focalizada de Lifecycle 89,22% (sin timeouts; sobrevivientes restantes no funcionales o redundantes). No incorpora check-in, check-out, No Show, Payments ni Timeline.
 - **BKG-006 — Booking Timeline.** Estado: Planned. Dominio: Booking. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 
-Fuera del cierre BKG-001..004 permanecen BKG-005 Booking Lifecycle, BKG-006 Timeline, la persistencia/asociación de Pricing Snapshot necesaria para Confirm y Payments. La validación central de conflictos para Submit/Confirm ya está disponible mediante AVL-004.
+Fuera del cierre BKG-001..005 permanecen BKG-006 Timeline y Payments. La validación central de conflictos para Submit/Confirm está disponible mediante AVL-004; BKG-005 ya persiste el PricingSnapshot requerido por Confirm.
 
 ## Payment
 
@@ -109,11 +109,11 @@ Availability ya considera conjuntamente Booking, Block y el estado operativo del
 | Pricing | 5 | 5 | 0 | 0 | 0 |
 | Availability | 4 | 4 | 0 | 0 | 0 |
 | Contact | 4 | 4 | 0 | 0 | 0 |
-| Booking | 6 | 4 | 0 | 2 | 0 |
+| Booking | 6 | 5 | 0 | 1 | 0 |
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 3 | 0 | 0 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **38** | **0** | **13** | **0** |
+| **Total** | **51** | **39** | **0** | **12** | **0** |
 
 Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
@@ -123,10 +123,10 @@ Progreso de Pricing: 5 de 5 capacidades completadas (100%).
 
 Progreso de Availability: 4 de 4 capacidades completadas (100%).
 
+Progreso de Booking: 5 de 6 capacidades completadas (83,3%).
+
+Progreso general del MVP: 39 de 51 capacidades completadas (76,5%).
+
 Progreso de Contact: 4 de 4 capacidades completadas (100%).
 
-Progreso de Booking: 4 de 6 capacidades completadas (66,7%).
-
 Progreso de Block: 3 de 3 capacidades completadas (100%).
-
-Progreso general del MVP: 38 de 51 capacidades completadas (74,5%).
