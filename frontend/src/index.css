@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   font-family: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
 
@@ -309,5 +309,93 @@ svg {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+.top-not-found-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+}
+
+.top-not-found-layout {
+  align-self: center;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(320px, 1fr);
+  gap: var(--space-8);
+  align-items: center;
+  padding: var(--space-8) 0;
+  width: min(100%, 1120px);
+}
+
+.top-not-found-code {
+  color: var(--color-brand-primary);
+  font-size: clamp(72px, 9vw, 128px);
+  line-height: 0.9;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.top-not-found-content {
+  max-width: 480px;
+  display: grid;
+  justify-items: start;
+}
+
+.top-not-found-title {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 40px);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.top-not-found-description {
+  max-width: 44ch;
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 24px;
+  text-wrap: pretty;
+}
+
+.top-not-found-action {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-5);
+  text-decoration: none;
+}
+
+@media (max-width: 767px) {
+  .top-not-found-page {
+    padding: var(--space-4);
+  }
+
+  .top-not-found-shell {
+  min-height: calc(100dvh - (var(--space-4) * 2));
+  }
+
+  .top-not-found-layout {
+    align-self: start;
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+    padding: var(--space-8) 0 var(--space-6);
+  }
+
+  .top-not-found-code {
+    font-size: clamp(64px, 24vw, 96px);
+  }
+
+  .top-not-found-title {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  .top-not-found-action {
+    width: 100%;
   }
 }

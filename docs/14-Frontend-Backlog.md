@@ -165,13 +165,15 @@ Implementado:
 
 - React Router;
 - `/login`;
-- redirect `/ → /login`.
+- redirect `/ → /login`;
+- ruta catch-all `*`;
+- pantalla 404 responsive y accesible;
+- navegación desde 404 hacia `/login`.
 
 Pendiente:
 
 - layout privado;
 - rutas protegidas;
-- 404;
 - navegación principal;
 - redirecciones según sesión.
 
