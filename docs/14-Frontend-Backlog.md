@@ -47,8 +47,8 @@ Total historias frontend: 44
 
 Estado actual:
 
-- Completed: 2
-- In Progress: 4
+- Completed: 3
+- In Progress: 3
 - Planned: 35
 - Blocked: 3
 
@@ -92,7 +92,7 @@ Criterios de aceptación:
 
 ## FE-FND-002 — Shared UI Foundation
 
-Estado: In Progress
+Estado: Completed
 
 Objetivo:
 
@@ -100,18 +100,15 @@ Establecer componentes UI reutilizables alineados con la identidad visual TOP.
 
 Implementado:
 
-- Button.
-- Input.
-- Badge.
-- design tokens iniciales.
-- Plus Jakarta Sans.
-
-Pendiente:
-
-- estados hover/focus/disabled coherentes;
-- accesibilidad básica;
-- componentes necesarios según evolución real del producto;
-- evitar crear un design system excesivo antes de necesitarlo.
+- Button;
+- Input;
+- Badge;
+- design tokens iniciales;
+- Plus Jakarta Sans;
+- estados hover, active, focus y disabled;
+- soporte de `prefers-reduced-motion`;
+- accesibilidad básica en controles;
+- tests de Button, Input y Badge.
 
 Criterios de aceptación:
 
@@ -985,3 +982,4 @@ Si frontend necesita un cambio backend:
 | Payment | 0 | 0 | 0 | 1 |
 | Dashboard | 0 | 0 | 0 | 1 |
 | **TOTAL** | **1** | **4** | **36** | **3** |
+
