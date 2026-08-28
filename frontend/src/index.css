@@ -263,3 +263,51 @@ svg {
     padding: var(--space-5);
   }
 }
+
+@media (hover: hover) {
+  .top-button--primary:not(:disabled):hover {
+    background: #104c3f;
+  }
+
+  .top-button--secondary:not(:disabled):hover {
+    background: var(--color-background);
+    border-color: #b8c6c0;
+  }
+
+  .top-button--ghost:not(:disabled):hover {
+    background: rgba(21, 92, 76, 0.08);
+  }
+
+  .top-button--danger:not(:disabled):hover {
+    background: #912018;
+  }
+
+  .top-input:not(:disabled):hover {
+    border-color: #b8c6c0;
+  }
+}
+
+.top-button:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.top-input:focus-visible {
+  border-color: var(--color-brand-primary);
+}
+
+.top-input:disabled {
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
