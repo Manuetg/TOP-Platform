@@ -175,11 +175,14 @@ Implementado:
 - navegación agrupada por Operación y Gestión;
 - navegación inferior mobile con Inicio, Calendario, Reservas y Más;
 - estado activo accesible y responsive.
+- navegación real del App Shell conectada a React Router;
+- rutas `/app` y secciones operativas/gestión;
+- soporte de deep links por sección;
+- sincronización del estado activo con la URL.
 
 Pendiente:
 
 - rutas protegidas;
-- navegación real conectada a React Router;
 - integración con sesión y Business activo real;
 - menú/flujo de `Más` en mobile;
 - redirecciones según sesión.
