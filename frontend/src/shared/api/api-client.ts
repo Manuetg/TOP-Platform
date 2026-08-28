@@ -1,4 +1,4 @@
-const API_URL =
+﻿const API_URL =
   import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
 export class ApiError extends Error {
@@ -15,16 +15,33 @@ interface ApiErrorBody {
   message?: string | string[];
 }
 
+export interface ApiRequestOptions extends RequestInit {
+  accessToken?: string | null;
+}
+
 export async function apiRequest<T>(
   path: string,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
+  const {
+    accessToken,
+    headers: customHeaders,
+    ...requestOptions
+  } = options;
+
+  const headers = new Headers(customHeaders);
+
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  if (accessToken && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+
   const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
+    ...requestOptions,
+    headers,
   });
 
   if (!response.ok) {

@@ -133,15 +133,19 @@ Implementado:
 - `apiRequest<T>()`;
 - `ApiError`;
 - `VITE_API_URL`;
-- interpretación básica de errores backend.
+- interpretación básica de errores backend;
+- soporte opcional de `Authorization: Bearer`;
+- preservación de headers personalizados;
+- soporte de respuestas `204`;
+- tests unitarios del API client.
 
 Pendiente:
 
-- soporte Authorization Bearer;
-- manejo central de 401;
+- manejo central de `401`;
 - integración con refresh token;
 - evitar loops de refresh;
-- manejo consistente de errores globales.
+- manejo consistente de errores globales;
+- conexión automática con la sesión autenticada.
 
 Criterios de aceptación:
 
