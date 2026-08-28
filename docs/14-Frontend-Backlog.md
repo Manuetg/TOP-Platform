@@ -168,13 +168,20 @@ Implementado:
 - redirect `/ → /login`;
 - ruta catch-all `*`;
 - pantalla 404 responsive y accesible;
-- navegación desde 404 hacia `/login`.
+- navegación desde 404 hacia `/login`;
+- App Shell responsive base;
+- sidebar persistente en desktop;
+- contexto de Business activo visible;
+- navegación agrupada por Operación y Gestión;
+- navegación inferior mobile con Inicio, Calendario, Reservas y Más;
+- estado activo accesible y responsive.
 
 Pendiente:
 
-- layout privado;
 - rutas protegidas;
-- navegación principal;
+- navegación real conectada a React Router;
+- integración con sesión y Business activo real;
+- menú/flujo de `Más` en mobile;
 - redirecciones según sesión.
 
 Criterios de aceptación:
