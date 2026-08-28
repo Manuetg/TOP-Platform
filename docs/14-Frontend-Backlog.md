@@ -1,6 +1,6 @@
-# TOP — Frontend Backlog
+﻿# TOP — Frontend Backlog
 
-Última actualización: 2026-08-27
+Última actualización: 2026-08-28
 
 ## Objetivo
 
@@ -45,11 +45,11 @@ Las reglas de negocio continúan siendo responsabilidad del backend y de la docu
 
 Total historias frontend: 44
 
-Estado inicial:
+Estado actual:
 
-- Completed: 1
+- Completed: 2
 - In Progress: 4
-- Planned: 36
+- Planned: 35
 - Blocked: 3
 
 ---
@@ -222,26 +222,39 @@ Criterios de aceptación:
 
 ## FE-IAM-002 — Authenticated Session State
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
-Mantener el estado del usuario autenticado durante el uso de la aplicación.
+Mantener en memoria el estado del usuario autenticado durante el uso actual de la aplicación.
 
-Debe incluir:
+Implementado:
 
+- estado de sesión centralizado mediante `AuthProvider`;
 - access token;
 - refresh token;
-- usuario;
+- usuario autenticado;
 - memberships;
-- business activo;
-- estado autenticado/no autenticado.
+- estado autenticado/no autenticado;
+- integración del login con el estado de sesión;
+- tests del estado inicial y establecimiento de sesión.
+
+Fuera de alcance:
+
+- persistencia entre recargas — FE-IAM-003;
+- rotación de refresh token — FE-IAM-004;
+- logout — FE-IAM-005;
+- protected routes — FE-IAM-006;
+- Business activo — FE-BUS-001;
+- Authorization Bearer en API client — FE-FND-003.
 
 Criterios de aceptación:
 
-- componentes privados conocen sesión;
-- API client puede leer access token;
-- no se duplican estados de autenticación.
+- existe una única fuente de estado de autenticación;
+- la sesión devuelta por login queda disponible globalmente;
+- access token, refresh token, usuario y memberships quedan disponibles en memoria;
+- el estado distingue usuario autenticado y no autenticado;
+- no se implementa persistencia ni lógica de refresh en esta historia.
 
 ---
 

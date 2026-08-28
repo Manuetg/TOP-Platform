@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+﻿import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { login } from "../api/login";
@@ -6,11 +6,14 @@ import {
   loginSchema,
   type LoginFormValues,
 } from "../schemas/login.schema";
+import { useAuth } from "../context/AuthContext";
 import { ApiError } from "../../../shared/api/api-client";
 import { Button } from "../../../shared/ui/Button";
 import { Input } from "../../../shared/ui/Input";
 
 export function LoginPage() {
+  const { establishSession } = useAuth();
+
   const {
     register,
     handleSubmit,
@@ -26,7 +29,7 @@ export function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (data) => {
-      console.log("Login OK", data);
+      establishSession(data);
     },
   });
 
