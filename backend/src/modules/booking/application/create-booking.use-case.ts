@@ -7,7 +7,7 @@ import { BUSINESS_REPOSITORY, type BusinessRepository } from '../../business/bus
 import { CONTACT_LOOKUP, type ContactLookup } from '../../contact/contact.contract';
 import { RESOURCE_REPOSITORY, type ResourceRepository } from '../../resource/resource.contract';
 
-export interface CreateBookingInput { businessId: unknown; contactId?: unknown; resourceIds?: unknown; checkInDate?: unknown; checkOutDate?: unknown; adults?: unknown; children?: unknown; notes?: unknown; }
+export interface CreateBookingInput { businessId: unknown; actorUserId?: unknown; contactId?: unknown; resourceIds?: unknown; checkInDate?: unknown; checkOutDate?: unknown; adults?: unknown; children?: unknown; notes?: unknown; }
 @Injectable()
 export class CreateBookingUseCase extends BookingBase {
   constructor(@Inject(BUSINESS_REPOSITORY) businesses: BusinessRepository, @Inject(CONTACT_LOOKUP) contacts: ContactLookup, @Inject(RESOURCE_REPOSITORY) resources: ResourceRepository, @Inject(BOOKING_REPOSITORY) private readonly bookings: BookingRepository) { super(businesses, contacts, resources); }
@@ -24,6 +24,7 @@ export class CreateBookingUseCase extends BookingBase {
     await this.activeBusiness(businessId);
     await this.validateContact(businessId, contactId);
     await this.validateResources(businessId, resourceIds);
-    return this.bookings.create({ businessId, contactId, resourceIds, checkInDate, checkOutDate, adults, children, notes });
+    const actorUserId = input.actorUserId === undefined ? null : requireBookingUuid(input.actorUserId, 'El identificador del actor no es válido.');
+    return this.bookings.create({ businessId, contactId, resourceIds, checkInDate, checkOutDate, adults, children, notes, actorUserId });
   }
 }

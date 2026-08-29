@@ -30,6 +30,7 @@ import {
 export interface SubmitBookingInput {
   businessId: unknown;
   bookingId: unknown;
+  actorUserId?: unknown;
 }
 
 @Injectable()
@@ -58,7 +59,8 @@ export class SubmitBookingUseCase {
       checkOutDate: this.date(range.checkOutDate),
     });
     if (!result.valid) throw new BookingAvailabilityConflictError('La reserva tiene conflictos de disponibilidad.');
-    return this.bookings.markPending(booking.id);
+    const actorUserId = input.actorUserId === undefined ? null : requireBookingUuid(input.actorUserId, 'El identificador del actor no es válido.');
+    return this.bookings.markPending(booking.id, businessId, actorUserId);
   }
 
   private async activeBusiness(businessId: string): Promise<void> {

@@ -126,25 +126,26 @@ model RefreshSession {
 }
 
 model Business {
-  id               String                   @id @default(uuid())
-  businessNumber   Int?
-  name             String
-  legalName        String?
-  taxId            String?
-  timezone         String                   @default("America/Asuncion")
-  currency         String                   @default("PYG")
-  status           BusinessStatus           @default(ACTIVE)
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
-  memberships      UserBusinessMembership[]
-  resources        Resource[]
-  resourceImages   ResourceImage[]
-  ratePlans        RatePlan[]
-  contacts         Contact[]
-  blocks           Block[]
-  bookings         Booking[]
-  pricingSnapshots PricingSnapshot[]
-  availabilityRule AvailabilityRule?
+  id                    String                   @id @default(uuid())
+  businessNumber        Int?
+  name                  String
+  legalName             String?
+  taxId                 String?
+  timezone              String                   @default("America/Asuncion")
+  currency              String                   @default("PYG")
+  status                BusinessStatus           @default(ACTIVE)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  memberships           UserBusinessMembership[]
+  resources             Resource[]
+  resourceImages        ResourceImage[]
+  ratePlans             RatePlan[]
+  contacts              Contact[]
+  blocks                Block[]
+  bookings              Booking[]
+  pricingSnapshots      PricingSnapshot[]
+  bookingTimelineEvents BookingTimelineEvent[]
+  availabilityRule      AvailabilityRule?
 }
 
 model AvailabilityRule {
@@ -319,24 +320,40 @@ model Block {
 }
 
 model Booking {
-  id              String            @id @default(uuid())
+  id              String                 @id @default(uuid())
   businessId      String
-  status          BookingStatus     @default(DRAFT)
+  status          BookingStatus          @default(DRAFT)
   contactId       String?
-  checkInDate     DateTime?         @db.Date
-  checkOutDate    DateTime?         @db.Date
+  checkInDate     DateTime?              @db.Date
+  checkOutDate    DateTime?              @db.Date
   adults          Int?
   children        Int?
   notes           String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  business        Business          @relation(fields: [businessId], references: [id], onDelete: Restrict)
-  contact         Contact?          @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  business        Business               @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  contact         Contact?               @relation(fields: [contactId], references: [id], onDelete: Restrict)
   resources       BookingResource[]
   pricingSnapshot PricingSnapshot?
+  timelineEvents  BookingTimelineEvent[]
 
+  @@unique([id, businessId])
   @@index([businessId, status, createdAt])
   @@index([businessId, contactId])
+}
+
+model BookingTimelineEvent {
+  id          String   @id @default(uuid())
+  businessId  String
+  bookingId   String
+  type        String
+  occurredAt  DateTime @default(now())
+  actorUserId String?
+  details     Json
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  booking     Booking  @relation(fields: [bookingId, businessId], references: [id, businessId], onDelete: Restrict)
+
+  @@index([businessId, bookingId, occurredAt, id])
 }
 
 model BookingResource {

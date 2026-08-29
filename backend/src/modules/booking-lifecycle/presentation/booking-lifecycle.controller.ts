@@ -8,6 +8,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  Req,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -53,6 +54,8 @@ import { CancelBookingUseCase } from '../application/cancel-booking.use-case';
 import { SubmitBookingUseCase } from '../application/submit-booking.use-case';
 import { ConfirmBookingRequestDto } from './dto/confirm-booking.request.dto';
 import { BusinessAccess } from '../../../shared/security/security.decorators';
+import type { AuthenticatedRequest } from '../../../shared/security/authenticated-principal';
+import { CancelBookingRequestDto } from './dto/cancel-booking.request.dto';
 
 @ApiTags('Bookings')
 @BusinessAccess('businessId')
@@ -81,12 +84,14 @@ export class BookingLifecycleController {
     businessId: string,
     @Param('bookingId')
     bookingId: string,
+    @Req() request?: AuthenticatedRequest,
   ): Promise<BookingResponseDto> {
     try {
       return BookingResponseDto.fromDomain(
         await this.submitBooking.execute({
           businessId,
           bookingId,
+          ...(request?.authenticatedPrincipal ? { actorUserId: request.authenticatedPrincipal.userId } : {}),
         }),
       );
     } catch (error: unknown) {
@@ -113,6 +118,7 @@ export class BookingLifecycleController {
     bookingId: string,
     @Body()
     body: ConfirmBookingRequestDto,
+    @Req() request?: AuthenticatedRequest,
   ): Promise<BookingResponseDto> {
     try {
       return BookingResponseDto.fromDomain(
@@ -120,6 +126,7 @@ export class BookingLifecycleController {
           businessId,
           bookingId,
           pricing: body.pricing,
+          ...(request?.authenticatedPrincipal ? { actorUserId: request.authenticatedPrincipal.userId } : {}),
         }),
       );
     } catch (error: unknown) {
@@ -137,10 +144,12 @@ export class BookingLifecycleController {
   async cancel(
     @Param('businessId') businessId: string,
     @Param('bookingId') bookingId: string,
+    @Body() body: CancelBookingRequestDto = {},
+    @Req() request?: AuthenticatedRequest,
   ): Promise<BookingResponseDto> {
     try {
       return BookingResponseDto.fromDomain(
-        await this.cancelBooking.execute({ businessId, bookingId }),
+        await this.cancelBooking.execute({ businessId, bookingId, ...(request?.authenticatedPrincipal ? { actorUserId: request.authenticatedPrincipal.userId } : {}), ...(body.reason !== undefined ? { reason: body.reason } : {}) }),
       );
     } catch (error: unknown) {
       throw this.mapError(error);

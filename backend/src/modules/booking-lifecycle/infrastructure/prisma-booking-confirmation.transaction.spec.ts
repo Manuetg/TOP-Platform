@@ -9,11 +9,13 @@ describe('PrismaBookingConfirmationTransaction', () => {
   const findFirst = jest.fn();
   const updateMany = jest.fn();
   const createSnapshot = jest.fn();
+  const createTimelineEvent = jest.fn();
   const queryRaw = jest.fn();
   const executeRaw = jest.fn();
   const transaction = {
     booking: { findFirst, updateMany },
     pricingSnapshot: { create: createSnapshot },
+    bookingTimelineEvent: { create: createTimelineEvent },
     $queryRaw: queryRaw,
     $executeRaw: executeRaw,
   };
@@ -46,6 +48,7 @@ describe('PrismaBookingConfirmationTransaction', () => {
   const input = () => ({
     businessId,
     bookingId,
+    actorUserId: null,
     prepare: jest.fn().mockResolvedValue({
       currency: 'PYG',
       totalAmountMinor: 300000,

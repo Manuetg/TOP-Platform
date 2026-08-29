@@ -46,6 +46,7 @@ export interface ConfirmBookingInput {
   businessId: unknown;
   bookingId: unknown;
   pricing?: unknown;
+  actorUserId?: unknown;
 }
 
 interface ConfirmBookingPricingInput {
@@ -86,6 +87,7 @@ export class ConfirmBookingUseCase {
       input.bookingId,
       'El identificador de la reserva no es válido.',
     );
+    const actorUserId = input.actorUserId === undefined ? null : requireBookingUuid(input.actorUserId, 'El identificador del actor no es válido.');
 
     await this.activeBusiness(businessId);
 
@@ -120,6 +122,7 @@ export class ConfirmBookingUseCase {
     const result = await this.confirmation.confirm({
       businessId,
       bookingId,
+      actorUserId,
       prepare: async () => {
         const availability =
           await this.availability.validate({

@@ -72,6 +72,7 @@ describe('ConfirmBookingUseCase', () => {
       update: jest.fn(),
       markPending: jest.fn(),
       markCancelled: jest.fn(),
+      appendTimelineEvent: jest.fn(),
       hasBlockingBooking: jest.fn(),
       listBlockingBookings: jest.fn(),
     },
