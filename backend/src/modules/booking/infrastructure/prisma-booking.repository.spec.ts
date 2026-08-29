@@ -8,7 +8,7 @@ type Row = PrismaBooking & { resources: BookingResource[] };
 const row = (values: Partial<Row> = {}): Row => ({ id: bookingId, businessId, status: 'DRAFT', contactId: null, checkInDate: null, checkOutDate: null, adults: null, children: null, notes: null, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-01-01'), resources: [], ...values });
 
 describe('PrismaBookingRepository', () => {
-  const booking = { create: jest.fn<Promise<Row>, [unknown]>(), findFirst: jest.fn(), findMany: jest.fn(), update: jest.fn(), findUniqueOrThrow: jest.fn() }; const bookingResource = { deleteMany: jest.fn(), createMany: jest.fn() }; const transaction = { booking, bookingResource }; const prisma = { $transaction: jest.fn((callback: (client: typeof transaction) => unknown) => callback(transaction)), booking, bookingResource };
+  const booking = { create: jest.fn<Promise<Row>, [unknown]>(), findFirst: jest.fn(), findMany: jest.fn(), update: jest.fn(), findUniqueOrThrow: jest.fn() }; const bookingResource = { deleteMany: jest.fn(), createMany: jest.fn() }; const bookingTimelineEvent={create:jest.fn(),findMany:jest.fn()}; const transaction = { booking, bookingResource, bookingTimelineEvent }; const prisma = { $transaction: jest.fn((callback: (client: typeof transaction) => unknown) => callback(transaction)), booking, bookingResource, bookingTimelineEvent };
   const repository = new PrismaBookingRepository(prisma as never);
   beforeEach(() => jest.clearAllMocks());
   it('creates an atomic empty draft and maps nullables', async () => {

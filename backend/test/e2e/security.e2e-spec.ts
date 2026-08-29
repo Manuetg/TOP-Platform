@@ -117,6 +117,8 @@ describe('Protección JWT y membresía', () => {
     await request(app.getHttpServer()).get('/api/security-probe/default').expect(401);
   });
 
+  it('protege Booking Timeline con JWT activo y membresía del tenant',async()=>{const endpoint=`/api/businesses/${businessId}/bookings/44444444-4444-4444-8444-444444444444/timeline`;await request(app.getHttpServer()).get(endpoint).expect(401);await request(app.getHttpServer()).get(endpoint).set('Authorization','Bearer invalid').expect(401);const token=await bearer();await request(app.getHttpServer()).get(endpoint).set('Authorization',`Bearer ${token}`).expect(403);userStatus=UserStatus.DISABLED;await request(app.getHttpServer()).get(endpoint).set('Authorization',`Bearer ${token}`).expect(401);});
+
   it('mantiene Login, Refresh y Logout libres de Bearer', async () => {
     await request(app.getHttpServer()).post('/api/auth/login').send({}).expect(400);
     await request(app.getHttpServer()).post('/api/auth/refresh').send({}).expect(400);

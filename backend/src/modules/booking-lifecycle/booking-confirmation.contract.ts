@@ -16,6 +16,7 @@ export type BookingConfirmationTransactionResult =
 export interface BookingConfirmationTransactionInput {
   businessId: string;
   bookingId: string;
+  actorUserId: string | null;
   prepare: () => Promise<BookingConfirmationSnapshotData>;
 }
 

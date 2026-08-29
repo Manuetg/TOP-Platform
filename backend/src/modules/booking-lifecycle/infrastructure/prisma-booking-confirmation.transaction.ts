@@ -115,6 +115,16 @@ export class PrismaBookingConfirmationTransaction
       );
     }
 
+    await transaction.bookingTimelineEvent.create({
+      data: {
+        businessId: input.businessId,
+        bookingId: input.bookingId,
+        type: 'BOOKING_CONFIRMED',
+        actorUserId: input.actorUserId,
+        details: {},
+      },
+    });
+
     return 'CONFIRMED';
   }
 

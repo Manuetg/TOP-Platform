@@ -12,6 +12,7 @@ import { BookingController } from './presentation/booking.controller';
 import { BOOKING_AVAILABILITY_LOOKUP } from './booking.contract';
 import { PrismaBookingTimelineRepository } from './infrastructure/prisma-booking-timeline.repository';
 import { BOOKING_TIMELINE_REPOSITORY } from './booking.contract';
+import { ListBookingTimelineUseCase } from './application/list-booking-timeline.use-case';
 
-@Module({ imports: [BusinessModule, ContactModule, ResourceModule], controllers: [BookingController], providers: [PrismaBookingRepository, PrismaBookingTimelineRepository, { provide: BOOKING_REPOSITORY, useExisting: PrismaBookingRepository }, {provide:BOOKING_AVAILABILITY_LOOKUP,useExisting:PrismaBookingRepository}, {provide:BOOKING_TIMELINE_REPOSITORY,useExisting:PrismaBookingTimelineRepository}, CreateBookingUseCase, GetBookingUseCase, ListBookingsUseCase, UpdateBookingUseCase], exports: [BOOKING_REPOSITORY,BOOKING_AVAILABILITY_LOOKUP,BOOKING_TIMELINE_REPOSITORY] })
+@Module({ imports: [BusinessModule, ContactModule, ResourceModule], controllers: [BookingController], providers: [PrismaBookingRepository, PrismaBookingTimelineRepository, { provide: BOOKING_REPOSITORY, useExisting: PrismaBookingRepository }, {provide:BOOKING_AVAILABILITY_LOOKUP,useExisting:PrismaBookingRepository}, {provide:BOOKING_TIMELINE_REPOSITORY,useExisting:PrismaBookingTimelineRepository}, CreateBookingUseCase, GetBookingUseCase, ListBookingsUseCase, UpdateBookingUseCase, ListBookingTimelineUseCase], exports: [BOOKING_REPOSITORY,BOOKING_AVAILABILITY_LOOKUP,BOOKING_TIMELINE_REPOSITORY] })
 export class BookingModule {}

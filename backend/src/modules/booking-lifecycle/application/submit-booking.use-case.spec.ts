@@ -63,6 +63,7 @@ describe('SubmitBookingUseCase', () => {
       update: jest.fn(),
       markPending,
       markCancelled: jest.fn(),
+      appendTimelineEvent: jest.fn(),
       hasBlockingBooking: jest.fn(),
       listBlockingBookings: jest.fn(),
     },
@@ -126,7 +127,7 @@ describe('SubmitBookingUseCase', () => {
       checkOutDate: '2026-05-12',
     });
 
-    expect(markPending).toHaveBeenCalledWith(bookingId);
+    expect(markPending).toHaveBeenCalledWith(bookingId, businessId, null);
   });
 
   it.each([
