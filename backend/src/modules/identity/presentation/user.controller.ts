@@ -7,8 +7,10 @@ import { UserResponseDto } from './dto/user.response.dto';
 import { DisableUserResponseDto } from './dto/disable-user.response.dto';
 import { UpdateUserRequestDto } from './dto/update-user.request.dto';
 import { DisableUserUseCase, InvalidUserIdError, UserNotFoundError } from '../application/disable-user.use-case';
+import { AnyBusinessRole } from '../../../shared/security/security.decorators';
 
 @ApiTags('Users')
+@AnyBusinessRole('OWNER', 'ADMIN')
 @Controller('users')
 export class UserController {
   constructor(private readonly createUserUseCase: CreateUserUseCase, private readonly disableUserUseCase: DisableUserUseCase, private readonly updateUserUseCase: UpdateUserUseCase) {}

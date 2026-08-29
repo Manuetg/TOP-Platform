@@ -11,10 +11,12 @@ import { AvailabilityModule } from './modules/availability/availability.module';
 import { BookingLifecycleModule } from './modules/booking-lifecycle/booking-lifecycle.module';
 import { HealthService } from './shared/application/health.service';
 import { HealthController } from './shared/presentation/health.controller';
+import { AuthenticationGuard } from './shared/security/authentication.guard';
+import { BusinessAuthorizationGuard } from './shared/security/business-authorization.guard';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), BusinessModule, IdentityModule, ResourceModule, PricingModule, ContactModule, BlockModule, BookingModule, AvailabilityModule, BookingLifecycleModule],
   controllers: [HealthController],
-  providers: [HealthService],
+  providers: [HealthService, AuthenticationGuard, BusinessAuthorizationGuard],
 })
 export class AppModule {}

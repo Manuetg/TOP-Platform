@@ -13,6 +13,7 @@ const unsafeDatabaseMessage = [
 ].join(' ');
 
 describeWithPostgres('PrismaBusinessRepository con PostgreSQL', () => {
+  const userId = '11111111-1111-4111-8111-111111111111';
   const prisma = new PrismaClient();
   const repository = new PrismaBusinessRepository(prisma);
 
@@ -41,7 +42,7 @@ describeWithPostgres('PrismaBusinessRepository con PostgreSQL', () => {
   });
 
   it('retorna una lista vacía cuando no existen Businesses en la base de pruebas', async () => {
-    await expect(repository.list()).resolves.toEqual([]);
+    await expect(repository.list('11111111-1111-4111-8111-111111111111')).resolves.toEqual([]);
   });
 
   it('persiste y recupera Business con defaults de PostgreSQL', async () => {
@@ -55,10 +56,12 @@ describeWithPostgres('PrismaBusinessRepository con PostgreSQL', () => {
   });
 
   it('lista registros de PostgreSQL ordenados ascendentemente por fecha de creación', async () => {
+    await prisma.user.create({ data: { id: userId, email: 'business-list@example.com' } });
     const first = await prisma.business.create({ data: { name: 'Business de integración primero', createdAt: new Date('2026-01-01T00:00:00.000Z') } });
     const second = await prisma.business.create({ data: { name: 'Business de integración segundo', createdAt: new Date('2026-01-02T00:00:00.000Z') } });
+    await prisma.userBusinessMembership.createMany({ data: [{ userId, businessId: first.id, role: 'OWNER' }, { userId, businessId: second.id, role: 'VIEWER' }] });
 
-    const businesses = await repository.list();
+    const businesses = await repository.list('11111111-1111-4111-8111-111111111111');
 
     expect(businesses).toHaveLength(2);
     expect(businesses.map((business) => business.id)).toEqual([first.id, second.id]);
@@ -83,13 +86,15 @@ describeWithPostgres('PrismaBusinessRepository con PostgreSQL', () => {
     expect(persisted.updatedAt.getTime()).toBeGreaterThan(created.updatedAt.getTime());
   });
   it('persiste el archivado y lo excluye del listado activo', async () => {
+    await prisma.user.create({ data: { id: userId, email: 'business-archive-list@example.com' } });
     const archived = await repository.create({ name: 'Archivado' });
     const active = await repository.create({ name: 'Activo' });
+    await prisma.userBusinessMembership.createMany({ data: [{ userId, businessId: archived.id, role: 'OWNER' }, { userId, businessId: active.id, role: 'OWNER' }] });
 
     const archivedResult = await repository.update(archived.archive());
     const persisted = await prisma.business.findUniqueOrThrow({ where: { id: archived.id } });
     const found = await repository.findById(archived.id);
-    const listed = await repository.list();
+    const listed = await repository.list('11111111-1111-4111-8111-111111111111');
 
     expect(archivedResult.status).toBe('ARCHIVED');
     expect(persisted.status).toBe('ARCHIVED');

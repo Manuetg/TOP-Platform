@@ -52,8 +52,10 @@ import { ConfirmBookingUseCase } from '../application/confirm-booking.use-case';
 import { CancelBookingUseCase } from '../application/cancel-booking.use-case';
 import { SubmitBookingUseCase } from '../application/submit-booking.use-case';
 import { ConfirmBookingRequestDto } from './dto/confirm-booking.request.dto';
+import { BusinessAccess } from '../../../shared/security/security.decorators';
 
 @ApiTags('Bookings')
+@BusinessAccess('businessId')
 @Controller('businesses/:businessId/bookings')
 export class BookingLifecycleController {
   constructor(

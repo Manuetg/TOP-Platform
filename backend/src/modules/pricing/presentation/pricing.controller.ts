@@ -18,12 +18,14 @@ import { CreateSeasonalRateRequestDto } from './dto/create-seasonal-rate.request
 import { RatePlanResponseDto } from './dto/rate-plan.response.dto';
 import { SeasonalRateResponseDto } from './dto/seasonal-rate.response.dto';
 import { UpdateRatePlanRequestDto } from './dto/update-rate-plan.request.dto';
+import { BusinessAccess } from '../../../shared/security/security.decorators';
 
 const notFoundErrors = [RatePlanBusinessNotFoundError, RatePlanResourceNotFoundError, RatePlanNotFoundError, SeasonalRateBusinessNotFoundError, SeasonalRatePlanNotFoundError, CalculatePriceBusinessNotFoundError, CalculatePriceResourceNotFoundError, CalculatePriceRatePlanNotFoundError];
 const conflictErrors = [RatePlanBusinessArchivedError, RatePlanResourceArchivedError, RatePlanArchivedError, SeasonalRateBusinessArchivedError, SeasonalRatePlanArchivedError, SeasonalRateValidityConflictError, SeasonalRateOverlapError, CalculatePriceBusinessArchivedError, CalculatePriceResourceUnavailableError, CalculatePriceRatePlanArchivedError, CalculatePriceRatePlanNotAssignedError, CalculatePriceOutsideValidityError];
 const isExpectedError = (error: unknown, types: Array<new (...args: never[]) => Error>): boolean => types.some((type) => error instanceof type);
 
 @ApiTags('Pricing')
+@BusinessAccess('businessId')
 @Controller('businesses/:businessId/rate-plans')
 export class PricingController {
   constructor(private readonly createRatePlan: CreateRatePlanUseCase, private readonly updateRatePlan: UpdateRatePlanUseCase, private readonly createSeasonalRate: CreateSeasonalRateUseCase, private readonly listSeasonalRates: ListSeasonalRatesUseCase, private readonly calculatePriceUseCase: CalculatePriceUseCase, private readonly applyManualPriceOverrideUseCase: ApplyManualPriceOverrideUseCase) {}

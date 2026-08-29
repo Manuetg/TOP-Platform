@@ -64,7 +64,7 @@ describe('Auth endpoint', () => {
       .overrideProvider(USER_STATUS_REPOSITORY).useValue({ update: (user: User) => { record = record ? { ...record, user } : null; return Promise.resolve(user); } })
       .compile();
     app = module.createNestApplication();
-    configureApplication(app);
+    configureApplication(app, { security: false });
     await app.init();
   });
 

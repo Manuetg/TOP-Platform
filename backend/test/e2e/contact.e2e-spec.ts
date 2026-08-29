@@ -95,7 +95,7 @@ describe('Contact endpoint', () => {
       .compile();
 
     app = module.createNestApplication();
-    configureApplication(app);
+    configureApplication(app, { security: false });
     await app.init();
   });
 

@@ -20,6 +20,7 @@ import {
   RESOURCE_REPOSITORY,
   ResourceStatus,
 } from '../../src/modules/resource/resource.contract';
+import { AVAILABILITY_RULES_REPOSITORY } from '../../src/modules/availability/domain/availability-rules.repository';
 
 const businessId = '11111111-1111-4111-8111-111111111111';
 const otherBusinessId = '22222222-2222-4222-8222-222222222222';
@@ -89,9 +90,11 @@ describe('Availability calendar endpoint', () => {
         hasBlockingBlock: jest.fn(),
         listBlockingBlocks: () => Promise.resolve(blockConflicts),
       })
+      .overrideProvider(AVAILABILITY_RULES_REPOSITORY)
+      .useValue({ findByBusinessId: () => Promise.resolve(null), save: jest.fn() })
       .compile();
     app = module.createNestApplication();
-    configureApplication(app);
+    configureApplication(app, { security: false });
     await app.init();
   });
 

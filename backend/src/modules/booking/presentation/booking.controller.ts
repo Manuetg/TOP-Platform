@@ -9,8 +9,10 @@ import { BookingResponseDto } from './dto/booking.response.dto';
 import { CreateBookingRequestDto } from './dto/create-booking.request.dto';
 import { UpdateBookingRequestDto } from './dto/update-booking.request.dto';
 import { ListBookingsRequestDto } from './dto/list-bookings.request.dto';
+import { BusinessAccess } from '../../../shared/security/security.decorators';
 
 @ApiTags('Bookings')
+@BusinessAccess('businessId')
 @Controller('businesses/:businessId/bookings')
 export class BookingController {
   constructor(private readonly create: CreateBookingUseCase, private readonly getBooking: GetBookingUseCase, private readonly list: ListBookingsUseCase, private readonly updateBooking: UpdateBookingUseCase) {}

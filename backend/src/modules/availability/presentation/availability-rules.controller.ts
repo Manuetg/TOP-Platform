@@ -3,8 +3,10 @@ import { ApiBadRequestResponse, ApiConflictResponse, ApiNotFoundResponse, ApiOkR
 import { AvailabilityBusinessNotFoundError, AvailabilityBusinessUnavailableError, InvalidAvailabilityInputError } from '../application/availability.errors';
 import { GetAvailabilityRulesUseCase, UpdateAvailabilityRulesUseCase } from '../application/availability-rules.use-cases';
 import { AvailabilityRulesResponseDto, UpdateAvailabilityRulesRequestDto } from './dto/availability-rules.dto';
+import { BusinessAccess } from '../../../shared/security/security.decorators';
 
 @ApiTags('Availability')
+@BusinessAccess('businessId')
 @Controller('businesses/:businessId/availability-rules')
 export class AvailabilityRulesController {
   constructor(private readonly getRules: GetAvailabilityRulesUseCase, private readonly updateRules: UpdateAvailabilityRulesUseCase) {}

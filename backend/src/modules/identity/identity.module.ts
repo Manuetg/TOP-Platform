@@ -8,7 +8,7 @@ import { RefreshTokenUseCase } from './application/refresh-token.use-case';
 import { LogoutUseCase } from './application/logout.use-case';
 import { DisableUserUseCase } from './application/disable-user.use-case';
 import { UpdateUserUseCase } from './application/update-user.use-case';
-import { ACCESS_TOKEN_ISSUER } from './domain/access-token-issuer';
+import { ACCESS_TOKEN_ISSUER, ACCESS_TOKEN_VERIFIER } from './domain/access-token-issuer';
 import { AUTHENTICATION_REPOSITORY } from './domain/authentication.repository';
 import { BUSINESS_LOOKUP, MEMBERSHIP_REPOSITORY, USER_LOOKUP } from './domain/membership.repository';
 import { PASSWORD_HASHER } from './domain/password-hasher';
@@ -44,6 +44,7 @@ import { UserController } from './presentation/user.controller';
     { provide: USER_STATUS_REPOSITORY, useExisting: PrismaUserRepository },
     { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
     { provide: ACCESS_TOKEN_ISSUER, useExisting: JwtAccessTokenIssuer },
+    { provide: ACCESS_TOKEN_VERIFIER, useExisting: JwtAccessTokenIssuer },
     { provide: REFRESH_SESSION_REPOSITORY, useExisting: PrismaRefreshSessionRepository },
     { provide: REFRESH_TOKEN_GENERATOR, useExisting: CryptoRefreshTokenService },
     { provide: REFRESH_TOKEN_HASHER, useExisting: CryptoRefreshTokenService },
@@ -59,5 +60,6 @@ import { UserController } from './presentation/user.controller';
     DisableUserUseCase,
     UpdateUserUseCase,
   ],
+  exports: [ACCESS_TOKEN_VERIFIER, MEMBERSHIP_REPOSITORY, USER_BY_ID_LOOKUP],
 })
 export class IdentityModule {}
