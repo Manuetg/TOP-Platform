@@ -1,4 +1,4 @@
-﻿import type { PropsWithChildren } from "react";
+﻿import { useState, type PropsWithChildren } from "react";
 import {
   BedDouble,
   Blocks,
@@ -8,9 +8,10 @@ import {
   Hotel,
   LayoutDashboard,
   Menu,
-  Tags,
   Settings,
+  Tags,
   WalletCards,
+  X,
 } from "lucide-react";
 
 export type AppSection =
@@ -56,15 +57,17 @@ const mobileItems = [
   { id: "more", label: "Más", icon: Menu },
 ] as const;
 
-const moreSections: AppSection[] = [
-  "availability",
-  "resources",
-  "contacts",
-  "pricing",
-  "payments",
-  "blocks",
-  "settings",
-];
+const moreItems = [
+  { id: "availability", label: "Disponibilidad", icon: Gauge },
+  { id: "resources", label: "Recursos", icon: Hotel },
+  { id: "contacts", label: "Contactos", icon: ContactRound },
+  { id: "pricing", label: "Precios", icon: Tags },
+  { id: "payments", label: "Pagos", icon: WalletCards },
+  { id: "blocks", label: "Bloqueos", icon: Blocks },
+  { id: "settings", label: "Configuración", icon: Settings },
+] as const;
+
+const moreSections: AppSection[] = moreItems.map((item) => item.id);
 
 export function AppShell({
   activeSection,
@@ -74,7 +77,15 @@ export function AppShell({
   onNavigate,
   children,
 }: AppShellProps) {
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+
   const navigate = (target: AppNavigationTarget) => {
+    if (target === "more") {
+      setIsMoreOpen((current) => !current);
+      return;
+    }
+
+    setIsMoreOpen(false);
     onNavigate?.(target);
   };
 
@@ -147,6 +158,46 @@ export function AppShell({
 
       <main className="top-app-shell__content">{children}</main>
 
+      {isMoreOpen && (
+        <section
+          className="top-more-menu"
+          aria-label="Más opciones"
+        >
+          <div className="top-more-menu__header">
+            <strong>Más</strong>
+
+            <button
+              type="button"
+              className="top-more-menu__close"
+              aria-label="Cerrar menú Más"
+              onClick={() => setIsMoreOpen(false)}
+            >
+              <X size={20} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className="top-more-menu__items">
+            {moreItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeSection === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`top-more-menu__item${isActive ? " is-active" : ""}`}
+                  aria-current={isActive ? "page" : undefined}
+                  onClick={() => navigate(item.id)}
+                >
+                  <Icon size={20} aria-hidden="true" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <nav className="top-bottom-nav" aria-label="Navegación principal">
         {mobileItems.map((item) => {
           const Icon = item.icon;
@@ -161,6 +212,7 @@ export function AppShell({
               type="button"
               className={`top-bottom-nav__item${isActive ? " is-active" : ""}`}
               aria-current={isActive ? "page" : undefined}
+              aria-expanded={item.id === "more" ? isMoreOpen : undefined}
               onClick={() => navigate(item.id)}
             >
               <Icon size={20} aria-hidden="true" />
