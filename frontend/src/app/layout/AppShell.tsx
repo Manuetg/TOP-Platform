@@ -1,4 +1,8 @@
-﻿import { useState, type PropsWithChildren } from "react";
+import {
+  useEffect,
+  useState,
+  type PropsWithChildren,
+} from "react";
 import {
   BedDouble,
   Blocks,
@@ -13,6 +17,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
+import "./AppShell.css";
 
 export type AppSection =
   | "home"
@@ -79,6 +84,28 @@ export function AppShell({
 }: AppShellProps) {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
+  useEffect(() => {
+    if (!isMoreOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMoreOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMoreOpen]);
+
   const navigate = (target: AppNavigationTarget) => {
     if (target === "more") {
       setIsMoreOpen((current) => !current);
@@ -91,12 +118,22 @@ export function AppShell({
 
   return (
     <div className="top-app-shell">
-      <aside className="top-sidebar" aria-label="Navegación principal">
-        <div className="top-sidebar__brand">TOP</div>
+      <aside
+        className="top-sidebar"
+        aria-label="Navegación principal"
+      >
+        <div className="top-sidebar__brand">
+          TOP
+        </div>
 
         <div className="top-sidebar__business">
-          <span className="top-sidebar__business-label">Negocio activo</span>
-          <strong className="top-sidebar__business-name">{businessName}</strong>
+          <span className="top-sidebar__business-label">
+            Negocio activo
+          </span>
+
+          <strong className="top-sidebar__business-name">
+            {businessName}
+          </strong>
         </div>
 
         <nav className="top-sidebar__nav">
@@ -148,7 +185,9 @@ export function AppShell({
       </aside>
 
       <div className="top-mobile-header">
-        <span className="top-mobile-header__brand">TOP</span>
+        <span className="top-mobile-header__brand">
+          TOP
+        </span>
 
         <div className="top-mobile-header__business">
           <span>Negocio activo</span>
@@ -156,51 +195,86 @@ export function AppShell({
         </div>
       </div>
 
-      <main className="top-app-shell__content">{children}</main>
+      <main className="top-app-shell__content">
+        {children}
+      </main>
 
       {isMoreOpen && (
-        <section
-          className="top-more-menu"
-          aria-label="Más opciones"
-        >
-          <div className="top-more-menu__header">
-            <strong>Más</strong>
+        <div className="top-mobile-more-layer">
+          <button
+            type="button"
+            className="top-mobile-more-backdrop"
+            aria-label="Cerrar menú Más al tocar fuera"
+            onClick={() => setIsMoreOpen(false)}
+          />
 
-            <button
-              type="button"
-              className="top-more-menu__close"
-              aria-label="Cerrar menú Más"
-              onClick={() => setIsMoreOpen(false)}
-            >
-              <X size={20} aria-hidden="true" />
-            </button>
-          </div>
+          <section
+            className="top-mobile-more-sheet"
+            role="region"
+            aria-label="Más opciones"
+          >
+            <div
+              className="top-mobile-more-sheet__handle"
+              aria-hidden="true"
+            />
 
-          <div className="top-more-menu__items">
-            {moreItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeSection === item.id;
+            <div className="top-mobile-more-sheet__header">
+              <div>
+                <span>Menú</span>
+                <strong>Más opciones</strong>
+              </div>
 
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`top-more-menu__item${isActive ? " is-active" : ""}`}
-                  aria-current={isActive ? "page" : undefined}
-                  onClick={() => navigate(item.id)}
-                >
-                  <Icon size={20} aria-hidden="true" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
+              <button
+                type="button"
+                className="top-mobile-more-sheet__close"
+                aria-label="Cerrar menú Más"
+                onClick={() => setIsMoreOpen(false)}
+              >
+                <X size={20} aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="top-mobile-more-sheet__items">
+              {moreItems.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  activeSection === item.id;
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`top-mobile-more-sheet__item${
+                      isActive ? " is-active" : ""
+                    }`}
+                    aria-current={
+                      isActive ? "page" : undefined
+                    }
+                    onClick={() => navigate(item.id)}
+                  >
+                    <span className="top-mobile-more-sheet__item-icon">
+                      <Icon
+                        size={20}
+                        aria-hidden="true"
+                      />
+                    </span>
+
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
       )}
 
-      <nav className="top-bottom-nav" aria-label="Navegación principal">
+      <nav
+        className="top-bottom-nav"
+        aria-label="Navegación principal"
+      >
         {mobileItems.map((item) => {
           const Icon = item.icon;
+
           const isActive =
             item.id === "more"
               ? moreSections.includes(activeSection)
@@ -210,9 +284,17 @@ export function AppShell({
             <button
               key={item.id}
               type="button"
-              className={`top-bottom-nav__item${isActive ? " is-active" : ""}`}
-              aria-current={isActive ? "page" : undefined}
-              aria-expanded={item.id === "more" ? isMoreOpen : undefined}
+              className={`top-bottom-nav__item${
+                isActive ? " is-active" : ""
+              }`}
+              aria-current={
+                isActive ? "page" : undefined
+              }
+              aria-expanded={
+                item.id === "more"
+                  ? isMoreOpen
+                  : undefined
+              }
               onClick={() => navigate(item.id)}
             >
               <Icon size={20} aria-hidden="true" />
@@ -225,15 +307,24 @@ export function AppShell({
   );
 }
 
-interface ShellNavGroupProps extends PropsWithChildren {
+interface ShellNavGroupProps
+  extends PropsWithChildren {
   label: string;
 }
 
-function ShellNavGroup({ label, children }: ShellNavGroupProps) {
+function ShellNavGroup({
+  label,
+  children,
+}: ShellNavGroupProps) {
   return (
     <div className="top-sidebar__group">
-      <span className="top-sidebar__group-label">{label}</span>
-      <div className="top-sidebar__group-items">{children}</div>
+      <span className="top-sidebar__group-label">
+        {label}
+      </span>
+
+      <div className="top-sidebar__group-items">
+        {children}
+      </div>
     </div>
   );
 }
@@ -243,7 +334,9 @@ interface ShellNavItemProps {
   label: string;
   icon: typeof LayoutDashboard;
   activeSection: AppSection;
-  onNavigate: (target: AppNavigationTarget) => void;
+  onNavigate: (
+    target: AppNavigationTarget,
+  ) => void;
 }
 
 function ShellNavItem({
@@ -258,8 +351,12 @@ function ShellNavItem({
   return (
     <button
       type="button"
-      className={`top-sidebar__nav-item${isActive ? " is-active" : ""}`}
-      aria-current={isActive ? "page" : undefined}
+      className={`top-sidebar__nav-item${
+        isActive ? " is-active" : ""
+      }`}
+      aria-current={
+        isActive ? "page" : undefined
+      }
       onClick={() => onNavigate(id)}
     >
       <Icon size={20} aria-hidden="true" />
