@@ -5,14 +5,17 @@ import {
 } from "react";
 import {
   BedDouble,
+  Bell,
   Blocks,
   CalendarDays,
+  ChevronDown,
   ContactRound,
   Gauge,
   Hotel,
   LayoutDashboard,
   Menu,
   Settings,
+  Search,
   Tags,
   WalletCards,
   X,
@@ -39,6 +42,10 @@ interface AppShellProps extends PropsWithChildren {
   userName: string;
   userRole: string;
   onNavigate?: (target: AppNavigationTarget) => void;
+  onBusinessMenuOpen?: () => void;
+  onGlobalSearchChange?: (value: string) => void;
+  onNotificationsOpen?: () => void;
+  onProfileOpen?: () => void;
 }
 
 const operationItems = [
@@ -74,15 +81,54 @@ const moreItems = [
 
 const moreSections: AppSection[] = moreItems.map((item) => item.id);
 
+const searchableItems = [
+  { id: "home", label: "Inicio" },
+  { id: "calendar", label: "Calendario" },
+  { id: "bookings", label: "Reservas" },
+  { id: "availability", label: "Disponibilidad" },
+  { id: "resources", label: "Recursos" },
+  { id: "contacts", label: "Contactos" },
+  { id: "pricing", label: "Precios" },
+  { id: "payments", label: "Pagos" },
+  { id: "blocks", label: "Bloqueos" },
+  { id: "settings", label: "Configuración" },
+] satisfies Array<{
+  id: AppSection;
+  label: string;
+}>;
+
 export function AppShell({
   activeSection,
   businessName,
   userName,
   userRole,
   onNavigate,
+  onBusinessMenuOpen,
+  onGlobalSearchChange,
+  onNotificationsOpen,
+  onProfileOpen,
   children,
 }: AppShellProps) {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [headerMenu, setHeaderMenu] = useState<
+    "business" | "notifications" | "profile" | null
+  >(null);
+
+  const userInitials = userName
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+
+  const normalizedSearch = searchQuery.trim().toLocaleLowerCase("es");
+
+  const searchResults = normalizedSearch
+    ? searchableItems.filter((item) =>
+        item.label.toLocaleLowerCase("es").includes(normalizedSearch),
+      )
+    : [];
 
   useEffect(() => {
     if (!isMoreOpen) {
@@ -125,17 +171,6 @@ export function AppShell({
         <div className="top-sidebar__brand">
           TOP
         </div>
-
-        <div className="top-sidebar__business">
-          <span className="top-sidebar__business-label">
-            Negocio activo
-          </span>
-
-          <strong className="top-sidebar__business-name">
-            {businessName}
-          </strong>
-        </div>
-
         <nav className="top-sidebar__nav">
           <ShellNavItem
             id="home"
@@ -176,24 +211,330 @@ export function AppShell({
             activeSection={activeSection}
             onNavigate={navigate}
           />
-
-          <div className="top-sidebar__user">
-            <strong>{userName}</strong>
-            <span>{userRole}</span>
-          </div>
         </div>
       </aside>
 
-      <div className="top-mobile-header">
-        <span className="top-mobile-header__brand">
-          TOP
-        </span>
+      <header className="top-global-header">
+        <button
+          type="button"
+          className="top-global-header__business"
+          aria-label="Cambiar negocio activo"
+          onClick={() => {
+            onBusinessMenuOpen?.();
+            setHeaderMenu((current) =>
+              current === "business" ? null : "business",
+            );
+          }}
+        >
+          <span
+            className="top-global-header__business-icon"
+            aria-hidden="true"
+          >
+            <Hotel size={20} />
+          </span>
 
-        <div className="top-mobile-header__business">
-          <span>Negocio activo</span>
-          <strong>{businessName}</strong>
+          <span className="top-global-header__business-copy">
+            <span>Negocio activo</span>
+            <strong>{businessName}</strong>
+          </span>
+
+          <ChevronDown
+            className="top-global-header__chevron"
+            size={17}
+            aria-hidden="true"
+          />
+        </button>
+
+        <div className="top-global-header__search-wrap">
+          <label className="top-global-header__search">
+            <Search size={18} aria-hidden="true" />
+
+            <input
+              type="search"
+              aria-label="Buscar en TOP"
+              placeholder="Buscar en TOP..."
+              value={searchQuery}
+              onChange={(event) => {
+                const value = event.target.value;
+                setSearchQuery(value);
+                setHeaderMenu(null);
+                onGlobalSearchChange?.(value);
+              }}
+              onKeyDown={(event) => {
+                if (
+                  event.key === "Enter" &&
+                  searchResults.length > 0
+                ) {
+                  navigate(searchResults[0].id);
+                }
+
+                if (event.key === "Escape") {
+                  setSearchQuery("");
+                }
+              }}
+            />
+          </label>
         </div>
-      </div>
+
+        <div className="top-global-header__actions">
+          <button
+            type="button"
+            className="top-global-header__icon-button"
+            aria-label="Notificaciones"
+            onClick={() => {
+              onNotificationsOpen?.();
+              setHeaderMenu((current) =>
+                current === "notifications"
+                  ? null
+                  : "notifications",
+              );
+            }}
+          >
+            <Bell size={19} aria-hidden="true" />
+          </button>
+
+          <button
+            type="button"
+            className="top-global-header__profile"
+            aria-label="Abrir perfil"
+            onClick={() => {
+              onProfileOpen?.();
+              setHeaderMenu((current) =>
+                current === "profile" ? null : "profile",
+              );
+            }}
+          >
+            <span
+              className="top-global-header__avatar"
+              aria-hidden="true"
+            >
+              {userInitials || "TOP"}
+            </span>
+
+            <span className="top-global-header__profile-copy">
+              <strong>{userName}</strong>
+              <span>{userRole}</span>
+            </span>
+
+            <ChevronDown
+              className="top-global-header__profile-chevron"
+              size={16}
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+      </header>
+      <header className="top-mobile-header">
+        <div className="top-mobile-header__top">
+          <span className="top-mobile-header__brand">
+            TOP
+          </span>
+
+          <div className="top-mobile-header__actions">
+            <button
+              type="button"
+              className="top-mobile-header__icon-button"
+              aria-label="Notificaciones"
+              onClick={() => {
+              onNotificationsOpen?.();
+              setHeaderMenu((current) =>
+                current === "notifications"
+                  ? null
+                  : "notifications",
+              );
+            }}
+            >
+              <Bell size={20} aria-hidden="true" />
+            </button>
+
+            <button
+              type="button"
+              className="top-mobile-header__avatar-button"
+              aria-label="Abrir perfil"
+              onClick={() => {
+              onProfileOpen?.();
+              setHeaderMenu((current) =>
+                current === "profile" ? null : "profile",
+              );
+            }}
+            >
+              <span aria-hidden="true">
+                {userInitials || "TOP"}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="top-mobile-header__business-selector"
+          aria-label="Cambiar negocio activo"
+          onClick={() => {
+            onBusinessMenuOpen?.();
+            setHeaderMenu((current) =>
+              current === "business" ? null : "business",
+            );
+          }}
+        >
+          <span
+            className="top-mobile-header__business-icon"
+            aria-hidden="true"
+          >
+            <Hotel size={19} />
+          </span>
+
+          <span className="top-mobile-header__business-copy">
+            <span>Negocio activo</span>
+            <strong>{businessName}</strong>
+          </span>
+
+          <ChevronDown size={17} aria-hidden="true" />
+        </button>
+
+        <label className="top-mobile-header__search">
+          <Search size={18} aria-hidden="true" />
+
+          <input
+            type="search"
+            aria-label="Buscar en TOP"
+            placeholder="Buscar en TOP..."
+            value={searchQuery}
+            onChange={(event) => {
+              const value = event.target.value;
+              setSearchQuery(value);
+              setHeaderMenu(null);
+              onGlobalSearchChange?.(value);
+            }}
+            onKeyDown={(event) => {
+              if (
+                event.key === "Enter" &&
+                searchResults.length > 0
+              ) {
+                navigate(searchResults[0].id);
+              }
+
+              if (event.key === "Escape") {
+                setSearchQuery("");
+              }
+            }}
+          />
+        </label>
+      </header>
+
+
+      {(headerMenu !== null || searchQuery.trim().length > 0) && (
+        <div
+          className={`top-header-popover-layer${searchQuery.trim().length > 0 ? " top-header-popover-layer--search" : headerMenu === "business" ? " top-header-popover-layer--business" : ""}`}
+        >
+          <button
+            type="button"
+            className="top-header-popover-backdrop"
+            aria-label="Cerrar panel del encabezado"
+            onClick={() => {
+              setHeaderMenu(null);
+              setSearchQuery("");
+            }}
+          />
+
+          <section
+            className={`top-header-popover${searchQuery.trim().length > 0 ? " top-header-popover--search" : headerMenu === "business" ? " top-header-popover--business" : ""}`}
+            aria-label="Panel del encabezado"
+          >
+            {searchQuery.trim().length > 0 ? (
+              <>
+                <div className="top-header-popover__heading">
+                  <span>Búsqueda</span>
+                  <strong>Resultados</strong>
+                </div>
+
+                {searchResults.length > 0 ? (
+                  <div className="top-header-popover__list">
+                    {searchResults.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className="top-header-popover__item"
+                        onClick={() => navigate(item.id)}
+                      >
+                        <Search size={18} aria-hidden="true" />
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="top-header-popover__empty">
+                    <Search size={20} aria-hidden="true" />
+                    <strong>Sin resultados</strong>
+                    <span>
+                      No encontramos un módulo con ese nombre.
+                    </span>
+                  </div>
+                )}
+              </>
+            ) : headerMenu === "business" ? (
+              <>
+                <div className="top-header-popover__heading">
+                  <span>Establecimiento</span>
+                  <strong>Negocio activo</strong>
+                </div>
+
+                <div className="top-header-popover__business-current">
+                  <span className="top-header-popover__business-icon">
+                    <Hotel size={20} aria-hidden="true" />
+                  </span>
+
+                  <div>
+                    <strong>{businessName}</strong>
+                    <span>Negocio seleccionado actualmente</span>
+                  </div>
+                </div>
+              </>
+            ) : headerMenu === "notifications" ? (
+              <>
+                <div className="top-header-popover__heading">
+                  <span>Actividad</span>
+                  <strong>Notificaciones</strong>
+                </div>
+
+                <div className="top-header-popover__empty">
+                  <Bell size={20} aria-hidden="true" />
+                  <strong>Todo al día</strong>
+                  <span>No tenés notificaciones nuevas.</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="top-header-popover__heading">
+                  <span>Cuenta</span>
+                  <strong>{userName}</strong>
+                </div>
+
+                <div className="top-header-popover__profile-summary">
+                  <span className="top-header-popover__avatar">
+                    {userInitials || "TOP"}
+                  </span>
+
+                  <div>
+                    <strong>{userName}</strong>
+                    <span>{userRole}</span>
+                  </div>
+                </div>
+
+                <div className="top-header-popover__list">
+                  <button
+                    type="button"
+                    className="top-header-popover__item"
+                    onClick={() => navigate("settings")}
+                  >
+                    <Settings size={18} aria-hidden="true" />
+                    <span>Configuración</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+      )}
 
       <main className="top-app-shell__content">
         {children}

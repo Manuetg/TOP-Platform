@@ -20,8 +20,10 @@ import {
   ListAvailabilityCalendarUseCase,
   type AvailabilityCalendarResult,
 } from '../application/list-availability-calendar.use-case';
+import { BusinessAccess } from '../../../shared/security/security.decorators';
 
 @ApiTags('Availability')
+@BusinessAccess('businessId')
 @Controller('businesses/:businessId/availability')
 export class AvailabilityController {
   constructor(

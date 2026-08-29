@@ -9,7 +9,7 @@ export class ListBusinessesUseCase {
     private readonly businessRepository: BusinessRepository,
   ) {}
 
-  async execute(): Promise<Business[]> {
-    return this.businessRepository.list();
+  async execute(userId: string): Promise<Business[]> {
+    return this.businessRepository.list(userId);
   }
 }

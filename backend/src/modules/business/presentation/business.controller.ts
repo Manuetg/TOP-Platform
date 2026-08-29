@@ -8,6 +8,9 @@ import { InvalidBusinessUpdateError, UpdateBusinessUseCase } from '../applicatio
 import { BusinessResponseDto } from './dto/business.response.dto';
 import { CreateBusinessRequestDto } from './dto/create-business.request.dto';
 import { UpdateBusinessRequestDto } from './dto/update-business.request.dto';
+import { AuthenticatedUser } from '../../../shared/security/authenticated-user.decorator';
+import type { AuthenticatedPrincipal } from '../../../shared/security/authenticated-principal';
+import { AnyBusinessRole, Authenticated, BusinessAccess } from '../../../shared/security/security.decorators';
 
 @ApiTags('Businesses')
 @Controller('businesses')
@@ -21,6 +24,7 @@ export class BusinessController {
   ) {}
 
   @Post()
+  @AnyBusinessRole('OWNER', 'ADMIN')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear un negocio' })
   @ApiCreatedResponse({ type: BusinessResponseDto })
@@ -40,15 +44,17 @@ export class BusinessController {
   }
 
   @Get()
+  @Authenticated()
   @ApiOperation({ summary: 'Listar negocios' })
   @ApiOkResponse({ type: BusinessResponseDto, isArray: true, description: 'Returns all businesses.' })
-  async list(): Promise<BusinessResponseDto[]> {
-    const businesses = await this.listBusinessesUseCase.execute();
+  async list(@AuthenticatedUser() principal: AuthenticatedPrincipal): Promise<BusinessResponseDto[]> {
+    const businesses = await this.listBusinessesUseCase.execute(principal.userId);
 
     return businesses.map((business) => BusinessResponseDto.fromDomain(business));
   }
 
   @Patch(':id/archive')
+  @BusinessAccess('id', 'OWNER', 'ADMIN')
   @ApiOperation({ summary: 'Archivar un negocio' })
   @ApiOkResponse({ type: BusinessResponseDto })
   @ApiBadRequestResponse({ description: 'El identificador del negocio no es un UUID válido.' })
@@ -65,6 +71,7 @@ export class BusinessController {
   }
 
   @Patch(':id')
+  @BusinessAccess('id', 'OWNER', 'ADMIN')
   @ApiOperation({ summary: 'Actualizar parcialmente un negocio' })
   @ApiOkResponse({ type: BusinessResponseDto })
   @ApiBadRequestResponse({ description: 'La actualización del negocio no es válida.' })
@@ -81,6 +88,7 @@ export class BusinessController {
   }
 
   @Get(':id')
+  @BusinessAccess('id')
   @ApiOperation({ summary: 'Obtener un negocio por identificador' })
   @ApiOkResponse({ type: BusinessResponseDto })
   @ApiBadRequestResponse({ description: 'El identificador del negocio no es un UUID válido.' })

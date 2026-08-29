@@ -4,6 +4,7 @@ import { type BusinessRepository } from '../domain/business.repository';
 import { ListBusinessesUseCase } from './list-businesses.use-case';
 
 describe('ListBusinessesUseCase', () => {
+  const userId = '11111111-1111-4111-8111-111111111111';
   function business(id: string, name: string, createdAt: string): Business {
     const timestamp = new Date(createdAt);
 
@@ -34,8 +35,9 @@ describe('ListBusinessesUseCase', () => {
     const { repository, list } = createRepository([]);
     const useCase = new ListBusinessesUseCase(repository);
 
-    await expect(useCase.execute()).resolves.toEqual([]);
+    await expect(useCase.execute(userId)).resolves.toEqual([]);
     expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledWith(userId);
   });
 
   it('retorna una lista con un negocio', async () => {
@@ -43,7 +45,7 @@ describe('ListBusinessesUseCase', () => {
     const { repository } = createRepository([item]);
     const useCase = new ListBusinessesUseCase(repository);
 
-    await expect(useCase.execute()).resolves.toEqual([item]);
+    await expect(useCase.execute(userId)).resolves.toEqual([item]);
   });
 
   it('conserva el orden ascendente por fecha recibido del repositorio', async () => {
@@ -53,7 +55,7 @@ describe('ListBusinessesUseCase', () => {
     const { repository } = createRepository([first, second, third]);
     const useCase = new ListBusinessesUseCase(repository);
 
-    const businesses = await useCase.execute();
+    const businesses = await useCase.execute(userId);
 
     expect(businesses).toHaveLength(3);
     expect(businesses.map((item) => item.id)).toEqual([first.id, second.id, third.id]);

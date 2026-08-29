@@ -43,11 +43,11 @@ Las reglas de negocio continúan siendo responsabilidad del backend y de la docu
 
 # 3. Estado general
 
-Total historias frontend: 50
+Total historias frontend: 51
 
 Estado actual:
 
-- Completed: 3
+- Completed: 4
 - In Progress: 4
 - Planned: 40
 - Blocked: 3
@@ -201,7 +201,7 @@ Criterios de aceptación:
 
 ## FE-FND-005 — Global App Header
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -309,6 +309,55 @@ Criterios de aceptación:
 
 ---
 
+
+## FE-FND-009 — Global Search
+
+Estado: Planned
+
+Objetivo:
+
+Convertir la búsqueda global del App Header en un punto de acceso unificado a módulos y entidades del Business activo.
+
+Debe contemplar:
+
+- módulos de navegación;
+- Resources por nombre e `internalCode`;
+- Contacts por nombre y otros campos permitidos por backend;
+- Bookings por identificadores y datos buscables soportados;
+- agrupación de resultados por tipo;
+- navegación al detalle correspondiente;
+- debounce de consultas;
+- estados loading, empty y error;
+- aislamiento estricto por Business activo.
+
+Arquitectura esperada:
+
+- frontend no debe descargar datasets completos para realizar la búsqueda;
+- backend debe ser fuente de verdad para búsqueda de entidades;
+- preferir un endpoint de búsqueda global scoped al Business;
+- resultados deben devolver tipo, identificador, título y contexto suficiente para navegación.
+
+Ejemplo conceptual:
+
+`GET /api/businesses/{businessId}/search?q={query}`
+
+Fuera de alcance:
+
+- definir índices o implementación interna de búsqueda del backend;
+- búsqueda entre Businesses sin autorización;
+- resultados de entidades para las que el usuario no tenga acceso.
+
+Criterios de aceptación:
+
+- buscar `Cabaña 1` puede devolver el Resource correspondiente;
+- buscar un Contact puede devolver su ficha;
+- módulos continúan apareciendo como resultados;
+- resultados están agrupados y diferenciados visualmente;
+- seleccionar un resultado navega al destino correcto;
+- búsqueda respeta Business y permisos;
+- no se duplican reglas de negocio en frontend.
+
+---
 # 5. FE-IAM — Identity & Session
 
 ## FE-IAM-001 — Login

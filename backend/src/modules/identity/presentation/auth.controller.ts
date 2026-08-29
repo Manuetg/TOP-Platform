@@ -7,8 +7,10 @@ import { LoginResponseDto } from './dto/login.response.dto';
 import { RefreshTokenRequestDto } from './dto/refresh-token.request.dto';
 import { RefreshTokenResponseDto } from './dto/refresh-token.response.dto';
 import { LogoutUseCase, InvalidLogoutInputError } from '../application/logout.use-case';
+import { Public } from '../../../shared/security/security.decorators';
 
 @ApiTags('Authentication')
+@Public()
 @Controller('auth')
 export class AuthController {
   constructor(private readonly loginUseCase: LoginUseCase, private readonly refreshTokenUseCase: RefreshTokenUseCase, private readonly logoutUseCase: LogoutUseCase) {}

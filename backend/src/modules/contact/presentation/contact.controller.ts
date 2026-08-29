@@ -8,8 +8,10 @@ import { UpdateContactUseCase } from '../application/update-contact.use-case';
 import { CreateContactRequestDto } from './dto/create-contact.request.dto';
 import { ContactResponseDto } from './dto/contact.response.dto';
 import { UpdateContactRequestDto } from './dto/update-contact.request.dto';
+import { BusinessAccess } from '../../../shared/security/security.decorators';
 
 @ApiTags('Contacts')
+@BusinessAccess('businessId')
 @Controller('businesses/:businessId/contacts')
 export class ContactController {
   constructor(private readonly create: CreateContactUseCase, private readonly getContact: GetContactUseCase, private readonly search: SearchContactsUseCase, private readonly updateContact: UpdateContactUseCase) {}

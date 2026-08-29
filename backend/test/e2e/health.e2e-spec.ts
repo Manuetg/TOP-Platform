@@ -10,7 +10,7 @@ describe('Health endpoint', () => {
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = module.createNestApplication();
-    configureApplication(app);
+    configureApplication(app, { security: false });
     await app.init();
   });
 

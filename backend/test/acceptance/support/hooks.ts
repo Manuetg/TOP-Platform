@@ -42,6 +42,8 @@ import { BOOKING_AVAILABILITY_LOOKUP } from '../../../src/modules/booking/bookin
 import { BLOCK_AVAILABILITY_LOOKUP } from '../../../src/modules/block/block.contract';
 import { AVAILABILITY_RULES_REPOSITORY } from '../../../src/modules/availability/domain/availability-rules.repository';
 import { availabilityRulesRepositoryFake, resetAvailabilityRulesRepositoryFake } from './availability-rules.repository.fake';
+import type { NextFunction, Response } from 'express';
+import type { AuthenticatedRequest } from '../../../src/shared/security/authenticated-principal';
 
 Before(async function (this: TopWorld) {
   resetBusinessRepositoryFake();
@@ -98,7 +100,8 @@ Before(async function (this: TopWorld) {
     .overrideProvider(BUSINESS_LOOKUP).useValue(businessLookupFake)
     .compile();
   this.app = module.createNestApplication();
-  configureApplication(this.app);
+  this.app.use((request: AuthenticatedRequest, _response: Response, next: NextFunction) => { request.authenticatedPrincipal = { userId: '11111111-1111-4111-8111-111111111111' }; next(); });
+  configureApplication(this.app, { security: false });
   await this.app.init();
 });
 

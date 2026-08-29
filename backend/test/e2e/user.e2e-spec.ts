@@ -47,7 +47,7 @@ describe('User endpoint', () => {
       .overrideProvider(USER_STATUS_REPOSITORY).useValue(statusRepository)
       .compile();
     app = module.createNestApplication();
-    configureApplication(app);
+    configureApplication(app, { security: false });
     await app.init();
   });
 

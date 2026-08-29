@@ -7,6 +7,7 @@ import { BUSINESS_REPOSITORY, BusinessStatus } from '../../src/modules/business/
 import { RESOURCE_REPOSITORY, ResourceStatus } from '../../src/modules/resource/resource.contract';
 import { BOOKING_AVAILABILITY_LOOKUP } from '../../src/modules/booking/booking.contract';
 import { BLOCK_AVAILABILITY_LOOKUP } from '../../src/modules/block/block.contract';
+import { AVAILABILITY_RULES_REPOSITORY } from '../../src/modules/availability/domain/availability-rules.repository';
 
 const businessId = '11111111-1111-4111-8111-111111111111'; const otherBusinessId = '22222222-2222-4222-8222-222222222222'; const resourceId = '33333333-3333-4333-8333-333333333333';
 
@@ -17,8 +18,9 @@ describe('Availability endpoint', () => {
       .overrideProvider(BUSINESS_REPOSITORY).useValue({ findById: (id: string) => Promise.resolve(id === businessId ? { status: businessStatus } : null), create: jest.fn(), list: jest.fn(), update: jest.fn() })
       .overrideProvider(RESOURCE_REPOSITORY).useValue({ findByIdAndBusinessId: (id: string, owner: string) => Promise.resolve(id === resourceId && owner === businessId ? { status: resourceStatus } : null), findByBusinessAndCode: jest.fn(), listByBusinessId: jest.fn(), create: jest.fn(), update: jest.fn() })
       .overrideProvider(BOOKING_AVAILABILITY_LOOKUP).useValue({ hasBlockingBooking: () => Promise.resolve(bookingConflict), listBlockingBookings: () => Promise.resolve([]) })
-      .overrideProvider(BLOCK_AVAILABILITY_LOOKUP).useValue({ hasBlockingBlock: () => Promise.resolve(blockConflict), listBlockingBlocks: () => Promise.resolve([]) }).compile();
-    app = module.createNestApplication(); configureApplication(app); await app.init();
+      .overrideProvider(BLOCK_AVAILABILITY_LOOKUP).useValue({ hasBlockingBlock: () => Promise.resolve(blockConflict), listBlockingBlocks: () => Promise.resolve([]) })
+      .overrideProvider(AVAILABILITY_RULES_REPOSITORY).useValue({ findByBusinessId: () => Promise.resolve(null), save: jest.fn() }).compile();
+    app = module.createNestApplication(); configureApplication(app, { security: false }); await app.init();
   });
   afterAll(async () => app.close());
   beforeEach(() => { businessStatus = BusinessStatus.ACTIVE; resourceStatus = ResourceStatus.ACTIVE; bookingConflict = false; blockConflict = false; });

@@ -8,8 +8,10 @@ import { BlockResponseDto } from './dto/block.response.dto';
 import { CancelBlockRequestDto } from './dto/cancel-block.request.dto';
 import { CreateBlockRequestDto } from './dto/create-block.request.dto';
 import { ListBlocksRequestDto } from './dto/list-blocks.request.dto';
+import { BusinessAccess } from '../../../shared/security/security.decorators';
 
 @ApiTags('Blocks')
+@BusinessAccess('businessId')
 @Controller('businesses/:businessId')
 export class BlockController {
   constructor(private readonly create: CreateBlockUseCase, private readonly cancel: CancelBlockUseCase, private readonly list: ListBlocksUseCase) {}
