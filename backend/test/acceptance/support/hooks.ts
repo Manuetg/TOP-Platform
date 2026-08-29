@@ -34,11 +34,11 @@ import { resetSeasonalRateRepositoryFake, seasonalRateRepositoryFake } from './s
 import { CONTACT_REPOSITORY } from '../../../src/modules/contact/domain/contact.repository';
 import { CONTACT_LOOKUP } from '../../../src/modules/contact/contact.contract';
 import { BOOKING_REPOSITORY } from '../../../src/modules/booking/domain/booking.repository';
-import { bookingRepositoryFake, resetBookingRepositoryFake } from './booking-repository.fake';
+import { bookingRepositoryFake, bookingTimelineRepositoryFake, resetBookingRepositoryFake } from './booking-repository.fake';
 import { contactRepositoryFake, resetContactRepositoryFake } from './contact-repository.fake';
 import { BLOCK_REPOSITORY } from '../../../src/modules/block/domain/block.repository';
 import { blockRepositoryFake, resetBlockRepositoryFake } from './block-repository.fake';
-import { BOOKING_AVAILABILITY_LOOKUP } from '../../../src/modules/booking/booking.contract';
+import { BOOKING_AVAILABILITY_LOOKUP, BOOKING_TIMELINE_REPOSITORY } from '../../../src/modules/booking/booking.contract';
 import { BLOCK_AVAILABILITY_LOOKUP } from '../../../src/modules/block/block.contract';
 import { AVAILABILITY_RULES_REPOSITORY } from '../../../src/modules/availability/domain/availability-rules.repository';
 import { availabilityRulesRepositoryFake, resetAvailabilityRulesRepositoryFake } from './availability-rules.repository.fake';
@@ -71,6 +71,7 @@ Before(async function (this: TopWorld) {
     .overrideProvider(CONTACT_REPOSITORY).useValue(contactRepositoryFake)
     .overrideProvider(CONTACT_LOOKUP).useValue(contactRepositoryFake)
     .overrideProvider(BOOKING_REPOSITORY).useValue(bookingRepositoryFake)
+    .overrideProvider(BOOKING_TIMELINE_REPOSITORY).useValue(bookingTimelineRepositoryFake)
     .overrideProvider(BLOCK_REPOSITORY).useValue(blockRepositoryFake)
     .overrideProvider(BOOKING_AVAILABILITY_LOOKUP).useValue(bookingRepositoryFake)
     .overrideProvider(BLOCK_AVAILABILITY_LOOKUP).useValue(blockRepositoryFake)

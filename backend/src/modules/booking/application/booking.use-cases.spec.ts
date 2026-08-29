@@ -21,7 +21,7 @@ describe('Booking use cases', () => {
   it('creates an empty draft and normalizes optional values', async () => {
     create.mockResolvedValueOnce(booking());
     await expect(createUseCase.execute({ businessId })).resolves.toEqual(booking());
-    expect(create).toHaveBeenCalledWith({ businessId, contactId: null, resourceIds: [], checkInDate: null, checkOutDate: null, adults: null, children: null, notes: null });
+    expect(create).toHaveBeenCalledWith({ businessId, actorUserId: null, contactId: null, resourceIds: [], checkInDate: null, checkOutDate: null, adults: null, children: null, notes: null });
   });
   it('validates strict dates and dependencies before creation', async () => {
     await expect(createUseCase.execute({ businessId, checkInDate: '2026-02-30' })).rejects.toBeInstanceOf(InvalidBookingInputError);

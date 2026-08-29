@@ -110,6 +110,8 @@ describeWithPostgres(
 
       await bookings.markPending(
         booking.id,
+        business.id,
+        null,
       );
 
       return {
@@ -179,6 +181,8 @@ describeWithPostgres(
 
       await bookings.markPending(
         blocker.id,
+        business.id,
+        null,
       );
 
       await expect(

@@ -63,7 +63,6 @@ describe('SubmitBookingUseCase', () => {
       update: jest.fn(),
       markPending,
       markCancelled: jest.fn(),
-      appendTimelineEvent: jest.fn(),
       hasBlockingBooking: jest.fn(),
       listBlockingBookings: jest.fn(),
     },
@@ -129,6 +128,8 @@ describe('SubmitBookingUseCase', () => {
 
     expect(markPending).toHaveBeenCalledWith(bookingId, businessId, null);
   });
+
+  it('rejects a concurrent retry when the conditional transition no longer matches',async()=>{markPending.mockResolvedValueOnce(null);await expect(useCase.execute({businessId,bookingId})).rejects.toBeInstanceOf(BookingNotDraftError);expect(markPending).toHaveBeenCalledTimes(1);});
 
   it.each([
     [

@@ -60,7 +60,9 @@ export class SubmitBookingUseCase {
     });
     if (!result.valid) throw new BookingAvailabilityConflictError('La reserva tiene conflictos de disponibilidad.');
     const actorUserId = input.actorUserId === undefined ? null : requireBookingUuid(input.actorUserId, 'El identificador del actor no es válido.');
-    return this.bookings.markPending(booking.id, businessId, actorUserId);
+    const pending = await this.bookings.markPending(booking.id, businessId, actorUserId);
+    if (!pending) throw new BookingNotDraftError('Solo se puede enviar una reserva en borrador.');
+    return pending;
   }
 
   private async activeBusiness(businessId: string): Promise<void> {

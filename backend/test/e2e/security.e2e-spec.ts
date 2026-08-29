@@ -11,11 +11,16 @@ import { USER_BY_ID_LOOKUP } from '../../src/modules/identity/domain/user-by-id.
 import { UserStatus } from '../../src/modules/identity/domain/user-status.enum';
 import { User } from '../../src/modules/identity/domain/user.entity';
 import { AnyBusinessRole, BusinessAccess, Public } from '../../src/shared/security/security.decorators';
+import { BOOKING_REPOSITORY, BOOKING_TIMELINE_REPOSITORY } from '../../src/modules/booking/booking.contract';
+import { Booking } from '../../src/modules/booking/domain/booking.entity';
+import { BookingStatus } from '../../src/modules/booking/domain/booking-status.enum';
 
 const secret = 'security-e2e-secret';
 const userId = '11111111-1111-4111-8111-111111111111';
 const businessId = '22222222-2222-4222-8222-222222222222';
 const otherBusinessId = '33333333-3333-4333-8333-333333333333';
+const timelineBookingId='44444444-4444-4444-8444-444444444444';
+const timelineBooking=Booking.create({id:timelineBookingId,businessId,status:BookingStatus.CANCELLED,contactId:null,resourceIds:[],checkInDate:null,checkOutDate:null,adults:null,children:null,notes:null,createdAt:new Date(),updatedAt:new Date()});
 
 @Controller('security-probe')
 class SecurityProbeController {
@@ -45,6 +50,8 @@ describe('Protección JWT y membresía', () => {
         findByUserId: (requestedUserId: string) => Promise.resolve(memberships.filter((item) => item.userId === requestedUserId)),
         create: jest.fn(),
       })
+      .overrideProvider(BOOKING_REPOSITORY).useValue({findByIdAndBusinessId:(id:string,owner:string)=>Promise.resolve(id===timelineBookingId&&owner===businessId?timelineBooking:null)})
+      .overrideProvider(BOOKING_TIMELINE_REPOSITORY).useValue({list:()=>Promise.resolve([])})
       .compile();
     app = module.createNestApplication();
     configureApplication(app);
@@ -117,7 +124,7 @@ describe('Protección JWT y membresía', () => {
     await request(app.getHttpServer()).get('/api/security-probe/default').expect(401);
   });
 
-  it('protege Booking Timeline con JWT activo y membresía del tenant',async()=>{const endpoint=`/api/businesses/${businessId}/bookings/44444444-4444-4444-8444-444444444444/timeline`;await request(app.getHttpServer()).get(endpoint).expect(401);await request(app.getHttpServer()).get(endpoint).set('Authorization','Bearer invalid').expect(401);const token=await bearer();await request(app.getHttpServer()).get(endpoint).set('Authorization',`Bearer ${token}`).expect(403);userStatus=UserStatus.DISABLED;await request(app.getHttpServer()).get(endpoint).set('Authorization',`Bearer ${token}`).expect(401);});
+  it('protege Booking Timeline con JWT activo y membresía del tenant',async()=>{const endpoint=`/api/businesses/${businessId}/bookings/${timelineBookingId}/timeline`;await request(app.getHttpServer()).get(endpoint).expect(401);await request(app.getHttpServer()).get(endpoint).set('Authorization','Bearer invalid').expect(401);const token=await bearer();await request(app.getHttpServer()).get(endpoint).set('Authorization',`Bearer ${token}`).expect(403);memberships=[membership(businessId,MembershipRole.VIEWER)];await request(app.getHttpServer()).get(endpoint).set('Authorization',`Bearer ${token}`).expect(200);await request(app.getHttpServer()).get(`/api/businesses/${otherBusinessId}/bookings/${timelineBookingId}/timeline`).set('Authorization',`Bearer ${token}`).expect(403);userStatus=UserStatus.DISABLED;await request(app.getHttpServer()).get(endpoint).set('Authorization',`Bearer ${token}`).expect(401);});
 
   it('mantiene Login, Refresh y Logout libres de Bearer', async () => {
     await request(app.getHttpServer()).post('/api/auth/login').send({}).expect(400);
