@@ -7,6 +7,7 @@ import { LoginPage } from "../../features/auth/pages/LoginPage";
 import { AppLayout } from "../layout/AppLayout";
 import { AppSectionPage } from "../pages/AppSectionPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
+import { ResourceListPage } from "../../features/resources/pages/ResourceListPage";
 
 const router = createBrowserRouter([
   {
@@ -37,9 +38,8 @@ const router = createBrowserRouter([
         path: "availability",
         element: <AppSectionPage title="Disponibilidad" />,
       },
-      {
-        path: "resources",
-        element: <AppSectionPage title="Recursos" />,
+      { 
+        path: "resources", element: <ResourceListPage /> 
       },
       {
         path: "contacts",

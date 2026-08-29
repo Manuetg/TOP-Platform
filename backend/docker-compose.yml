@@ -34,5 +34,17 @@ services:
         condition: service_healthy
     command: ["sh", "-c", "npx prisma migrate deploy && npm run start"]
 
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3000/api
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    depends_on:
+      - api
 volumes:
   postgres_data:
