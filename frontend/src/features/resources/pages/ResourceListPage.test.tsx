@@ -1,6 +1,8 @@
-﻿import { render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { vi } from "vitest";
 import { ResourceListPage } from "./ResourceListPage";
+import { AuthProvider } from "../../auth/context/AuthContext";
 import { useResources } from "../queries/use-resources";
 
 vi.mock("../queries/use-resources", () => ({
@@ -8,6 +10,16 @@ vi.mock("../queries/use-resources", () => ({
 }));
 
 const mockedUseResources = vi.mocked(useResources);
+
+function renderResourceListPage(
+  props: ComponentProps<typeof ResourceListPage>,
+) {
+  return render(
+    <AuthProvider>
+      <ResourceListPage {...props} />
+    </AuthProvider>,
+  );
+}
 
 describe("ResourceListPage", () => {
   it("shows the development configuration state without a business id", () => {
@@ -19,7 +31,7 @@ describe("ResourceListPage", () => {
       refetch: vi.fn(),
     } as never);
 
-    render(<ResourceListPage businessId="" />);
+    renderResourceListPage({ businessId: "" });
 
     expect(
       screen.getByText(/VITE_DEV_BUSINESS_ID/i),
@@ -35,7 +47,7 @@ describe("ResourceListPage", () => {
       refetch: vi.fn(),
     } as never);
 
-    render(<ResourceListPage businessId="business-1" />);
+    renderResourceListPage({ businessId: "business-1" });
 
     expect(
       screen.getByRole("status"),
@@ -51,7 +63,7 @@ describe("ResourceListPage", () => {
       refetch: vi.fn(),
     } as never);
 
-    render(<ResourceListPage businessId="business-1" />);
+    renderResourceListPage({ businessId: "business-1" });
 
     expect(
       screen.getByRole("heading", { name: "Creá tu primer recurso" }),
@@ -83,7 +95,7 @@ describe("ResourceListPage", () => {
       refetch: vi.fn(),
     } as never);
 
-    render(<ResourceListPage businessId="business-1" />);
+    renderResourceListPage({ businessId: "business-1" });
 
     expect(
       screen.getByRole("heading", { name: "Cabaña Norte" }),

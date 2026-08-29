@@ -47,8 +47,8 @@ Total historias frontend: 51
 
 Estado actual:
 
-- Completed: 4
-- In Progress: 4
+- Completed: 5
+- In Progress: 3
 - Planned: 40
 - Blocked: 3
 
@@ -559,7 +559,7 @@ Criterios de aceptación:
 
 ## FE-RES-001 — Resource List
 
-Estado: In Progress
+Estado: Completed
 
 Objetivo:
 

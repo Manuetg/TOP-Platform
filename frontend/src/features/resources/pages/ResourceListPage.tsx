@@ -8,6 +8,7 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "../../../shared/ui/Button";
+import { useAuth } from "../../auth/context/AuthContext";
 import { useResources } from "../queries/use-resources";
 import type {
   Resource,
@@ -152,6 +153,7 @@ function ResourceCard({ resource }: { resource: Resource }) {
 export function ResourceListPage({
   businessId = TEMP_BUSINESS_ID,
 }: ResourceListPageProps) {
+  const { session } = useAuth();
   const {
     data: resources,
     isLoading,
@@ -160,6 +162,7 @@ export function ResourceListPage({
     refetch,
   } = useResources({
     businessId,
+    accessToken: session?.accessToken,
   });
 
   if (!businessId) {
