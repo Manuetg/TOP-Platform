@@ -7,6 +7,8 @@ import { Business } from '../../src/modules/business/domain/business.entity';
 import { BusinessStatus } from '../../src/modules/business/domain/business-status.enum';
 import { BUSINESS_REPOSITORY } from '../../src/modules/business/domain/business.repository';
 import { UpdateBusinessUseCase } from '../../src/modules/business/application/update-business.use-case';
+import type { NextFunction, Response } from 'express';
+import type { AuthenticatedRequest } from '../../src/shared/security/authenticated-principal';
 
 describe('Business endpoint', () => {
   let app: INestApplication;
@@ -55,7 +57,8 @@ describe('Business endpoint', () => {
       .compile();
 
     app = module.createNestApplication();
-    configureApplication(app);
+    app.use((request: AuthenticatedRequest, _response: Response, next: NextFunction) => { request.authenticatedPrincipal = { userId: '11111111-1111-4111-8111-111111111111' }; next(); });
+    configureApplication(app, { security: false });
     await app.init();
     updateBusinessUseCase = module.get(UpdateBusinessUseCase);
   });

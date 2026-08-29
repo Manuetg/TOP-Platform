@@ -21,9 +21,9 @@ export class PrismaBusinessRepository implements BusinessRepository {
     return business ? this.toDomain(business) : null;
   }
 
-  async list(): Promise<Business[]> {
+  async list(userId: string): Promise<Business[]> {
     const businesses = await this.prisma.business.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: 'ACTIVE', memberships: { some: { userId } } },
       orderBy: { createdAt: 'asc' },
     });
 

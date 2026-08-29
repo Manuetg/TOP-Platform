@@ -62,9 +62,9 @@ describe('PrismaBusinessRepository', () => {
     const findMany = jest.fn().mockResolvedValue([record, laterRecord]);
     const repository = new PrismaBusinessRepository({ business: { create: jest.fn(), findUnique: jest.fn(), findMany } } as never);
 
-    const businesses = await repository.list();
+    const businesses = await repository.list('11111111-1111-4111-8111-111111111111');
 
-    expect(findMany).toHaveBeenCalledWith({ where: { status: 'ACTIVE' }, orderBy: { createdAt: 'asc' } });
+    expect(findMany).toHaveBeenCalledWith({ where: { status: 'ACTIVE', memberships: { some: { userId: '11111111-1111-4111-8111-111111111111' } } }, orderBy: { createdAt: 'asc' } });
     expect(businesses.map((business) => business.id)).toEqual([record.id, laterRecord.id]);
     expect(businesses.map((business) => business.createdAt)).toEqual([createdAt, updatedAt]);
   });

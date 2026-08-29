@@ -50,8 +50,10 @@ import { ResourceImageResponseDto } from './dto/resource-image.response.dto';
 import { InvalidResourceImageInputError, ResourceImageLimitReachedError, UploadResourceImageUseCase } from '../application/upload-resource-image.use-case';
 import { AmenitiesNotFoundError, InactiveAmenitiesError, InvalidResourceAmenitiesInputError, ResourceAmenitiesArchivedError, ResourceAmenitiesBusinessArchivedError, ResourceAmenitiesBusinessNotFoundError, ResourceAmenitiesNotFoundError, SetResourceAmenitiesUseCase } from '../application/set-resource-amenities.use-case';
 import { SetResourceAmenitiesRequestDto } from './dto/set-resource-amenities.request.dto';
+import { BusinessAccess } from '../../../shared/security/security.decorators';
 
 @ApiTags('Resources')
+@BusinessAccess('businessId')
 @Controller('businesses/:businessId/resources')
 export class ResourceController {
   constructor(

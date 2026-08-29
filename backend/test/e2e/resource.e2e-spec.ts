@@ -38,7 +38,7 @@ describe('Resource endpoint', () => {
       .overrideProvider(FILE_STORAGE).useValue({ upload: (): Promise<void> => Promise.resolve(), delete: (): Promise<void> => Promise.resolve(), createSignedReadUrl: (key: string): Promise<string> => Promise.resolve(`https://signed.test/${key}`) })
       .overrideProvider(AMENITY_REPOSITORY).useValue({ listActive: (): Promise<Amenity[]> => Promise.resolve(amenities.filter((item) => item.active)), findManyByIds: (ids: string[]): Promise<Amenity[]> => Promise.resolve(amenities.filter((item) => ids.includes(item.id))) })
       .overrideProvider(RESOURCE_AMENITY_REPOSITORY).useValue({ replace: (_resourceId: string, ids: string[]): Promise<void> => { assignments = [...ids]; return Promise.resolve(); }, listByResourceId: (): Promise<Amenity[]> => Promise.resolve(amenities.filter((item) => assignments.includes(item.id))) }).compile();
-    app = module.createNestApplication(); configureApplication(app); await app.init();
+    app = module.createNestApplication(); configureApplication(app, { security: false }); await app.init();
   });
   afterAll(async () => { await app.close(); });
   beforeEach(() => { businesses = [makeBusiness(businessA), makeBusiness(businessB)]; resources = [makeResource(ResourceStatus.ACTIVE), makeResource(ResourceStatus.ACTIVE, resourceB, businessB)]; images = []; assignments = []; amenities = [Amenity.create({ id: '55555555-5555-4555-8555-555555555555', code: 'WIFI', name: 'Wi-Fi', category: 'CONNECTIVITY', active: true, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() })]; });

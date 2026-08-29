@@ -3,7 +3,8 @@ import { ApiBadRequestResponse, ApiConflictResponse, ApiCreatedResponse, ApiNotF
 import { CreateMembershipUseCase, InvalidMembershipInputError, MembershipAlreadyExistsError, MembershipNotFoundError } from '../application/create-membership.use-case';
 import { MembershipRole } from '../domain/membership-role.enum';
 import { MembershipResponseDto } from './dto/membership.response.dto';
-@ApiTags('Memberships') @Controller('businesses/:businessId/memberships')
+import { BusinessAccess } from '../../../shared/security/security.decorators';
+@ApiTags('Memberships') @BusinessAccess('businessId', 'OWNER', 'ADMIN') @Controller('businesses/:businessId/memberships')
 export class MembershipController {
   constructor(private readonly useCase: CreateMembershipUseCase) {}
   @Post() @HttpCode(HttpStatus.CREATED) @ApiOperation({ summary: 'Crear una membresía de negocio' }) @ApiCreatedResponse() @ApiBadRequestResponse() @ApiNotFoundResponse() @ApiConflictResponse()

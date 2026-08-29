@@ -45,7 +45,7 @@ describe('Pricing endpoint', () => {
       })
       .overrideProvider(RATE_PLAN_RESOURCE_ASSIGNMENT_LOOKUP).useValue({ isAssigned: () => Promise.resolve(assigned) })
       .compile();
-    app = module.createNestApplication(); configureApplication(app); await app.init();
+    app = module.createNestApplication(); configureApplication(app, { security: false }); await app.init();
   });
   afterAll(async () => app.close());
   beforeEach(() => { currentBusiness = business(); currentPlan = rate(); resources = [resource(resourceId), resource(archivedResourceId, businessId, ResourceStatus.ARCHIVED), resource(foreignResourceId, otherBusinessId)]; seasons = []; assigned = true; });
