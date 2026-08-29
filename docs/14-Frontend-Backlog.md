@@ -183,12 +183,12 @@ Implementado:
 - rutas `/app` y secciones operativas/gestión;
 - soporte de deep links por sección;
 - sincronización del estado activo con la URL.
+- menú/flujo de `Más` en mobile;
 
 Pendiente:
 
 - rutas protegidas;
 - integración con sesión y Business activo real;
-- menú/flujo de `Más` en mobile;
 - redirecciones según sesión.
 
 Criterios de aceptación:
