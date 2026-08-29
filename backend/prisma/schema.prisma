@@ -144,6 +144,7 @@ model Business {
   blocks           Block[]
   bookings         Booking[]
   pricingSnapshots PricingSnapshot[]
+  bookingTimelineEvents BookingTimelineEvent[]
   availabilityRule AvailabilityRule?
 }
 
@@ -334,9 +335,23 @@ model Booking {
   contact         Contact?          @relation(fields: [contactId], references: [id], onDelete: Restrict)
   resources       BookingResource[]
   pricingSnapshot PricingSnapshot?
+  timelineEvents  BookingTimelineEvent[]
 
   @@index([businessId, status, createdAt])
   @@index([businessId, contactId])
+}
+
+model BookingTimelineEvent {
+  id          String   @id @default(uuid())
+  businessId  String
+  bookingId   String
+  type        String
+  occurredAt  DateTime @default(now())
+  actorUserId String?
+  details     Json
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  @@index([businessId, bookingId, occurredAt, id])
 }
 
 model BookingResource {

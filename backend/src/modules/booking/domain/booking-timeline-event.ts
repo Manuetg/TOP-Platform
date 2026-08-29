@@ -1,0 +1,3 @@
+export enum BookingTimelineEventType { BOOKING_CREATED='BOOKING_CREATED', BOOKING_SUBMITTED='BOOKING_SUBMITTED', BOOKING_CONFIRMED='BOOKING_CONFIRMED', BOOKING_CANCELLED='BOOKING_CANCELLED' }
+export interface BookingTimelineEvent { id:string; businessId:string; bookingId:string; type:BookingTimelineEventType; occurredAt:Date; actorUserId:string|null; details:Record<string, unknown>; }
+export interface BookingTimelineRepository { append(event: Omit<BookingTimelineEvent,'id'>): Promise<BookingTimelineEvent>; list(input:{businessId:string; bookingId:string; cursor?:string; limit:number}): Promise<{items:BookingTimelineEvent[]; nextCursor:string|null}>; }
