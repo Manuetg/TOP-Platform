@@ -43,13 +43,13 @@ Las reglas de negocio continúan siendo responsabilidad del backend y de la docu
 
 # 3. Estado general
 
-Total historias frontend: 46
+Total historias frontend: 51
 
 Estado actual:
 
-- Completed: 3
+- Completed: 5
 - In Progress: 3
-- Planned: 35
+- Planned: 40
 - Blocked: 3
 
 ---
@@ -199,53 +199,116 @@ Criterios de aceptación:
 
 ---
 
-
 ## FE-FND-005 — Global App Header
 
 Estado: Completed
 
 Objetivo:
 
-Establecer un encabezado global consistente para la aplicación TOP en desktop y mobile.
+Evolucionar el shell con una barra superior global que concentre contexto y acciones de alto uso.
 
-Implementado:
+Debe contemplar:
 
-- header global desktop integrado al App Shell;
-- selector visual del Business activo;
-- búsqueda global inicial por módulos;
-- acceso a notificaciones;
-- acceso al perfil del usuario;
-- variante mobile responsive;
-- avatar mediante iniciales;
-- panel del Business activo;
-- panel de notificaciones con estado vacío real;
-- panel de perfil con acceso a Configuración;
-- resultados de búsqueda navegables;
-- alineación contextual de popovers en desktop;
-- estados hover, active y focus;
-- soporte de `prefers-reduced-motion`;
-- navegación mobile existente preservada.
-
-Fuera de alcance:
-
-- cambio real de Business — FE-BUS-002;
-- datos reales de usuario/sesión — FE-IAM;
-- búsqueda de entidades del negocio — FE-FND-009;
-- backend de notificaciones.
+- Business activo con nombre e imagen;
+- acceso al selector de Business cuando corresponda;
+- búsqueda global;
+- perfil del usuario con avatar;
+- acceso a acciones de cuenta;
+- adaptación responsive.
 
 Criterios de aceptación:
 
-- header consistente en desktop y mobile;
-- controles interactivos sin acciones ficticias;
-- buscador permite navegar a módulos;
-- Business activo visible;
-- notificaciones muestran un estado válido aunque no existan datos;
-- perfil permite acceder a Configuración;
-- popovers aparecen asociados visualmente a sus controles;
-- navegación mobile existente no se rompe;
-- tests, build y lint pasan.
+- el Business activo permanece claramente identificable;
+- el header no duplica navegación innecesaria;
+- búsqueda y perfil son accesibles;
+- mobile conserva una composición compacta;
+- datos reales provienen de los contextos correspondientes.
 
 ---
+
+## FE-FND-006 — Desktop Context Rail
+
+Estado: Planned
+
+Objetivo:
+
+Incorporar un panel contextual secundario en desktop para información útil sin saturar el contenido principal.
+
+Puede incluir:
+
+- Next Steps;
+- actividad reciente;
+- vistos recientemente;
+- recomendaciones de configuración;
+- ayudas contextuales;
+- futuras oportunidades de upgrade.
+
+Criterios de aceptación:
+
+- no reduce excesivamente el área operativa principal;
+- desaparece o se recompone en tablet/mobile;
+- contenido contextual reutilizable;
+- no mezcla responsabilidades con la navegación principal.
+
+---
+
+## FE-FND-007 — Interaction & Motion System
+
+Estado: Planned
+
+Objetivo:
+
+Definir un sistema consistente de microinteracciones y movimiento que refuerce la percepción de calidad del producto.
+
+Debe contemplar:
+
+- motion tokens;
+- hover;
+- pressed/active;
+- elevación;
+- transiciones de panels y menus;
+- feedback visual de interacción;
+- `prefers-reduced-motion`.
+
+Criterios de aceptación:
+
+- animaciones sutiles y consistentes;
+- ninguna animación bloquea interacción;
+- no se utilizan movimientos decorativos innecesarios;
+- accesibilidad de movimiento respetada;
+- patrones reutilizables en toda la aplicación.
+
+---
+
+## FE-FND-008 — Visual Surface & Button Polish
+
+Estado: Planned
+
+Objetivo:
+
+Elevar la calidad visual de los componentes base y superficies de TOP.
+
+Debe contemplar:
+
+- variantes de Button consistentes;
+- tamaños `sm`, `md` y `lg` cuando sean necesarios;
+- icon buttons;
+- estados hover, focus, pressed y disabled;
+- sombras/elevation;
+- cards;
+- panels;
+- borders y surfaces coherentes;
+- uso consistente de tokens.
+
+Criterios de aceptación:
+
+- componentes no parecen controles browser genéricos;
+- no se duplican estilos por feature;
+- cumple accesibilidad de foco y contraste;
+- visualmente consistente en toda la plataforma.
+
+---
+
 
 ## FE-FND-009 — Global Search
 
@@ -496,18 +559,44 @@ Criterios de aceptación:
 
 ## FE-RES-001 — Resource List
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
-Mostrar las cabañas/habitaciones del Business.
+Mostrar y gestionar visualmente las cabañas, habitaciones o unidades del Business con calidad cercana a producción.
 
 Debe mostrar como mínimo:
 
 - nombre;
-- internalCode;
+- `internalCode`;
 - capacidad;
-- estado.
+- estado;
+- amenities principales cuando existan;
+- imagen del Resource o fallback visual TOP cuando corresponda;
+- acciones disponibles según las historias implementadas.
+
+Debe contemplar:
+
+- loading state;
+- empty state con CTA;
+- error state y retry;
+- success state;
+- diseño responsive mobile/tablet/desktop;
+- jerarquía visual clara;
+- estados hover/focus;
+- microinteracciones sutiles;
+- accesibilidad básica;
+- preparación visual para usage/límites de plan sin inventar reglas de negocio.
+
+Criterios de aceptación:
+
+- consume el contrato backend de Resources;
+- no duplica reglas de negocio;
+- la pantalla es usable en mobile y desktop;
+- la lista tiene calidad visual cercana al producto objetivo;
+- estados ACTIVE, OUT_OF_SERVICE y ARCHIVED tienen representación comprensible;
+- ausencia de imagen no deja un espacio visual roto;
+- tests cubren estados críticos de la pantalla.
 
 ---
 
@@ -568,9 +657,78 @@ Objetivo:
 
 Gestionar imágenes y amenities asignados al Resource.
 
+Debe contemplar:
+
+- mostrar imagen real cuando exista;
+- mostrar una ilustración default TOP cuando el Resource no tenga imagen;
+- el fallback debe respetar Brand y DESIGN de TOP;
+- el comportamiento debe ser consistente entre listado y detalle.
+
 Nota:
 
 La administración del catálogo de Amenities está pendiente de revisión funcional/backend y no debe inventarse desde frontend.
+
+---
+
+## FE-RES-007 — Resource Search & Filtering
+
+Estado: Planned
+
+Objetivo:
+
+Permitir localizar Resources rápidamente dentro del Business.
+
+Debe permitir inicialmente:
+
+- búsqueda por nombre;
+- búsqueda por `internalCode`;
+- filtro por estado.
+
+Criterios de aceptación:
+
+- responsive;
+- búsqueda accesible;
+- filtros claros;
+- empty state específico cuando no existen coincidencias;
+- no mezcla Resources de otros Businesses;
+- preparada para ampliar filtros sin rehacer la arquitectura.
+
+---
+
+# 7A. FE-SUB — Subscription & Entitlements
+
+## FE-SUB-001 — Subscription Entitlements & Usage UI
+
+Estado: Planned
+
+Objetivo:
+
+Mostrar al usuario el plan contratado, su consumo actual y los límites funcionales disponibles.
+
+Casos iniciales previstos:
+
+- cantidad máxima de Resources;
+- uso actual vs límite;
+- proximidad al límite;
+- límite alcanzado;
+- CTA de upgrade.
+
+Ejemplo conceptual:
+
+- Plan Premium — hasta 3 Resources;
+- Plan VIP — hasta 6 Resources.
+
+Nota:
+
+Los nombres, precios y límites definitivos de los planes son decisiones comerciales pendientes y no deben hardcodearse como reglas finales del frontend.
+
+Criterios de aceptación:
+
+- backend es autoridad sobre plan, entitlements y límites;
+- frontend no permite asumir que ocultar/deshabilitar una acción reemplaza la validación backend;
+- usage y límite se representan de forma comprensible;
+- existe estado visual para límite alcanzado;
+- arquitectura extensible a futuros entitlements como usuarios, almacenamiento, automatizaciones o integraciones.
 
 ---
 
