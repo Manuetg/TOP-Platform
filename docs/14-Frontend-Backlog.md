@@ -43,11 +43,11 @@ Las reglas de negocio continúan siendo responsabilidad del backend y de la docu
 
 # 3. Estado general
 
-Total historias frontend: 51
+Total historias frontend: 52
 
 Estado actual:
 
-- Completed: 5
+- Completed: 6
 - In Progress: 3
 - Planned: 40
 - Blocked: 3
@@ -356,6 +356,50 @@ Criterios de aceptación:
 - seleccionar un resultado navega al destino correcto;
 - búsqueda respeta Business y permisos;
 - no se duplican reglas de negocio en frontend.
+
+---
+
+## FE-FND-010 — Frontend Containerization
+
+Estado: Completed
+
+Objetivo:
+
+Containerizar el frontend de TOP para disponer de un runtime reproducible y alineado con el stack Docker local de la plataforma.
+
+Implementado:
+
+- Dockerfile multi-stage;
+- build productivo con Node 22;
+- runtime estático con Nginx;
+- configuración de `VITE_API_URL` mediante build argument;
+- SPA fallback hacia `index.html`;
+- endpoint `/health`;
+- healthcheck Docker;
+- `.dockerignore`;
+- integración del frontend al Docker Compose existente;
+- exposición del frontend en `localhost:3001`;
+- integración con API en `localhost:3000`;
+- validación end-to-end con login y Resources.
+
+Arquitectura local:
+
+- PostgreSQL: `localhost:5432`;
+- API: `localhost:3000`;
+- Frontend: `localhost:3001`.
+
+Criterios de aceptación:
+
+- `npm run test` pasa;
+- `npm run build` pasa;
+- `npm run lint` pasa;
+- imagen Docker frontend construye correctamente;
+- Nginx responde `200` en `/`;
+- `/health` responde `200`;
+- deep links SPA no devuelven `404`;
+- frontend consume correctamente el API desde el navegador;
+- stack PostgreSQL + API + frontend puede levantarse mediante Docker Compose;
+- login y Resources funcionan desde el frontend containerizado.
 
 ---
 # 5. FE-IAM — Identity & Session
