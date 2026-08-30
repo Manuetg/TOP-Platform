@@ -92,6 +92,7 @@ describe('PrismaBookingConfirmationTransaction', () => {
       where: { id: bookingId, businessId, status: 'PENDING' },
       data: { status: 'CONFIRMED' },
     });
+    expect(createTimelineEvent).toHaveBeenCalledWith({data:{businessId,bookingId,type:'BOOKING_CONFIRMED',actorUserId:null,details:{}}});
   });
 
   it('returns NOT_FOUND without preparing a snapshot when the locked booking is absent', async () => {

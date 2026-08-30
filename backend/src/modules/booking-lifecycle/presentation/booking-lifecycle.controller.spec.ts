@@ -340,4 +340,5 @@ describe('BookingLifecycleController', () => {
     cancel.execute.mockRejectedValueOnce(new BookingCancellationNotAllowedError('invalid'));
     await expect(controller.cancel(businessId, bookingId)).rejects.toBeInstanceOf(ConflictException);
   });
+  it('forwards the optional cancellation reason and authenticated actor',async()=>{const actorUserId='55555555-5555-4555-8555-555555555555';cancel.execute.mockResolvedValueOnce(booking.withStatus(BookingStatus.CANCELLED));await controller.cancel(businessId,bookingId,{reason:'Cambio de planes.'},{authenticatedPrincipal:{userId:actorUserId}} as never);expect(cancel.execute).toHaveBeenCalledWith({businessId,bookingId,actorUserId,reason:'Cambio de planes.'});});
 });
