@@ -1,6 +1,6 @@
 # TOP — Frontend Backlog
 
-Última actualización: 2026-08-29
+Última actualización: 2026-08-30
 
 ## Objetivo
 
@@ -47,8 +47,8 @@ Total historias frontend: 52
 
 Estado actual:
 
-- Completed: 6
-- In Progress: 3
+- Completed: 7
+- In Progress: 2
 - Planned: 40
 - Blocked: 3
 
