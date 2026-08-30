@@ -73,9 +73,9 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 - **BKG-003 — List Bookings.** Estado: Completed. Dominio: Booking. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/bookings`. Pruebas obligatorias: según convención. Definition of Done: aplicada.
 - **BKG-004 — Update Booking.** Estado: Completed. Dominio: Booking. Prioridad: Alta. Endpoint: `PATCH /api/businesses/:businessId/bookings/:bookingId`. Pruebas obligatorias: según convención. Definition of Done: aplicada.
 - **BKG-005 — Booking Lifecycle.** Estado: Completed. Dominio: Booking. Prioridad: Alta. Endpoints: `POST /api/businesses/:businessId/bookings/:bookingId/submit`, `POST /api/businesses/:businessId/bookings/:bookingId/confirm` y `POST /api/businesses/:businessId/bookings/:bookingId/cancel`. Pruebas obligatorias: unitarias, integración PostgreSQL, E2E y aceptación según convención, más mutation focalizada. Definition of Done: aplicada. Evidencia técnica: commits `2b0de37`, `b810654`, `3106568` y `ee536ae`; Submit realiza `DRAFT → PENDING` tras validar Contact, Resources, rango y AVL-004. Confirm realiza `PENDING → CONFIRMED`, excluye la propia Booking de Availability, recalcula Pricing en backend, soporta override manual válido y persiste PricingSnapshot inmutable junto con el estado confirmado en una única transacción con protección de concurrencia. Cancel realiza `DRAFT`, `PENDING` o `CONFIRMED → CANCELLED`, es idempotente para `CANCELLED`, rechaza `IN_PROGRESS`, `COMPLETED` y `NO_SHOW` y preserva historial, Contact, Resources y PricingSnapshot. Validación local: Prisma generate/validate, lint, build, unit 78 suites/686 tests, integración 19 suites/58 tests, E2E 13 suites/132 tests, aceptación 89 escenarios/367 pasos, cobertura global statements 97,54%, branches 93,62%, functions 97,49% y lines 97,97%, arquitectura sin violaciones y quality check aprobados; mutation focalizada de Lifecycle 89,22% (sin timeouts; sobrevivientes restantes no funcionales o redundantes). No incorpora check-in, check-out, No Show, Payments ni Timeline.
-- **BKG-006 — Booking Timeline.** Estado: In Progress. Dominio: Booking. Prioridad: Media. Endpoint: `GET /api/businesses/:businessId/bookings/:bookingId/timeline`. Registra `BOOKING_CREATED`, `BOOKING_SUBMITTED`, `BOOKING_CONFIRMED` y `BOOKING_CANCELLED` en una cronología append-only, tenant-scoped y ordenada por `occurredAt DESC, id DESC`; el actor expone únicamente `userId` y los eventos del sistema usan actor nulo. El motivo de cancelación es opcional, se valida entre 2 y 500 caracteres cuando se informa, se conserva en los detalles de cada evento y no se realiza backfill histórico. Usa cursor pagination con límite máximo 50 y retención indefinida. No incorpora Event Sourcing ni restricciones de rol adicionales. Evidencia técnica post-merge: PR `#20`, merge commit `fd1716f6449058ea73a1f0256ff35ab48580c04a`; Create, Submit, Confirm con PricingSnapshot y Cancel persisten estado y Timeline atómicamente en PostgreSQL; los retries de Submit y Cancel no duplican eventos; aislamiento por `businessId + bookingId`; migraciones `20260829000000_add_booking_timeline_events` y `20260829010000_constrain_booking_timeline_event_type`; Backend CI run `33283219679` aprobado con lint, build, unitarias, integración PostgreSQL, E2E, aceptación, cobertura, arquitectura, Prisma y migraciones; mutation focalizada de 466 mutantes con score combinado 85,19%, por encima del threshold alto de 80%; sin breaking changes. Desviación pendiente: la PR fue mergeada sin reviewers ni reviews registradas y no existe una excepción explícita documentada al requisito de implementación revisada, por lo que la historia no puede marcarse Completed.
+- **BKG-006 — Booking Timeline.** Estado: Completed. Dominio: Booking. Prioridad: Media. Endpoint: `GET /api/businesses/:businessId/bookings/:bookingId/timeline`. Registra `BOOKING_CREATED`, `BOOKING_SUBMITTED`, `BOOKING_CONFIRMED` y `BOOKING_CANCELLED` en una cronología append-only, tenant-scoped y ordenada por `occurredAt DESC, id DESC`; el actor expone únicamente `userId` y los eventos del sistema usan actor nulo. El motivo de cancelación es opcional, se valida entre 2 y 500 caracteres cuando se informa, se conserva en los detalles de cada evento y no se realiza backfill histórico. Usa cursor pagination con límite máximo 50 y retención indefinida. No incorpora Event Sourcing ni restricciones de rol adicionales. Evidencia técnica post-merge: PR `#20`, merge commit `fd1716f6449058ea73a1f0256ff35ab48580c04a`; Create, Submit, Confirm con PricingSnapshot y Cancel persisten estado y Timeline atómicamente en PostgreSQL; los retries de Submit y Cancel no duplican eventos; aislamiento por `businessId + bookingId`; migraciones `20260829000000_add_booking_timeline_events` y `20260829010000_constrain_booking_timeline_event_type`; Backend CI run `33283219679` aprobado con lint, build, unitarias, integración PostgreSQL, E2E, aceptación, cobertura, arquitectura, Prisma y migraciones; mutation focalizada de 466 mutantes con score combinado 85,19%, por encima del threshold alto de 80%; sin breaking changes. Desviación de proceso: la PR fue mergeada sin reviewers ni reviews registradas. Waiver de review aprobado excepcionalmente para BKG-006; la excepción no modifica la Definition of Done ni el requisito de review de historias futuras.
 
-Fuera del cierre BKG-001..005 permanecen BKG-006 Timeline y Payments. La validación central de conflictos para Submit/Confirm está disponible mediante AVL-004; BKG-005 ya persiste el PricingSnapshot requerido por Confirm.
+Booking queda completado con BKG-001..006; Payments permanece pendiente. La validación central de conflictos para Submit/Confirm está disponible mediante AVL-004 y Confirm persiste el PricingSnapshot junto con el evento funcional correspondiente.
 
 ## Payment
 
@@ -109,11 +109,11 @@ Availability ya considera conjuntamente Booking, Block y el estado operativo del
 | Pricing | 5 | 5 | 0 | 0 | 0 |
 | Availability | 4 | 4 | 0 | 0 | 0 |
 | Contact | 4 | 4 | 0 | 0 | 0 |
-| Booking | 6 | 5 | 0 | 1 | 0 |
+| Booking | 6 | 6 | 0 | 0 | 0 |
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 3 | 0 | 0 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **39** | **0** | **12** | **0** |
+| **Total** | **51** | **40** | **0** | **11** | **0** |
 
 Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
 
@@ -123,9 +123,9 @@ Progreso de Pricing: 5 de 5 capacidades completadas (100%).
 
 Progreso de Availability: 4 de 4 capacidades completadas (100%).
 
-Progreso de Booking: 5 de 6 capacidades completadas (83,3%).
+Progreso de Booking: 6 de 6 capacidades completadas (100%).
 
-Progreso general del MVP: 39 de 51 capacidades completadas (76,5%).
+Progreso general del MVP: 40 de 51 capacidades completadas (78,4%).
 
 Progreso de Contact: 4 de 4 capacidades completadas (100%).
 

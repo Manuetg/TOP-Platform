@@ -1,6 +1,6 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-08-26
+Última actualización: 2026-08-29
 
 ## Responsabilidades
 
@@ -31,17 +31,17 @@ Alcance:
 ## Estado Backend
 
 Última historia completada:
-- BKG-005 — Booking Lifecycle — Completed
+- BKG-006 — Booking Timeline — Completed
 
 Estado del MVP:
-- 39 / 51 capacidades completadas
-- 76,5%
+- 40 / 51 capacidades completadas
+- 78,4%
 
 Booking:
-- 5 / 6 completadas
+- 6 / 6 completadas
 
 Siguiente capacidad backend prevista:
-- BKG-006 — Booking Timeline
+- IAM-007 — Roles
 
 Pendientes principales posteriores:
 - IAM restante
@@ -78,6 +78,16 @@ Booking Lifecycle actual:
 - `POST /api/businesses/:businessId/bookings/:bookingId/submit`
 - `POST /api/businesses/:businessId/bookings/:bookingId/confirm`
 - `POST /api/businesses/:businessId/bookings/:bookingId/cancel`
+- `GET /api/businesses/:businessId/bookings/:bookingId/timeline`
+
+Booking Timeline:
+- Auth: `Authorization: Bearer <token>`.
+- Path: `businessId`, `bookingId`.
+- Query: `cursor?` opaco y `limit?` entre 1 y 50; default 50.
+- Response: `items` con `id`, `type`, `occurredAt`, `actor` (`{ userId }` o `null`) y `details`; `pageInfo` contiene `nextCursor` y `hasNextPage`.
+- Eventos: `BOOKING_CREATED`, `BOOKING_SUBMITTED`, `BOOKING_CONFIRMED`, `BOOKING_CANCELLED`.
+- Cancel admite `reason` opcional en `details`; no existe backfill para Bookings anteriores a BKG-006.
+- Breaking change: no.
 
 ## Regla de coordinación Backend → Frontend
 
@@ -92,7 +102,8 @@ Cuando Backend modifica un contrato que consume Frontend, actualizar esta secci�
 
 ## Cambios recientes relevantes para Frontend
 
-- BKG-005 finalizado: Booking soporta DRAFT → PENDING → CONFIRMED y CANCELLED.
+- BKG-006 finalizado: Booking expone Timeline paginado con cursor opaco y los cuatro eventos funcionales aprobados.
+- Cancel acepta motivo opcional, visible únicamente en el evento de cancelación correspondiente.
 - Confirm persiste PricingSnapshot.
 - Availability considera Bookings, Blocks y reglas configurables.
 - API disponible dentro del stack Docker.
