@@ -12,7 +12,9 @@ RUN npm install --include=optional
 COPY . .
 
 ARG VITE_API_URL=http://localhost:3000/api
+ARG VITE_DEV_BUSINESS_ID
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_DEV_BUSINESS_ID=$VITE_DEV_BUSINESS_ID
 
 RUN npm run build
 
