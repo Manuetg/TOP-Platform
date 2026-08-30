@@ -40,24 +40,21 @@ export class PrismaBookingRepository implements BookingRepository {
     });
     return this.map(row);
   }
-  async markPending(id: string, businessId?: string, actorUserId: string | null = null): Promise<Booking> {
-    if (!businessId) return this.map(await this.prisma.booking.update({ where: { id }, data: { status: BookingStatus.PENDING }, include: includeResources }));
+  async markPending(id: string, businessId: string, actorUserId: string | null): Promise<Booking | null> {
     return this.prisma.$transaction(async (transaction) => {
-      const row = await transaction.booking.update({ where: { id }, data: { status: BookingStatus.PENDING }, include: includeResources });
+      const updated = await transaction.booking.updateMany({ where: { id, businessId, status: BookingStatus.DRAFT }, data: { status: BookingStatus.PENDING } });
+      if (updated.count !== 1) return null;
       await transaction.bookingTimelineEvent.create({ data: { businessId, bookingId: id, type: BookingTimelineEventType.BOOKING_SUBMITTED, actorUserId, details: {} } });
-      return this.map(row);
+      return this.map(await transaction.booking.findUniqueOrThrow({ where: { id }, include: includeResources }));
     });
   }
-  async markCancelled(id: string, businessId?: string, actorUserId: string | null = null, reason?: string): Promise<Booking> {
-    if (!businessId) return this.map(await this.prisma.booking.update({ where: { id }, data: { status: BookingStatus.CANCELLED }, include: includeResources }));
+  async markCancelled(id: string, businessId: string, actorUserId: string | null, reason?: string): Promise<Booking | null> {
     return this.prisma.$transaction(async (transaction) => {
-      const row = await transaction.booking.update({ where: { id }, data: { status: BookingStatus.CANCELLED }, include: includeResources });
+      const updated = await transaction.booking.updateMany({ where: { id, businessId, status: { in: [BookingStatus.DRAFT, BookingStatus.PENDING, BookingStatus.CONFIRMED] } }, data: { status: BookingStatus.CANCELLED } });
+      if (updated.count !== 1) return null;
       await transaction.bookingTimelineEvent.create({ data: { businessId, bookingId: id, type: BookingTimelineEventType.BOOKING_CANCELLED, actorUserId, details: reason ? { reason } : {} } });
-      return this.map(row);
+      return this.map(await transaction.booking.findUniqueOrThrow({ where: { id }, include: includeResources }));
     });
-  }
-  async appendTimelineEvent(input: { businessId: string; bookingId: string; type: BookingTimelineEventType; actorUserId: string | null; reason?: string }): Promise<void> {
-    await this.prisma.bookingTimelineEvent.create({ data: { businessId: input.businessId, bookingId: input.bookingId, type: input.type, actorUserId: input.actorUserId, details: input.reason ? { reason: input.reason } : {} } });
   }
   async hasBlockingBooking(
   businessId: string,

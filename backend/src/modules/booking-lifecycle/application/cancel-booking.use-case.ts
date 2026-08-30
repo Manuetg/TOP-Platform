@@ -6,7 +6,6 @@ import {
   BookingCancellationNotAllowedError,
   BookingNotFoundError,
   BookingStatus,
-  BookingTimelineEventType,
   InvalidBookingInputError,
   requireBookingUuid,
   type Booking,
@@ -35,14 +34,15 @@ export class CancelBookingUseCase {
     if (business.status !== BusinessStatus.ACTIVE) throw new BookingBusinessUnavailableError('El negocio no está activo.');
     const booking = await this.bookings.findByIdAndBusinessId(bookingId, businessId);
     if (!booking) throw new BookingNotFoundError('La reserva no existe.');
-    if (booking.status === BookingStatus.CANCELLED) {
-      await this.bookings.appendTimelineEvent({ businessId, bookingId, type: BookingTimelineEventType.BOOKING_CANCELLED, actorUserId, ...(reason ? { reason } : {}) });
-      return booking;
-    }
+    if (booking.status === BookingStatus.CANCELLED) return booking;
     if (![BookingStatus.DRAFT, BookingStatus.PENDING, BookingStatus.CONFIRMED].includes(booking.status)) {
       throw new BookingCancellationNotAllowedError('No se puede cancelar una reserva en este estado.');
     }
-    return this.bookings.markCancelled(booking.id, businessId, actorUserId, reason);
+    const cancelled = await this.bookings.markCancelled(booking.id, businessId, actorUserId, reason);
+    if (cancelled) return cancelled;
+    const current = await this.bookings.findByIdAndBusinessId(bookingId, businessId);
+    if (current?.status === BookingStatus.CANCELLED) return current;
+    throw new BookingCancellationNotAllowedError('No se puede cancelar una reserva en este estado.');
   }
 
   private reason(value: unknown): string | undefined {

@@ -63,7 +63,6 @@ describe('SubmitBookingUseCase', () => {
       update: jest.fn(),
       markPending,
       markCancelled: jest.fn(),
-      appendTimelineEvent: jest.fn(),
       hasBlockingBooking: jest.fn(),
       listBlockingBookings: jest.fn(),
     },
@@ -129,6 +128,10 @@ describe('SubmitBookingUseCase', () => {
 
     expect(markPending).toHaveBeenCalledWith(bookingId, businessId, null);
   });
+
+  it('rejects a concurrent retry when the conditional transition no longer matches',async()=>{markPending.mockResolvedValueOnce(null);await expect(useCase.execute({businessId,bookingId})).rejects.toBeInstanceOf(BookingNotDraftError);expect(markPending).toHaveBeenCalledTimes(1);});
+
+  it('forwards the authenticated actor to the atomic transition',async()=>{const actorUserId='55555555-5555-4555-8555-555555555555';await useCase.execute({businessId,bookingId,actorUserId});expect(markPending).toHaveBeenCalledWith(bookingId,businessId,actorUserId);});
 
   it.each([
     [
