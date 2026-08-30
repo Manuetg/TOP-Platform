@@ -1,6 +1,7 @@
-﻿import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { login } from "../api/login";
 import {
   loginSchema,
@@ -13,6 +14,7 @@ import { Input } from "../../../shared/ui/Input";
 
 export function LoginPage() {
   const { establishSession } = useAuth();
+  const navigate = useNavigate();
 
   const {
     register,
@@ -30,6 +32,7 @@ export function LoginPage() {
     mutationFn: login,
     onSuccess: (data) => {
       establishSession(data);
+      navigate("/app");
     },
   });
 
