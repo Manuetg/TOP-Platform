@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
+import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 import { ResourceListPage } from "./ResourceListPage";
 import { AuthProvider } from "../../auth/context/AuthContext";
@@ -16,7 +17,9 @@ function renderResourceListPage(
 ) {
   return render(
     <AuthProvider>
-      <ResourceListPage {...props} />
+      <MemoryRouter>
+        <ResourceListPage {...props} />
+      </MemoryRouter>
     </AuthProvider>,
   );
 }

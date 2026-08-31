@@ -3,10 +3,11 @@ import {
   Building2,
   ImageIcon,
 
-  Pencil,
+  ArrowRight,
   Plus,
   Users,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
 import { useResources } from "../queries/use-resources";
@@ -35,6 +36,7 @@ function getResourceStatusLabel(status: ResourceStatus) {
 }
 
 function ResourceCard({ resource }: { resource: Resource }) {
+  const navigate = useNavigate();
   const visibleAmenities = resource.amenities.slice(0, 4);
   const remainingAmenities =
     resource.amenities.length - visibleAmenities.length;
@@ -132,18 +134,23 @@ function ResourceCard({ resource }: { resource: Resource }) {
 
         <div className="resource-list-card__footer">
           <Button
-  type="button"
-  variant="secondary"
-  className="resource-list-card__edit"
->
-  <Pencil size={15} aria-hidden="true" />
-  <span className="resource-list-card__edit-mobile">
-    Editar
-  </span>
-  <span className="resource-list-card__edit-desktop">
-    Editar recurso
-  </span>
-</Button>
+            type="button"
+            variant="secondary"
+            className="resource-list-card__edit"
+            onClick={() =>
+              navigate(`/app/resources/${resource.id}`)
+            }
+          >
+            <span className="resource-list-card__edit-mobile">
+              Ver
+            </span>
+
+            <span className="resource-list-card__edit-desktop">
+              Ver detalle
+            </span>
+
+            <ArrowRight size={15} aria-hidden="true" />
+          </Button>
         </div>
       </div>
     </article>
@@ -274,10 +281,6 @@ export function ResourceListPage({
           <strong>
             {resourceCount} {resourceCount === 1 ? "recurso" : "recursos"}
           </strong>
-        </div>
-
-        <div className="resource-list-usage__future">
-          Límites según plan próximamente
         </div>
       </div>
 

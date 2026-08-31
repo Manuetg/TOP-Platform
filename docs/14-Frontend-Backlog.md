@@ -47,9 +47,9 @@ Total historias frontend: 52
 
 Estado actual:
 
-- Completed: 7
+- Completed: 8
 - In Progress: 2
-- Planned: 40
+- Planned: 39
 - Blocked: 3
 
 ---
@@ -646,12 +646,32 @@ Criterios de aceptación:
 
 ## FE-RES-002 — Resource Detail
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
 Mostrar la ficha completa de una unidad.
 
+Implementado:
+
+- ruta `/app/resources/:resourceId`;
+- consumo del detalle real del Resource;
+- nombre, `internalCode` y estado;
+- descripción con fallback;
+- capacidad de huéspedes y niños;
+- amenities asignados;
+- fallback visual cuando no existe imagen disponible;
+- navegación hacia atrás al listado;
+- estados loading y error con retry;
+- diseño responsive mobile/desktop;
+- tests del API y pantalla de detalle.
+
+Fuera de alcance:
+
+- edición del Resource — FE-RES-004;
+- transiciones operativas — FE-RES-005;
+- upload y gestión de imágenes — FE-RES-006;
+- gestión de amenities — FE-RES-006.
 ---
 
 ## FE-RES-003 — Create Resource
