@@ -160,6 +160,7 @@ function ResourceCard({ resource }: { resource: Resource }) {
 export function ResourceListPage({
   businessId = TEMP_BUSINESS_ID,
 }: ResourceListPageProps) {
+  const navigate = useNavigate();
   const { session } = useAuth();
   const {
     data: resources,
@@ -259,6 +260,7 @@ export function ResourceListPage({
         <Button
   type="button"
   className="resource-list-header__create"
+          onClick={() => navigate("/app/resources/new")}
 >
   <Plus size={16} aria-hidden="true" />
   <span className="resource-list-header__create-mobile">

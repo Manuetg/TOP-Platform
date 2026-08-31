@@ -1,0 +1,180 @@
+.resource-create-page {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.resource-create-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 20px;
+  padding: 0;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.resource-create-header {
+  margin-bottom: 28px;
+}
+
+.resource-create-eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-brand-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.resource-create-header h1 {
+  margin: 0;
+  font-size: clamp(1.9rem, 4vw, 2.4rem);
+  line-height: 1.12;
+}
+
+.resource-create-header p {
+  max-width: 620px;
+  margin: 10px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.resource-create-form {
+  display: grid;
+  gap: 16px;
+}
+
+.resource-create-card {
+  padding: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+}
+
+.resource-create-card__header {
+  margin-bottom: 20px;
+}
+
+.resource-create-card__header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.resource-create-card__header p {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.resource-create-fields {
+  display: grid;
+  align-items: start;
+  gap: 16px;
+}
+
+.resource-create-field {
+  display: grid;
+  gap: 7px;
+}
+
+.resource-create-field > span {
+  color: var(--color-text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.resource-create-field input,
+.resource-create-field textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: 0.88rem;
+}
+
+.resource-create-field textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+
+.resource-create-field input[aria-invalid="true"],
+.resource-create-field textarea[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.resource-create-field small {
+  color: var(--color-error);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.resource-create-error {
+  padding: 14px 16px;
+  color: var(--color-error);
+  background: rgb(180 35 24 / 5%);
+  border: 1px solid rgb(180 35 24 / 18%);
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+}
+
+.resource-create-actions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.resource-create-actions .top-button {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .resource-create-fields {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .resource-create-fields--three {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+
+  .resource-create-field--full {
+    grid-column: 1 / -1;
+  }
+
+  .resource-create-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .resource-create-actions .top-button {
+    width: auto;
+  }
+}
+
+.resource-create-field input[readonly] {
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+.resource-create-field__help {
+  color: var(--color-text-secondary) !important;
+}
+.resource-create-field input {
+  height: 44px;
+}

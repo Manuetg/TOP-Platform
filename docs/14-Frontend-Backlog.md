@@ -47,9 +47,9 @@ Total historias frontend: 52
 
 Estado actual:
 
-- Completed: 8
+- Completed: 9
 - In Progress: 2
-- Planned: 39
+- Planned: 38
 - Blocked: 3
 
 ---
@@ -676,19 +676,35 @@ Fuera de alcance:
 
 ## FE-RES-003 — Create Resource
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
 Permitir crear una nueva unidad.
 
-Criterios de aceptación:
+Implementado:
 
-- validación frontend básica;
-- backend sigue siendo autoridad final;
-- feedback de éxito/error;
-- refrescar lista luego de crear.
+- ruta `/app/resources/new`;
+- navegación desde el listado de Resources;
+- formulario responsive mobile/desktop;
+- creación real mediante `POST /api/businesses/:businessId/resources`;
+- validación frontend con Zod y React Hook Form;
+- nombre, descripción, capacidades y orden;
+- `internalCode` generado automáticamente a partir del nombre;
+- normalización del código interno a formato compatible con backend;
+- feedback de errores;
+- redirección al detalle luego de crear;
+- backend continúa siendo autoridad final de reglas de negocio;
+- test de integración de la capa API;
+- validación visual y funcional end-to-end en entorno Docker.
 
+Fuera de alcance:
+
+- edición del Resource — FE-RES-004;
+- transiciones operativas — FE-RES-005;
+- upload y gestión de imágenes — FE-RES-006;
+- gestión de amenities — FE-RES-006;
+- persistencia y renovación de sesión — FE-IAM-003 / FE-IAM-004.
 ---
 
 ## FE-RES-004 — Edit Resource
