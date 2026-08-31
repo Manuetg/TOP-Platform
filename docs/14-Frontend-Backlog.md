@@ -709,11 +709,33 @@ Fuera de alcance:
 
 ## FE-RES-004 — Edit Resource
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
 Modificar datos de una unidad existente.
+
+Implementado:
+
+- ruta `/app/resources/:resourceId/edit`;
+- navegación a edición desde el detalle del Resource;
+- carga de datos actuales del Resource;
+- formulario responsive reutilizando las reglas visuales del módulo;
+- edición real mediante `PATCH /api/businesses/:businessId/resources/:resourceId`;
+- validación frontend con Zod y React Hook Form;
+- edición de nombre, `internalCode`, descripción, capacidades y orden;
+- normalización de `internalCode` a mayúsculas antes del envío;
+- manejo de errores del backend;
+- actualización inmediata de la cache del detalle tras guardar;
+- invalidación del listado de Resources para evitar datos desactualizados;
+- navegación nuevamente al detalle después de una edición exitosa;
+- test del contrato de actualización.
+
+Fuera de alcance:
+
+- transiciones operativas — FE-RES-005;
+- upload y gestión de imágenes — FE-RES-006;
+- gestión de amenities — FE-RES-006.
 
 ---
 

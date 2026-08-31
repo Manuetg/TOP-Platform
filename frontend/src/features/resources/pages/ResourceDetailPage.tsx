@@ -135,7 +135,13 @@ export function ResourceDetailPage() {
           </p>
         </div>
 
-        <Button type="button" variant="secondary">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() =>
+            navigate(`/app/resources/${resource.id}/edit`)
+          }
+        >
           <Pencil size={16} aria-hidden="true" />
           Editar recurso
         </Button>
