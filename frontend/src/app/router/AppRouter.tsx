@@ -9,6 +9,7 @@ import { AppSectionPage } from "../pages/AppSectionPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { ResourceListPage } from "../../features/resources/pages/ResourceListPage";
 import { ResourceDetailPage } from "../../features/resources/pages/ResourceDetailPage";
+import { CreateResourcePage } from "../../features/resources/pages/CreateResourcePage";
 
 const router = createBrowserRouter([
   {
@@ -42,7 +43,11 @@ const router = createBrowserRouter([
       {
         path: "resources",
         element: <ResourceListPage />,
+      },      {
+        path: "resources/new",
+        element: <CreateResourcePage />,
       },
+
       {
         path: "resources/:resourceId",
         element: <ResourceDetailPage />,
