@@ -10,8 +10,8 @@ class LoginUserResponseDto {
 }
 
 class LoginMembershipResponseDto {
-  @ApiProperty() businessId!: string;
-  @ApiProperty({ enum: MembershipRole }) role!: MembershipRole;
+  @ApiProperty({ format: 'uuid', example: '22222222-2222-4222-8222-222222222222' }) businessId!: string;
+  @ApiProperty({ enum: MembershipRole, example: MembershipRole.OWNER }) role!: MembershipRole;
 }
 
 export class LoginResponseDto {
