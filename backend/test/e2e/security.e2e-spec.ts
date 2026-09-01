@@ -1,4 +1,4 @@
-import { Controller, Get, type INestApplication, ParseUUIDPipe, Param } from '@nestjs/common';
+import { Controller, Get, type INestApplication, ParseUUIDPipe, Param, Patch, Post } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -27,6 +27,8 @@ class SecurityProbeController {
   @Public() @Get('public') publicRoute(): object { return { public: true }; }
   @Get('default') protectedByDefault(): object { return { protected: true }; }
   @BusinessAccess('businessId') @Get('businesses/:businessId') tenant(@Param('businessId', new ParseUUIDPipe()) id: string): object { return { businessId: id }; }
+  @BusinessAccess('businessId') @Post('businesses/:businessId/mutable') mutable(@Param('businessId', new ParseUUIDPipe()) id: string): object { return { businessId: id }; }
+  @BusinessAccess('businessId', 'OWNER', 'ADMIN') @Patch('businesses/:businessId/administrative') administrative(@Param('businessId', new ParseUUIDPipe()) id: string): object { return { businessId: id }; }
   @AnyBusinessRole('OWNER', 'ADMIN') @Get('admin') admin(): object { return { admin: true }; }
 }
 
@@ -118,6 +120,20 @@ describe('Protección JWT y membresía', () => {
     await request(app.getHttpServer()).get('/api/security-probe/admin').set('Authorization', `Bearer ${token}`).expect(403);
     memberships = [membership(businessId, MembershipRole.ADMIN)];
     await request(app.getHttpServer()).get('/api/security-probe/admin').set('Authorization', `Bearer ${token}`).expect(200);
+  });
+
+  it('mantiene roles por tenant y VIEWER en solo lectura', async () => {
+    const token = await bearer();
+    memberships = [membership(businessId, MembershipRole.OWNER), membership(otherBusinessId, MembershipRole.VIEWER)];
+    await request(app.getHttpServer()).get(`/api/security-probe/businesses/${otherBusinessId}`).set('Authorization', `Bearer ${token}`).expect(200);
+    await request(app.getHttpServer()).post(`/api/security-probe/businesses/${otherBusinessId}/mutable`).set('Authorization', `Bearer ${token}`).expect(403);
+    await request(app.getHttpServer()).patch(`/api/security-probe/businesses/${otherBusinessId}/administrative`).set('Authorization', `Bearer ${token}`).expect(403);
+    await request(app.getHttpServer()).patch(`/api/security-probe/businesses/${businessId}/administrative`).set('Authorization', `Bearer ${token}`).expect(200);
+  });
+
+  it('rechaza RECEPTIONIST en una operación OWNER/ADMIN', async () => {
+    memberships = [membership(businessId, MembershipRole.RECEPTIONIST)];
+    await request(app.getHttpServer()).patch(`/api/security-probe/businesses/${businessId}/administrative`).set('Authorization', `Bearer ${await bearer()}`).expect(403);
   });
 
   it('protege por defecto una ruta sin metadata', async () => {
