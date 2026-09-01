@@ -26,7 +26,7 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 
 - **IAM-004 — Create User.** Estado: Completed. Dominio: Identity & Access. Prioridad: Alta. Endpoint: `POST /api/users` propuesto para habilitación posterior; el primer slice usa aprovisionamiento administrativo mediante script o seed. Pruebas obligatorias: unitarias, integración PostgreSQL, E2E, aceptación Gherkin, mutation testing y seguridad. Definition of Done: crea User `ACTIVE` y LocalCredential de forma atómica, normaliza y valida email, aplica política de contraseña, no expone datos sensibles y supera los controles vigentes.
 - **IAM-009 — Manage User-Business Membership.** Estado: Completed. Dominio: Identity & Access. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/memberships` propuesto. Pruebas obligatorias: unitarias, integración PostgreSQL, E2E, aceptación Gherkin, mutation testing y seguridad. Definition of Done: aplicada. Evidencia técnica: commit `fe0998b`; quality check, integración PostgreSQL, E2E y aceptación aprobados; mutation score general 87.40% e Identity 84.26%. La confirmación de GitHub Actions para `fe0998b` está **Pendiente de confirmación manual**.
-- **IAM-007 — Roles.** Estado: In Progress. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Sin endpoint propio. Alcance: catálogo cerrado `OWNER`, `ADMIN`, `RECEPTIONIST` y `VIEWER`, rol tenant-scoped por UserBusinessMembership, asignación inicial mediante IAM-009, Login con `businessId + role`, JWT identity-only y autorización contra la membresía vigente. `VIEWER` permanece en solo lectura; la matriz granular, el cambio posterior de rol y Permissions pertenecen fuera de IAM-007. Pruebas obligatorias: unitarias, integración PostgreSQL, E2E, aceptación, seguridad y mutation focalizada. Definition of Done: catálogo y scope documentados; aislamiento entre Businesses, roles por Membership, Login, JWT, BusinessAuthorizationGuard y VIEWER read-only comprobados; quality gates, CI, review y merge aprobados.
+- **IAM-007 — Roles.** Estado: Completed. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Sin endpoint propio. Alcance: catálogo cerrado `OWNER`, `ADMIN`, `RECEPTIONIST` y `VIEWER`, rol tenant-scoped por UserBusinessMembership, asignación inicial mediante IAM-009, Login con `businessId + role`, JWT identity-only y autorización contra la membresía vigente. `VIEWER` permanece en solo lectura; la matriz granular, el cambio posterior de rol y Permissions pertenecen fuera de IAM-007. Definition of Done: aplicada. Evidencia técnica: PR `#28`; feature HEAD `20061d723372c9c85a0cd95af2dfc70d8e136568`; merge `b9fa6b0a5cd01af616edc823ac91da8943652d93`; Backend CI `#104`, run `33570468101`, aprobado con PostgreSQL real, Prisma generate/migrate/validate, lint, unit, integración, E2E, aceptación, cobertura, arquitectura y build; mutation focalizada 83,58% (201 mutantes, 168 killed, 21 survived, 0 timeout y 12 no coverage), por encima de los thresholds oficiales; sin migración ni breaking changes. Desviación de proceso: GitHub no registra review formal; el merge contiene `OK Waiver` como aprobación humana excepcional. Esta excepción no modifica la DoD ni el requisito de review para historias futuras.
 - **IAM-001 — Login.** Estado: Completed. Dominio: Identity & Access. Prioridad: Alta. Endpoint: `POST /api/auth/login`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Depende de User, membresías y roles. Evidencia técnica: commit `81560013`; Login mediante JWT Bearer con expiración de 900 segundos; quality check aprobado; mutation score general 85.10%, Identity 81.99% y LoginUseCase 98.21%; arquitectura sin violaciones.
 - **IAM-003 — Refresh Token.** Estado: Completed. Dominio: Identity & Access. Prioridad: Alta. Endpoint: `POST /api/auth/refresh`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `ec9347da`; refresh token opaco de 256 bits con hash SHA-256 persistido, rotación atómica y reutilización rechazada; Login entrega el refresh token inicial; TTL de 2.592.000 segundos; migración `20260804000000_add_refresh_session`; quality check aprobado; mutation score general 86.95%, Identity 85.57% y RefreshTokenUseCase 96.97%; arquitectura sin violaciones.
 - **IAM-002 — Logout.** Estado: Completed. Dominio: Identity & Access. Prioridad: Media. Endpoint: `POST /api/auth/logout`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `2c44e78`; respuesta `204 No Content` idempotente para tokens activos, inexistentes, expirados, rotados o revocados; request inválido devuelve `400`; revocación por hash SHA-256 sin afectar otras sesiones ni access tokens; quality check, integración PostgreSQL, E2E, mutation testing y Prisma aprobados; arquitectura sin violaciones.
@@ -104,7 +104,7 @@ Availability ya considera conjuntamente Booking, Block y el estado operativo del
 | Épica | Total | Completed | In Progress | Planned | Blocked |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Business | 5 | 5 | 0 | 0 | 0 |
-| Identity & Access | 9 | 6 | 1 | 2 | 0 |
+| Identity & Access | 9 | 7 | 0 | 2 | 0 |
 | Resource | 7 | 7 | 0 | 0 | 0 |
 | Pricing | 5 | 5 | 0 | 0 | 0 |
 | Availability | 4 | 4 | 0 | 0 | 0 |
@@ -113,9 +113,9 @@ Availability ya considera conjuntamente Booking, Block y el estado operativo del
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 3 | 0 | 0 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **40** | **1** | **10** | **0** |
+| **Total** | **51** | **41** | **0** | **10** | **0** |
 
-Progreso de Identity & Access: 6 de 9 capacidades completadas (66,7%).
+Progreso de Identity & Access: 7 de 9 capacidades completadas (77,8%).
 
 Progreso de Resource: 7 de 7 capacidades completadas (100%).
 
@@ -125,7 +125,7 @@ Progreso de Availability: 4 de 4 capacidades completadas (100%).
 
 Progreso de Booking: 6 de 6 capacidades completadas (100%).
 
-Progreso general del MVP: 40 de 51 capacidades completadas (78,4%).
+Progreso general del MVP: 41 de 51 capacidades completadas (80,4%).
 
 Progreso de Contact: 4 de 4 capacidades completadas (100%).
 
