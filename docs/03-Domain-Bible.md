@@ -198,6 +198,9 @@ No se agrega un estado de membresía al modelo mínimo: el estado `DISABLED` del
 - Toda operación operativa debe ejecutarse dentro de un `businessId` autorizado para el User.
 - Login devuelve las membresías disponibles y no selecciona automáticamente un Business activo.
 - La autorización se valida siempre en backend.
+- El catálogo de roles del MVP es cerrado: `OWNER`, `ADMIN`, `RECEPTIONIST` y `VIEWER`; el rol pertenece a la membresía y nunca al User global.
+- `VIEWER` solo puede ejecutar operaciones de lectura dentro de los Businesses en los que posee membresía. La matriz granular de las demás acciones permanece fuera de IAM-007.
+- Los access tokens representan únicamente la identidad del User; la autorización resuelve la membresía y su rol vigente en backend.
 
 ### 7. Estados
 
@@ -233,6 +236,7 @@ User y LocalCredential mantienen una relación uno a uno. No se definen aún otr
 
 - **IAM-004 — Create User:** aprovisionamiento administrativo de User y LocalCredential; no crea membresía, no inicia sesión y no devuelve tokens.
 - **IAM-009 — Manage User-Business Membership:** crea una membresía entre User, Business y Role; no crea User, credenciales, Login ni permisos adicionales.
+- **IAM-007 — Roles:** consolida el catálogo cerrado y tenant-scoped, la asignación inicial mediante IAM-009, la exposición del rol por membresía en Login y la autorización backend; no agrega cambio posterior de rol, endpoint propio ni Permissions configurables.
 
 ### 11. Restricciones
 
