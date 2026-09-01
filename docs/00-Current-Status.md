@@ -1,6 +1,6 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-08-29
+Última actualización: 2026-09-01
 
 ## Responsabilidades
 
@@ -31,17 +31,17 @@ Alcance:
 ## Estado Backend
 
 Última historia completada:
-- BKG-006 — Booking Timeline — Completed
+- IAM-007 — Roles — Completed
 
 Estado del MVP:
-- 40 / 51 capacidades completadas
-- 78,4%
+- 41 / 51 capacidades completadas
+- 80,4%
 
 Booking:
 - 6 / 6 completadas
 
 Siguiente capacidad backend prevista:
-- IAM-007 — Roles
+- IAM-005 — Update User
 
 Pendientes principales posteriores:
 - IAM restante
@@ -69,6 +69,14 @@ Siguiente objetivo:
 
 Swagger:
 - `/api/docs`
+
+Identity & Access:
+- Login conserva una lista de membresías con `{ businessId, role }`.
+- Roles disponibles: `OWNER`, `ADMIN`, `RECEPTIONIST` y `VIEWER`.
+- El JWT continúa siendo identity-only: el rol no se congela en claims y backend resuelve la membresía vigente.
+- `VIEWER` es read-only; backend permanece como autoridad de autorización.
+- IAM-007 no agrega API de Roles ni endpoint para modificar el rol.
+- Breaking change: no.
 
 Booking Lifecycle actual:
 - `POST /api/businesses/:businessId/bookings`
@@ -102,6 +110,7 @@ Cuando Backend modifica un contrato que consume Frontend, actualizar esta secci�
 
 ## Cambios recientes relevantes para Frontend
 
+- IAM-007 finalizado: el catálogo de roles permanece tenant-scoped por Membership, Login conserva `businessId + role` y `VIEWER` queda limitado a lectura.
 - BKG-006 finalizado: Booking expone Timeline paginado con cursor opaco y los cuatro eventos funcionales aprobados.
 - Cancel acepta motivo opcional, visible únicamente en el evento de cancelación correspondiente.
 - Confirm persiste PricingSnapshot.
