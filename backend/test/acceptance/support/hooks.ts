@@ -1,11 +1,12 @@
-import { After, Before } from '@cucumber/cucumber';
+import { After, Before, type ITestCaseHookParameter } from '@cucumber/cucumber';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { AppModule } from '../../../src/app.module';
 import { configureApplication } from '../../../src/config/configure-application';
 import { BUSINESS_REPOSITORY } from '../../../src/modules/business/domain/business.repository';
 import { PASSWORD_HASHER } from '../../../src/modules/identity/domain/password-hasher';
 import { AUTHENTICATION_REPOSITORY } from '../../../src/modules/identity/domain/authentication.repository';
-import { ACCESS_TOKEN_ISSUER } from '../../../src/modules/identity/domain/access-token-issuer';
+import { ACCESS_TOKEN_ISSUER, ACCESS_TOKEN_VERIFIER } from '../../../src/modules/identity/domain/access-token-issuer';
+import { JwtAccessTokenIssuer } from '../../../src/modules/identity/infrastructure/jwt-access-token-issuer';
 import { REFRESH_SESSION_REPOSITORY } from '../../../src/modules/identity/domain/refresh-session.repository';
 import { REFRESH_TOKEN_EXPIRATION, REFRESH_TOKEN_GENERATOR, REFRESH_TOKEN_HASHER } from '../../../src/modules/identity/domain/refresh-token';
 import { USER_BY_ID_LOOKUP } from '../../../src/modules/identity/domain/user-by-id.lookup';
@@ -45,7 +46,7 @@ import { availabilityRulesRepositoryFake, resetAvailabilityRulesRepositoryFake }
 import type { NextFunction, Response } from 'express';
 import type { AuthenticatedRequest } from '../../../src/shared/security/authenticated-principal';
 
-Before(async function (this: TopWorld) {
+Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
   resetBusinessRepositoryFake();
   resetUserRepositoryFake();
   resetMembershipFakes();
@@ -59,6 +60,10 @@ Before(async function (this: TopWorld) {
   resetBlockRepositoryFake();
   resetAvailabilityRulesRepositoryFake();
   const refreshSessions = new Map<string, RefreshSession>();
+  const accessTokens = {
+    issue: (payload: { sub: string }) => Promise.resolve({ token: `token:${payload.sub}`, expiresIn: 900 }),
+    verify: (token: string) => token.startsWith('token:') ? Promise.resolve({ sub: token.slice(6) }) : Promise.reject(new Error('Token inválido')),
+  };
   const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(BUSINESS_REPOSITORY).useValue(businessRepositoryFake)
     .overrideProvider(RESOURCE_REPOSITORY).useValue(resourceRepositoryFake)
@@ -80,7 +85,9 @@ Before(async function (this: TopWorld) {
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)
     .overrideProvider(PASSWORD_HASHER).useValue(passwordHasherFake)
-    .overrideProvider(ACCESS_TOKEN_ISSUER).useValue({ issue: (payload: { sub: string }) => Promise.resolve({ token: `token:${payload.sub}`, expiresIn: 900 }) })
+    .overrideProvider(JwtAccessTokenIssuer).useValue(accessTokens)
+    .overrideProvider(ACCESS_TOKEN_ISSUER).useValue(accessTokens)
+    .overrideProvider(ACCESS_TOKEN_VERIFIER).useValue(accessTokens)
     .overrideProvider(REFRESH_SESSION_REPOSITORY).useValue({
       create: (data: { userId: string; tokenHash: string; expiresAt: Date }): Promise<RefreshSession> => {
         const session = RefreshSession.create({ id: `session-${refreshSessions.size + 1}`, ...data, revokedAt: null, replacedBySessionId: null, createdAt: new Date(), updatedAt: new Date() });
@@ -102,7 +109,8 @@ Before(async function (this: TopWorld) {
     .compile();
   this.app = module.createNestApplication();
   this.app.use((request: AuthenticatedRequest, _response: Response, next: NextFunction) => { request.authenticatedPrincipal = { userId: '11111111-1111-4111-8111-111111111111' }; next(); });
-  configureApplication(this.app, { security: false });
+  const securityEnabled = scenario.pickle.tags.some((tag) => tag.name === '@security');
+  configureApplication(this.app, { security: securityEnabled });
   await this.app.init();
 });
 
