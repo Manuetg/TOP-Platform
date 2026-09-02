@@ -66,6 +66,23 @@ describe('Resource endpoint', () => {
     await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceA}/disable`).expect(409);
   });
 
+  it('reactiva un Resource, es idempotente y protege el tenant', async () => {
+    resources = [makeResource(ResourceStatus.OUT_OF_SERVICE)];
+    const first = await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceA}/reactivate`).expect(200);
+    expect(first.body).toMatchObject({ id: resourceA, status: ResourceStatus.ACTIVE });
+    expect(first.body).not.toHaveProperty('props');
+    const timestamp = first.body.updatedAt;
+    const second = await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceA}/reactivate`).expect(200);
+    expect(second.body.updatedAt).toBe(timestamp);
+    await request(app.getHttpServer()).patch('/api/businesses/invalido/resources/33333333-3333-4333-8333-333333333333/reactivate').expect(400);
+    resources = [makeResource(ResourceStatus.OUT_OF_SERVICE, resourceB, businessB)];
+    await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceB}/reactivate`).expect(404);
+    businesses = [makeBusiness(businessA, BusinessStatus.ARCHIVED)]; resources = [makeResource(ResourceStatus.OUT_OF_SERVICE)];
+    await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceA}/reactivate`).expect(409);
+    businesses = [makeBusiness(businessA)]; resources = [makeResource(ResourceStatus.ARCHIVED)];
+    await request(app.getHttpServer()).patch(`/api/businesses/${businessA}/resources/${resourceA}/reactivate`).expect(409);
+  });
+
   it('sube una imagen multipart y no expone metadata privada', async () => {
     const response = await request(app.getHttpServer()).post(`/api/businesses/${businessA}/resources/${resourceA}/images`).attach('file', Buffer.from([1, 2, 3]), { filename: 'cabaña.jpg', contentType: 'image/jpeg' }).expect(201);
     expect(response.body).toMatchObject({ resourceId: resourceA, mimeType: 'image/jpeg', sizeBytes: 3, sortOrder: 0 });
