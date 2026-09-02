@@ -31,17 +31,17 @@ Alcance:
 ## Estado Backend
 
 Última historia completada:
-- IAM-007 — Roles — Completed
+- IAM-005 — Update User — Completed
 
 Estado del MVP:
-- 41 / 51 capacidades completadas
-- 80,4%
+- 42 / 51 capacidades completadas
+- 82,4%
 
 Booking:
 - 6 / 6 completadas
 
 Siguiente capacidad backend prevista:
-- IAM-005 — Update User
+- IAM-008 — Permissions
 
 Pendientes principales posteriores:
 - IAM restante
@@ -71,6 +71,8 @@ Swagger:
 - `/api/docs`
 
 Identity & Access:
+- `PATCH /api/users/:userId` permite al User `ACTIVE` actualizar únicamente su propio email; el `JWT sub` debe coincidir con `userId`.
+- El cambio normaliza el email y conserva password, status, Memberships, Roles y sesiones; otro User recibe `403`, email duplicado `409` y body inválido `400`.
 - Login conserva una lista de membresías con `{ businessId, role }`.
 - Roles disponibles: `OWNER`, `ADMIN`, `RECEPTIONIST` y `VIEWER`.
 - El JWT continúa siendo identity-only: el rol no se congela en claims y backend resuelve la membresía vigente.
@@ -110,6 +112,7 @@ Cuando Backend modifica un contrato que consume Frontend, actualizar esta secci�
 
 ## Cambios recientes relevantes para Frontend
 
+- IAM-005 finalizado: Update User es self-service, acepta únicamente `email`, no invalida sesiones y no otorga autoridad global mediante Roles tenant-scoped; breaking change: no.
 - IAM-007 finalizado: el catálogo de roles permanece tenant-scoped por Membership, Login conserva `businessId + role` y `VIEWER` queda limitado a lectura.
 - BKG-006 finalizado: Booking expone Timeline paginado con cursor opaco y los cuatro eventos funcionales aprobados.
 - Cancel acepta motivo opcional, visible únicamente en el evento de cancelación correspondiente.
