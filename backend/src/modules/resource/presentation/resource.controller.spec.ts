@@ -54,6 +54,7 @@ describe('ResourceController', () => {
     const list = { execute: jest.fn() };
     const update = { execute: jest.fn() };
     const disable = { execute: jest.fn() };
+    const reactivate = { execute: jest.fn() };
     const upload = { execute: jest.fn() };
     const setAmenities = { execute: jest.fn() };
     return {
@@ -62,9 +63,10 @@ describe('ResourceController', () => {
       list,
       update,
       disable,
+      reactivate,
       upload,
       setAmenities,
-      controller: new ResourceController(create as never, get as never, list as never, update as never, disable as never, upload as never, setAmenities as never),
+      controller: new ResourceController(create as never, get as never, list as never, update as never, disable as never, reactivate as never, upload as never, setAmenities as never),
     };
   };
 
@@ -252,6 +254,18 @@ describe('ResourceController', () => {
       status: ResourceStatus.OUT_OF_SERVICE,
     });
     expect(disable.execute).toHaveBeenCalledWith({ businessId: resource.businessId, resourceId: resource.id });
+  });
+
+  it('reactiva mediante el caso de uso y traduce el DTO publico', async () => {
+    const { controller, reactivate } = setup();
+    const reactivated = resource.disable().reactivate();
+    reactivate.execute.mockResolvedValue(reactivated);
+
+    await expect(controller.reactivate(resource.businessId, resource.id)).resolves.toMatchObject({
+      id: resource.id,
+      status: ResourceStatus.ACTIVE,
+    });
+    expect(reactivate.execute).toHaveBeenCalledWith({ businessId: resource.businessId, resourceId: resource.id });
   });
 
   it.each([

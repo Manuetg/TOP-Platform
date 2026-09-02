@@ -67,4 +67,24 @@ describe('Resource', () => {
     expect(unavailable.disable()).toBe(unavailable);
     expect(archived.disable()).toBe(archived);
   });
+
+  it('reactiva OUT_OF_SERVICE, conserva ACTIVE y no transforma ARCHIVED', () => {
+    const active = createResource();
+    const unavailable = Resource.create({
+      id: 'u', businessId: 'b', name: 'U', internalCode: 'U1', description: null,
+      capacityMinimum: 1, capacityMaximum: 1, capacityMaximumChildren: 0,
+      status: ResourceStatus.OUT_OF_SERVICE, sortOrder: 0, createdAt, updatedAt,
+    });
+    const archived = Resource.create({
+      id: 'a', businessId: 'b', name: 'A', internalCode: 'A1', description: null,
+      capacityMinimum: 1, capacityMaximum: 1, capacityMaximumChildren: 0,
+      status: ResourceStatus.ARCHIVED, sortOrder: 0, createdAt, updatedAt,
+    });
+
+    const reactivated = unavailable.reactivate();
+    expect(reactivated).toMatchObject({ id: unavailable.id, businessId: unavailable.businessId, status: ResourceStatus.ACTIVE, createdAt });
+    expect(reactivated.updatedAt.getTime()).toBeGreaterThan(updatedAt.getTime());
+    expect(active.reactivate()).toBe(active);
+    expect(archived.reactivate()).toBe(archived);
+  });
 });
