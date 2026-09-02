@@ -2,6 +2,7 @@ import { PrismaUserRepository } from '../../src/modules/identity/infrastructure/
 import { PrismaIdentityService } from '../../src/modules/identity/infrastructure/prisma-identity.service';
 import { cleanTestDatabase } from './support/clean-test-database';
 import { UserStatus } from '../../src/modules/identity/domain/user-status.enum';
+import { UserEmailConflictError } from '../../src/modules/identity/domain/user.repository';
 
 const databaseUrl = process.env.DATABASE_URL;
 const describeWithPostgres = databaseUrl ? describe : describe.skip;
@@ -46,5 +47,25 @@ describeWithPostgres('PrismaUserRepository con PostgreSQL', () => {
 
   it('no encuentra usuarios inexistentes', async () => {
     await expect(repository.findById('11111111-1111-4111-8111-111111111111')).resolves.toBeNull();
+  });
+
+  it('actualiza solo email y conserva credencial, estado, Membership y sesión', async () => {
+    const user = await repository.create({ email: 'before@example.com', passwordHash: 'hash-secreto' });
+    const business = await prisma.business.create({ data: { name: 'Business update user' } });
+    await prisma.userBusinessMembership.create({ data: { userId: user.id, businessId: business.id, role: 'VIEWER' } });
+    await prisma.refreshSession.create({ data: { userId: user.id, tokenHash: 'session-update-user', expiresAt: new Date('2027-01-01') } });
+    await repository.updateEmail(user.updateEmail('after@example.com'));
+    const persisted = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, include: { localCredential: true, memberships: true, refreshSessions: true } });
+    expect(persisted).toMatchObject({ email: 'after@example.com', status: UserStatus.ACTIVE });
+    expect(persisted.localCredential?.passwordHash).toBe('hash-secreto');
+    expect(persisted.memberships).toHaveLength(1);
+    expect(persisted.refreshSessions).toHaveLength(1);
+  });
+
+  it('usa la constraint PostgreSQL como autoridad final del email único', async () => {
+    const first = await repository.create({ email: 'first-update@example.com', passwordHash: 'hash' });
+    await repository.create({ email: 'taken-update@example.com', passwordHash: 'hash' });
+    await expect(repository.updateEmail(first.updateEmail('taken-update@example.com'))).rejects.toBeInstanceOf(UserEmailConflictError);
+    await expect(repository.findById(first.id)).resolves.toMatchObject({ email: 'first-update@example.com' });
   });
 });

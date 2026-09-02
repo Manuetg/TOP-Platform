@@ -10,6 +10,7 @@ import { UserBusinessMembership } from '../../src/modules/identity/domain/user-b
 import { USER_BY_ID_LOOKUP } from '../../src/modules/identity/domain/user-by-id.lookup';
 import { UserStatus } from '../../src/modules/identity/domain/user-status.enum';
 import { User } from '../../src/modules/identity/domain/user.entity';
+import { USER_REPOSITORY } from '../../src/modules/identity/domain/user.repository';
 import { AnyBusinessRole, BusinessAccess, Public } from '../../src/shared/security/security.decorators';
 import { BOOKING_REPOSITORY, BOOKING_TIMELINE_REPOSITORY } from '../../src/modules/booking/booking.contract';
 import { Booking } from '../../src/modules/booking/domain/booking.entity';
@@ -35,6 +36,7 @@ class SecurityProbeController {
 describe('Protección JWT y membresía', () => {
   let app: INestApplication;
   let userStatus = UserStatus.ACTIVE;
+  let userEmail = 'security@example.com';
   let memberships: UserBusinessMembership[] = [];
   const jwt = new JwtService();
   const membership = (id: string, role: MembershipRole): UserBusinessMembership => UserBusinessMembership.create({ id: `${id.slice(0, 24)}444444444444`, userId, businessId: id, role, createdAt: new Date(), updatedAt: new Date() });
@@ -46,7 +48,8 @@ describe('Protección JWT y membresía', () => {
   beforeAll(async () => {
     process.env.JWT_ACCESS_SECRET = secret;
     const module = await Test.createTestingModule({ imports: [AppModule], controllers: [SecurityProbeController] })
-      .overrideProvider(USER_BY_ID_LOOKUP).useValue({ findById: (id: string) => Promise.resolve(id === userId ? User.create({ id: userId, email: 'security@example.com', status: userStatus, createdAt: new Date(), updatedAt: new Date() }) : null) })
+      .overrideProvider(USER_BY_ID_LOOKUP).useValue({ findById: (id: string) => Promise.resolve(id === userId ? User.create({ id: userId, email: userEmail, status: userStatus, createdAt: new Date(), updatedAt: new Date() }) : null) })
+      .overrideProvider(USER_REPOSITORY).useValue({ findByEmail: () => Promise.resolve(null), create: jest.fn(), updateEmail: (user: User) => { userEmail = user.email; return Promise.resolve(user); } })
       .overrideProvider(MEMBERSHIP_REPOSITORY).useValue({
         findByUserAndBusiness: (requestedUserId: string, requestedBusinessId: string) => Promise.resolve(memberships.find((item) => item.userId === requestedUserId && item.businessId === requestedBusinessId) ?? null),
         findByUserId: (requestedUserId: string) => Promise.resolve(memberships.filter((item) => item.userId === requestedUserId)),
@@ -61,7 +64,7 @@ describe('Protección JWT y membresía', () => {
   });
 
   afterAll(async () => app.close());
-  beforeEach(() => { userStatus = UserStatus.ACTIVE; memberships = []; });
+  beforeEach(() => { userStatus = UserStatus.ACTIVE; userEmail = 'security@example.com'; memberships = []; });
 
   it('mantiene públicas Health, Swagger y una ruta marcada', async () => {
     await request(app.getHttpServer()).get('/api/health').expect(200);
@@ -146,5 +149,15 @@ describe('Protección JWT y membresía', () => {
     await request(app.getHttpServer()).post('/api/auth/login').send({}).expect(400);
     await request(app.getHttpServer()).post('/api/auth/refresh').send({}).expect(400);
     await request(app.getHttpServer()).post('/api/auth/logout').send({}).expect(400);
+  });
+
+  it('protege Update User como self-service ACTIVE sin depender de roles tenant', async () => {
+    const endpoint = `/api/users/${userId}`;
+    await request(app.getHttpServer()).patch(endpoint).send({ email: 'new@example.com' }).expect(401);
+    const token = await bearer();
+    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${token}`).send({ email: ' NEW@EXAMPLE.COM ' }).expect(200).expect(({ body }) => expect(body.email).toBe('new@example.com'));
+    await request(app.getHttpServer()).patch('/api/users/22222222-2222-4222-8222-222222222222').set('Authorization', `Bearer ${token}`).send({ email: 'other@example.com' }).expect(403);
+    userStatus = UserStatus.DISABLED;
+    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${token}`).send({ email: 'blocked@example.com' }).expect(401);
   });
 });

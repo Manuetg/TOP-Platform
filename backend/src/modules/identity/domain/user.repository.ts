@@ -7,6 +7,8 @@ export interface CreateUserData {
   passwordHash: string;
 }
 
+export class UserEmailConflictError extends Error {}
+
 export interface UserRepository {
   findByEmail(email: string): Promise<User | null>;
   create(data: CreateUserData): Promise<User>;

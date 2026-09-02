@@ -1,20 +1,21 @@
-import { BadRequestException, Body, ConflictException, Controller, HttpCode, HttpStatus, NotFoundException, Param, Patch, Post } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiConflictResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, HttpCode, HttpStatus, NotFoundException, Param, Patch, Post } from '@nestjs/common';
+import { ApiBadRequestResponse, ApiConflictResponse, ApiCreatedResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateUserUseCase, InvalidUserInputError, UserAlreadyExistsError } from '../application/create-user.use-case';
-import { InvalidUserUpdateError, UpdateUserNotFoundError, UpdateUserUseCase, UserEmailAlreadyExistsError } from '../application/update-user.use-case';
+import { InvalidUserUpdateError, UpdateUserForbiddenError, UpdateUserNotFoundError, UpdateUserUseCase, UserEmailAlreadyExistsError } from '../application/update-user.use-case';
 import { CreateUserRequestDto } from './dto/create-user.request.dto';
 import { UserResponseDto } from './dto/user.response.dto';
 import { DisableUserResponseDto } from './dto/disable-user.response.dto';
 import { UpdateUserRequestDto } from './dto/update-user.request.dto';
 import { DisableUserUseCase, InvalidUserIdError, UserNotFoundError } from '../application/disable-user.use-case';
-import { AnyBusinessRole } from '../../../shared/security/security.decorators';
+import { AnyBusinessRole, Authenticated } from '../../../shared/security/security.decorators';
+import { AuthenticatedUser } from '../../../shared/security/authenticated-user.decorator';
+import type { AuthenticatedPrincipal } from '../../../shared/security/authenticated-principal';
 
 @ApiTags('Users')
-@AnyBusinessRole('OWNER', 'ADMIN')
 @Controller('users')
 export class UserController {
   constructor(private readonly createUserUseCase: CreateUserUseCase, private readonly disableUserUseCase: DisableUserUseCase, private readonly updateUserUseCase: UpdateUserUseCase) {}
-  @Post() @HttpCode(HttpStatus.CREATED)
+  @Post() @AnyBusinessRole('OWNER', 'ADMIN') @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear un usuario administrativo provisional' })
   @ApiCreatedResponse({ type: UserResponseDto, description: 'No expone contraseña, hash ni tokens.' })
   @ApiBadRequestResponse({ description: 'Email o contraseña inválidos.' })
@@ -27,22 +28,24 @@ export class UserController {
       throw error;
     }
   }
-  @Patch(':id') @HttpCode(HttpStatus.OK)
+  @Patch(':id') @Authenticated() @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Actualizar el email de un usuario' })
   @ApiOkResponse({ type: UserResponseDto })
   @ApiBadRequestResponse({ description: 'Identificador o email inválido.' })
+  @ApiForbiddenResponse({ description: 'El User autenticado solo puede actualizar su propia identidad ACTIVE.' })
   @ApiNotFoundResponse({ description: 'El usuario no existe.' })
   @ApiConflictResponse({ description: 'El email ya está registrado.' })
-  async update(@Param('id') id: string, @Body() request: UpdateUserRequestDto): Promise<UserResponseDto> {
-    try { return UserResponseDto.fromDomain(await this.updateUserUseCase.execute({ id, email: request?.email })); }
+  async update(@Param('id') id: string, @Body() request: UpdateUserRequestDto, @AuthenticatedUser() principal: AuthenticatedPrincipal): Promise<UserResponseDto> {
+    try { return UserResponseDto.fromDomain(await this.updateUserUseCase.execute({ id, actorUserId: principal.userId, email: request.email })); }
     catch (error: unknown) {
       if (error instanceof InvalidUserUpdateError) throw new BadRequestException(error.message);
+      if (error instanceof UpdateUserForbiddenError) throw new ForbiddenException(error.message);
       if (error instanceof UpdateUserNotFoundError) throw new NotFoundException(error.message);
       if (error instanceof UserEmailAlreadyExistsError) throw new ConflictException(error.message);
       throw error;
     }
   }
-  @Patch(':id/disable') @HttpCode(HttpStatus.OK)
+  @Patch(':id/disable') @AnyBusinessRole('OWNER', 'ADMIN') @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Deshabilitar lógicamente un usuario' })
   @ApiOkResponse({ type: DisableUserResponseDto })
   @ApiBadRequestResponse({ description: 'El identificador del usuario no es válido.' })

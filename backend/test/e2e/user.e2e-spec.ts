@@ -9,6 +9,8 @@ import { USER_BY_ID_LOOKUP } from '../../src/modules/identity/domain/user-by-id.
 import { USER_REPOSITORY } from '../../src/modules/identity/domain/user.repository';
 import { USER_STATUS_REPOSITORY } from '../../src/modules/identity/domain/user-status.repository';
 import { UserStatus } from '../../src/modules/identity/domain/user-status.enum';
+import type { AuthenticatedRequest } from '../../src/shared/security/authenticated-principal';
+import type { NextFunction, Response } from 'express';
 
 describe('User endpoint', () => {
   let app: INestApplication;
@@ -47,6 +49,11 @@ describe('User endpoint', () => {
       .overrideProvider(USER_STATUS_REPOSITORY).useValue(statusRepository)
       .compile();
     app = module.createNestApplication();
+    app.use((incoming: AuthenticatedRequest, _response: Response, next: NextFunction) => {
+      const actorUserId = incoming.headers['x-test-user-id'];
+      if (typeof actorUserId === 'string') incoming.authenticatedPrincipal = { userId: actorUserId };
+      next();
+    });
     configureApplication(app, { security: false });
     await app.init();
   });
@@ -74,20 +81,22 @@ describe('User endpoint', () => {
 
   it('actualiza el email de forma idempotente sin exponer datos sensibles', async () => {
     const created = await request(app.getHttpServer()).post('/api/users').send({ email: 'user@example.com', password: 'contraseña válida' }).expect(201);
-    await request(app.getHttpServer()).patch(`/api/users/${created.body.id}`).send({ email: ' NUEVO+Demo@Ejemplo.COM ' }).expect(200).expect(({ body }) => {
+    await request(app.getHttpServer()).patch(`/api/users/${created.body.id}`).set('x-test-user-id', created.body.id).send({ email: ' NUEVO+Demo@Ejemplo.COM ', status: 'DISABLED', role: 'OWNER', passwordHash: 'forbidden', businessId: randomUUID() }).expect(200).expect(({ body }) => {
       expect(body.email).toBe('nuevo+demo@ejemplo.com');
+      expect(body.status).toBe('ACTIVE');
       expect(body).not.toHaveProperty('passwordHash');
     });
-    await request(app.getHttpServer()).patch(`/api/users/${created.body.id}`).send({ email: 'nuevo+demo@ejemplo.com' }).expect(200);
-    await request(app.getHttpServer()).patch(`/api/users/${created.body.id}`).send({}).expect(400);
-    await request(app.getHttpServer()).patch('/api/users/invalid').send({ email: 'valid@example.com' }).expect(400);
+    await request(app.getHttpServer()).patch(`/api/users/${created.body.id}`).set('x-test-user-id', created.body.id).send({ email: 'nuevo+demo@ejemplo.com' }).expect(200);
+    await request(app.getHttpServer()).patch(`/api/users/${created.body.id}`).set('x-test-user-id', created.body.id).send({}).expect(400);
+    await request(app.getHttpServer()).patch('/api/users/invalid').set('x-test-user-id', created.body.id).send({ email: 'valid@example.com' }).expect(400);
   });
 
   it('rechaza email duplicado y usuario inexistente al actualizar', async () => {
     const first = await request(app.getHttpServer()).post('/api/users').send({ email: 'first@example.com', password: 'contraseña válida' }).expect(201);
     await request(app.getHttpServer()).post('/api/users').send({ email: 'second@example.com', password: 'contraseña válida' }).expect(201);
-    await request(app.getHttpServer()).patch(`/api/users/${first.body.id}`).send({ email: ' SECOND@EXAMPLE.COM ' }).expect(409);
-    await request(app.getHttpServer()).patch(`/api/users/${randomUUID()}`).send({ email: 'other@example.com' }).expect(404);
+    await request(app.getHttpServer()).patch(`/api/users/${first.body.id}`).set('x-test-user-id', first.body.id).send({ email: ' SECOND@EXAMPLE.COM ' }).expect(409);
+    const missingId = randomUUID();
+    await request(app.getHttpServer()).patch(`/api/users/${missingId}`).set('x-test-user-id', missingId).send({ email: 'other@example.com' }).expect(404);
   });
 
   it('deshabilita un usuario activo sin exponer datos sensibles', async () => {

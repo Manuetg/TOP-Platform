@@ -31,7 +31,7 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 - **IAM-003 — Refresh Token.** Estado: Completed. Dominio: Identity & Access. Prioridad: Alta. Endpoint: `POST /api/auth/refresh`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `ec9347da`; refresh token opaco de 256 bits con hash SHA-256 persistido, rotación atómica y reutilización rechazada; Login entrega el refresh token inicial; TTL de 2.592.000 segundos; migración `20260804000000_add_refresh_session`; quality check aprobado; mutation score general 86.95%, Identity 85.57% y RefreshTokenUseCase 96.97%; arquitectura sin violaciones.
 - **IAM-002 — Logout.** Estado: Completed. Dominio: Identity & Access. Prioridad: Media. Endpoint: `POST /api/auth/logout`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `2c44e78`; respuesta `204 No Content` idempotente para tokens activos, inexistentes, expirados, rotados o revocados; request inválido devuelve `400`; revocación por hash SHA-256 sin afectar otras sesiones ni access tokens; quality check, integración PostgreSQL, E2E, mutation testing y Prisma aprobados; arquitectura sin violaciones.
 - **IAM-006 — Disable User.** Estado: Completed. Dominio: Identity & Access. Prioridad: Media. Endpoint: `PATCH /api/users/:id/disable`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `046ae17`; transición de `ACTIVE` a `DISABLED` idempotente; Login y Refresh posteriores rechazados con `403`; sin migración nueva; unit 24 suites y 94 tests, integración 8 suites y 24 tests, E2E 5 suites y 47 tests, aceptación 32 escenarios y 139 steps; cobertura: líneas 97,67%, statements 97,06%, funciones 97,94% y branches 89,09%; mutation score general 87,97%, Identity 87,21% y DisableUserUseCase 92,31%; arquitectura sin violaciones y Prisma válido.
-- **IAM-005 — Update User.** Estado: Planned. Dominio: Identity & Access. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **IAM-005 — Update User.** Estado: In Progress. Dominio: Identity & Access. Prioridad: Media. Endpoint: `PATCH /api/users/:userId`. Alcance: self-service para User `ACTIVE`, autorizado por coincidencia `JWT sub = userId`, que actualiza únicamente email normalizado y globalmente único; conserva password, status, Memberships, Roles y sesiones. Body vacío se rechaza; `400` para entrada inválida, `401` para autenticación inválida o User `DISABLED`, `403` para otro User, `404` para User inexistente y `409` para email duplicado. Pruebas obligatorias: unitarias, integración PostgreSQL, E2E, aceptación, seguridad, cobertura y mutation focalizada. Definition of Done: contrato y aislamiento de identidad documentados; mass assignment impedido; constraint de unicidad y conflicto concurrente comprobados; IAM-006 e IAM-008 separados; quality gates, CI, review y merge aprobados.
 - **IAM-008 — Permissions.** Estado: Planned. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 
 ## Resource
@@ -104,7 +104,7 @@ Availability ya considera conjuntamente Booking, Block y el estado operativo del
 | Épica | Total | Completed | In Progress | Planned | Blocked |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Business | 5 | 5 | 0 | 0 | 0 |
-| Identity & Access | 9 | 7 | 0 | 2 | 0 |
+| Identity & Access | 9 | 7 | 1 | 1 | 0 |
 | Resource | 7 | 7 | 0 | 0 | 0 |
 | Pricing | 5 | 5 | 0 | 0 | 0 |
 | Availability | 4 | 4 | 0 | 0 | 0 |
@@ -113,7 +113,7 @@ Availability ya considera conjuntamente Booking, Block y el estado operativo del
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 3 | 0 | 0 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **51** | **41** | **0** | **10** | **0** |
+| **Total** | **51** | **41** | **1** | **9** | **0** |
 
 Progreso de Identity & Access: 7 de 9 capacidades completadas (77,8%).
 
