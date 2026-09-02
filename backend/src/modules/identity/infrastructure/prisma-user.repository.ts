@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import type { User as PrismaUser } from '@prisma/client';
+import { Prisma, type User as PrismaUser } from '@prisma/client';
 import { User } from '../domain/user.entity';
 import { UserStatus } from '../domain/user-status.enum';
 import type { AuthenticationRecord, AuthenticationRepository } from '../domain/authentication.repository';
-import type { CreateUserData, UserRepository } from '../domain/user.repository';
+import { UserEmailConflictError, type CreateUserData, type UserRepository } from '../domain/user.repository';
 import type { UserByIdLookup } from '../domain/user-by-id.lookup';
 import type { UserStatusRepository } from '../domain/user-status.repository';
 import { PrismaIdentityService } from './prisma-identity.service';
@@ -20,7 +20,14 @@ export class PrismaUserRepository implements UserRepository, AuthenticationRepos
     return user ? this.toDomain(user) : null;
   }
   async update(user: User): Promise<User> { return this.toDomain(await this.prisma.user.update({ where: { id: user.id }, data: { status: user.status } })); }
-  async updateEmail(user: User): Promise<User> { return this.toDomain(await this.prisma.user.update({ where: { id: user.id }, data: { email: user.email } })); }
+  async updateEmail(user: User): Promise<User> {
+    try {
+      return this.toDomain(await this.prisma.user.update({ where: { id: user.id }, data: { email: user.email } }));
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') throw new UserEmailConflictError('El email ya está registrado.');
+      throw error;
+    }
+  }
   async findForLoginByEmail(email: string): Promise<AuthenticationRecord | null> {
     const user = await this.prisma.user.findUnique({ where: { email }, include: { localCredential: true } });
     if (!user?.localCredential) return null;
