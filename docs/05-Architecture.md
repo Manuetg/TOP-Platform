@@ -60,6 +60,8 @@ Identificadores internos UUID. Roles: `OWNER`, `ADMIN`, `RECEPTIONIST` y `VIEWER
 
 El rol se resuelve desde UserBusinessMembership para el `userId + businessId` solicitado y no se incluye en el JWT. `BusinessAccess` sin roles explícitos exige membresía y, en métodos mutables, rechaza `VIEWER`; las restricciones explícitas de rol prevalecen. IAM-007 no incorpora endpoints de Roles, cambio posterior de rol ni un modelo de Permissions.
 
+IAM-005 es self-service sobre la identidad global: `PATCH /api/users/:userId` exige JWT `ACTIVE` y coincidencia entre `sub` y `userId`. Solo persiste el email permitido mediante `UserRepository`; no usa roles tenant-scoped para otorgar autoridad global, no modifica Membership ni Credential y no revoca sesiones porque la identidad `sub` permanece estable.
+
 ## 10. Persistencia
 
 PostgreSQL es la base relacional. Relaciones many-to-many se representan explícitamente cuando el dominio lo requiere. `BookingResource` es la relación conceptual entre Booking y Resource, con Booking, Resource, fecha de entrada y fecha de salida. El flujo principal se optimiza para una unidad, pero el modelo soporta múltiples Resources.
