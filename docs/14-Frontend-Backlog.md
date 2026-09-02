@@ -1,6 +1,6 @@
 # TOP — Frontend Backlog
 
-Última actualización: 2026-08-30
+Última actualización: 2026-09-02
 
 ## Objetivo
 
@@ -47,9 +47,9 @@ Total historias frontend: 52
 
 Estado actual:
 
-- Completed: 9
+- Completed: 10
 - In Progress: 2
-- Planned: 38
+- Planned: 37
 - Blocked: 3
 
 ---
@@ -741,13 +741,35 @@ Fuera de alcance:
 
 ## FE-RES-005 — Resource Operational Status
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
 Mostrar y ejecutar las transiciones de estado soportadas por backend.
 
-El frontend no debe inventar transiciones.
+Implementado:
+
+- `ACTIVE → OUT_OF_SERVICE` mediante `PATCH /api/businesses/:businessId/resources/:resourceId/disable`;
+- `OUT_OF_SERVICE → ACTIVE` mediante `PATCH /api/businesses/:businessId/resources/:resourceId/reactivate`;
+- confirmación previa a cada transición;
+- estado de procesamiento durante la operación;
+- manejo de errores;
+- actualización inmediata de la cache del detalle;
+- invalidación del listado de Resources;
+- Resource `ARCHIVED` sin transiciones operacionales disponibles;
+- tests de capa API y pantalla;
+- validación manual en Docker.
+
+El frontend no inventa transiciones y consume únicamente las soportadas por backend.
+
+Criterios de aceptación:
+
+- ACTIVE permite poner fuera de servicio;
+- OUT_OF_SERVICE permite reactivar;
+- ARCHIVED no ofrece transiciones operacionales;
+- cambios persisten tras refresh;
+- listado y detalle reflejan el estado actualizado;
+- errores del backend se muestran al usuario.
 
 ---
 

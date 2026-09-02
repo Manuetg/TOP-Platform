@@ -5,9 +5,13 @@ import {
   Pencil,
   Users,
 } from "lucide-react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { disableResource } from "../api/disable-resource";
+import { reactivateResource } from "../api/reactivate-resource";
 import { useResource } from "../queries/use-resource";
 import type { ResourceStatus } from "../types/resource.types";
 import "./ResourceDetailPage.css";
@@ -28,8 +32,13 @@ function getResourceStatusLabel(status: ResourceStatus) {
 
 export function ResourceDetailPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { resourceId = "" } = useParams();
   const { session } = useAuth();
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [statusActionError, setStatusActionError] = useState<string | null>(
+    null,
+  );
 
   const {
     data: resource,
@@ -60,6 +69,92 @@ export function ResourceDetailPage() {
         </div>
       </section>
     );
+  }
+
+  async function handleDisableResource() {
+    if (!resource || resource.status !== "ACTIVE") {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `¿Querés poner "${resource.name}" fuera de servicio?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setStatusActionError(null);
+    setIsUpdatingStatus(true);
+
+    try {
+      const updatedResource = await disableResource({
+        businessId: TEMP_BUSINESS_ID,
+        resourceId: resource.id,
+        accessToken: session?.accessToken,
+      });
+
+      queryClient.setQueryData(
+        ["resources", TEMP_BUSINESS_ID, resource.id],
+        updatedResource,
+      );
+
+      await queryClient.invalidateQueries({
+        queryKey: ["resources", TEMP_BUSINESS_ID],
+        exact: true,
+      });
+    } catch (disableResourceError) {
+      setStatusActionError(
+        disableResourceError instanceof Error
+          ? disableResourceError.message
+          : "No pudimos poner el recurso fuera de servicio.",
+      );
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  }
+
+  async function handleReactivateResource() {
+    if (!resource || resource.status !== "OUT_OF_SERVICE") {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `¿Querés reactivar "${resource.name}"?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setStatusActionError(null);
+    setIsUpdatingStatus(true);
+
+    try {
+      const updatedResource = await reactivateResource({
+        businessId: TEMP_BUSINESS_ID,
+        resourceId: resource.id,
+        accessToken: session?.accessToken,
+      });
+
+      queryClient.setQueryData(
+        ["resources", TEMP_BUSINESS_ID, resource.id],
+        updatedResource,
+      );
+
+      await queryClient.invalidateQueries({
+        queryKey: ["resources", TEMP_BUSINESS_ID],
+        exact: true,
+      });
+    } catch (reactivateResourceError) {
+      setStatusActionError(
+        reactivateResourceError instanceof Error
+          ? reactivateResourceError.message
+          : "No pudimos reactivar el recurso.",
+      );
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   }
 
   if (isError || !resource) {
@@ -135,17 +230,49 @@ export function ResourceDetailPage() {
           </p>
         </div>
 
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() =>
-            navigate(`/app/resources/${resource.id}/edit`)
-          }
-        >
-          <Pencil size={16} aria-hidden="true" />
-          Editar recurso
-        </Button>
+        <div className="resource-detail-actions">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() =>
+              navigate(`/app/resources/${resource.id}/edit`)
+            }
+          >
+            <Pencil size={16} aria-hidden="true" />
+            Editar recurso
+          </Button>
+
+          {resource.status === "ACTIVE" ? (
+            <Button
+              type="button"
+              variant="danger"
+              disabled={isUpdatingStatus}
+              onClick={() => void handleDisableResource()}
+            >
+              {isUpdatingStatus
+                ? "Procesando…"
+                : "Poner fuera de servicio"}
+            </Button>
+          ) : null}
+          {resource.status === "OUT_OF_SERVICE" ? (
+            <Button
+              type="button"
+              disabled={isUpdatingStatus}
+              onClick={() => void handleReactivateResource()}
+            >
+              {isUpdatingStatus
+                ? "Procesando…"
+                : "Reactivar recurso"}
+            </Button>
+          ) : null}
+        </div>
       </header>
+
+      {statusActionError ? (
+        <div className="resource-detail-action-error" role="alert">
+          {statusActionError}
+        </div>
+      ) : null}
 
       <div
         className="resource-detail-media"
