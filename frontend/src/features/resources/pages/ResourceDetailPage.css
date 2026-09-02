@@ -269,3 +269,18 @@
     transition: none;
   }
 }
+
+.resource-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.resource-detail-action-error {
+  padding: 12px 14px;
+  color: var(--color-danger, #9f3a38);
+  font-size: 0.86rem;
+  background: rgb(159 58 56 / 6%);
+  border: 1px solid rgb(159 58 56 / 14%);
+  border-radius: 12px;
+}
