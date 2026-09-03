@@ -61,6 +61,7 @@ const activeResource: Resource = {
       code: "WIFI",
       name: "Wi-Fi",
       category: "GENERAL",
+      scope: "GLOBAL",
     },
   ],
 };

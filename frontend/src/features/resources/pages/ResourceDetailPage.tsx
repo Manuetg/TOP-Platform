@@ -12,6 +12,7 @@ import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
 import { disableResource } from "../api/disable-resource";
 import { reactivateResource } from "../api/reactivate-resource";
+import { ResourceAmenitiesEditor } from "../components/ResourceAmenitiesEditor";
 import { useResource } from "../queries/use-resource";
 import type { ResourceStatus } from "../types/resource.types";
 import "./ResourceDetailPage.css";
@@ -336,22 +337,11 @@ export function ResourceDetailPage() {
             <h2>Amenities</h2>
           </div>
 
-          {resource.amenities.length > 0 ? (
-            <div className="resource-detail-amenities">
-              {resource.amenities.map((amenity) => (
-                <span
-                  key={amenity.id}
-                  className="resource-detail-amenity"
-                >
-                  {amenity.name}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="resource-detail-empty-copy">
-              Sin amenities configurados.
-            </p>
-          )}
+          <ResourceAmenitiesEditor
+            businessId={TEMP_BUSINESS_ID}
+            resource={resource}
+            accessToken={session?.accessToken}
+          />
         </article>
       </div>
     </section>

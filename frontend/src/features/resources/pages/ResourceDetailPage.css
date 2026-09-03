@@ -284,3 +284,168 @@
   border: 1px solid rgb(159 58 56 / 14%);
   border-radius: 12px;
 }
+
+.resource-amenities-view {
+  display: grid;
+  gap: 14px;
+}
+
+.resource-amenities-view .top-button {
+  justify-self: start;
+}
+
+.resource-amenities-editor {
+  display: grid;
+  gap: 16px;
+}
+
+.resource-amenities-editor__status {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.86rem;
+}
+
+.resource-amenities-editor__error {
+  padding: 12px 14px;
+  color: var(--color-danger, #9f3a38);
+  font-size: 0.86rem;
+  background: rgb(159 58 56 / 6%);
+  border: 1px solid rgb(159 58 56 / 14%);
+  border-radius: 12px;
+}
+
+.resource-amenities-editor__error p {
+  margin: 0 0 10px;
+}
+
+.resource-amenities-editor__options {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.resource-amenities-editor__options legend {
+  margin-bottom: 10px;
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.resource-amenities-editor__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  cursor: pointer;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 11px;
+}
+
+.resource-amenities-editor__option:hover {
+  border-color: rgb(21 92 76 / 28%);
+}
+
+.resource-amenities-editor__option:has(input:focus-visible) {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 2px;
+}
+
+.resource-amenities-editor__option input {
+  margin-top: 3px;
+  accent-color: var(--color-brand-primary);
+}
+
+.resource-amenities-editor__option span {
+  display: grid;
+  gap: 2px;
+}
+
+.resource-amenities-editor__option strong {
+  color: var(--color-text-primary);
+  font-size: 0.84rem;
+}
+
+.resource-amenities-editor__option small {
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+}
+
+.resource-amenities-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.resource-amenities-editor__custom {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: rgb(21 92 76 / 4%);
+  border: 1px solid rgb(21 92 76 / 14%);
+  border-radius: 12px;
+}
+
+.resource-amenities-editor__custom > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.resource-amenities-editor__custom strong {
+  color: var(--color-text-primary);
+  font-size: 0.86rem;
+}
+
+.resource-amenities-editor__custom p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+}
+
+.resource-amenities-editor__custom-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.resource-amenities-editor__custom-fields label {
+  display: grid;
+  gap: 6px;
+}
+
+.resource-amenities-editor__custom-fields label > span {
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.resource-amenities-editor__custom-fields input,
+.resource-amenities-editor__custom-fields select {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 0.84rem;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.resource-amenities-editor__custom-fields input:focus-visible,
+.resource-amenities-editor__custom-fields select:focus-visible {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 2px;
+}
+
+.resource-amenities-editor__custom > .top-button {
+  justify-self: start;
+}
+
+@media (min-width: 640px) {
+  .resource-amenities-editor__custom-fields {
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 0.6fr);
+  }
+}
