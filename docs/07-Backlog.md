@@ -44,6 +44,7 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 - **RES-006 — Upload Images.** Estado: Completed. Dominio: Resource. Prioridad: Media. Endpoint: `POST /api/businesses/:businessId/resources/:resourceId/images`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `db06772`; carga `multipart/form-data` de JPEG, PNG y WEBP con límite de 5 MB y máximo de 10 imágenes, `sortOrder` automático, metadata `ResourceImage`, almacenamiento S3-compatible privado y URL firmada temporal; mantiene aislamiento por `businessId`, permite Resource `OUT_OF_SERVICE` y bloquea Business y Resource archivados; unit 38 suites y 240 tests, integración 10 suites y 30 tests, E2E 6 suites y 68 tests, aceptación 44 escenarios y 196 pasos; cobertura: statements 97,08%, branches 91,87%, funciones 98,36% y líneas 98,00%; arquitectura sin violaciones, Prisma y quality check aprobados; mutation segmentada: UploadResourceImageUseCase 100% (87/87), PrismaResourceImageRepository 100% (15/15), S3FileStorage 100% (35/35) y ResourceController 85,37%; Swagger/HTTP manual validado; GitHub Actions run `31623999986` con `verify: success`. El último score global completo de mutation conocido se mantiene en 87,73%.
 - **RES-007 — Resource Amenities.** Estado: Completed. Dominio: Resource. Prioridad: Media. Endpoint: `GET /api/amenities` y `PUT /api/businesses/:businessId/resources/:resourceId/amenities`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `a61373c`; catálogo global de 18 amenities seed, reemplazo completo idempotente, array vacío y validación de duplicados; aislamiento por `businessId`, bloqueo de Business/Resource archivados y amenities inactivas, con Resource `OUT_OF_SERVICE` permitido; unit 43 suites y 270 tests, integración 11 suites y 31 tests, E2E 6 suites y 69 tests, aceptación 45 escenarios y 200 pasos; cobertura: statements 97,27%, branches 92,28%, funciones 98,24% y líneas 98,13%; quality check, Prisma y arquitectura sin violaciones aprobados; mutation segmentada: ListAmenitiesUseCase 100%, SetResourceAmenitiesUseCase >=90%, PrismaAmenityRepository 100%, PrismaResourceAmenityRepository 100%, AmenityController 100% y ResourceController RES-007 93,75%; Swagger/HTTP manual validado; GitHub Actions run `31640435710` con `verify: success`. El último score global completo de mutation conocido se mantiene en 87,73%.
 - **RES-008 — Reactivate Resource.** Estado: Completed. Dominio: Resource. Prioridad: Media. Endpoint: `PATCH /api/businesses/:businessId/resources/:resourceId/reactivate`. Pruebas obligatorias: unitarias, integración PostgreSQL, E2E, aceptación, cobertura, arquitectura, Prisma y mutation segmentada. Definition of Done: transición explícita e idempotente `OUT_OF_SERVICE → ACTIVE`, bloqueo de Business y Resource archivados, aislamiento por `businessId`, preservación de atributos y persistencia del estado, con respuesta pública y Swagger consistentes.
+- **RES-009 — Business Custom Amenities.** Estado: In Progress. Dominio: Resource. Prioridad: Media. Endpoints: `POST` y `GET /api/businesses/:businessId/amenities`; compatible con `PUT /api/businesses/:businessId/resources/:resourceId/amenities`. Definition of Done: catálogo híbrido de amenities globales TOP y personalizados tenant-scoped, asignación sin fuga entre Businesses, persistencia Prisma, Swagger y pruebas según convención.
 
 ## Pricing
 
@@ -106,7 +107,7 @@ Availability ya considera conjuntamente Booking, Block y el estado operativo del
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Business | 5 | 5 | 0 | 0 | 0 |
 | Identity & Access | 9 | 8 | 0 | 1 | 0 |
-| Resource | 8 | 8 | 0 | 0 | 0 |
+| Resource | 9 | 8 | 1 | 0 | 0 |
 | Pricing | 5 | 5 | 0 | 0 | 0 |
 | Availability | 4 | 4 | 0 | 0 | 0 |
 | Contact | 4 | 4 | 0 | 0 | 0 |
@@ -114,11 +115,11 @@ Availability ya considera conjuntamente Booking, Block y el estado operativo del
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 3 | 0 | 0 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **52** | **43** | **0** | **9** | **0** |
+| **Total** | **53** | **43** | **1** | **9** | **0** |
 
 Progreso de Identity & Access: 8 de 9 capacidades completadas (88,9%).
 
-Progreso de Resource: 8 de 8 capacidades completadas (100%).
+Progreso de Resource: 8 de 9 capacidades completadas (88,9%).
 
 Progreso de Pricing: 5 de 5 capacidades completadas (100%).
 
@@ -126,7 +127,7 @@ Progreso de Availability: 4 de 4 capacidades completadas (100%).
 
 Progreso de Booking: 6 de 6 capacidades completadas (100%).
 
-Progreso general del MVP: 43 de 52 capacidades completadas (82,7%).
+Progreso general del MVP: 43 de 53 capacidades completadas (81,1%).
 
 Progreso de Contact: 4 de 4 capacidades completadas (100%).
 

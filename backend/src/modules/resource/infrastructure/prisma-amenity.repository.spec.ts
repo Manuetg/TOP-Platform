@@ -5,7 +5,7 @@ describe('PrismaAmenityRepository', () => {
     const findMany = jest.fn().mockResolvedValue([{ id: '11111111-1111-4111-8111-111111111111', code: 'WIFI', name: 'Wi-Fi', category: 'CONNECTIVITY', active: true, sortOrder: 0, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-01-02') }]);
     const repository = new PrismaAmenityRepository({ amenity: { findMany } } as never);
     await expect(repository.listActive()).resolves.toMatchObject([{ code: 'WIFI', active: true }]);
-    expect(findMany).toHaveBeenCalledWith({ where: { active: true }, orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }, { id: 'asc' }] });
+    expect(findMany).toHaveBeenCalledWith({ where: { active: true, businessId: null }, orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }, { id: 'asc' }] });
   });
   it('finds exactly the requested amenity ids', async () => {
     const findMany = jest.fn().mockResolvedValue([]);

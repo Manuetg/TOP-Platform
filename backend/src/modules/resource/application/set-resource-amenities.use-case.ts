@@ -34,7 +34,7 @@ export class SetResourceAmenitiesUseCase {
     const resource = await this.resources.findByIdAndBusinessId(input.resourceId, input.businessId);
     if (!resource) throw new ResourceAmenitiesNotFoundError('El recurso no existe.');
     if (resource.status === ResourceStatus.ARCHIVED) throw new ResourceAmenitiesArchivedError('El recurso está archivado.');
-    if (input.amenityIds.length > 0) await this.validateAmenities(input.amenityIds);
+    if (input.amenityIds.length > 0) await this.validateAmenities(input.amenityIds, input.businessId);
     await this.resourceAmenities.replace(input.resourceId, input.amenityIds);
     const amenities = await this.resourceAmenities.listByResourceId(input.resourceId);
     return Resource.create({ id: resource.id, businessId: resource.businessId, name: resource.name, internalCode: resource.internalCode, description: resource.description, capacityMinimum: resource.capacityMinimum, capacityMaximum: resource.capacityMaximum, capacityMaximumChildren: resource.capacityMaximumChildren, status: resource.status, sortOrder: resource.sortOrder, createdAt: resource.createdAt, updatedAt: resource.updatedAt, amenities });
@@ -48,8 +48,8 @@ export class SetResourceAmenitiesUseCase {
     if (new Set(input.amenityIds).size !== input.amenityIds.length) throw new InvalidResourceAmenitiesInputError('La lista de amenities no puede contener duplicados.');
   }
 
-  private async validateAmenities(ids: string[]): Promise<void> {
-    const amenities = await this.amenities.findManyByIds(ids);
+  private async validateAmenities(ids: string[], businessId: string): Promise<void> {
+    const amenities = await this.amenities.findManyAssignableToBusiness(ids, businessId);
     if (amenities.length !== ids.length) throw new AmenitiesNotFoundError('Una o más amenities no existen.');
     if (amenities.some((amenity) => !amenity.active)) throw new InactiveAmenitiesError('Una o más amenities están inactivas.');
   }

@@ -6,7 +6,7 @@ describe('AmenityController', () => {
     const items = [Amenity.create({ id: '11111111-1111-4111-8111-111111111111', code: 'WIFI', name: 'Wi-Fi', category: 'CONNECTIVITY', active: true, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() })];
     const execute = jest.fn().mockResolvedValue(items);
     const controller = new AmenityController({ execute } as never);
-    await expect(controller.list()).resolves.toEqual([{ id: items[0].id, code: 'WIFI', name: 'Wi-Fi', category: 'CONNECTIVITY', sortOrder: 0 }]);
+    await expect(controller.list()).resolves.toEqual([{ id: items[0].id, code: 'WIFI', name: 'Wi-Fi', category: 'CONNECTIVITY', sortOrder: 0, scope: 'GLOBAL' }]);
     expect(execute).toHaveBeenCalledTimes(1);
   });
   it('propagates errors from the use case', async () => {

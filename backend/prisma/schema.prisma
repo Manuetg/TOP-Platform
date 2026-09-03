@@ -146,6 +146,7 @@ model Business {
   pricingSnapshots      PricingSnapshot[]
   bookingTimelineEvents BookingTimelineEvent[]
   availabilityRule      AvailabilityRule?
+  amenities             Amenity[]
 }
 
 model AvailabilityRule {
@@ -209,6 +210,7 @@ model Resource {
 
 model Amenity {
   id                String            @id @default(uuid())
+  businessId        String?
   code              String            @unique
   name              String
   category          AmenityCategory
@@ -216,9 +218,11 @@ model Amenity {
   sortOrder         Int               @default(0)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+  business          Business?         @relation(fields: [businessId], references: [id], onDelete: Restrict)
   resourceAmenities ResourceAmenity[]
 
   @@index([active, category, sortOrder])
+  @@index([businessId, active, category, sortOrder])
 }
 
 model ResourceAmenity {

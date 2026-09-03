@@ -24,5 +24,6 @@ export async function cleanTestDatabase(prisma: PrismaClient, databaseUrl: strin
   await prisma.block.deleteMany();
   await prisma.resource.deleteMany();
   await prisma.contact.deleteMany();
+  await prisma.amenity.deleteMany({ where: { businessId: { not: null } } });
   await prisma.business.deleteMany();
 }

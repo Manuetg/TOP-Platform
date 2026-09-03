@@ -12,6 +12,7 @@ export type AmenityCategory =
 
 export interface AmenityProps {
   id: string;
+  businessId?: string | null;
   code: string;
   name: string;
   category: AmenityCategory;
@@ -24,8 +25,10 @@ export interface AmenityProps {
 export class Amenity {
   private constructor(private readonly props: AmenityProps) {}
 
-  static create(props: AmenityProps): Amenity { return new Amenity(props); }
+  static create(props: AmenityProps): Amenity { return new Amenity({ ...props, businessId: props.businessId ?? null }); }
   get id(): string { return this.props.id; }
+  get businessId(): string | null { return this.props.businessId ?? null; }
+  get scope(): 'GLOBAL' | 'BUSINESS' { return this.businessId === null ? 'GLOBAL' : 'BUSINESS'; }
   get code(): string { return this.props.code; }
   get name(): string { return this.props.name; }
   get category(): AmenityCategory { return this.props.category; }

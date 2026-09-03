@@ -1,1 +1,39 @@
-import { ConfigService } from '@nestjs/config'; import { Module } from '@nestjs/common'; import { BusinessModule } from '../business/business.module'; import { CreateResourceUseCase } from './application/create-resource.use-case'; import { DisableResourceUseCase } from './application/disable-resource.use-case'; import { GetResourceUseCase } from './application/get-resource.use-case'; import { ListAmenitiesUseCase } from './application/list-amenities.use-case'; import { ListResourcesUseCase } from './application/list-resources.use-case'; import { ReactivateResourceUseCase } from './application/reactivate-resource.use-case'; import { SetResourceAmenitiesUseCase } from './application/set-resource-amenities.use-case'; import { UpdateResourceUseCase } from './application/update-resource.use-case'; import { UploadResourceImageUseCase } from './application/upload-resource-image.use-case'; import { AMENITY_REPOSITORY } from './domain/amenity.repository'; import { FILE_STORAGE } from './domain/file-storage.port'; import { RESOURCE_AMENITY_REPOSITORY } from './domain/resource-amenity.repository'; import { RESOURCE_IMAGE_REPOSITORY } from './domain/resource-image.repository'; import { RESOURCE_REPOSITORY } from './domain/resource.repository'; import { InMemoryFileStorage } from './infrastructure/in-memory-file-storage'; import { PrismaAmenityRepository } from './infrastructure/prisma-amenity.repository'; import { PrismaResourceAmenityRepository } from './infrastructure/prisma-resource-amenity.repository'; import { PrismaResourceImageRepository } from './infrastructure/prisma-resource-image.repository'; import { PrismaResourceRepository } from './infrastructure/prisma-resource.repository'; import { S3FileStorage } from './infrastructure/s3-file-storage'; import { AmenityController } from './presentation/amenity.controller'; import { ResourceController } from './presentation/resource.controller'; @Module({imports:[BusinessModule],controllers:[ResourceController,AmenityController],providers:[PrismaResourceRepository,PrismaResourceImageRepository,PrismaAmenityRepository,PrismaResourceAmenityRepository,InMemoryFileStorage,{provide:RESOURCE_REPOSITORY,useExisting:PrismaResourceRepository},{provide:RESOURCE_IMAGE_REPOSITORY,useExisting:PrismaResourceImageRepository},{provide:AMENITY_REPOSITORY,useExisting:PrismaAmenityRepository},{provide:RESOURCE_AMENITY_REPOSITORY,useExisting:PrismaResourceAmenityRepository},{provide:FILE_STORAGE,inject:[ConfigService,InMemoryFileStorage],useFactory:(config:ConfigService,memory:InMemoryFileStorage)=>config.get<string>('S3_BUCKET')?new S3FileStorage(config):memory},CreateResourceUseCase,GetResourceUseCase,ListResourcesUseCase,ListAmenitiesUseCase,SetResourceAmenitiesUseCase,UpdateResourceUseCase,DisableResourceUseCase,ReactivateResourceUseCase,UploadResourceImageUseCase],exports:[RESOURCE_REPOSITORY]}) export class ResourceModule {}
+import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { BusinessModule } from '../business/business.module';
+import { CreateBusinessAmenityUseCase } from './application/create-business-amenity.use-case';
+import { CreateResourceUseCase } from './application/create-resource.use-case';
+import { DisableResourceUseCase } from './application/disable-resource.use-case';
+import { GetResourceUseCase } from './application/get-resource.use-case';
+import { ListAmenitiesUseCase } from './application/list-amenities.use-case';
+import { ListBusinessAmenitiesUseCase } from './application/list-business-amenities.use-case';
+import { ListResourcesUseCase } from './application/list-resources.use-case';
+import { ReactivateResourceUseCase } from './application/reactivate-resource.use-case';
+import { SetResourceAmenitiesUseCase } from './application/set-resource-amenities.use-case';
+import { UpdateResourceUseCase } from './application/update-resource.use-case';
+import { UploadResourceImageUseCase } from './application/upload-resource-image.use-case';
+import { AMENITY_REPOSITORY } from './domain/amenity.repository';
+import { BUSINESS_AMENITY_REPOSITORY } from './domain/business-amenity.repository';
+import { FILE_STORAGE } from './domain/file-storage.port';
+import { RESOURCE_AMENITY_REPOSITORY } from './domain/resource-amenity.repository';
+import { RESOURCE_IMAGE_REPOSITORY } from './domain/resource-image.repository';
+import { RESOURCE_REPOSITORY } from './domain/resource.repository';
+import { InMemoryFileStorage } from './infrastructure/in-memory-file-storage';
+import { PrismaAmenityRepository } from './infrastructure/prisma-amenity.repository';
+import { PrismaResourceAmenityRepository } from './infrastructure/prisma-resource-amenity.repository';
+import { PrismaResourceImageRepository } from './infrastructure/prisma-resource-image.repository';
+import { PrismaResourceRepository } from './infrastructure/prisma-resource.repository';
+import { S3FileStorage } from './infrastructure/s3-file-storage';
+import { AmenityController } from './presentation/amenity.controller';
+import { BusinessAmenityController } from './presentation/business-amenity.controller';
+import { ResourceController } from './presentation/resource.controller';
+
+@Module({ imports: [BusinessModule], controllers: [ResourceController, AmenityController, BusinessAmenityController], providers: [
+  PrismaResourceRepository, PrismaResourceImageRepository, PrismaAmenityRepository, PrismaResourceAmenityRepository, InMemoryFileStorage,
+  { provide: RESOURCE_REPOSITORY, useExisting: PrismaResourceRepository }, { provide: RESOURCE_IMAGE_REPOSITORY, useExisting: PrismaResourceImageRepository },
+  { provide: AMENITY_REPOSITORY, useExisting: PrismaAmenityRepository }, { provide: BUSINESS_AMENITY_REPOSITORY, useExisting: PrismaAmenityRepository }, { provide: RESOURCE_AMENITY_REPOSITORY, useExisting: PrismaResourceAmenityRepository },
+  { provide: FILE_STORAGE, inject: [ConfigService, InMemoryFileStorage], useFactory: (config: ConfigService, memory: InMemoryFileStorage) => config.get<string>('S3_BUCKET') ? new S3FileStorage(config) : memory },
+  CreateResourceUseCase, GetResourceUseCase, ListResourcesUseCase, ListAmenitiesUseCase, ListBusinessAmenitiesUseCase, CreateBusinessAmenityUseCase,
+  SetResourceAmenitiesUseCase, UpdateResourceUseCase, DisableResourceUseCase, ReactivateResourceUseCase, UploadResourceImageUseCase,
+], exports: [RESOURCE_REPOSITORY] })
+export class ResourceModule {}
