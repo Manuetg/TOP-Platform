@@ -20,5 +20,5 @@ export class PrismaResourceAmenityRepository implements ResourceAmenityRepositor
     return rows.map((row) => this.map(row.amenity));
   }
 
-  private map(row: PrismaAmenity): Amenity { return Amenity.create({ ...row, category: row.category }); }
+  private map(row: PrismaAmenity): Amenity { return Amenity.create({ ...row, businessId: row.businessId, category: row.category }); }
 }

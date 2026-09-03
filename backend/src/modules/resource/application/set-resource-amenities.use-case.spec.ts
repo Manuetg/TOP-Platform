@@ -17,7 +17,7 @@ const makeAmenityB = (active = true): Amenity => Amenity.create({ id: amenityIdB
 describe('SetResourceAmenitiesUseCase', () => {
   const setup = (amenities = [makeAmenity()]): { useCase: SetResourceAmenitiesUseCase; replace: jest.Mock } => {
     const replace = jest.fn().mockResolvedValue(undefined);
-    return { useCase: new SetResourceAmenitiesUseCase({ findById: jest.fn().mockResolvedValue(makeBusiness()), create: jest.fn(), list: jest.fn(), update: jest.fn() }, { findByIdAndBusinessId: jest.fn().mockResolvedValue(makeResource()), findByBusinessAndCode: jest.fn(), listByBusinessId: jest.fn(), create: jest.fn(), update: jest.fn() }, { listActive: jest.fn(), findManyByIds: jest.fn().mockResolvedValue(amenities) }, { replace, listByResourceId: jest.fn().mockResolvedValue(amenities) }), replace };
+    return { useCase: new SetResourceAmenitiesUseCase({ findById: jest.fn().mockResolvedValue(makeBusiness()), create: jest.fn(), list: jest.fn(), update: jest.fn() }, { findByIdAndBusinessId: jest.fn().mockResolvedValue(makeResource()), findByBusinessAndCode: jest.fn(), listByBusinessId: jest.fn(), create: jest.fn(), update: jest.fn() }, { listActive: jest.fn(), findManyByIds: jest.fn(), findManyAssignableToBusiness: jest.fn().mockResolvedValue(amenities) }, { replace, listByResourceId: jest.fn().mockResolvedValue(amenities) }), replace };
   };
 
   it('replaces the collection and returns the resource with ordered public amenities', async () => {
@@ -48,12 +48,58 @@ describe('SetResourceAmenitiesUseCase', () => {
   it('uses exact ids for multiple active amenities and propagates persistence failures', async () => {
     const replace = jest.fn().mockRejectedValue(new Error('replace failed'));
     const findManyByIds = jest.fn().mockResolvedValue([makeAmenity(), makeAmenityB()]);
-    const useCase = new SetResourceAmenitiesUseCase({ findById: jest.fn().mockResolvedValue(makeBusiness()), create: jest.fn(), list: jest.fn(), update: jest.fn() }, { findByIdAndBusinessId: jest.fn().mockResolvedValue(makeResource()), findByBusinessAndCode: jest.fn(), listByBusinessId: jest.fn(), create: jest.fn(), update: jest.fn() }, { listActive: jest.fn(), findManyByIds }, { replace, listByResourceId: jest.fn() });
+    const useCase = new SetResourceAmenitiesUseCase({ findById: jest.fn().mockResolvedValue(makeBusiness()), create: jest.fn(), list: jest.fn(), update: jest.fn() }, { findByIdAndBusinessId: jest.fn().mockResolvedValue(makeResource()), findByBusinessAndCode: jest.fn(), listByBusinessId: jest.fn(), create: jest.fn(), update: jest.fn() }, { listActive: jest.fn(), findManyByIds: jest.fn(), findManyAssignableToBusiness: findManyByIds }, { replace, listByResourceId: jest.fn() });
     await expect(useCase.execute({ businessId, resourceId, amenityIds: [amenityId, amenityIdB] })).rejects.toThrow('replace failed');
-    expect(findManyByIds).toHaveBeenCalledWith([amenityId, amenityIdB]);
+    expect(findManyByIds).toHaveBeenCalledWith([amenityId, amenityIdB], businessId);
     expect(replace).toHaveBeenCalledWith(resourceId, [amenityId, amenityIdB]);
   });
 
+  it('queries only amenities assignable to the business and treats a scoped partial result as not found', async () => {
+    const replace = jest.fn();
+    const findManyAssignableToBusiness = jest
+      .fn()
+      .mockResolvedValue([makeAmenity()]);
+
+    const useCase = new SetResourceAmenitiesUseCase(
+      {
+        findById: jest.fn().mockResolvedValue(makeBusiness()),
+        create: jest.fn(),
+        list: jest.fn(),
+        update: jest.fn(),
+      },
+      {
+        findByIdAndBusinessId: jest.fn().mockResolvedValue(makeResource()),
+        findByBusinessAndCode: jest.fn(),
+        listByBusinessId: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
+      {
+        listActive: jest.fn(),
+        findManyByIds: jest.fn(),
+        findManyAssignableToBusiness,
+      },
+      {
+        replace,
+        listByResourceId: jest.fn(),
+      },
+    );
+
+    await expect(
+      useCase.execute({
+        businessId,
+        resourceId,
+        amenityIds: [amenityId, amenityIdB],
+      }),
+    ).rejects.toBeInstanceOf(AmenitiesNotFoundError);
+
+    expect(findManyAssignableToBusiness).toHaveBeenCalledWith(
+      [amenityId, amenityIdB],
+      businessId,
+    );
+
+    expect(replace).not.toHaveBeenCalled();
+  });
   it('rejects partial result and mixed inactive amenities without reloading', async () => {
     const partial = setup([makeAmenity()]);
     await expect(partial.useCase.execute({ businessId, resourceId, amenityIds: [amenityId, amenityIdB] })).rejects.toThrow('Una o más amenities no existen.');
@@ -85,7 +131,7 @@ describe('SetResourceAmenitiesUseCase', () => {
     ['resource archivado', makeBusiness(), Resource.create({ id: resourceId, businessId, name: 'Cabana', internalCode: 'CAB', description: null, capacityMinimum: 1, capacityMaximum: 2, capacityMaximumChildren: 0, status: ResourceStatus.ARCHIVED, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() }), [makeAmenity()], 'El recurso está archivado.'],
   ])('rejects %s with its exact message', async (_caseName, business, resource, amenities, message) => {
     const replace = jest.fn();
-    const useCase = new SetResourceAmenitiesUseCase({ findById: jest.fn().mockResolvedValue(business), create: jest.fn(), list: jest.fn(), update: jest.fn() }, { findByIdAndBusinessId: jest.fn().mockResolvedValue(resource), findByBusinessAndCode: jest.fn(), listByBusinessId: jest.fn(), create: jest.fn(), update: jest.fn() }, { listActive: jest.fn(), findManyByIds: jest.fn().mockResolvedValue(amenities) }, { replace, listByResourceId: jest.fn() });
+    const useCase = new SetResourceAmenitiesUseCase({ findById: jest.fn().mockResolvedValue(business), create: jest.fn(), list: jest.fn(), update: jest.fn() }, { findByIdAndBusinessId: jest.fn().mockResolvedValue(resource), findByBusinessAndCode: jest.fn(), listByBusinessId: jest.fn(), create: jest.fn(), update: jest.fn() }, { listActive: jest.fn(), findManyByIds: jest.fn(), findManyAssignableToBusiness: jest.fn().mockResolvedValue(amenities) }, { replace, listByResourceId: jest.fn() });
     await expect(useCase.execute({ businessId, resourceId, amenityIds: [amenityId] })).rejects.toThrow(message);
     expect(replace).not.toHaveBeenCalled();
   });

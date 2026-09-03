@@ -164,3 +164,8 @@ La implementación técnica queda **Pendiente** para Architecture.
 - **BR-079 — Actualización self-service de User.** Tipo: Autorización e integridad. Estado: Aprobada. Dominios: Identity & Access. Descripción: IAM-005 permite que un User `ACTIVE` autenticado cambie exclusivamente su propio email. Comportamiento: `sub` debe coincidir con el User del path; el email se normaliza y conserva unicidad global; body vacío o email inválido se rechazan; credencial, contraseña, estado, membresías, roles y sesiones permanecen sin cambios. Un User `DISABLED` no puede actualizarse. Excepciones: IAM-005 no habilita administración de terceros ni revoca access/refresh tokens vigentes por un cambio de email.
 
 **Pendientes:** verificación contra contraseñas comprometidas, transiciones de User, estado individual de membresía, matriz detallada de permisos y mecanismo administrativo que protegerá `POST /api/users` cuando se habilite como endpoint.
+# Amenities híbridos
+
+- Los amenities globales TOP son activos y visibles para todos los Businesses.
+- Un amenity personalizado pertenece a un único Business y no puede listarse ni asignarse desde otro Business.
+- La asignación de un Resource admite amenities globales activos y amenities personalizados activos de su propio Business; un identificador custom de otro Business se trata como inexistente.

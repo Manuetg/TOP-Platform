@@ -14,6 +14,7 @@ import { RESOURCE_IMAGE_REPOSITORY } from '../../src/modules/resource/domain/res
 import { ResourceImage } from '../../src/modules/resource/domain/resource-image.entity';
 import { Amenity } from '../../src/modules/resource/domain/amenity.entity';
 import { AMENITY_REPOSITORY } from '../../src/modules/resource/domain/amenity.repository';
+import { BUSINESS_AMENITY_REPOSITORY } from '../../src/modules/resource/domain/business-amenity.repository';
 import { RESOURCE_AMENITY_REPOSITORY } from '../../src/modules/resource/domain/resource-amenity.repository';
 
 const businessA = '11111111-1111-4111-8111-111111111111';
@@ -36,7 +37,24 @@ describe('Resource endpoint', () => {
       .overrideProvider(RESOURCE_REPOSITORY).useValue({ findByIdAndBusinessId: (id: string, businessId: string): Promise<Resource | null> => Promise.resolve(resources.find((item) => item.id === id && item.businessId === businessId) ?? null), listByBusinessId: (businessId: string): Promise<Resource[]> => Promise.resolve(resources.filter((item) => item.businessId === businessId)), findByBusinessAndCode: (businessId: string, internalCode: string): Promise<Resource | null> => Promise.resolve(resources.find((item) => item.businessId === businessId && item.internalCode === internalCode) ?? null), create: jest.fn(), update: (resource: Resource): Promise<Resource> => { resources = resources.map((item) => item.id === resource.id ? resource : item); return Promise.resolve(resource); } })
       .overrideProvider(RESOURCE_IMAGE_REPOSITORY).useValue({ countByResourceId: (id: string): Promise<number> => Promise.resolve(images.filter((image) => image.resourceId === id).length), getNextSortOrder: (id: string): Promise<number> => Promise.resolve(images.filter((image) => image.resourceId === id).reduce((maximum, image) => Math.max(maximum, image.sortOrder), -1) + 1), create: (image: ResourceImage): Promise<ResourceImage> => { images.push(image); return Promise.resolve(image); } })
       .overrideProvider(FILE_STORAGE).useValue({ upload: (): Promise<void> => Promise.resolve(), delete: (): Promise<void> => Promise.resolve(), createSignedReadUrl: (key: string): Promise<string> => Promise.resolve(`https://signed.test/${key}`) })
-      .overrideProvider(AMENITY_REPOSITORY).useValue({ listActive: (): Promise<Amenity[]> => Promise.resolve(amenities.filter((item) => item.active)), findManyByIds: (ids: string[]): Promise<Amenity[]> => Promise.resolve(amenities.filter((item) => ids.includes(item.id))) })
+      .overrideProvider(AMENITY_REPOSITORY).useValue({
+        listActive: (): Promise<Amenity[]> =>
+          Promise.resolve(amenities.filter((item) => item.active)),
+        findManyByIds: (ids: string[]): Promise<Amenity[]> =>
+          Promise.resolve(amenities.filter((item) => ids.includes(item.id))),
+        findManyAssignableToBusiness: (
+          ids: string[],
+          businessId: string,
+        ): Promise<Amenity[]> =>
+          Promise.resolve(
+            amenities.filter(
+              (item) =>
+                ids.includes(item.id) &&
+                (item.businessId === null || item.businessId === businessId),
+            ),
+          ),
+      })
+      .overrideProvider(BUSINESS_AMENITY_REPOSITORY).useValue({ create: (amenity: Amenity): Promise<Amenity> => { amenities.push(amenity); return Promise.resolve(amenity); }, listActiveForBusiness: (businessId: string): Promise<Amenity[]> => Promise.resolve(amenities.filter((item) => item.active && (item.businessId === null || item.businessId === businessId))) })
       .overrideProvider(RESOURCE_AMENITY_REPOSITORY).useValue({ replace: (_resourceId: string, ids: string[]): Promise<void> => { assignments = [...ids]; return Promise.resolve(); }, listByResourceId: (): Promise<Amenity[]> => Promise.resolve(amenities.filter((item) => assignments.includes(item.id))) }).compile();
     app = module.createNestApplication(); configureApplication(app, { security: false }); await app.init();
   });
@@ -98,5 +116,19 @@ describe('Resource endpoint', () => {
     await request(app.getHttpServer()).put(`/api/businesses/${businessA}/resources/${resourceA}/amenities`).send({ amenityIds: [amenityId] }).expect(200).expect(({ body }: { body: Record<string, unknown> }) => expect(body.amenities).toEqual([expect.objectContaining({ id: amenityId, code: 'WIFI' })]));
     await request(app.getHttpServer()).put(`/api/businesses/${businessA}/resources/${resourceA}/amenities`).send({ amenityIds: [] }).expect(200).expect(({ body }: { body: Record<string, unknown> }) => expect(body.amenities).toEqual([]));
     await request(app.getHttpServer()).put(`/api/businesses/${businessA}/resources/${resourceA}/amenities`).send({ amenityIds: [amenityId, amenityId] }).expect(400);
+  });
+
+  it('crea y lista customs del tenant, los asigna y oculta los de otro Business', async () => {
+    const globalId = amenities[0].id;
+    const created = await request(app.getHttpServer()).post(`/api/businesses/${businessA}/amenities`).send({ name: ' Muelle privado ', category: 'OUTDOOR' }).expect(201);
+    expect(created.body).toMatchObject({ name: 'Muelle privado', category: 'OUTDOOR', scope: 'BUSINESS' });
+    await request(app.getHttpServer()).get(`/api/businesses/${businessA}/amenities`).expect(200).expect(({ body }: { body: Array<Record<string, unknown>> }) => { expect(body).toEqual(expect.arrayContaining([expect.objectContaining({ id: globalId, scope: 'GLOBAL' }), expect.objectContaining({ id: created.body.id, scope: 'BUSINESS' })])); });
+    await request(app.getHttpServer()).put(`/api/businesses/${businessA}/resources/${resourceA}/amenities`).send({ amenityIds: [globalId, created.body.id] }).expect(200).expect(({ body }: { body: Record<string, unknown> }) => expect(body.amenities).toEqual(expect.arrayContaining([expect.objectContaining({ id: created.body.id, scope: 'BUSINESS' })])));
+    const foreign = Amenity.create({ id: '66666666-6666-4666-8666-666666666666', businessId: businessB, code: 'CUSTOM_FOREIGN', name: 'Ajena', category: 'OUTDOOR', active: true, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() });
+    amenities.push(foreign);
+    await request(app.getHttpServer()).put(`/api/businesses/${businessA}/resources/${resourceA}/amenities`).send({ amenityIds: [foreign.id] }).expect(404);
+    businesses = [makeBusiness(businessA, BusinessStatus.ARCHIVED)];
+    await request(app.getHttpServer()).post(`/api/businesses/${businessA}/amenities`).send({ name: 'Otra', category: 'OUTDOOR' }).expect(409);
+    await request(app.getHttpServer()).get(`/api/businesses/${businessA}/amenities`).expect(409);
   });
 });

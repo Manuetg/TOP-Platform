@@ -283,7 +283,7 @@ describe('ResourceController', () => {
     setAmenities.execute.mockResolvedValueOnce(enriched).mockRejectedValueOnce(error);
     const response = await controller.setAmenities(resource.businessId, resource.id, { amenityIds: [amenity.id] });
     expect(setAmenities.execute).toHaveBeenCalledWith({ businessId: resource.businessId, resourceId: resource.id, amenityIds: [amenity.id] });
-    expect(response).toEqual(expect.objectContaining({ id: resource.id, amenities: [{ id: amenity.id, code: 'WIFI', name: 'Wi-Fi', category: 'CONNECTIVITY' }] }));
+    expect(response).toEqual(expect.objectContaining({ id: resource.id, amenities: [{ id: amenity.id, code: 'WIFI', name: 'Wi-Fi', category: 'CONNECTIVITY', scope: 'GLOBAL' }] }));
     expect(response).not.toHaveProperty('props');
     await expect(controller.setAmenities(resource.businessId, resource.id, { amenityIds: [amenity.id] })).rejects.toBeInstanceOf(exception);
   });
