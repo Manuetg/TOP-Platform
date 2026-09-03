@@ -46,6 +46,8 @@ import { availabilityRulesRepositoryFake, resetAvailabilityRulesRepositoryFake }
 import type { NextFunction, Response } from 'express';
 import type { AuthenticatedRequest } from '../../../src/shared/security/authenticated-principal';
 
+export const acceptanceFileStorage = new InMemoryFileStorage();
+
 Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
   resetBusinessRepositoryFake();
   resetUserRepositoryFake();
@@ -81,7 +83,7 @@ Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
     .overrideProvider(BOOKING_AVAILABILITY_LOOKUP).useValue(bookingRepositoryFake)
     .overrideProvider(BLOCK_AVAILABILITY_LOOKUP).useValue(blockRepositoryFake)
     .overrideProvider(AVAILABILITY_RULES_REPOSITORY).useValue(availabilityRulesRepositoryFake)
-    .overrideProvider(FILE_STORAGE).useValue(new InMemoryFileStorage())
+    .overrideProvider(FILE_STORAGE).useValue(acceptanceFileStorage)
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)
     .overrideProvider(PASSWORD_HASHER).useValue(passwordHasherFake)

@@ -22,4 +22,12 @@ describeWithPostgres('PrismaResourceImageRepository con PostgreSQL', () => {
     expect(await repository.getNextSortOrder(resource.id)).toBe(1);
     await expect(prisma.resourceImage.findUniqueOrThrow({ where: { resourceId_sortOrder: { resourceId: resource.id, sortOrder: 0 } } })).resolves.toMatchObject({ businessId: business.id, storageKey: 'first.jpg' });
   });
+  it('lista solo imágenes del Resource ordenadas por sortOrder e id', async () => {
+    const business = await prisma.business.create({ data: { name: 'Business lista imágenes' } });
+    const firstResource = await prisma.resource.create({ data: { businessId: business.id, name: 'Uno', internalCode: 'IMG-L1', capacityMaximum: 2 } });
+    const secondResource = await prisma.resource.create({ data: { businessId: business.id, name: 'Dos', internalCode: 'IMG-L2', capacityMaximum: 2 } });
+    await prisma.resourceImage.createMany({ data: [{ id: '11111111-1111-4111-8111-111111111112', businessId: business.id, resourceId: firstResource.id, storageKey: 'b.jpg', mimeType: 'image/jpeg', sizeBytes: 1, sortOrder: 1 }, { id: '11111111-1111-4111-8111-111111111111', businessId: business.id, resourceId: firstResource.id, storageKey: 'a.jpg', mimeType: 'image/jpeg', sizeBytes: 1, sortOrder: 0 }, { id: '11111111-1111-4111-8111-111111111113', businessId: business.id, resourceId: secondResource.id, storageKey: 'other.jpg', mimeType: 'image/jpeg', sizeBytes: 1, sortOrder: 0 }] });
+    await expect(repository.listByResourceId(firstResource.id)).resolves.toMatchObject([{ storageKey: 'a.jpg', sortOrder: 0 }, { storageKey: 'b.jpg', sortOrder: 1 }]);
+    await expect(repository.listByResourceId('22222222-2222-4222-8222-222222222222')).resolves.toEqual([]);
+  });
 });

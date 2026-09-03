@@ -49,6 +49,7 @@ import { ResourceResponseDto } from './dto/resource.response.dto';
 import { UpdateResourceRequestDto } from './dto/update-resource.request.dto';
 import { ResourceImageResponseDto } from './dto/resource-image.response.dto';
 import { InvalidResourceImageInputError, ResourceImageLimitReachedError, UploadResourceImageUseCase } from '../application/upload-resource-image.use-case';
+import { ListResourceImagesUseCase } from '../application/list-resource-images.use-case';
 import { AmenitiesNotFoundError, InactiveAmenitiesError, InvalidResourceAmenitiesInputError, ResourceAmenitiesArchivedError, ResourceAmenitiesBusinessArchivedError, ResourceAmenitiesBusinessNotFoundError, ResourceAmenitiesNotFoundError, SetResourceAmenitiesUseCase } from '../application/set-resource-amenities.use-case';
 import { SetResourceAmenitiesRequestDto } from './dto/set-resource-amenities.request.dto';
 import { BusinessAccess } from '../../../shared/security/security.decorators';
@@ -65,6 +66,7 @@ export class ResourceController {
     private readonly disableResource: DisableResourceUseCase,
     private readonly reactivateResource: ReactivateResourceUseCase,
     private readonly uploadResourceImage: UploadResourceImageUseCase,
+    private readonly listResourceImages: ListResourceImagesUseCase,
     private readonly setResourceAmenities: SetResourceAmenitiesUseCase,
   ) {}
 
@@ -120,6 +122,17 @@ export class ResourceController {
     } catch (error: unknown) {
       this.throwUploadError(error);
     }
+  }
+
+  @Get(':resourceId/images')
+  @ApiOperation({ summary: 'Lists the persisted descriptive images of a resource in deterministic order.' })
+  @ApiOkResponse({ type: ResourceImageResponseDto, isArray: true })
+  @ApiBadRequestResponse()
+  @ApiNotFoundResponse()
+  @ApiConflictResponse()
+  async listImages(@Param('businessId') businessId: string, @Param('resourceId') resourceId: string): Promise<ResourceImageResponseDto[]> {
+    try { return (await this.listResourceImages.execute(businessId, resourceId)).map((image) => ResourceImageResponseDto.fromListed(image)); }
+    catch (error: unknown) { this.throwUploadError(error); }
   }
 
   private throwUploadError(error: unknown): never {
