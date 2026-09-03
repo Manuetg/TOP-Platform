@@ -15,7 +15,7 @@ describe('UploadResourceImageUseCase', () => {
   const createSut = (business: Business | null = makeBusiness(), resource: Resource | null = makeResource(), count = 0) => {
     const businesses = { findById: jest.fn().mockResolvedValue(business) };
     const resources = { findByIdAndBusinessId: jest.fn().mockResolvedValue(resource) };
-    const images = { countByResourceId: jest.fn().mockResolvedValue(count), getNextSortOrder: jest.fn().mockResolvedValue(count), create: jest.fn().mockImplementation((image) => Promise.resolve(image)) };
+    const images = { countByResourceId: jest.fn().mockResolvedValue(count), getNextSortOrder: jest.fn().mockResolvedValue(count), create: jest.fn().mockImplementation((image) => Promise.resolve(image)), listByResourceId: jest.fn() };
     const storage = { upload: jest.fn().mockResolvedValue(undefined), delete: jest.fn().mockResolvedValue(undefined), createSignedReadUrl: jest.fn().mockResolvedValue('https://signed.test/image') };
     return { useCase: new UploadResourceImageUseCase(businesses as never, resources as never, images, storage), businesses, resources, images, storage };
   };

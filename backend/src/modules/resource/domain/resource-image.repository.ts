@@ -6,4 +6,5 @@ export interface ResourceImageRepository {
   countByResourceId(resourceId: string): Promise<number>;
   getNextSortOrder(resourceId: string): Promise<number>;
   create(image: ResourceImage): Promise<ResourceImage>;
+  listByResourceId(resourceId: string): Promise<ResourceImage[]>;
 }

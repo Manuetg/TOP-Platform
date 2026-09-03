@@ -16,6 +16,7 @@ export const resourceImageRepositoryFake: ResourceImageRepository = {
     images.set(image.id, image);
     return Promise.resolve(image);
   },
+  listByResourceId: (resourceId) => Promise.resolve([...images.values()].filter((image) => image.resourceId === resourceId).sort((left, right) => left.sortOrder - right.sortOrder || left.id.localeCompare(right.id))),
 };
 
 export function resetResourceImageRepositoryFake(): void {

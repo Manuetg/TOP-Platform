@@ -35,7 +35,7 @@ describe('Resource endpoint', () => {
     const module = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(BUSINESS_REPOSITORY).useValue({ findById: (id: string): Promise<Business | null> => Promise.resolve(businesses.find((item) => item.id === id) ?? null), create: jest.fn(), list: jest.fn(), update: jest.fn() })
       .overrideProvider(RESOURCE_REPOSITORY).useValue({ findByIdAndBusinessId: (id: string, businessId: string): Promise<Resource | null> => Promise.resolve(resources.find((item) => item.id === id && item.businessId === businessId) ?? null), listByBusinessId: (businessId: string): Promise<Resource[]> => Promise.resolve(resources.filter((item) => item.businessId === businessId)), findByBusinessAndCode: (businessId: string, internalCode: string): Promise<Resource | null> => Promise.resolve(resources.find((item) => item.businessId === businessId && item.internalCode === internalCode) ?? null), create: jest.fn(), update: (resource: Resource): Promise<Resource> => { resources = resources.map((item) => item.id === resource.id ? resource : item); return Promise.resolve(resource); } })
-      .overrideProvider(RESOURCE_IMAGE_REPOSITORY).useValue({ countByResourceId: (id: string): Promise<number> => Promise.resolve(images.filter((image) => image.resourceId === id).length), getNextSortOrder: (id: string): Promise<number> => Promise.resolve(images.filter((image) => image.resourceId === id).reduce((maximum, image) => Math.max(maximum, image.sortOrder), -1) + 1), create: (image: ResourceImage): Promise<ResourceImage> => { images.push(image); return Promise.resolve(image); } })
+      .overrideProvider(RESOURCE_IMAGE_REPOSITORY).useValue({ countByResourceId: (id: string): Promise<number> => Promise.resolve(images.filter((image) => image.resourceId === id).length), getNextSortOrder: (id: string): Promise<number> => Promise.resolve(images.filter((image) => image.resourceId === id).reduce((maximum, image) => Math.max(maximum, image.sortOrder), -1) + 1), create: (image: ResourceImage): Promise<ResourceImage> => { images.push(image); return Promise.resolve(image); }, listByResourceId: (id: string): Promise<ResourceImage[]> => Promise.resolve(images.filter((image) => image.resourceId === id).sort((left, right) => left.sortOrder - right.sortOrder || left.id.localeCompare(right.id))) })
       .overrideProvider(FILE_STORAGE).useValue({ upload: (): Promise<void> => Promise.resolve(), delete: (): Promise<void> => Promise.resolve(), createSignedReadUrl: (key: string): Promise<string> => Promise.resolve(`https://signed.test/${key}`) })
       .overrideProvider(AMENITY_REPOSITORY).useValue({
         listActive: (): Promise<Amenity[]> =>
@@ -130,5 +130,14 @@ describe('Resource endpoint', () => {
     businesses = [makeBusiness(businessA, BusinessStatus.ARCHIVED)];
     await request(app.getHttpServer()).post(`/api/businesses/${businessA}/amenities`).send({ name: 'Otra', category: 'OUTDOOR' }).expect(409);
     await request(app.getHttpServer()).get(`/api/businesses/${businessA}/amenities`).expect(409);
+  });
+
+  it('lista imágenes públicas ordenadas y protege el tenant', async () => {
+    images = [ResourceImage.create({ id: '77777777-7777-4777-8777-777777777777', businessId: businessA, resourceId: resourceA, storageKey: 'one.jpg', mimeType: 'image/jpeg', sizeBytes: 1, sortOrder: 1, createdAt: new Date(), updatedAt: new Date() }), ResourceImage.create({ id: '66666666-6666-4666-8666-666666666666', businessId: businessA, resourceId: resourceA, storageKey: 'zero.jpg', mimeType: 'image/jpeg', sizeBytes: 1, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() })];
+    await request(app.getHttpServer()).get(`/api/businesses/${businessA}/resources/${resourceA}/images`).expect(200).expect(({ body }: { body: Array<Record<string, unknown>> }) => { expect(body.map((item) => item.id)).toEqual(['66666666-6666-4666-8666-666666666666', '77777777-7777-4777-8777-777777777777']); expect(body[0].url).toContain('https://signed.test/'); expect(body[0]).not.toHaveProperty('storageKey'); });
+    await request(app.getHttpServer()).get('/api/businesses/invalid/resources/33333333-3333-4333-8333-333333333333/images').expect(400);
+    await request(app.getHttpServer()).get(`/api/businesses/${businessA}/resources/${resourceB}/images`).expect(404);
+    businesses = [makeBusiness(businessA, BusinessStatus.ARCHIVED)];
+    await request(app.getHttpServer()).get(`/api/businesses/${businessA}/resources/${resourceA}/images`).expect(409);
   });
 });

@@ -56,6 +56,7 @@ describe('ResourceController', () => {
     const disable = { execute: jest.fn() };
     const reactivate = { execute: jest.fn() };
     const upload = { execute: jest.fn() };
+    const listImages = { execute: jest.fn() };
     const setAmenities = { execute: jest.fn() };
     return {
       create,
@@ -65,8 +66,9 @@ describe('ResourceController', () => {
       disable,
       reactivate,
       upload,
+      listImages,
       setAmenities,
-      controller: new ResourceController(create as never, get as never, list as never, update as never, disable as never, reactivate as never, upload as never, setAmenities as never),
+      controller: new ResourceController(create as never, get as never, list as never, update as never, disable as never, reactivate as never, upload as never, listImages as never, setAmenities as never),
     };
   };
 
@@ -315,6 +317,21 @@ describe('ResourceController', () => {
     expect(response).not.toHaveProperty('storageKey');
     expect(response).not.toHaveProperty('businessId');
     expect(response).not.toHaveProperty('props');
+  });
+
+  it.each([
+    [undefined, undefined],
+    [new InvalidBusinessIdError('business'), BadRequestException],
+    [new GetBusinessNotFoundError('business'), NotFoundException],
+    [new ResourceNotFoundError('resource'), NotFoundException],
+    [new ResourceBusinessArchivedError('archived'), ConflictException],
+  ])('lista imágenes y conserva el mapeo HTTP', async (error, exception) => {
+    const { controller, listImages } = setup();
+    if (error) listImages.execute.mockRejectedValue(error);
+    else listImages.execute.mockResolvedValue([{ id: '33333333-3333-4333-8333-333333333333', resourceId: resource.id, url: 'https://signed.test/image', mimeType: 'image/jpeg', sizeBytes: 3, sortOrder: 0, createdAt: resource.createdAt, updatedAt: resource.updatedAt }]);
+    if (exception) await expect(controller.listImages(resource.businessId, resource.id)).rejects.toBeInstanceOf(exception as never);
+    else await expect(controller.listImages(resource.businessId, resource.id)).resolves.toEqual([expect.objectContaining({ id: '33333333-3333-4333-8333-333333333333', url: 'https://signed.test/image', sortOrder: 0 })]);
+    expect(listImages.execute).toHaveBeenCalledWith(resource.businessId, resource.id);
   });
 
   it.each([

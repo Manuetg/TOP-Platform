@@ -10,5 +10,6 @@ export class PrismaResourceImageRepository implements ResourceImageRepository {
   countByResourceId(resourceId: string): Promise<number> { return this.prisma.resourceImage.count({ where: { resourceId } }); }
   async getNextSortOrder(resourceId: string): Promise<number> { const result = await this.prisma.resourceImage.aggregate({ where: { resourceId }, _max: { sortOrder: true } }); return (result._max.sortOrder ?? -1) + 1; }
   async create(image: ResourceImage): Promise<ResourceImage> { return this.map(await this.prisma.resourceImage.create({ data: { id: image.id, businessId: image.businessId, resourceId: image.resourceId, storageKey: image.storageKey, mimeType: image.mimeType, sizeBytes: image.sizeBytes, sortOrder: image.sortOrder } })); }
+  async listByResourceId(resourceId: string): Promise<ResourceImage[]> { return (await this.prisma.resourceImage.findMany({ where: { resourceId }, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] })).map((row) => this.map(row)); }
   private map(row: PrismaResourceImage): ResourceImage { return ResourceImage.create(row); }
 }

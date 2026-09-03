@@ -8,6 +8,7 @@ import { GetResourceUseCase } from './application/get-resource.use-case';
 import { ListAmenitiesUseCase } from './application/list-amenities.use-case';
 import { ListBusinessAmenitiesUseCase } from './application/list-business-amenities.use-case';
 import { ListResourcesUseCase } from './application/list-resources.use-case';
+import { ListResourceImagesUseCase } from './application/list-resource-images.use-case';
 import { ReactivateResourceUseCase } from './application/reactivate-resource.use-case';
 import { SetResourceAmenitiesUseCase } from './application/set-resource-amenities.use-case';
 import { UpdateResourceUseCase } from './application/update-resource.use-case';
@@ -34,6 +35,6 @@ import { ResourceController } from './presentation/resource.controller';
   { provide: AMENITY_REPOSITORY, useExisting: PrismaAmenityRepository }, { provide: BUSINESS_AMENITY_REPOSITORY, useExisting: PrismaAmenityRepository }, { provide: RESOURCE_AMENITY_REPOSITORY, useExisting: PrismaResourceAmenityRepository },
   { provide: FILE_STORAGE, inject: [ConfigService, InMemoryFileStorage], useFactory: (config: ConfigService, memory: InMemoryFileStorage) => config.get<string>('S3_BUCKET') ? new S3FileStorage(config) : memory },
   CreateResourceUseCase, GetResourceUseCase, ListResourcesUseCase, ListAmenitiesUseCase, ListBusinessAmenitiesUseCase, CreateBusinessAmenityUseCase,
-  SetResourceAmenitiesUseCase, UpdateResourceUseCase, DisableResourceUseCase, ReactivateResourceUseCase, UploadResourceImageUseCase,
+  SetResourceAmenitiesUseCase, UpdateResourceUseCase, DisableResourceUseCase, ReactivateResourceUseCase, UploadResourceImageUseCase, ListResourceImagesUseCase,
 ], exports: [RESOURCE_REPOSITORY] })
 export class ResourceModule {}
