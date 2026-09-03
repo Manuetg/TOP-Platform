@@ -1,6 +1,6 @@
 # TOP — Frontend Backlog
 
-Última actualización: 2026-09-02
+Última actualización: 2026-09-03
 
 ## Objetivo
 
@@ -48,8 +48,8 @@ Total historias frontend: 52
 Estado actual:
 
 - Completed: 10
-- In Progress: 2
-- Planned: 37
+- In Progress: 3
+- Planned: 36
 - Blocked: 3
 
 ---
@@ -775,22 +775,43 @@ Criterios de aceptación:
 
 ## FE-RES-006 — Resource Images & Amenities
 
-Estado: Planned
+Estado: In Progress
 
 Objetivo:
 
 Gestionar imágenes y amenities asignados al Resource.
 
-Debe contemplar:
+Implementado — Amenities:
+
+- catálogo cargado mediante `GET /api/businesses/:businessId/amenities`;
+- soporte de amenities globales TOP y personalizados del Business;
+- tipos frontend `AmenityCategory` y `scope: GLOBAL | BUSINESS`;
+- cache TanStack Query aislada mediante `["amenities", businessId]`;
+- reemplazo completo de asignación mediante `PUT /api/businesses/:businessId/resources/:resourceId/amenities`;
+- selección y deselección de amenities desde el detalle del Resource;
+- creación de amenities personalizados mediante `POST /api/businesses/:businessId/amenities`;
+- selector de las diez categorías soportadas por backend;
+- selección automática del amenity personalizado recién creado;
+- actualización de cache del detalle e invalidación de queries relacionadas;
+- estados de loading, error, retry y procesamiento;
+- UI responsive integrada en el detalle del Resource;
+- commit frontend `120f54f` (`feat(resources): add amenity management`);
+- build productivo aprobado;
+- lint aprobado con 0 warnings y 0 errors;
+- suite frontend completa: 21 test files y 58 tests aprobados;
+- validación manual en Docker aprobada, incluyendo persistencia tras refresh de amenities globales y personalizados.
+
+Pendiente — Imágenes:
 
 - mostrar imagen real cuando exista;
 - mostrar una ilustración default TOP cuando el Resource no tenga imagen;
-- el fallback debe respetar Brand y DESIGN de TOP;
-- el comportamiento debe ser consistente entre listado y detalle.
+- mantener el fallback alineado con Brand y DESIGN de TOP;
+- comportamiento consistente entre listado y detalle;
+- gestión frontend de imágenes persistidas.
 
-Nota:
+Bloqueo actual de imágenes:
 
-La administración del catálogo de Amenities está pendiente de revisión funcional/backend y no debe inventarse desde frontend.
+El backend dispone de carga mediante `POST /api/businesses/:businessId/resources/:resourceId/images`, pero el frontend todavía no cuenta con un contrato de lectura observado para recuperar las imágenes persistidas dentro de la respuesta de Resource o mediante un endpoint de consulta específico. FE-RES-006 no debe inventar persistencia ni URLs de lectura hasta que dicho contrato esté definido.
 
 ---
 
