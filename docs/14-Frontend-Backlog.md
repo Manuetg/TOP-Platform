@@ -47,9 +47,9 @@ Total historias frontend: 52
 
 Estado actual:
 
-- Completed: 10
+- Completed: 11
 - In Progress: 3
-- Planned: 36
+- Planned: 35
 - Blocked: 3
 
 ---
@@ -817,27 +817,57 @@ El backend dispone de carga mediante `POST /api/businesses/:businessId/resources
 
 ## FE-RES-007 — Resource Search & Filtering
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
 Permitir localizar Resources rápidamente dentro del Business.
 
-Debe permitir inicialmente:
+Implementado:
+
+- búsqueda client-side mediante un único campo por nombre o `internalCode`;
+- búsqueda case-insensitive;
+- filtro por estado `ACTIVE`, `OUT_OF_SERVICE` y `ARCHIVED`;
+- opción `Todos` para remover el filtro de estado;
+- combinación de búsqueda textual y estado;
+- contador dinámico de Resources visibles;
+- botón `Limpiar filtros` cuando existen filtros activos;
+- empty state específico cuando existen Resources pero ningún resultado coincide;
+- preservación del empty state original cuando el Business todavía no tiene Resources;
+- controles con labels accesibles;
+- layout mobile-first y adaptación desktop;
+- filtrado derivado mediante `useMemo`, sin requests adicionales;
+- aislamiento tenant preservado porque el filtrado opera exclusivamente sobre la lista obtenida mediante `GET /api/businesses/:businessId/resources`;
+- implementación preparada para ampliar filtros sin modificar el contrato actual de carga.
+
+Decisión técnica:
+
+El backend actual lista Resources únicamente por `businessId` y no expone query parameters de búsqueda o filtrado. Por ese motivo FE-RES-007 implementa el filtrado en frontend sobre la colección tenant-scoped ya cargada, sin inventar contratos backend ni realizar llamadas adicionales.
+
+Criterios de aceptación cumplidos:
 
 - búsqueda por nombre;
 - búsqueda por `internalCode`;
-- filtro por estado.
-
-Criterios de aceptación:
-
+- filtro por estado;
 - responsive;
 - búsqueda accesible;
 - filtros claros;
 - empty state específico cuando no existen coincidencias;
 - no mezcla Resources de otros Businesses;
-- preparada para ampliar filtros sin rehacer la arquitectura.
+- arquitectura extensible para filtros futuros.
 
+Validación:
+
+- suite específica `ResourceListPage`: 10/10 tests aprobados;
+- suite frontend completa: 21 test files y 64 tests aprobados;
+- build productivo aprobado;
+- lint aprobado con 0 warnings y 0 errors;
+- `git diff --check` sin errores funcionales;
+- validación manual en Docker aprobada;
+- búsqueda por nombre y código interno validada manualmente;
+- filtros de estado y combinación de filtros validados manualmente;
+- empty state y limpieza de filtros validados manualmente;
+- comportamiento responsive y foco visual revisados y aprobados.
 ---
 
 # 7A. FE-SUB — Subscription & Entitlements

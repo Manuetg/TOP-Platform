@@ -1,11 +1,13 @@
+import { useMemo, useState } from "react";
 import {
+  ArrowRight,
   BedDouble,
   Building2,
   ImageIcon,
-
-  ArrowRight,
   Plus,
+  Search,
   Users,
+  X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
@@ -24,6 +26,8 @@ interface ResourceListPageProps {
 const TEMP_BUSINESS_ID =
   import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
+
+type ResourceStatusFilter = "ALL" | ResourceStatus;
 function getResourceStatusLabel(status: ResourceStatus) {
   switch (status) {
     case "ACTIVE":
@@ -173,6 +177,43 @@ export function ResourceListPage({
     accessToken: session?.accessToken,
   });
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] =
+    useState<ResourceStatusFilter>("ALL");
+
+  const normalizedSearchTerm =
+    searchTerm.trim().toLocaleLowerCase();
+
+  const filteredResources = useMemo(() => {
+    const currentResources = resources ?? [];
+
+    return currentResources.filter((resource) => {
+      const matchesSearch =
+        normalizedSearchTerm.length === 0 ||
+        resource.name
+          .toLocaleLowerCase()
+          .includes(normalizedSearchTerm) ||
+        resource.internalCode
+          .toLocaleLowerCase()
+          .includes(normalizedSearchTerm);
+
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        resource.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [normalizedSearchTerm, resources, statusFilter]);
+
+  const hasActiveFilters =
+    normalizedSearchTerm.length > 0 ||
+    statusFilter !== "ALL";
+
+  function clearFilters() {
+    setSearchTerm("");
+    setStatusFilter("ALL");
+  }
+
   if (!businessId) {
     return (
       <section
@@ -307,6 +348,67 @@ export function ResourceListPage({
         </div>
       ) : (
         <div className="resource-list-content">
+          <div
+            className="resource-list-filters"
+            aria-label="Filtros de recursos"
+          >
+            <div className="resource-list-filters__search">
+              <label htmlFor="resource-search">
+                Buscar recurso
+              </label>
+
+              <div className="resource-list-filters__search-control">
+                <Search size={17} aria-hidden="true" />
+
+                <input
+                  id="resource-search"
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) =>
+                    setSearchTerm(event.target.value)
+                  }
+                  placeholder="Nombre o código interno"
+                />
+              </div>
+            </div>
+
+            <div className="resource-list-filters__status">
+              <label htmlFor="resource-status-filter">
+                Estado
+              </label>
+
+              <select
+                id="resource-status-filter"
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(
+                    event.target.value as ResourceStatusFilter,
+                  )
+                }
+              >
+                <option value="ALL">Todos</option>
+                <option value="ACTIVE">Activo</option>
+                <option value="OUT_OF_SERVICE">
+                  Fuera de servicio
+                </option>
+                <option value="ARCHIVED">
+                  Archivado
+                </option>
+              </select>
+            </div>
+
+            {hasActiveFilters && (
+              <Button
+                type="button"
+                variant="secondary"
+                className="resource-list-filters__clear"
+                onClick={clearFilters}
+              >
+                <X size={15} aria-hidden="true" />
+                Limpiar filtros
+              </Button>
+            )}
+          </div>
           <div className="resource-list-content__heading">
             <div>
               <h2>Tus recursos</h2>
@@ -317,18 +419,42 @@ export function ResourceListPage({
             </div>
 
             <span className="resource-list-content__count">
-              {resourceCount}
+              {filteredResources.length}
             </span>
           </div>
+          {filteredResources.length === 0 ? (
+            <div
+              className="resource-list-no-results"
+              role="status"
+            >
+              <Search size={28} aria-hidden="true" />
 
-          <div className="resource-list-items">
-            {resources?.map((resource) => (
-              <ResourceCard
-                key={resource.id}
-                resource={resource}
-              />
-            ))}
-          </div>
+              <div>
+                <h3>No encontramos recursos</h3>
+
+                <p>
+                  Probá con otro nombre, código interno o estado.
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={clearFilters}
+              >
+                Limpiar filtros
+              </Button>
+            </div>
+          ) : (
+            <div className="resource-list-items">
+              {filteredResources.map((resource) => (
+                <ResourceCard
+                  key={resource.id}
+                  resource={resource}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </section>
