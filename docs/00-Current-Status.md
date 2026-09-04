@@ -1,6 +1,6 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-09-01
+Última actualización: 2026-09-03
 
 ## Responsabilidades
 
@@ -31,17 +31,18 @@ Alcance:
 ## Estado Backend
 
 Última historia completada:
-- IAM-005 — Update User — Completed
+- RES-006 — Upload Images — Completed
 
 Estado del MVP:
-- 42 / 51 capacidades completadas
-- 82,4%
+- 43 / 53 capacidades completadas
+- 81,1%
 
 Booking:
 - 6 / 6 completadas
 
-Siguiente capacidad backend prevista:
+Capacidad backend actualmente en desarrollo:
 - IAM-008 — Permissions
+- RES-009 — Business Custom Amenities continúa In Progress según el backlog.
 
 Pendientes principales posteriores:
 - IAM restante
@@ -71,6 +72,9 @@ Swagger:
 - `/api/docs`
 
 Identity & Access:
+- IAM-008 no agrega endpoint: backend aplica una policy estática Role → Capability con default deny y Membership vigente por Business.
+- Los Roles tenant-scoped no autorizan operaciones GLOBAL; Create Business, Create User y Disable User quedan fail-closed hasta definir Platform Authority.
+- Cambios de autorización para frontend: RECEPTIONIST pierde mutaciones de Resources, Pricing y Availability Rules; ADMIN pierde Business Archive y asignación de OWNER; VIEWER puede ejecutar el cálculo estándar de Pricing sin efectos.
 - `PATCH /api/users/:userId` permite al User `ACTIVE` actualizar únicamente su propio email; el `JWT sub` debe coincidir con `userId`.
 - El cambio normaliza el email y conserva password, status, Memberships, Roles y sesiones; otro User recibe `403`, email duplicado `409` y body inválido `400`.
 - Login conserva una lista de membresías con `{ businessId, role }`.
