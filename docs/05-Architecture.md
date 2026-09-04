@@ -58,7 +58,11 @@ Identificadores internos UUID. Roles: `OWNER`, `ADMIN`, `RECEPTIONIST` y `VIEWER
 - `RECEPTIONIST`: Contacts, Availability, Bookings, check-in, check-out y registro de Payments.
 - `VIEWER`: solo lectura.
 
-El rol se resuelve desde UserBusinessMembership para el `userId + businessId` solicitado y no se incluye en el JWT. `BusinessAccess` sin roles explícitos exige membresía y, en métodos mutables, rechaza `VIEWER`; las restricciones explícitas de rol prevalecen. IAM-007 no incorpora endpoints de Roles, cambio posterior de rol ni un modelo de Permissions.
+El rol se resuelve desde UserBusinessMembership para el `userId + businessId` solicitado y no se incluye en el JWT. IAM-007 no incorpora endpoints de Roles, cambio posterior de rol ni un modelo persistido de Permissions.
+
+IAM-008 reemplaza la inferencia final basada en verbos HTTP por una policy estática y tipada de capabilities. `AuthorizationPolicy` es lógica pura, independiente de NestJS, HTTP y Prisma; `BusinessAuthorizationGuard` actúa como adaptador HTTP, obtiene actor y Business, resuelve la Membership vigente e invoca la policy antes del caso de uso. Toda ruta BUSINESS declara su capability y la ausencia de capability o permiso se resuelve con default deny. El catálogo incluye las capabilities vigentes de Business, Membership, Contact, Resource, Availability, Block, Pricing y Booking, y reserva `payment.read`/`payment.record` para las historias PAY.
+
+Los scopes de autorización son `BUSINESS`, `SELF`, `GLOBAL`, `PUBLIC` y `SYSTEM`. La matriz Role → Capability solo concede autoridad BUSINESS. Las operaciones GLOBAL `POST /api/businesses`, `POST /api/users` y `PATCH /api/users/:id/disable` quedan fail-closed hasta que exista una autoridad de plataforma aprobada. IAM-008 no agrega Permission tables, migración, endpoint, Role al JWT ni cambio posterior de Role.
 
 IAM-005 es self-service sobre la identidad global: `PATCH /api/users/:userId` exige JWT `ACTIVE` y coincidencia entre `sub` y `userId`. Solo persiste el email permitido mediante `UserRepository`; no usa roles tenant-scoped para otorgar autoridad global, no modifica Membership ni Credential y no revoca sesiones porque la identidad `sub` permanece estable.
 

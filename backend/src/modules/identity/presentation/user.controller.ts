@@ -7,7 +7,7 @@ import { UserResponseDto } from './dto/user.response.dto';
 import { DisableUserResponseDto } from './dto/disable-user.response.dto';
 import { UpdateUserRequestDto } from './dto/update-user.request.dto';
 import { DisableUserUseCase, InvalidUserIdError, UserNotFoundError } from '../application/disable-user.use-case';
-import { AnyBusinessRole, Authenticated } from '../../../shared/security/security.decorators';
+import { Authenticated, PlatformAuthorityRequired } from '../../../shared/security/security.decorators';
 import { AuthenticatedUser } from '../../../shared/security/authenticated-user.decorator';
 import type { AuthenticatedPrincipal } from '../../../shared/security/authenticated-principal';
 
@@ -15,7 +15,7 @@ import type { AuthenticatedPrincipal } from '../../../shared/security/authentica
 @Controller('users')
 export class UserController {
   constructor(private readonly createUserUseCase: CreateUserUseCase, private readonly disableUserUseCase: DisableUserUseCase, private readonly updateUserUseCase: UpdateUserUseCase) {}
-  @Post() @AnyBusinessRole('OWNER', 'ADMIN') @HttpCode(HttpStatus.CREATED)
+  @Post() @PlatformAuthorityRequired() @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear un usuario administrativo provisional' })
   @ApiCreatedResponse({ type: UserResponseDto, description: 'No expone contraseña, hash ni tokens.' })
   @ApiBadRequestResponse({ description: 'Email o contraseña inválidos.' })
@@ -45,7 +45,7 @@ export class UserController {
       throw error;
     }
   }
-  @Patch(':id/disable') @AnyBusinessRole('OWNER', 'ADMIN') @HttpCode(HttpStatus.OK)
+  @Patch(':id/disable') @PlatformAuthorityRequired() @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Deshabilitar lógicamente un usuario' })
   @ApiOkResponse({ type: DisableUserResponseDto })
   @ApiBadRequestResponse({ description: 'El identificador del usuario no es válido.' })

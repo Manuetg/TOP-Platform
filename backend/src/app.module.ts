@@ -13,10 +13,11 @@ import { HealthService } from './shared/application/health.service';
 import { HealthController } from './shared/presentation/health.controller';
 import { AuthenticationGuard } from './shared/security/authentication.guard';
 import { BusinessAuthorizationGuard } from './shared/security/business-authorization.guard';
+import { AuthorizationPolicy } from './shared/application/authorization-policy';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), BusinessModule, IdentityModule, ResourceModule, PricingModule, ContactModule, BlockModule, BookingModule, AvailabilityModule, BookingLifecycleModule],
   controllers: [HealthController],
-  providers: [HealthService, AuthenticationGuard, BusinessAuthorizationGuard],
+  providers: [HealthService, AuthenticationGuard, AuthorizationPolicy, BusinessAuthorizationGuard],
 })
 export class AppModule {}

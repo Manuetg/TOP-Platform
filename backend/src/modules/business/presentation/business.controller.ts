@@ -10,7 +10,8 @@ import { CreateBusinessRequestDto } from './dto/create-business.request.dto';
 import { UpdateBusinessRequestDto } from './dto/update-business.request.dto';
 import { AuthenticatedUser } from '../../../shared/security/authenticated-user.decorator';
 import type { AuthenticatedPrincipal } from '../../../shared/security/authenticated-principal';
-import { AnyBusinessRole, Authenticated, BusinessAccess } from '../../../shared/security/security.decorators';
+import { Authenticated, BusinessAccess, PlatformAuthorityRequired } from '../../../shared/security/security.decorators';
+import { Capability } from '../../../shared/application/authorization-policy';
 
 @ApiTags('Businesses')
 @Controller('businesses')
@@ -24,7 +25,7 @@ export class BusinessController {
   ) {}
 
   @Post()
-  @AnyBusinessRole('OWNER', 'ADMIN')
+  @PlatformAuthorityRequired()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear un negocio' })
   @ApiCreatedResponse({ type: BusinessResponseDto })
@@ -54,7 +55,7 @@ export class BusinessController {
   }
 
   @Patch(':id/archive')
-  @BusinessAccess('id', 'OWNER', 'ADMIN')
+  @BusinessAccess('id', Capability.BUSINESS_ARCHIVE)
   @ApiOperation({ summary: 'Archivar un negocio' })
   @ApiOkResponse({ type: BusinessResponseDto })
   @ApiBadRequestResponse({ description: 'El identificador del negocio no es un UUID válido.' })
@@ -71,7 +72,7 @@ export class BusinessController {
   }
 
   @Patch(':id')
-  @BusinessAccess('id', 'OWNER', 'ADMIN')
+  @BusinessAccess('id', Capability.BUSINESS_UPDATE)
   @ApiOperation({ summary: 'Actualizar parcialmente un negocio' })
   @ApiOkResponse({ type: BusinessResponseDto })
   @ApiBadRequestResponse({ description: 'La actualización del negocio no es válida.' })
@@ -88,7 +89,7 @@ export class BusinessController {
   }
 
   @Get(':id')
-  @BusinessAccess('id')
+  @BusinessAccess('id', Capability.BUSINESS_READ)
   @ApiOperation({ summary: 'Obtener un negocio por identificador' })
   @ApiOkResponse({ type: BusinessResponseDto })
   @ApiBadRequestResponse({ description: 'El identificador del negocio no es un UUID válido.' })

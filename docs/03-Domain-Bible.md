@@ -238,6 +238,7 @@ User y LocalCredential mantienen una relación uno a uno. No se definen aún otr
 - **IAM-009 — Manage User-Business Membership:** crea una membresía entre User, Business y Role; no crea User, credenciales, Login ni permisos adicionales.
 - **IAM-007 — Roles:** consolida el catálogo cerrado y tenant-scoped, la asignación inicial mediante IAM-009, la exposición del rol por membresía en Login y la autorización backend; no agrega cambio posterior de rol, endpoint propio ni Permissions configurables.
 - **IAM-005 — Update User:** permite que un User `ACTIVE` autenticado actualice exclusivamente su propio email mediante identidad `sub`; conserva credencial, estado, membresías, roles y sesiones. No permite administración de terceros, cambio de contraseña ni transición de estado.
+- **IAM-008 — Permissions:** define un catálogo cerrado de capabilities BUSINESS y una matriz estática Role → Capability aplicada por backend. La autorización usa la Membership vigente del Business solicitado, deniega por defecto y no incorpora permisos al JWT, persistencia de Permissions, cambio de Role ni endpoint propio. Los Roles tenant-scoped nunca conceden autoridad GLOBAL.
 
 ### 11. Restricciones
 

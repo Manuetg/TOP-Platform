@@ -11,7 +11,8 @@ import { USER_BY_ID_LOOKUP } from '../../src/modules/identity/domain/user-by-id.
 import { UserStatus } from '../../src/modules/identity/domain/user-status.enum';
 import { User } from '../../src/modules/identity/domain/user.entity';
 import { USER_REPOSITORY } from '../../src/modules/identity/domain/user.repository';
-import { AnyBusinessRole, BusinessAccess, Public } from '../../src/shared/security/security.decorators';
+import { BusinessAccess, PlatformAuthorityRequired, Public } from '../../src/shared/security/security.decorators';
+import { Capability } from '../../src/shared/application/authorization-policy';
 import { BOOKING_REPOSITORY, BOOKING_TIMELINE_REPOSITORY } from '../../src/modules/booking/booking.contract';
 import { Booking } from '../../src/modules/booking/domain/booking.entity';
 import { BookingStatus } from '../../src/modules/booking/domain/booking-status.enum';
@@ -27,10 +28,11 @@ const timelineBooking=Booking.create({id:timelineBookingId,businessId,status:Boo
 class SecurityProbeController {
   @Public() @Get('public') publicRoute(): object { return { public: true }; }
   @Get('default') protectedByDefault(): object { return { protected: true }; }
-  @BusinessAccess('businessId') @Get('businesses/:businessId') tenant(@Param('businessId', new ParseUUIDPipe()) id: string): object { return { businessId: id }; }
-  @BusinessAccess('businessId') @Post('businesses/:businessId/mutable') mutable(@Param('businessId', new ParseUUIDPipe()) id: string): object { return { businessId: id }; }
-  @BusinessAccess('businessId', 'OWNER', 'ADMIN') @Patch('businesses/:businessId/administrative') administrative(@Param('businessId', new ParseUUIDPipe()) id: string): object { return { businessId: id }; }
-  @AnyBusinessRole('OWNER', 'ADMIN') @Get('admin') admin(): object { return { admin: true }; }
+  @BusinessAccess('businessId', Capability.BUSINESS_READ) @Get('businesses/:businessId') tenant(@Param('businessId', new ParseUUIDPipe()) id: string): object { return { businessId: id }; }
+  @BusinessAccess('businessId', Capability.CONTACT_WRITE) @Post('businesses/:businessId/mutable') mutable(@Param('businessId', new ParseUUIDPipe()) id: string): object { return { businessId: id }; }
+  @BusinessAccess('businessId', Capability.BUSINESS_UPDATE) @Patch('businesses/:businessId/administrative') administrative(@Param('businessId', new ParseUUIDPipe()) id: string): object { return { businessId: id }; }
+  @BusinessAccess('businessId', Capability.PRICING_CALCULATE) @Post('businesses/:businessId/calculate') calculate(@Param('businessId', new ParseUUIDPipe()) id: string): object { return { businessId: id }; }
+  @PlatformAuthorityRequired() @Get('admin') admin(): object { return { admin: true }; }
 }
 
 describe('Protección JWT y membresía', () => {
@@ -117,12 +119,15 @@ describe('Protección JWT y membresía', () => {
     await request(app.getHttpServer()).get('/api/security-probe/businesses/not-a-uuid').set('Authorization', `Bearer ${await bearer()}`).expect(400);
   });
 
-  it('exige OWNER o ADMIN en una operación administrativa global', async () => {
+  it('no eleva un rol tenant-scoped a autoridad de plataforma', async () => {
     const token = await bearer();
-    memberships = [membership(businessId, MembershipRole.VIEWER)];
-    await request(app.getHttpServer()).get('/api/security-probe/admin').set('Authorization', `Bearer ${token}`).expect(403);
     memberships = [membership(businessId, MembershipRole.ADMIN)];
-    await request(app.getHttpServer()).get('/api/security-probe/admin').set('Authorization', `Bearer ${token}`).expect(200);
+    await request(app.getHttpServer()).get('/api/security-probe/admin').set('Authorization', `Bearer ${token}`).expect(403);
+  });
+
+  it('autoriza pricing.calculate por semántica aunque use POST', async () => {
+    memberships = [membership(businessId, MembershipRole.VIEWER)];
+    await request(app.getHttpServer()).post(`/api/security-probe/businesses/${businessId}/calculate`).set('Authorization', `Bearer ${await bearer()}`).expect(201);
   });
 
   it('mantiene roles por tenant y VIEWER en solo lectura', async () => {

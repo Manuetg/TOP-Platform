@@ -54,11 +54,11 @@ import { CancelBookingUseCase } from '../application/cancel-booking.use-case';
 import { SubmitBookingUseCase } from '../application/submit-booking.use-case';
 import { ConfirmBookingRequestDto } from './dto/confirm-booking.request.dto';
 import { BusinessAccess } from '../../../shared/security/security.decorators';
+import { Capability } from '../../../shared/application/authorization-policy';
 import type { AuthenticatedRequest } from '../../../shared/security/authenticated-principal';
 import { CancelBookingRequestDto } from './dto/cancel-booking.request.dto';
 
 @ApiTags('Bookings')
-@BusinessAccess('businessId')
 @Controller('businesses/:businessId/bookings')
 export class BookingLifecycleController {
   constructor(
@@ -68,6 +68,7 @@ export class BookingLifecycleController {
   ) {}
 
   @Post(':bookingId/submit')
+  @BusinessAccess('businessId', Capability.BOOKING_WRITE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
@@ -100,6 +101,7 @@ export class BookingLifecycleController {
   }
 
   @Post(':bookingId/confirm')
+  @BusinessAccess('businessId', Capability.BOOKING_WRITE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
@@ -135,6 +137,7 @@ export class BookingLifecycleController {
   }
 
   @Post(':bookingId/cancel')
+  @BusinessAccess('businessId', Capability.BOOKING_CANCEL)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cancels a draft, pending, or confirmed booking.' })
   @ApiOkResponse({ type: BookingResponseDto })
