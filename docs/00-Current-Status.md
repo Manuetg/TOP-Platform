@@ -31,21 +31,23 @@ Alcance:
 ## Estado Backend
 
 Última historia completada:
-- RES-006 — Upload Images — Completed
+- IAM-008 — Permissions — Completed
 
 Estado del MVP:
-- 43 / 53 capacidades completadas
-- 81,1%
+- 44 / 53 capacidades completadas
+- 83,0%
 
 Booking:
 - 6 / 6 completadas
 
 Capacidad backend actualmente en desarrollo:
-- IAM-008 — Permissions
 - RES-009 — Business Custom Amenities continúa In Progress según el backlog.
 
+Siguiente capacidad planificada después del cierre de RES-009:
+- PAY-001 — Register Payment — Planned, prioridad Alta.
+
 Pendientes principales posteriores:
-- IAM restante
+- Platform Administration / Global Authority pendiente de definición
 - Payment
 - Dashboard
 
@@ -72,7 +74,7 @@ Swagger:
 - `/api/docs`
 
 Identity & Access:
-- IAM-008 no agrega endpoint: backend aplica una policy estática Role → Capability con default deny y Membership vigente por Business.
+- IAM-008 está completada y no agrega endpoint: backend aplica una policy estática Role → Capability con default deny y Membership vigente por Business.
 - Los Roles tenant-scoped no autorizan operaciones GLOBAL; Create Business, Create User y Disable User quedan fail-closed hasta definir Platform Authority.
 - Cambios de autorización para frontend: RECEPTIONIST pierde mutaciones de Resources, Pricing y Availability Rules; ADMIN pierde Business Archive y asignación de OWNER; VIEWER puede ejecutar el cálculo estándar de Pricing sin efectos.
 - `PATCH /api/users/:userId` permite al User `ACTIVE` actualizar únicamente su propio email; el `JWT sub` debe coincidir con `userId`.
@@ -116,6 +118,9 @@ Cuando Backend modifica un contrato que consume Frontend, actualizar esta secci�
 
 ## Cambios recientes relevantes para Frontend
 
+- IAM-008 finalizado: cambio de comportamiento de autorización, sin breaking change de schema. RECEPTIONIST conserva lecturas de Resources, operación de Booking, cancelación de Booking, Blocks y cálculo estándar de Pricing; no puede mutar Resources, Pricing ni Availability Rules, ni ejecutar Pricing override.
+- ADMIN no puede archivar Business ni asignar OWNER; VIEWER permanece read-only por capability y puede ejecutar el cálculo estándar de Pricing sin efectos persistentes.
+- Los Roles tenant-scoped no autorizan Create Business, Create User ni Disable User; estas operaciones GLOBAL permanecen fail-closed hasta definir Platform Authority.
 - IAM-005 finalizado: Update User es self-service, acepta únicamente `email`, no invalida sesiones y no otorga autoridad global mediante Roles tenant-scoped; breaking change: no.
 - IAM-007 finalizado: el catálogo de roles permanece tenant-scoped por Membership, Login conserva `businessId + role` y `VIEWER` queda limitado a lectura.
 - BKG-006 finalizado: Booking expone Timeline paginado con cursor opaco y los cuatro eventos funcionales aprobados.
