@@ -32,7 +32,7 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 - **IAM-002 — Logout.** Estado: Completed. Dominio: Identity & Access. Prioridad: Media. Endpoint: `POST /api/auth/logout`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `2c44e78`; respuesta `204 No Content` idempotente para tokens activos, inexistentes, expirados, rotados o revocados; request inválido devuelve `400`; revocación por hash SHA-256 sin afectar otras sesiones ni access tokens; quality check, integración PostgreSQL, E2E, mutation testing y Prisma aprobados; arquitectura sin violaciones.
 - **IAM-006 — Disable User.** Estado: Completed. Dominio: Identity & Access. Prioridad: Media. Endpoint: `PATCH /api/users/:id/disable`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commit `046ae17`; transición de `ACTIVE` a `DISABLED` idempotente; Login y Refresh posteriores rechazados con `403`; sin migración nueva; unit 24 suites y 94 tests, integración 8 suites y 24 tests, E2E 5 suites y 47 tests, aceptación 32 escenarios y 139 steps; cobertura: líneas 97,67%, statements 97,06%, funciones 97,94% y branches 89,09%; mutation score general 87,97%, Identity 87,21% y DisableUserUseCase 92,31%; arquitectura sin violaciones y Prisma válido.
 - **IAM-005 — Update User.** Estado: Completed. Dominio: Identity & Access. Prioridad: Media. Endpoint: `PATCH /api/users/:userId`. Alcance: self-service para User `ACTIVE`, autorizado por coincidencia `JWT sub = userId`, que actualiza únicamente email normalizado y globalmente único; conserva password, status, Memberships, Roles y sesiones. Body vacío se rechaza; `400` para entrada inválida, `401` para autenticación inválida o User `DISABLED`, `403` para otro User, `404` para User inexistente y `409` para email duplicado. Pruebas obligatorias: unitarias, integración PostgreSQL, E2E, aceptación, seguridad, cobertura y mutation focalizada. Definition of Done: aplicada. Evidencia técnica: PR `#30`; feature HEAD `de8473ceae7318c5d81359278f253d2d28901130`; merge `efebb8323ad068e27fff7ac32d6ad6c4dfd46eb9`; Backend CI `#106`, run `33575012707`, aprobado con Prisma generate/migrate/validate, unitarias, integración PostgreSQL, E2E, aceptación, cobertura, arquitectura y build; mutation focalizada 94,23%, por encima del threshold alto de 80%; sin migración ni breaking changes. Desviación de proceso: PR `#30` fue mergeada sin review formal independiente registrada; waiver humano aprobado excepcionalmente solo para IAM-005. Esta excepción no modifica la DoD ni el requisito de review para historias futuras.
-- **IAM-008 — Permissions.** Estado: In Progress. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Sin endpoint propio. Modelo: Static Policy tipada Role → Capability, sin persistencia ni migración. Alcance: scopes `BUSINESS`, `SELF`, `GLOBAL`, `PUBLIC` y `SYSTEM`; capabilities BUSINESS con default deny; Membership vigente y tenant isolation; VIEWER read-only por capability; límites explícitos de OWNER, ADMIN y RECEPTIONIST; operaciones GLOBAL fail-closed sin elevar Roles tenant-scoped; JWT identity-only. Fuera de alcance: Permission CRUD, Role update, Platform Authority, Payment void/refund, Ownership/Subscription y Dashboard. Pruebas obligatorias: matriz exhaustiva unitaria, integración del guard, E2E representativos, aceptación, seguridad, cobertura y mutation focalizada. Definition of Done: policy y matriz documentadas; Resources, Pricing, Availability, Booking, Membership y alcance GLOBAL endurecidos; quality gates, CI, review real y merge aprobados.
+- **IAM-008 — Permissions.** Estado: Completed. Dominio: Identity & Access. Prioridad: Alta. Endpoint: Sin endpoint propio. Modelo: Static Policy tipada Role → Capability, sin persistencia ni migración. Alcance: scopes `BUSINESS`, `SELF`, `GLOBAL`, `PUBLIC` y `SYSTEM`; capabilities BUSINESS con default deny; Membership vigente y tenant isolation; VIEWER read-only por capability; límites explícitos de OWNER, ADMIN y RECEPTIONIST; operaciones GLOBAL fail-closed sin elevar Roles tenant-scoped; JWT identity-only. Fuera de alcance: Permission CRUD, Role update, Platform Authority, Payment void/refund, Ownership/Subscription y Dashboard. Pruebas obligatorias: matriz exhaustiva unitaria, integración del guard, E2E representativos, aceptación, seguridad, cobertura y mutation focalizada. Definition of Done: aplicada. Evidencia técnica: PR `#38`; feature HEAD `15025095da104e87ef4fe9df5df0fb9f5fc7b0d1`; merge `614ac7d7673ad63af90b1d19ce30e0cb0a304385`; Backend CI `#116`, run `33829067078`, aprobado con 17 migraciones, unitarias 90 suites/832 tests, integración PostgreSQL 23 suites/85 tests, E2E 14 suites/155 tests, aceptación 115 escenarios/475 pasos, cobertura global 127 suites/1072 tests con statements 98,06% y branches 93,99%, arquitectura sin violaciones, Prisma válido y build aprobado; mutation focalizada 86,25% (80 mutantes, 69 killed, 11 survived, 0 timeout y 0 no coverage), por encima del threshold alto de 80%; sin Permission tables, endpoint propio, migración ni breaking change de schema. Desviación de proceso: PR `#38` fue mergeada sin review formal registrada; waiver humano aprobado excepcionalmente solo para IAM-008. Esta excepción no modifica la DoD ni el requisito de review para historias futuras.
 
 ## Resource
 
@@ -106,7 +106,7 @@ Availability ya considera conjuntamente Booking, Block y el estado operativo del
 | Épica | Total | Completed | In Progress | Planned | Blocked |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Business | 5 | 5 | 0 | 0 | 0 |
-| Identity & Access | 9 | 8 | 1 | 0 | 0 |
+| Identity & Access | 9 | 9 | 0 | 0 | 0 |
 | Resource | 9 | 8 | 1 | 0 | 0 |
 | Pricing | 5 | 5 | 0 | 0 | 0 |
 | Availability | 4 | 4 | 0 | 0 | 0 |
@@ -115,9 +115,9 @@ Availability ya considera conjuntamente Booking, Block y el estado operativo del
 | Payment | 4 | 0 | 0 | 4 | 0 |
 | Block | 3 | 3 | 0 | 0 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **53** | **43** | **2** | **8** | **0** |
+| **Total** | **53** | **44** | **1** | **8** | **0** |
 
-Progreso de Identity & Access: 8 de 9 capacidades completadas (88,9%).
+Progreso de Identity & Access: 9 de 9 capacidades completadas (100%).
 
 Progreso de Resource: 8 de 9 capacidades completadas (88,9%).
 
@@ -127,7 +127,7 @@ Progreso de Availability: 4 de 4 capacidades completadas (100%).
 
 Progreso de Booking: 6 de 6 capacidades completadas (100%).
 
-Progreso general del MVP: 43 de 53 capacidades completadas (81,1%).
+Progreso general del MVP: 44 de 53 capacidades completadas (83,0%).
 
 Progreso de Contact: 4 de 4 capacidades completadas (100%).
 
