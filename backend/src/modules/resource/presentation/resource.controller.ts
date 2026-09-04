@@ -53,9 +53,9 @@ import { ListResourceImagesUseCase } from '../application/list-resource-images.u
 import { AmenitiesNotFoundError, InactiveAmenitiesError, InvalidResourceAmenitiesInputError, ResourceAmenitiesArchivedError, ResourceAmenitiesBusinessArchivedError, ResourceAmenitiesBusinessNotFoundError, ResourceAmenitiesNotFoundError, SetResourceAmenitiesUseCase } from '../application/set-resource-amenities.use-case';
 import { SetResourceAmenitiesRequestDto } from './dto/set-resource-amenities.request.dto';
 import { BusinessAccess } from '../../../shared/security/security.decorators';
+import { Capability } from '../../../shared/application/authorization-policy';
 
 @ApiTags('Resources')
-@BusinessAccess('businessId')
 @Controller('businesses/:businessId/resources')
 export class ResourceController {
   constructor(
@@ -71,6 +71,7 @@ export class ResourceController {
   ) {}
 
   @Post()
+  @BusinessAccess('businessId', Capability.RESOURCE_WRITE)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Creates a resource for a business.' })
   @ApiCreatedResponse({ type: ResourceResponseDto })
@@ -103,6 +104,7 @@ export class ResourceController {
   }
 
   @Post(':resourceId/images')
+  @BusinessAccess('businessId', Capability.RESOURCE_IMAGE_WRITE)
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Uploads one descriptive image for a resource.' })
@@ -125,6 +127,7 @@ export class ResourceController {
   }
 
   @Get(':resourceId/images')
+  @BusinessAccess('businessId', Capability.RESOURCE_READ)
   @ApiOperation({ summary: 'Lists the persisted descriptive images of a resource in deterministic order.' })
   @ApiOkResponse({ type: ResourceImageResponseDto, isArray: true })
   @ApiBadRequestResponse()
@@ -143,6 +146,7 @@ export class ResourceController {
   }
 
   @Get()
+  @BusinessAccess('businessId', Capability.RESOURCE_READ)
   @ApiOperation({ summary: 'Lists all resources for a business.' })
   @ApiOkResponse({ type: ResourceResponseDto, isArray: true })
   @ApiBadRequestResponse()
@@ -158,6 +162,7 @@ export class ResourceController {
   }
 
   @Patch(':resourceId/disable')
+  @BusinessAccess('businessId', Capability.RESOURCE_WRITE)
   @ApiOperation({ summary: 'Takes a resource out of service. This operation is idempotent.' })
   @ApiOkResponse({ type: ResourceResponseDto, description: 'Returns the resource with OUT_OF_SERVICE status.' })
   @ApiBadRequestResponse()
@@ -178,6 +183,7 @@ export class ResourceController {
   }
 
   @Patch(':resourceId/reactivate')
+  @BusinessAccess('businessId', Capability.RESOURCE_WRITE)
   @ApiOperation({ summary: 'Reactivates an out-of-service resource. This operation is idempotent.' })
   @ApiOkResponse({ type: ResourceResponseDto, description: 'Returns the resource with ACTIVE status.' })
   @ApiBadRequestResponse()
@@ -200,6 +206,7 @@ export class ResourceController {
   }
 
   @Put(':resourceId/amenities')
+  @BusinessAccess('businessId', Capability.RESOURCE_AMENITY_WRITE)
   @ApiOperation({ summary: 'Replaces all resource amenities. This operation is idempotent.' })
   @ApiOkResponse({ type: ResourceResponseDto })
   @ApiBadRequestResponse()
@@ -221,6 +228,7 @@ export class ResourceController {
   }
 
   @Patch(':resourceId')
+  @BusinessAccess('businessId', Capability.RESOURCE_WRITE)
   @ApiOperation({ summary: 'Updates a resource partially.' })
   @ApiOkResponse({ type: ResourceResponseDto })
   @ApiBadRequestResponse()
@@ -242,6 +250,7 @@ export class ResourceController {
   }
 
   @Get(':resourceId')
+  @BusinessAccess('businessId', Capability.RESOURCE_READ)
   @ApiOperation({ summary: 'Gets a resource by its business and resource identifiers.' })
   @ApiOkResponse({ type: ResourceResponseDto })
   @ApiBadRequestResponse()

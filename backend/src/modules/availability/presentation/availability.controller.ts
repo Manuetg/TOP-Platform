@@ -21,9 +21,9 @@ import {
   type AvailabilityCalendarResult,
 } from '../application/list-availability-calendar.use-case';
 import { BusinessAccess } from '../../../shared/security/security.decorators';
+import { Capability } from '../../../shared/application/authorization-policy';
 
 @ApiTags('Availability')
-@BusinessAccess('businessId')
 @Controller('businesses/:businessId/availability')
 export class AvailabilityController {
   constructor(
@@ -32,6 +32,7 @@ export class AvailabilityController {
   ) {}
 
   @Get()
+  @BusinessAccess('businessId', Capability.AVAILABILITY_READ)
   @ApiOkResponse()
   async execute(
     @Param('businessId') businessId: string,
@@ -47,6 +48,7 @@ export class AvailabilityController {
   }
 
   @Get('calendar')
+  @BusinessAccess('businessId', Capability.AVAILABILITY_READ)
   @ApiOkResponse()
   async listCalendar(
     @Param('businessId') businessId: string,
