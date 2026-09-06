@@ -12,9 +12,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useResourceImageCovers } from "../queries/use-resource-image-covers";
 import { useResources } from "../queries/use-resources";
 import type {
   Resource,
+  ResourceImageCover,
   ResourceStatus,
 } from "../types/resource.types";
 import "./ResourceListPage.css";
@@ -39,7 +41,15 @@ function getResourceStatusLabel(status: ResourceStatus) {
   }
 }
 
-function ResourceCard({ resource }: { resource: Resource }) {
+interface ResourceCardProps {
+  resource: Resource;
+  cover?: ResourceImageCover;
+}
+
+function ResourceCard({
+  resource,
+  cover,
+}: ResourceCardProps) {
   const navigate = useNavigate();
   const visibleAmenities = resource.amenities.slice(0, 4);
   const remainingAmenities =
@@ -48,13 +58,21 @@ function ResourceCard({ resource }: { resource: Resource }) {
   return (
     <article className="resource-list-card">
       <div className="resource-list-card__media">
-        <div className="resource-list-card__media-placeholder">
-          <div className="resource-list-card__illustration">
-            <Building2 size={42} aria-hidden="true" />
-          </div>
+        {cover ? (
+          <img
+            className="resource-list-card__media-image"
+            src={cover.url}
+            alt={`Portada de ${resource.name}`}
+          />
+        ) : (
+          <div className="resource-list-card__media-placeholder">
+            <div className="resource-list-card__illustration">
+              <Building2 size={42} aria-hidden="true" />
+            </div>
 
-          <span>Imagen del recurso</span>
-        </div>
+            <span>Imagen del recurso</span>
+          </div>
+        )}
       </div>
 
       <div className="resource-list-card__body">
@@ -177,6 +195,12 @@ export function ResourceListPage({
     accessToken: session?.accessToken,
   });
 
+  const {
+    data: imageCovers,
+  } = useResourceImageCovers({
+    businessId,
+    accessToken: session?.accessToken,
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] =
     useState<ResourceStatusFilter>("ALL");
@@ -205,6 +229,16 @@ export function ResourceListPage({
     });
   }, [normalizedSearchTerm, resources, statusFilter]);
 
+  const imageCoverByResourceId = useMemo(
+    () =>
+      new Map(
+        (imageCovers ?? []).map((cover) => [
+          cover.resourceId,
+          cover,
+        ]),
+      ),
+    [imageCovers],
+  );
   const hasActiveFilters =
     normalizedSearchTerm.length > 0 ||
     statusFilter !== "ALL";
@@ -451,6 +485,9 @@ export function ResourceListPage({
                 <ResourceCard
                   key={resource.id}
                   resource={resource}
+                  cover={imageCoverByResourceId.get(
+                    resource.id,
+                  )}
                 />
               ))}
             </div>

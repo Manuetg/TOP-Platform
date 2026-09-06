@@ -42,3 +42,19 @@ export interface Resource {
   updatedAt: string;
   amenities: ResourceAmenity[];
 }
+
+export interface ResourceImage {
+  id: string;
+  resourceId: string;
+  url: string;
+  mimeType: string;
+  sizeBytes: number;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface ResourceImageCover {
+  resourceId: string;
+  imageId: string;
+  url: string;
+}

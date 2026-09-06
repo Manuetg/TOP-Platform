@@ -775,7 +775,7 @@ Criterios de aceptación:
 
 ## FE-RES-006 — Resource Images & Amenities
 
-Estado: In Progress
+Estado: Completed
 
 Objetivo:
 
@@ -796,23 +796,96 @@ Implementado — Amenities:
 - estados de loading, error, retry y procesamiento;
 - UI responsive integrada en el detalle del Resource;
 - commit frontend `120f54f` (`feat(resources): add amenity management`);
-- build productivo aprobado;
-- lint aprobado con 0 warnings y 0 errors;
-- suite frontend completa: 21 test files y 58 tests aprobados;
 - validación manual en Docker aprobada, incluyendo persistencia tras refresh de amenities globales y personalizados.
 
-Pendiente — Imágenes:
+Implementado — Imágenes:
 
-- mostrar imagen real cuando exista;
-- mostrar una ilustración default TOP cuando el Resource no tenga imagen;
-- mantener el fallback alineado con Brand y DESIGN de TOP;
-- comportamiento consistente entre listado y detalle;
-- gestión frontend de imágenes persistidas.
+- lectura de imágenes persistidas mediante `GET /api/businesses/:businessId/resources/:resourceId/images`;
+- URLs temporales firmadas generadas por backend, sin exponer `storageKey`;
+- carga mediante `POST /api/businesses/:businessId/resources/:resourceId/images`;
+- soporte frontend para JPEG, PNG y WEBP;
+- límite de 5 MB por archivo y máximo de 10 imágenes reflejado en la UI;
+- carga disponible también para Resources `OUT_OF_SERVICE`;
+- mutaciones de imágenes deshabilitadas para Resources `ARCHIVED`;
+- carrusel responsive en el detalle del Resource;
+- navegación circular mediante controles anterior/siguiente;
+- contador y selección visual de la imagen activa;
+- selección automática de una imagen recién cargada;
+- eliminación mediante `DELETE /api/businesses/:businessId/resources/:resourceId/images/:imageId`;
+- confirmación previa a la eliminación;
+- reordenamiento mediante `PUT /api/businesses/:businessId/resources/:resourceId/images/order`;
+- controles de movimiento anterior/siguiente para establecer el orden sin introducir drag-and-drop fuera del alcance MVP;
+- persistencia del orden completo de imágenes;
+- `sortOrder = 0` utilizado como convención de portada del Resource;
+- compactación del orden luego de eliminar una imagen gestionada por backend;
+- actualización inmediata de cache después de upload, delete y reorder;
+- fallback visual TOP cuando el Resource no posee imagen;
+- imagen real en el detalle cuando existe;
+- imagen de portada real en el listado de Resources cuando existe;
+- comportamiento consistente de fallback entre listado y detalle.
 
-Bloqueo actual de imágenes:
+Implementado — Portadas del listado:
 
-El backend dispone de carga mediante `POST /api/businesses/:businessId/resources/:resourceId/images`, pero el frontend todavía no cuenta con un contrato de lectura observado para recuperar las imágenes persistidas dentro de la respuesta de Resource o mediante un endpoint de consulta específico. FE-RES-006 no debe inventar persistencia ni URLs de lectura hasta que dicho contrato esté definido.
+- endpoint batch `GET /api/businesses/:businessId/resources/images/covers`;
+- una sola consulta de portadas por Business, evitando N+1 por cada Resource;
+- respuesta mínima `{ resourceId, imageId, url }`;
+- solo la imagen con `sortOrder = 0` se utiliza como portada;
+- firma únicamente de las URLs necesarias para el listado;
+- `ResourceResponseDto` permanece libre de imágenes y de URLs temporales;
+- hook TanStack Query dedicado con key `["resources", businessId, "image-covers"]`;
+- asociación `resourceId → cover` construida en frontend;
+- cards sin portada conservan la ilustración default TOP;
+- cards con portada utilizan imagen real con `object-fit: cover`.
 
+Decisiones técnicas:
+
+- las URLs firmadas son temporales, por lo que las imágenes no se incorporan al contrato general de `Resource`;
+- el detalle utiliza un endpoint dedicado para obtener el álbum completo;
+- el listado utiliza un endpoint batch dedicado para obtener únicamente las portadas;
+- no se realizan requests individuales de imágenes por cada card;
+- la portada deriva del orden persistido: la primera imagen (`sortOrder = 0`) es la portada;
+- no se introduce un campo adicional `isPrimary`;
+- el backend continúa siendo autoridad de persistencia, límites, orden, aislamiento tenant y reglas de archivo;
+- el frontend no inventa persistencia ni reglas de negocio adicionales.
+
+Criterios de aceptación cumplidos:
+
+- Resource con imágenes muestra contenido real persistido;
+- Resource sin imágenes muestra fallback TOP;
+- upload persiste y continúa disponible tras refresh;
+- carrusel permite recorrer imágenes persistidas;
+- imágenes pueden eliminarse;
+- imágenes pueden reordenarse;
+- el nuevo orden persiste tras refresh;
+- cambiar el primer elemento cambia la portada;
+- eliminación compacta correctamente el orden restante;
+- listado y detalle son consistentes;
+- Resources archivados no permiten mutaciones de imágenes;
+- Resources fuera de servicio sí permiten gestionar imágenes;
+- amenities globales y personalizados pueden asignarse;
+- amenities persisten tras refresh;
+- listado obtiene portadas sin patrón N+1;
+- aislamiento por Business se preserva.
+
+Validación:
+
+- backend unit: 92/92 suites y 834/834 tests aprobados;
+- backend integration: 23/23 suites y 85/85 tests aprobados contra `top_test`;
+- backend `quality:check`: 129/129 suites y 1073/1073 tests aprobados;
+- cobertura global backend: 97.42% lines, 92.88% branches, 97.52% functions y 97.97% statements;
+- backend build aprobado;
+- backend lint aprobado;
+- architecture check aprobado sin violaciones: 230 módulos y 507 dependencias analizadas;
+- endpoint batch validado contra PostgreSQL y MinIO reales en Docker;
+- respuesta real validada con una portada por Resource, URLs firmadas y sin exposición de `storageKey`;
+- reorder, delete, compactación y persistencia en MinIO validados en runtime real;
+- frontend: 28/28 test files y 90/90 tests aprobados;
+- frontend build productivo aprobado;
+- frontend lint aprobado con 0 warnings y 0 errors;
+- rebuild Docker frontend aprobado;
+- validación visual del detalle aprobada;
+- validación visual del listado aprobada;
+- imagen real, fallback TOP y persistencia tras refresh validados manualmente.
 ---
 
 ## FE-RES-007 — Resource Search & Filtering

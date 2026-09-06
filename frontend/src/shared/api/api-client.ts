@@ -1,4 +1,4 @@
-﻿const API_URL =
+const API_URL =
   import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
 export class ApiError extends Error {
@@ -31,7 +31,11 @@ export async function apiRequest<T>(
 
   const headers = new Headers(customHeaders);
 
-  if (!headers.has("Content-Type")) {
+  const isFormData =
+    typeof FormData !== "undefined" &&
+    requestOptions.body instanceof FormData;
+
+  if (!headers.has("Content-Type") && !isFormData) {
     headers.set("Content-Type", "application/json");
   }
 

@@ -2,17 +2,28 @@ import {
   ArrowLeft,
   BedDouble,
   Building2,
+  ChevronLeft,
+  ChevronRight,
+  ImagePlus,
+  MoveLeft,
+  MoveRight,
   Pencil,
+  Trash2,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { deleteResourceImage } from "../api/delete-resource-image";
 import { disableResource } from "../api/disable-resource";
 import { reactivateResource } from "../api/reactivate-resource";
+import { reorderResourceImages } from "../api/reorder-resource-images";
+import { uploadResourceImage } from "../api/upload-resource-image";
 import { ResourceAmenitiesEditor } from "../components/ResourceAmenitiesEditor";
+import { useResourceImages } from "../queries/use-resource-images";
 import { useResource } from "../queries/use-resource";
 import type { ResourceStatus } from "../types/resource.types";
 import "./ResourceDetailPage.css";
@@ -20,6 +31,16 @@ import "./ResourceDetailPage.css";
 const TEMP_BUSINESS_ID =
   import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
+
+
+const MAX_RESOURCE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_RESOURCE_IMAGES = 10;
+
+const ALLOWED_RESOURCE_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 function getResourceStatusLabel(status: ResourceStatus) {
   switch (status) {
     case "ACTIVE":
@@ -41,6 +62,16 @@ export function ResourceDetailPage() {
     null,
   );
 
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageActionError, setImageActionError] = useState<string | null>(
+    null,
+  );
+  const [currentImageId, setCurrentImageId] = useState<string | null>(
+    null,
+  );
+  const [isManagingImage, setIsManagingImage] = useState(false);
+
   const {
     data: resource,
     isLoading,
@@ -52,6 +83,53 @@ export function ResourceDetailPage() {
     resourceId,
     accessToken: session?.accessToken,
   });
+
+  const {
+    data: resourceImages = [],
+    isLoading: areImagesLoading,
+  } = useResourceImages({
+    businessId: TEMP_BUSINESS_ID,
+    resourceId,
+    accessToken: session?.accessToken,
+  });
+
+  const selectedImageIndex = currentImageId
+    ? resourceImages.findIndex(
+        (image) => image.id === currentImageId,
+      )
+    : -1;
+
+  const displayedImageIndex =
+    selectedImageIndex >= 0 ? selectedImageIndex : 0;
+
+  const currentImage = resourceImages[displayedImageIndex];
+
+  function showPreviousImage() {
+    if (resourceImages.length <= 1) {
+      return;
+    }
+
+    const previousIndex =
+      displayedImageIndex === 0
+        ? resourceImages.length - 1
+        : displayedImageIndex - 1;
+
+    setCurrentImageId(resourceImages[previousIndex].id);
+  }
+
+  function showNextImage() {
+    if (resourceImages.length <= 1) {
+      return;
+    }
+
+    const nextIndex =
+      displayedImageIndex >= resourceImages.length - 1
+        ? 0
+        : displayedImageIndex + 1;
+
+    setCurrentImageId(resourceImages[nextIndex].id);
+  }
+
 
   if (!TEMP_BUSINESS_ID || !resourceId) {
     return (
@@ -72,6 +150,235 @@ export function ResourceDetailPage() {
     );
   }
 
+  async function handleImageChange(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+
+    if (!file || !resource) {
+      return;
+    }
+
+    setImageActionError(null);
+
+    if (!ALLOWED_RESOURCE_IMAGE_TYPES.has(file.type)) {
+      setImageActionError(
+        "La imagen debe ser JPEG, PNG o WEBP.",
+      );
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_RESOURCE_IMAGE_SIZE_BYTES) {
+      setImageActionError(
+        "La imagen no puede superar 5 MB.",
+      );
+      event.target.value = "";
+      return;
+    }
+
+    if (resourceImages.length >= MAX_RESOURCE_IMAGES) {
+      setImageActionError(
+        "Este recurso ya alcanzó el máximo de 10 imágenes.",
+      );
+      event.target.value = "";
+      return;
+    }
+
+    setIsUploadingImage(true);
+
+    try {
+      const uploadedImage = await uploadResourceImage({
+        businessId: TEMP_BUSINESS_ID,
+        resourceId: resource.id,
+        file,
+        accessToken: session?.accessToken,
+      });
+
+      const imageQueryKey = [
+        "resources",
+        TEMP_BUSINESS_ID,
+        resource.id,
+        "images",
+      ];
+
+      queryClient.setQueryData(
+        imageQueryKey,
+        [...resourceImages, uploadedImage].sort(
+          (left, right) =>
+            left.sortOrder - right.sortOrder ||
+            left.id.localeCompare(right.id),
+        ),
+      );
+
+      setCurrentImageId(uploadedImage.id);
+
+      await queryClient.invalidateQueries({
+        queryKey: imageQueryKey,
+        exact: true,
+      });
+    } catch (uploadError) {
+      setImageActionError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "No pudimos subir la imagen.",
+      );
+    } finally {
+      setIsUploadingImage(false);
+      event.target.value = "";
+    }
+  }
+  async function handleMoveCurrentImage(
+    direction: "previous" | "next",
+  ) {
+    if (
+      !resource ||
+      !currentImage ||
+      isManagingImage ||
+      resource.status === "ARCHIVED"
+    ) {
+      return;
+    }
+
+    const targetIndex =
+      direction === "previous"
+        ? displayedImageIndex - 1
+        : displayedImageIndex + 1;
+
+    if (
+      targetIndex < 0 ||
+      targetIndex >= resourceImages.length
+    ) {
+      return;
+    }
+
+    const reorderedImages = [...resourceImages];
+    const [movedImage] = reorderedImages.splice(
+      displayedImageIndex,
+      1,
+    );
+
+    reorderedImages.splice(targetIndex, 0, movedImage);
+
+    const normalizedImages = reorderedImages.map(
+      (image, sortOrder) => ({
+        ...image,
+        sortOrder,
+      }),
+    );
+
+    const imageQueryKey = [
+      "resources",
+      TEMP_BUSINESS_ID,
+      resource.id,
+      "images",
+    ];
+
+    setImageActionError(null);
+    setIsManagingImage(true);
+
+    try {
+      await reorderResourceImages({
+        businessId: TEMP_BUSINESS_ID,
+        resourceId: resource.id,
+        imageIds: normalizedImages.map((image) => image.id),
+        accessToken: session?.accessToken,
+      });
+
+      queryClient.setQueryData(
+        imageQueryKey,
+        normalizedImages,
+      );
+
+      setCurrentImageId(currentImage.id);
+
+      await queryClient.invalidateQueries({
+        queryKey: imageQueryKey,
+        exact: true,
+      });
+    } catch (reorderError) {
+      setImageActionError(
+        reorderError instanceof Error
+          ? reorderError.message
+          : "No pudimos cambiar el orden de las imágenes.",
+      );
+    } finally {
+      setIsManagingImage(false);
+    }
+  }
+
+  async function handleDeleteCurrentImage() {
+    if (
+      !resource ||
+      !currentImage ||
+      isManagingImage ||
+      resource.status === "ARCHIVED"
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "¿Querés eliminar esta imagen del recurso?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const imageQueryKey = [
+      "resources",
+      TEMP_BUSINESS_ID,
+      resource.id,
+      "images",
+    ];
+
+    setImageActionError(null);
+    setIsManagingImage(true);
+
+    try {
+      await deleteResourceImage({
+        businessId: TEMP_BUSINESS_ID,
+        resourceId: resource.id,
+        imageId: currentImage.id,
+        accessToken: session?.accessToken,
+      });
+
+      const remainingImages = resourceImages
+        .filter((image) => image.id !== currentImage.id)
+        .map((image, sortOrder) => ({
+          ...image,
+          sortOrder,
+        }));
+
+      queryClient.setQueryData(
+        imageQueryKey,
+        remainingImages,
+      );
+
+      const nextSelectedImage =
+        remainingImages[
+          Math.min(
+            displayedImageIndex,
+            remainingImages.length - 1,
+          )
+        ];
+
+      setCurrentImageId(nextSelectedImage?.id ?? null);
+
+      await queryClient.invalidateQueries({
+        queryKey: imageQueryKey,
+        exact: true,
+      });
+    } catch (deleteError) {
+      setImageActionError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "No pudimos eliminar la imagen.",
+      );
+    } finally {
+      setIsManagingImage(false);
+    }
+  }
   async function handleDisableResource() {
     if (!resource || resource.status !== "ACTIVE") {
       return;
@@ -275,21 +582,192 @@ export function ResourceDetailPage() {
         </div>
       ) : null}
 
-      <div
-        className="resource-detail-media"
-        role="img"
-        aria-label={`Imagen de ${resource.name} no configurada`}
-      >
-        <div className="resource-detail-media__placeholder">
-          <Building2 size={36} aria-hidden="true" />
-
-          <div>
-            <strong>{resource.name}</strong>
-            <span>Imagen del recurso no configurada</span>
+      <div className="resource-detail-media">
+        {areImagesLoading ? (
+          <div
+            className="resource-detail-media__placeholder"
+            role="status"
+          >
+            <span>Cargando imagen…</span>
           </div>
+        ) : currentImage ? (
+          <>
+            <img
+              className="resource-detail-media__image"
+              src={currentImage.url}
+              alt={resource.name}
+            />
+
+            {resourceImages.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  className="resource-detail-media__control resource-detail-media__control--previous"
+                  aria-label="Imagen anterior"
+                  onClick={showPreviousImage}
+                >
+                  <ChevronLeft size={22} aria-hidden="true" />
+                </button>
+
+                <button
+                  type="button"
+                  className="resource-detail-media__control resource-detail-media__control--next"
+                  aria-label="Imagen siguiente"
+                  onClick={showNextImage}
+                >
+                  <ChevronRight size={22} aria-hidden="true" />
+                </button>
+
+                <div
+                  className="resource-detail-media__counter"
+                  aria-live="polite"
+                >
+                  {displayedImageIndex + 1} / {resourceImages.length}
+                </div>
+
+                <div
+                  className="resource-detail-media__dots"
+                  aria-label="Seleccionar imagen"
+                >
+                  {resourceImages.map((image, index) => (
+                    <button
+                      key={image.id}
+                      type="button"
+                      className={
+                        index === displayedImageIndex
+                          ? "resource-detail-media__dot resource-detail-media__dot--active"
+                          : "resource-detail-media__dot"
+                      }
+                      aria-label={`Ver imagen ${index + 1} de ${resourceImages.length}`}
+                      aria-current={
+                        index === displayedImageIndex
+                          ? "true"
+                          : undefined
+                      }
+                      onClick={() => setCurrentImageId(image.id)}
+                    />
+                  ))}
+                </div>
+              </>
+            ) : null}
+          </>
+        ) : (
+          <div
+            className="resource-detail-media__placeholder"
+            role="img"
+            aria-label={`Imagen de ${resource.name} no configurada`}
+          >
+            <Building2 size={36} aria-hidden="true" />
+
+            <div>
+              <strong>{resource.name}</strong>
+              <span>Imagen del recurso no configurada</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="resource-detail-image-manager">
+        <div className="resource-detail-image-manager__copy">
+          <strong>Imágenes del recurso</strong>
+          <span>
+            {resourceImages.length} de {MAX_RESOURCE_IMAGES}
+          </span>
+        </div>
+
+        <input
+          ref={imageInputRef}
+          className="resource-detail-image-input"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          disabled={
+            isUploadingImage ||
+            resource.status === "ARCHIVED" ||
+            resourceImages.length >= MAX_RESOURCE_IMAGES
+          }
+          onChange={(event) => void handleImageChange(event)}
+        />
+
+        <div className="resource-detail-image-manager__actions">
+          {currentImage ? (
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={
+                  isManagingImage ||
+                  resource.status === "ARCHIVED" ||
+                  displayedImageIndex === 0
+                }
+                onClick={() =>
+                  void handleMoveCurrentImage("previous")
+                }
+              >
+                <MoveLeft size={16} aria-hidden="true" />
+                Mover izquierda
+              </Button>
+
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={
+                  isManagingImage ||
+                  resource.status === "ARCHIVED" ||
+                  displayedImageIndex ===
+                    resourceImages.length - 1
+                }
+                onClick={() =>
+                  void handleMoveCurrentImage("next")
+                }
+              >
+                <MoveRight size={16} aria-hidden="true" />
+                Mover derecha
+              </Button>
+
+              <Button
+                type="button"
+                variant="danger"
+                disabled={
+                  isManagingImage ||
+                  resource.status === "ARCHIVED"
+                }
+                onClick={() =>
+                  void handleDeleteCurrentImage()
+                }
+              >
+                <Trash2 size={16} aria-hidden="true" />
+                {isManagingImage
+                  ? "Procesando…"
+                  : "Eliminar"}
+              </Button>
+            </>
+          ) : null}
+
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={
+              isUploadingImage ||
+              isManagingImage ||
+              resource.status === "ARCHIVED" ||
+              resourceImages.length >= MAX_RESOURCE_IMAGES
+            }
+            onClick={() => imageInputRef.current?.click()}
+          >
+            <ImagePlus size={16} aria-hidden="true" />
+            {isUploadingImage ? "Subiendo…" : "Agregar imagen"}
+          </Button>
         </div>
       </div>
 
+      {imageActionError ? (
+        <div
+          className="resource-detail-image-error"
+          role="alert"
+        >
+          {imageActionError}
+        </div>
+      ) : null}
       <div className="resource-detail-grid">
         <article className="resource-detail-card resource-detail-card--main">
           <div className="resource-detail-card__heading">
