@@ -25,6 +25,11 @@ import {
   InvalidResourceImageInputError,
   ResourceImageLimitReachedError,
 } from '../application/upload-resource-image.use-case';
+import {
+  InvalidResourceImageIdError,
+  ResourceImageNotFoundError,
+} from '../application/delete-resource-image.use-case';
+import { InvalidResourceImageOrderError } from '../application/reorder-resource-images.use-case';
 import { Resource } from '../domain/resource.entity';
 import { ResourceImage } from '../domain/resource-image.entity';
 import { ResourceStatus } from '../domain/resource-status.enum';
@@ -56,7 +61,10 @@ describe('ResourceController', () => {
     const disable = { execute: jest.fn() };
     const reactivate = { execute: jest.fn() };
     const upload = { execute: jest.fn() };
+    const listImageCovers = { execute: jest.fn() };
     const listImages = { execute: jest.fn() };
+    const deleteImage = { execute: jest.fn() };
+    const reorderImages = { execute: jest.fn() };
     const setAmenities = { execute: jest.fn() };
     return {
       create,
@@ -66,9 +74,25 @@ describe('ResourceController', () => {
       disable,
       reactivate,
       upload,
+      listImageCovers,
       listImages,
+      deleteImage,
+      reorderImages,
       setAmenities,
-      controller: new ResourceController(create as never, get as never, list as never, update as never, disable as never, reactivate as never, upload as never, listImages as never, setAmenities as never),
+      controller: new ResourceController(
+        create as never,
+        get as never,
+        list as never,
+        update as never,
+        disable as never,
+        reactivate as never,
+        upload as never,
+        listImageCovers as never,
+        listImages as never,
+        deleteImage as never,
+        reorderImages as never,
+        setAmenities as never,
+      ),
     };
   };
 
@@ -290,6 +314,93 @@ describe('ResourceController', () => {
     await expect(controller.setAmenities(resource.businessId, resource.id, { amenityIds: [amenity.id] })).rejects.toBeInstanceOf(exception);
   });
 
+  it('lista las portadas de Resources mediante el contrato batch', async () => {
+    const {
+      controller,
+      listImageCovers,
+    } = setup();
+
+    listImageCovers.execute.mockResolvedValue([
+      {
+        resourceId: resource.id,
+        imageId:
+          '44444444-4444-4444-8444-444444444444',
+        url: 'https://signed.test/cover',
+      },
+    ]);
+
+    await expect(
+      controller.listImageCovers(
+        resource.businessId,
+      ),
+    ).resolves.toEqual([
+      {
+        resourceId: resource.id,
+        imageId:
+          '44444444-4444-4444-8444-444444444444',
+        url: 'https://signed.test/cover',
+      },
+    ]);
+
+    expect(
+      listImageCovers.execute,
+    ).toHaveBeenCalledWith(
+      resource.businessId,
+    );
+  });
+
+  it.each([
+    [
+      new InvalidBusinessIdError(
+        'business inválido',
+      ),
+      BadRequestException,
+    ],
+    [
+      new GetBusinessNotFoundError(
+        'business inexistente',
+      ),
+      NotFoundException,
+    ],
+  ])(
+    'traduce errores del listado batch de portadas a HTTP',
+    async (error, exception) => {
+      const {
+        controller,
+        listImageCovers,
+      } = setup();
+
+      listImageCovers.execute.mockRejectedValue(
+        error,
+      );
+
+      await expect(
+        controller.listImageCovers(
+          resource.businessId,
+        ),
+      ).rejects.toBeInstanceOf(exception);
+    },
+  );
+
+  it('propaga errores inesperados del listado batch de portadas', async () => {
+    const {
+      controller,
+      listImageCovers,
+    } = setup();
+
+    const error =
+      new Error('fallo inesperado');
+
+    listImageCovers.execute.mockRejectedValue(
+      error,
+    );
+
+    await expect(
+      controller.listImageCovers(
+        resource.businessId,
+      ),
+    ).rejects.toBe(error);
+  });
   it('carga una imagen y expone solo el DTO público', async () => {
     const { controller, upload } = setup();
     const image = ResourceImage.create({
@@ -349,4 +460,124 @@ describe('ResourceController', () => {
 
     await expect(controller.uploadImage(resource.businessId, resource.id, undefined)).rejects.toBeInstanceOf(exception);
   });
+
+  it('elimina una imagen mediante el contrato HTTP', async () => {
+    const { controller, deleteImage } = setup();
+
+    const imageId =
+      '33333333-3333-4333-8333-333333333333';
+
+    deleteImage.execute.mockResolvedValue(undefined);
+
+    await expect(
+      controller.deleteImage(
+        resource.businessId,
+        resource.id,
+        imageId,
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(deleteImage.execute).toHaveBeenCalledWith({
+      businessId: resource.businessId,
+      resourceId: resource.id,
+      imageId,
+    });
+  });
+
+  it.each([
+    [
+      new InvalidResourceImageIdError('imagen inválida'),
+      BadRequestException,
+    ],
+    [
+      new ResourceImageNotFoundError('imagen inexistente'),
+      NotFoundException,
+    ],
+    [
+      new ResourceBusinessArchivedError('business archivado'),
+      ConflictException,
+    ],
+    [
+      new ResourceArchivedError('resource archivado'),
+      ConflictException,
+    ],
+  ])(
+    'traduce errores de eliminación de imagen a HTTP',
+    async (error, exception) => {
+      const { controller, deleteImage } = setup();
+
+      deleteImage.execute.mockRejectedValue(error);
+
+      await expect(
+        controller.deleteImage(
+          resource.businessId,
+          resource.id,
+          '33333333-3333-4333-8333-333333333333',
+        ),
+      ).rejects.toBeInstanceOf(exception);
+    },
+  );
+
+  it('persiste el orden completo de imágenes mediante el contrato HTTP', async () => {
+    const { controller, reorderImages } = setup();
+
+    const imageIds = [
+      '33333333-3333-4333-8333-333333333333',
+      '44444444-4444-4444-8444-444444444444',
+    ];
+
+    reorderImages.execute.mockResolvedValue(undefined);
+
+    await expect(
+      controller.reorderImages(
+        resource.businessId,
+        resource.id,
+        { imageIds },
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(reorderImages.execute).toHaveBeenCalledWith({
+      businessId: resource.businessId,
+      resourceId: resource.id,
+      imageIds,
+    });
+  });
+
+  it.each([
+    [
+      new InvalidResourceImageOrderError('orden inválido'),
+      BadRequestException,
+    ],
+    [
+      new InvalidBusinessIdError('business inválido'),
+      BadRequestException,
+    ],
+    [
+      new ResourceNotFoundError('resource inexistente'),
+      NotFoundException,
+    ],
+    [
+      new ResourceBusinessArchivedError('business archivado'),
+      ConflictException,
+    ],
+    [
+      new ResourceArchivedError('resource archivado'),
+      ConflictException,
+    ],
+  ])(
+    'traduce errores de reordenamiento de imágenes a HTTP',
+    async (error, exception) => {
+      const { controller, reorderImages } = setup();
+
+      reorderImages.execute.mockRejectedValue(error);
+
+      await expect(
+        controller.reorderImages(
+          resource.businessId,
+          resource.id,
+          { imageIds: [] },
+        ),
+      ).rejects.toBeInstanceOf(exception);
+    },
+  );
 });

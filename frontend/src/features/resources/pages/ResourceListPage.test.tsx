@@ -2,14 +2,21 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { MemoryRouter } from "react-router-dom";
-import { vi } from "vitest";
+import { beforeEach, vi } from "vitest";
 import { ResourceListPage } from "./ResourceListPage";
 import { AuthProvider } from "../../auth/context/AuthContext";
+import { useResourceImageCovers } from "../queries/use-resource-image-covers";
 import { useResources } from "../queries/use-resources";
 
+vi.mock("../queries/use-resource-image-covers", () => ({
+  useResourceImageCovers: vi.fn(),
+}));
 vi.mock("../queries/use-resources", () => ({
   useResources: vi.fn(),
 }));
+
+const mockedUseResourceImageCovers =
+  vi.mocked(useResourceImageCovers);
 
 const mockedUseResources = vi.mocked(useResources);
 
@@ -74,6 +81,18 @@ function renderResourceListPage(
 }
 
 describe("ResourceListPage", () => {
+  beforeEach(() => {
+    mockedUseResourceImageCovers.mockClear();
+    mockedUseResources.mockClear();
+
+    mockedUseResourceImageCovers.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as never);
+  });
+
   it("shows the development configuration state without a business id", () => {
     mockedUseResources.mockReturnValue({
       data: undefined,
@@ -151,6 +170,80 @@ describe("ResourceListPage", () => {
     ).toHaveLength(2);
   });
 
+  it("renders the persisted Resource cover when one exists", () => {
+    mockedUseResources.mockReturnValue({
+      data: [filterableResources[0]],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    mockedUseResourceImageCovers.mockReturnValue({
+      data: [
+        {
+          resourceId: "resource-1",
+          imageId: "image-1",
+          url: "https://signed.test/resource-1-cover",
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as never);
+
+    renderResourceListPage({
+      businessId: "business-1",
+    });
+
+    const image = screen.getByRole("img", {
+      name: "Portada de Cabaña Norte",
+    });
+
+    expect(image).toHaveAttribute(
+      "src",
+      "https://signed.test/resource-1-cover",
+    );
+
+    expect(
+      screen.queryByText("Imagen del recurso"),
+    ).not.toBeInTheDocument();
+
+    expect(
+      mockedUseResourceImageCovers,
+    ).toHaveBeenCalledTimes(1);
+
+    expect(
+      mockedUseResourceImageCovers,
+    ).toHaveBeenCalledWith({
+      businessId: "business-1",
+      accessToken: undefined,
+    });
+  });
+
+  it("keeps the TOP fallback when the Resource has no cover", () => {
+    mockedUseResources.mockReturnValue({
+      data: [filterableResources[0]],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderResourceListPage({
+      businessId: "business-1",
+    });
+
+    expect(
+      screen.getByText("Imagen del recurso"),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.queryByRole("img", {
+        name: "Portada de Cabaña Norte",
+      }),
+    ).not.toBeInTheDocument();
+  });
   it("filters resources by name", async () => {
     const user = userEvent.setup();
 

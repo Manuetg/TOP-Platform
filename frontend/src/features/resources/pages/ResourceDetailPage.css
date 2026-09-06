@@ -104,7 +104,9 @@
 
 
 .resource-detail-media {
+  position: relative;
   width: 100%;
+  aspect-ratio: 4 / 3;
   margin-bottom: 16px;
   overflow: hidden;
   background:
@@ -117,7 +119,16 @@
   border-radius: 16px;
 }
 
+.resource-detail-media__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .resource-detail-media__placeholder {
+  width: 100%;
+  height: 100%;
   min-height: 220px;
   display: flex;
   align-items: center;
@@ -143,6 +154,89 @@
   color: var(--color-text-secondary);
   font-size: 0.8rem;
   line-height: 1.45;
+}
+
+.resource-detail-media__control {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: white;
+  background: rgb(23 32 29 / 64%);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.resource-detail-media__control:hover {
+  background: rgb(23 32 29 / 78%);
+}
+
+.resource-detail-media__control:focus-visible {
+  outline: 3px solid white;
+  outline-offset: 2px;
+}
+
+.resource-detail-media__control--previous {
+  left: 12px;
+}
+
+.resource-detail-media__control--next {
+  right: 12px;
+}
+
+.resource-detail-media__counter {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  padding: 6px 9px;
+  color: white;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1;
+  background: rgb(23 32 29 / 66%);
+  border-radius: 999px;
+}
+
+.resource-detail-media__dots {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 6px 8px;
+  background: rgb(23 32 29 / 42%);
+  border-radius: 999px;
+  transform: translateX(-50%);
+}
+
+.resource-detail-media__dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  background: rgb(255 255 255 / 58%);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.resource-detail-media__dot--active {
+  width: 20px;
+  background: white;
+}
+
+.resource-detail-media__dot:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
 }
 .resource-detail-grid {
   display: grid;
@@ -246,9 +340,10 @@
 }
 
 @media (min-width: 768px) {
-  .resource-detail-media__placeholder {
-    min-height: 300px;
+  .resource-detail-media {
+    aspect-ratio: 3 / 2;
   }
+
 
   .resource-detail-header {
     flex-direction: row;
@@ -447,5 +542,82 @@
 @media (min-width: 640px) {
   .resource-amenities-editor__custom-fields {
     grid-template-columns: minmax(0, 1fr) minmax(180px, 0.6fr);
+  }
+}
+
+.resource-detail-image-manager {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.resource-detail-image-manager__copy {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.resource-detail-image-manager__copy strong {
+  color: var(--color-text-primary);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.resource-detail-image-manager__copy span {
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+}
+
+.resource-detail-image-manager__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.resource-detail-image-manager__actions .top-button {
+  flex: 1 1 auto;
+}
+.resource-detail-image-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.resource-detail-image-error {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  color: var(--color-danger, #9f3a38);
+  font-size: 0.86rem;
+  background: rgb(159 58 56 / 6%);
+  border: 1px solid rgb(159 58 56 / 14%);
+  border-radius: 12px;
+}
+
+@media (min-width: 640px) {
+  .resource-detail-image-manager {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .resource-detail-image-manager__copy {
+    justify-content: flex-start;
+  }
+
+  .resource-detail-image-manager__actions {
+    justify-content: flex-end;
+  }
+
+  .resource-detail-image-manager__actions .top-button {
+    flex: 0 0 auto;
   }
 }

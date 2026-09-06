@@ -7,7 +7,8 @@ COPY package.json ./
 # npm omite del lockfile generado en Windows los binarios opcionales de Linux.
 # El builder resuelve el árbol desde package.json en su propia plataforma, sin
 # declarar ni instalar manualmente paquetes específicos de plataforma.
-RUN npm install --include=optional
+RUN npm install --global npm@11 && \
+    npm install --include=optional
 
 COPY . .
 

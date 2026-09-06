@@ -1,4 +1,4 @@
-﻿import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "./api-client";
 
 afterEach(() => {
@@ -69,6 +69,39 @@ describe("apiRequest", () => {
     expect(headers.get("X-Test")).toBe("value");
   });
 
+  it("does not force a Content-Type header for FormData", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const formData = new FormData();
+    formData.append(
+      "file",
+      new File(["image"], "resource.jpg", {
+        type: "image/jpeg",
+      }),
+    );
+
+    await apiRequest("/test", {
+      method: "POST",
+      body: formData,
+    });
+
+    const [, request] = fetchMock.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+
+    const headers = new Headers(request.headers);
+
+    expect(headers.has("Content-Type")).toBe(false);
+    expect(request.body).toBe(formData);
+  });
   it("returns undefined for a 204 response", async () => {
     vi.stubGlobal(
       "fetch",

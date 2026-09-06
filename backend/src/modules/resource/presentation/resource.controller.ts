@@ -3,6 +3,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -22,6 +23,7 @@ import {
   ApiConsumes,
   ApiBody,
   ApiNotFoundResponse,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -47,13 +49,56 @@ import { InvalidResourceUpdateError, ResourceArchivedError, ResourceBusinessArch
 import { CreateResourceRequestDto } from './dto/create-resource.request.dto';
 import { ResourceResponseDto } from './dto/resource.response.dto';
 import { UpdateResourceRequestDto } from './dto/update-resource.request.dto';
+import { ResourceImageCoverResponseDto } from './dto/resource-image-cover.response.dto';
 import { ResourceImageResponseDto } from './dto/resource-image.response.dto';
+import { ReorderResourceImagesRequestDto } from './dto/reorder-resource-images.request.dto';
 import { InvalidResourceImageInputError, ResourceImageLimitReachedError, UploadResourceImageUseCase } from '../application/upload-resource-image.use-case';
+import { ListResourceImageCoversUseCase } from '../application/list-resource-image-covers.use-case';
 import { ListResourceImagesUseCase } from '../application/list-resource-images.use-case';
+import {
+  DeleteResourceImageUseCase,
+  InvalidResourceImageIdError,
+  ResourceImageNotFoundError,
+} from '../application/delete-resource-image.use-case';
+import {
+  InvalidResourceImageOrderError,
+  ReorderResourceImagesUseCase,
+} from '../application/reorder-resource-images.use-case';
 import { AmenitiesNotFoundError, InactiveAmenitiesError, InvalidResourceAmenitiesInputError, ResourceAmenitiesArchivedError, ResourceAmenitiesBusinessArchivedError, ResourceAmenitiesBusinessNotFoundError, ResourceAmenitiesNotFoundError, SetResourceAmenitiesUseCase } from '../application/set-resource-amenities.use-case';
 import { SetResourceAmenitiesRequestDto } from './dto/set-resource-amenities.request.dto';
 import { BusinessAccess } from '../../../shared/security/security.decorators';
 
+function isResourceImageBadRequestError(
+  error: unknown,
+): boolean {
+  return (
+    error instanceof InvalidBusinessIdError ||
+    error instanceof InvalidResourceIdError ||
+    error instanceof InvalidResourceImageInputError ||
+    error instanceof InvalidResourceImageIdError ||
+    error instanceof InvalidResourceImageOrderError
+  );
+}
+
+function isResourceImageNotFoundError(
+  error: unknown,
+): boolean {
+  return (
+    error instanceof GetBusinessNotFoundError ||
+    error instanceof ResourceNotFoundError ||
+    error instanceof ResourceImageNotFoundError
+  );
+}
+
+function isResourceImageConflictError(
+  error: unknown,
+): boolean {
+  return (
+    error instanceof ResourceBusinessArchivedError ||
+    error instanceof ResourceArchivedError ||
+    error instanceof ResourceImageLimitReachedError
+  );
+}
 @ApiTags('Resources')
 @BusinessAccess('businessId')
 @Controller('businesses/:businessId/resources')
@@ -66,7 +111,10 @@ export class ResourceController {
     private readonly disableResource: DisableResourceUseCase,
     private readonly reactivateResource: ReactivateResourceUseCase,
     private readonly uploadResourceImage: UploadResourceImageUseCase,
+    private readonly listResourceImageCovers: ListResourceImageCoversUseCase,
     private readonly listResourceImages: ListResourceImagesUseCase,
+    private readonly deleteResourceImage: DeleteResourceImageUseCase,
+    private readonly reorderResourceImages: ReorderResourceImagesUseCase,
     private readonly setResourceAmenities: SetResourceAmenitiesUseCase,
   ) {}
 
@@ -102,6 +150,50 @@ export class ResourceController {
     }
   }
 
+  @Get('images/covers')
+  @ApiOperation({
+    summary:
+      'Lists one signed cover image per Resource in the Business.',
+  })
+  @ApiOkResponse({
+    type: ResourceImageCoverResponseDto,
+    isArray: true,
+  })
+  @ApiBadRequestResponse()
+  @ApiNotFoundResponse()
+  async listImageCovers(
+    @Param('businessId') businessId: string,
+  ): Promise<ResourceImageCoverResponseDto[]> {
+    try {
+      return (
+        await this.listResourceImageCovers.execute(
+          businessId,
+        )
+      ).map((cover) =>
+        ResourceImageCoverResponseDto.fromApplication(
+          cover,
+        ),
+      );
+    } catch (error: unknown) {
+      if (
+        error instanceof InvalidBusinessIdError
+      ) {
+        throw new BadRequestException(
+          error.message,
+        );
+      }
+
+      if (
+        error instanceof GetBusinessNotFoundError
+      ) {
+        throw new NotFoundException(
+          error.message,
+        );
+      }
+
+      throw error;
+    }
+  }
   @Post(':resourceId/images')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('file'))
@@ -135,10 +227,75 @@ export class ResourceController {
     catch (error: unknown) { this.throwUploadError(error); }
   }
 
+  @Delete(':resourceId/images/:imageId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Deletes one persisted Resource image.',
+  })
+  @ApiNoContentResponse()
+  @ApiBadRequestResponse()
+  @ApiNotFoundResponse()
+  @ApiConflictResponse()
+  async deleteImage(
+    @Param('businessId') businessId: string,
+    @Param('resourceId') resourceId: string,
+    @Param('imageId') imageId: string,
+  ): Promise<void> {
+    try {
+      await this.deleteResourceImage.execute({
+        businessId,
+        resourceId,
+        imageId,
+      });
+    } catch (error: unknown) {
+      this.throwUploadError(error);
+    }
+  }
+
+  @Put(':resourceId/images/order')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary:
+      'Persists the complete order of a Resource image collection.',
+  })
+  @ApiNoContentResponse()
+  @ApiBadRequestResponse()
+  @ApiNotFoundResponse()
+  @ApiConflictResponse()
+  async reorderImages(
+    @Param('businessId') businessId: string,
+    @Param('resourceId') resourceId: string,
+    @Body() body: ReorderResourceImagesRequestDto,
+  ): Promise<void> {
+    try {
+      await this.reorderResourceImages.execute({
+        businessId,
+        resourceId,
+        imageIds: body.imageIds,
+      });
+    } catch (error: unknown) {
+      this.throwUploadError(error);
+    }
+  }
   private throwUploadError(error: unknown): never {
-    if (error instanceof InvalidBusinessIdError || error instanceof InvalidResourceIdError || error instanceof InvalidResourceImageInputError) throw new BadRequestException(error.message);
-    if (error instanceof GetBusinessNotFoundError || error instanceof ResourceNotFoundError) throw new NotFoundException(error.message);
-    if (error instanceof ResourceBusinessArchivedError || error instanceof ResourceArchivedError || error instanceof ResourceImageLimitReachedError) throw new ConflictException(error.message);
+    if (isResourceImageBadRequestError(error)) {
+      throw new BadRequestException(
+        (error as Error).message,
+      );
+    }
+
+    if (isResourceImageNotFoundError(error)) {
+      throw new NotFoundException(
+        (error as Error).message,
+      );
+    }
+
+    if (isResourceImageConflictError(error)) {
+      throw new ConflictException(
+        (error as Error).message,
+      );
+    }
+
     throw error;
   }
 
