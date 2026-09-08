@@ -75,6 +75,16 @@ enum BookingStatus {
   CANCELLED
   NO_SHOW
 }
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+  OTHER
+}
+
+enum PaymentStatus {
+  RECORDED
+}
 
 model User {
   id              String                   @id @default(uuid())
@@ -147,6 +157,7 @@ model Business {
   bookingTimelineEvents BookingTimelineEvent[]
   availabilityRule      AvailabilityRule?
   amenities             Amenity[]
+  payments              Payment[]
 }
 
 model AvailabilityRule {
@@ -339,11 +350,33 @@ model Booking {
   contact         Contact?               @relation(fields: [contactId], references: [id], onDelete: Restrict)
   resources       BookingResource[]
   pricingSnapshot PricingSnapshot?
+  payments        Payment[]
   timelineEvents  BookingTimelineEvent[]
 
   @@unique([id, businessId])
   @@index([businessId, status, createdAt])
   @@index([businessId, contactId])
+}
+
+model Payment {
+  id String @id @default(uuid())
+  businessId String
+  bookingId String
+  amountMinor Int
+  currency String
+  method PaymentMethod
+  reference String?
+  note String?
+  paidAt DateTime
+  recordedByUserId String
+  status PaymentStatus @default(RECORDED)
+  idempotencyKey String
+  requestFingerprint String
+  createdAt DateTime @default(now())
+  business Business @relation(fields:[businessId],references:[id],onDelete:Restrict)
+  booking Booking @relation(fields:[bookingId],references:[id],onDelete:Restrict)
+  @@unique([businessId,idempotencyKey])
+  @@index([businessId,bookingId,paidAt,id])
 }
 
 model BookingTimelineEvent {

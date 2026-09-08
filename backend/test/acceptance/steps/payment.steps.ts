@@ -1,0 +1,22 @@
+import { Given, Then, When } from '@cucumber/cucumber';
+import { strict as assert } from 'node:assert';
+import request from 'supertest';
+import { Booking } from '../../../src/modules/booking/domain/booking.entity';
+import { BookingStatus } from '../../../src/modules/booking/domain/booking-status.enum';
+import { addBookingFake } from '../support/booking-repository.fake';
+import { paymentCount, snapshots } from '../support/payment-repository.fake';
+import { TopWorld } from '../support/world';
+const businessId = 'f8c49800-e50e-4d0e-b82b-0b51c09a0001'; const otherBusinessId = 'f8c49800-e50e-4d0e-b82b-0b51c09a0002';
+function add(world: TopWorld, owner: string, total: number): void { const id = owner === businessId ? '90000000-0000-4000-8000-000000000001' : '90000000-0000-4000-8000-000000000002'; addBookingFake(Booking.create({ id, businessId: owner, status: BookingStatus.CONFIRMED, contactId: null, resourceIds: [], checkInDate: null, checkOutDate: null, adults: null, children: null, notes: null, createdAt: new Date(), updatedAt: new Date() })); snapshots.set(id, { id: `snapshot-${id}`, businessId: owner, bookingId: id, currency: 'PYG', totalAmountMinor: total, items: [], createdAt: new Date() }); world.bookingId = id; }
+const body = (amountMinor: number) => ({ amountMinor, method: 'CASH', paidAt: '2026-09-01T12:00:00.000Z' }); const endpoint = (world: TopWorld, owner = businessId) => `/api/businesses/${owner}/bookings/${world.bookingId}/payments`;
+Given('existe un Booking CONFIRMED con total {int}', function (this: TopWorld, total: number): void { add(this, businessId, total); });
+Given('existe un Booking CONFIRMED de otro negocio con total {int}', function (this: TopWorld, total: number): void { add(this, otherBusinessId, total); });
+Given('existe un Booking CONFIRMED con total {int} y un Payment registrado de {int}', async function (this: TopWorld, total: number, paid: number): Promise<void> { add(this, businessId, total); await request(this.app?.getHttpServer()).post(endpoint(this)).set('Idempotency-Key', 'existing').send(body(paid)).expect(201); });
+When('la recepción registra un Payment de {int} con clave {string}', async function (this: TopWorld, amount: number, key: string): Promise<void> { this.response = await request(this.app?.getHttpServer()).post(endpoint(this)).set('Idempotency-Key', key).send(body(amount)); });
+When('la recepción repite el Payment de {int} con clave {string}', async function (this: TopWorld, amount: number, key: string): Promise<void> { await request(this.app?.getHttpServer()).post(endpoint(this)).set('Idempotency-Key', key).send(body(amount)).expect(201); this.response = await request(this.app?.getHttpServer()).post(endpoint(this)).set('Idempotency-Key', key).send(body(amount)); });
+When('la recepción intenta registrar un Payment de {int} desde el negocio actual', async function (this: TopWorld, amount: number): Promise<void> { this.response = await request(this.app?.getHttpServer()).post(endpoint(this)).set('Idempotency-Key', 'foreign').send(body(amount)); });
+Then('el Payment de {int} queda registrado', function (this: TopWorld, amount: number): void { assert.equal(this.response?.status, 201); assert.equal(this.response?.body.amountMinor, amount); assert.equal(this.response?.body.currency, 'PYG'); });
+Then('el Booking permanece CONFIRMED', function (this: TopWorld): void { assert.equal(snapshots.get(this.bookingId ?? '')?.totalAmountMinor, 100); });
+Then('el PricingSnapshot permanece sin cambios', function (this: TopWorld): void { assert.equal(snapshots.get(this.bookingId ?? '')?.currency, 'PYG'); });
+Then('el registro de Payment es rechazado con {int}', function (this: TopWorld, status: number): void { assert.equal(this.response?.status, status); });
+Then('existe un único Payment registrado', function (): void { assert.equal(paymentCount(), 1); });

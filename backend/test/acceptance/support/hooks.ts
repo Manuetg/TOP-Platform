@@ -43,6 +43,9 @@ import { BOOKING_AVAILABILITY_LOOKUP, BOOKING_TIMELINE_REPOSITORY } from '../../
 import { BLOCK_AVAILABILITY_LOOKUP } from '../../../src/modules/block/block.contract';
 import { AVAILABILITY_RULES_REPOSITORY } from '../../../src/modules/availability/domain/availability-rules.repository';
 import { availabilityRulesRepositoryFake, resetAvailabilityRulesRepositoryFake } from './availability-rules.repository.fake';
+import { PAYMENT_REPOSITORY } from '../../../src/modules/payment/domain/payment';
+import { PRICING_SNAPSHOT_REPOSITORY } from '../../../src/modules/pricing/pricing.contract';
+import { paymentRepositoryFake, pricingSnapshotRepositoryFake, resetPaymentFakes } from './payment-repository.fake';
 import type { NextFunction, Response } from 'express';
 import type { AuthenticatedRequest } from '../../../src/shared/security/authenticated-principal';
 
@@ -61,6 +64,7 @@ Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
   resetBookingRepositoryFake();
   resetBlockRepositoryFake();
   resetAvailabilityRulesRepositoryFake();
+  resetPaymentFakes();
   const refreshSessions = new Map<string, RefreshSession>();
   const accessTokens = {
     issue: (payload: { sub: string }) => Promise.resolve({ token: `token:${payload.sub}`, expiresIn: 900 }),
@@ -83,6 +87,8 @@ Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
     .overrideProvider(BOOKING_AVAILABILITY_LOOKUP).useValue(bookingRepositoryFake)
     .overrideProvider(BLOCK_AVAILABILITY_LOOKUP).useValue(blockRepositoryFake)
     .overrideProvider(AVAILABILITY_RULES_REPOSITORY).useValue(availabilityRulesRepositoryFake)
+    .overrideProvider(PAYMENT_REPOSITORY).useValue(paymentRepositoryFake)
+    .overrideProvider(PRICING_SNAPSHOT_REPOSITORY).useValue(pricingSnapshotRepositoryFake)
     .overrideProvider(FILE_STORAGE).useValue(acceptanceFileStorage)
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)

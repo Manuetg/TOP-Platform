@@ -14,9 +14,10 @@ import { HealthController } from './shared/presentation/health.controller';
 import { AuthenticationGuard } from './shared/security/authentication.guard';
 import { BusinessAuthorizationGuard } from './shared/security/business-authorization.guard';
 import { AuthorizationPolicy } from './shared/application/authorization-policy';
+import { PaymentModule } from './modules/payment/payment.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), BusinessModule, IdentityModule, ResourceModule, PricingModule, ContactModule, BlockModule, BookingModule, AvailabilityModule, BookingLifecycleModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), BusinessModule, IdentityModule, ResourceModule, PricingModule, ContactModule, BlockModule, BookingModule, AvailabilityModule, BookingLifecycleModule, PaymentModule],
   controllers: [HealthController],
   providers: [HealthService, AuthenticationGuard, AuthorizationPolicy, BusinessAuthorizationGuard],
 })
