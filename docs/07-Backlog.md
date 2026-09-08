@@ -81,7 +81,7 @@ Booking queda completado con BKG-001..006; Payments permanece pendiente. La vali
 
 ## Payment
 
-- **PAY-001 — Register Payment.** Estado: Planned. Dominio: Payment. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **PAY-001 — Register Payment.** Estado: In Progress. Dominio: Payment. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **PAY-002 — Payment Plan.** Estado: Planned. Dominio: Payment. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **PAY-003 — Payment History.** Estado: Planned. Dominio: Payment. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **PAY-004 — Outstanding Balance.** Estado: Planned. Dominio: Payment. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.

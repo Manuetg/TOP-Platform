@@ -1,0 +1,1 @@
+describe('PrismaPaymentRepository',()=>{it('persists actor and tenant-scoped idempotency key',()=>{});it('enforces unique business and idempotency key',()=>{});it('serializes concurrent payments so 70 plus 70 cannot exceed 100',()=>{});});

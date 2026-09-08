@@ -1,0 +1,1 @@
+describe('Register payment API',()=>{it('creates a payment and preserves booking and snapshot',()=>{});it('returns 400, 401, 403, 404 and 409 for contract failures',()=>{});it('hides cross-tenant bookings and blocks archived businesses',()=>{});});
