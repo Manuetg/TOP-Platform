@@ -19,10 +19,41 @@ describe('Business amenities', () => {
     expect(create).toHaveBeenCalledWith(result);
   });
 
+  it('accepts a custom amenity name with exactly 120 characters', async () => {
+    const create = jest.fn((value: Amenity) => Promise.resolve(value));
+    const useCase = new CreateBusinessAmenityUseCase(
+      { findById: jest.fn().mockResolvedValue(business()) } as never,
+      { create },
+    );
+    const name = 'x'.repeat(120);
+
+    await expect(useCase.execute({ businessId, name, category: 'OUTDOOR' })).resolves.toMatchObject({ name });
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
   it.each([{ name: '', category: 'OUTDOOR' }, { name: 'x'.repeat(121), category: 'OUTDOOR' }, { name: 'Muelle', category: 'UNKNOWN' }])('rejects invalid custom amenity input before persisting', async (input) => {
     const create = jest.fn();
     const useCase = new CreateBusinessAmenityUseCase({ findById: jest.fn() } as never, { create });
     await expect(useCase.execute({ businessId, ...input })).rejects.toBeInstanceOf(InvalidBusinessAmenityInputError);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['identificador sin variante UUID', '11111111-1111-4111-8111-111111111111-extra', 'Muelle', 'OUTDOOR'],
+    ['nombre no string', businessId, null, 'OUTDOOR'],
+    ['nombre solo espacios', businessId, '   ', 'OUTDOOR'],
+    ['nombre de 121 caracteres', businessId, 'x'.repeat(121), 'OUTDOOR'],
+    ['categoría no string', businessId, 'Muelle', null],
+  ])('rejects %s before looking up the Business', async (_caseName, inputBusinessId, name, category) => {
+    const findById = jest.fn();
+    const create = jest.fn();
+    const useCase = new CreateBusinessAmenityUseCase({ findById } as never, { create });
+
+    await expect(useCase.execute({ businessId: inputBusinessId, name, category })).rejects.toBeInstanceOf(
+      InvalidBusinessAmenityInputError,
+    );
+
+    expect(findById).not.toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
   });
 
@@ -46,6 +77,19 @@ describe('Business amenities', () => {
     );
 
     expect(listActiveForBusiness).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['identificador inválido', '11111111-1111-4111-8111-111111111111-extra', InvalidBusinessAmenityInputError],
+    ['Business inexistente', businessId, BusinessAmenityBusinessNotFoundError],
+  ])('rejects listing for %s without exposing amenities', async (_caseName, inputBusinessId, error) => {
+    const findById = jest.fn().mockResolvedValue(null);
+    const listActiveForBusiness = jest.fn();
+    const useCase = new ListBusinessAmenitiesUseCase({ findById } as never, { listActiveForBusiness });
+
+    await expect(useCase.execute(inputBusinessId)).rejects.toBeInstanceOf(error);
+    expect(listActiveForBusiness).not.toHaveBeenCalled();
+    if (error === InvalidBusinessAmenityInputError) expect(findById).not.toHaveBeenCalled();
   });
   it('lists global and only same-business custom active amenities', async () => {
     const listActiveForBusiness = jest.fn().mockResolvedValue([amenity('33333333-3333-4333-8333-333333333333', null), amenity('44444444-4444-4444-8444-444444444444', businessId)]);

@@ -13,6 +13,22 @@ describe('PrismaAmenityRepository', () => {
     await expect(repository.findManyByIds(['11111111-1111-4111-8111-111111111111'])).resolves.toEqual([]);
     expect(findMany).toHaveBeenCalledWith({ where: { id: { in: ['11111111-1111-4111-8111-111111111111'] } }, orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }, { id: 'asc' }] });
   });
+  it('lists global and own amenities, limits assignable ids to the Business, and persists customs', async () => {
+    const createdAt = new Date('2026-09-02');
+    const row = { id: '11111111-1111-4111-8111-111111111111', businessId: '22222222-2222-4222-8222-222222222222', code: 'CUSTOM_1', name: 'Muelle', category: 'OUTDOOR', active: true, sortOrder: 0, createdAt, updatedAt: createdAt };
+    const findMany = jest.fn().mockResolvedValue([row]);
+    const create = jest.fn().mockResolvedValue(row);
+    const repository = new PrismaAmenityRepository({ amenity: { findMany, create } } as never);
+    const businessId = row.businessId;
+
+    await expect(repository.listActiveForBusiness(businessId)).resolves.toMatchObject([{ id: row.id, businessId }]);
+    await expect(repository.findManyAssignableToBusiness([row.id], businessId)).resolves.toMatchObject([{ id: row.id, businessId }]);
+    await expect(repository.create((await repository.listActiveForBusiness(businessId))[0])).resolves.toMatchObject({ id: row.id, scope: 'BUSINESS' });
+
+    expect(findMany).toHaveBeenNthCalledWith(1, { where: { active: true, OR: [{ businessId: null }, { businessId }] }, orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }, { id: 'asc' }] });
+    expect(findMany).toHaveBeenNthCalledWith(2, { where: { id: { in: [row.id] }, OR: [{ businessId: null }, { businessId }] }, orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }, { id: 'asc' }] });
+    expect(create).toHaveBeenCalledWith({ data: row });
+  });
   it('maps multiple and partial rows exactly and propagates Prisma errors', async () => {
     const rows = [
       { id: '11111111-1111-4111-8111-111111111111', code: 'A', name: 'Alpha', category: 'CLIMATE', active: true, sortOrder: 1, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-01-02') },
