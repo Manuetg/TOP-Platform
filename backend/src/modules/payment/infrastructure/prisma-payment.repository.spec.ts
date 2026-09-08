@@ -1,1 +1,15 @@
-describe('PrismaPaymentRepository',()=>{it('persists actor and tenant-scoped idempotency key',()=>{});it('enforces unique business and idempotency key',()=>{});it('serializes concurrent payments so 70 plus 70 cannot exceed 100',()=>{});});
+import { PaymentMethod, PaymentStatus, type RegisterPaymentData } from '../domain/payment';
+import { PrismaPaymentRepository } from './prisma-payment.repository';
+
+const data = (overrides: Partial<RegisterPaymentData> = {}): RegisterPaymentData => ({ businessId: '11111111-1111-4111-8111-111111111111', bookingId: '22222222-2222-4222-8222-222222222222', amountMinor: 40, currency: 'PYG', method: PaymentMethod.CASH, reference: null, note: null, paidAt: new Date('2026-09-01T12:00:00Z'), recordedByUserId: '33333333-3333-4333-8333-333333333333', status: PaymentStatus.RECORDED, idempotencyKey: 'key-1', requestFingerprint: 'fingerprint-1', ...overrides });
+
+describe('PrismaPaymentRepository', () => {
+  const queryRaw = jest.fn(); const findUnique = jest.fn(); const aggregate = jest.fn(); const create = jest.fn(); const transaction = { $queryRawUnsafe: queryRaw, payment: { findUnique, aggregate, create } };
+  const prisma = { $transaction: jest.fn(async (callback: (tx: typeof transaction) => unknown) => callback(transaction)) };
+  const subject = new PrismaPaymentRepository(prisma as never);
+  beforeEach(() => { jest.resetAllMocks(); prisma.$transaction.mockImplementation(async (callback) => callback(transaction)); queryRaw.mockResolvedValue([{ id: data().bookingId }]); findUnique.mockResolvedValue(null); aggregate.mockResolvedValue({ _sum: { amountMinor: null } }); create.mockResolvedValue({ id: 'payment-id', ...data(), createdAt: new Date() }); });
+
+  it('locks the booking and persists the complete tenant, actor and idempotency record atomically', async () => { const value = data(); await expect(subject.register(value, 100)).resolves.toMatchObject({ duplicate: false, payment: expect.objectContaining({ businessId: value.businessId, bookingId: value.bookingId, amountMinor: 40, currency: 'PYG', recordedByUserId: value.recordedByUserId, status: PaymentStatus.RECORDED }) }); expect(queryRaw).toHaveBeenCalledWith('SELECT id FROM "Booking" WHERE id = $1 FOR UPDATE', value.bookingId); expect(create).toHaveBeenCalledWith({ data: value }); });
+  it('returns the original payment for same fingerprint and rejects a changed payload with the same tenant key', async () => { const previous = { id: 'existing', ...data(), createdAt: new Date() }; findUnique.mockResolvedValueOnce(previous).mockResolvedValueOnce({ ...previous, requestFingerprint: 'other' }); await expect(subject.register(data(), 100)).resolves.toMatchObject({ duplicate: true, payment: previous }); await expect(subject.register(data(), 100)).rejects.toThrow('IDEMPOTENCY_CONFLICT'); expect(create).not.toHaveBeenCalled(); });
+  it('rejects an overpayment after summing recorded payments inside the transaction', async () => { aggregate.mockResolvedValueOnce({ _sum: { amountMinor: 60 } }); await expect(subject.register(data({ amountMinor: 50 }), 100)).rejects.toThrow('OVERPAYMENT'); expect(create).not.toHaveBeenCalled(); });
+});
