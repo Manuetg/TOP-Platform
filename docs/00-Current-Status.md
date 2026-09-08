@@ -34,16 +34,16 @@ Alcance:
 - IAM-008 — Permissions — Completed
 
 Estado del MVP:
-- 44 / 53 capacidades completadas
-- 83,0%
+- 45 / 53 capacidades completadas
+- 84,9%
 
 Booking:
 - 6 / 6 completadas
 
 Capacidad backend actualmente en desarrollo:
-- RES-009 — Business Custom Amenities continúa In Progress según el backlog.
+- RES-009 — Business Custom Amenities Completed; Resource 9 / 9 (100%).
 
-Siguiente capacidad planificada después del cierre de RES-009:
+Siguiente capacidad backend:
 - PAY-001 — Register Payment — Planned, prioridad Alta.
 
 Pendientes principales posteriores:
