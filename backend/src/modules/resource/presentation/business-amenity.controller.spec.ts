@@ -39,4 +39,17 @@ describe('BusinessAmenityController', () => {
     const controller = new BusinessAmenityController({ execute: jest.fn().mockRejectedValue(error) } as never, { execute: jest.fn().mockRejectedValue(error) } as never);
     await expect(controller.create(businessId, { name: 'Muelle', category: 'OUTDOOR' })).rejects.toBeInstanceOf(exception);
   });
+
+  it.each([
+    [new InvalidBusinessAmenityInputError('invalid'), BadRequestException],
+    [new BusinessAmenityBusinessNotFoundError('missing'), NotFoundException],
+    [new BusinessAmenityBusinessArchivedError('archived'), ConflictException],
+  ])('maps known list errors', async (error, exception) => {
+    const controller = new BusinessAmenityController(
+      { execute: jest.fn() } as never,
+      { execute: jest.fn().mockRejectedValue(error) } as never,
+    );
+
+    await expect(controller.list(businessId)).rejects.toBeInstanceOf(exception);
+  });
 });
