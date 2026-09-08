@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
+import type { NextFunction, Response } from 'express';
 import { AppModule } from '../../src/app.module';
 import { configureApplication } from '../../src/config/configure-application';
 import { BUSINESS_REPOSITORY } from '../../src/modules/business/business.contract';
@@ -24,7 +25,7 @@ describe('Register payment API', () => {
     .overrideProvider(BOOKING_REPOSITORY).useValue({ findByIdAndBusinessId: (id: string, owner: string) => Promise.resolve(bookings.find((item) => item.id === id && item.businessId === owner) ?? null), create: jest.fn(), listByBusinessId: jest.fn(), update: jest.fn(), markPending: jest.fn(), markCancelled: jest.fn(), hasBlockingBooking: jest.fn(), listBlockingBookings: jest.fn() })
     .overrideProvider(PRICING_SNAPSHOT_REPOSITORY).useValue({ findByBookingId: (id: string) => Promise.resolve(snapshots.get(id) ?? null), create: jest.fn() })
     .overrideProvider(PAYMENT_REPOSITORY).useValue({ register: async (data: Omit<Payment, 'id' | 'createdAt'>, total: number) => { await Promise.resolve(); const prior = payments.find((item) => item.businessId === data.businessId && item.idempotencyKey === data.idempotencyKey); if (prior) { if (prior.requestFingerprint !== data.requestFingerprint) throw new Error('IDEMPOTENCY_CONFLICT'); return { payment: prior, duplicate: true }; } const paid = payments.filter((item) => item.bookingId === data.bookingId).reduce((sum, item) => sum + item.amountMinor, 0); if (paid + data.amountMinor > total) throw new Error('OVERPAYMENT'); const created: Payment = { id: `payment-${payments.length + 1}`, ...data, createdAt: new Date() }; payments.push(created); return { payment: created, duplicate: false }; } })
-    .compile(); app = module.createNestApplication(); app.use((req: { authenticatedPrincipal?: { userId: string } }, _res, next) => { req.authenticatedPrincipal = { userId: actorId }; next(); }); configureApplication(app, { security: false }); await app.init(); });
+    .compile(); app = module.createNestApplication(); app.use((req: { authenticatedPrincipal?: { userId: string } }, _res: Response, next: NextFunction) => { req.authenticatedPrincipal = { userId: actorId }; next(); }); configureApplication(app, { security: false }); await app.init(); });
   afterAll(async () => app.close());
   beforeEach(() => { businesses = [business(businessId), business(foreignBusinessId)]; bookings = [booking(bookingId, businessId), booking(foreignBookingId, foreignBusinessId)]; payments = []; snapshots.clear(); snapshots.set(bookingId, { id: 'snapshot', businessId, bookingId, currency: 'PYG', totalAmountMinor: 100, items: [], createdAt: new Date() }); });
   const endpoint = (owner = businessId, id = bookingId) => `/api/businesses/${owner}/bookings/${id}/payments`; const payload = (amountMinor = 40) => ({ amountMinor, method: 'CASH', paidAt: '2026-09-01T12:00:00.000Z', reference: ' Ref ', note: ' Nota ' });
