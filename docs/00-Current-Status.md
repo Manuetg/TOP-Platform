@@ -1,6 +1,6 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-09-03
+Última actualización: 2026-09-08
 
 ## Responsabilidades
 
@@ -31,20 +31,20 @@ Alcance:
 ## Estado Backend
 
 Última historia completada:
-- IAM-008 — Permissions — Completed
+- PAY-001 — Register Payment — Completed
 
 Estado del MVP:
-- 45 / 53 capacidades completadas
-- 84,9%
+- 46 / 53 capacidades completadas
+- 86,8%
 
 Booking:
 - 6 / 6 completadas
 
 Capacidad backend actualmente en desarrollo:
-- RES-009 — Business Custom Amenities Completed; Resource 9 / 9 (100%).
+- Ninguna. PAY-001 fue completada; Payment 1 / 4 (25%).
 
 Siguiente capacidad backend:
-- PAY-001 — Register Payment — Planned, prioridad Alta.
+- PAY-002 — Payment Plan — Planned, prioridad Alta.
 
 Pendientes principales posteriores:
 - Platform Administration / Global Authority pendiente de definición

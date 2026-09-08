@@ -81,7 +81,7 @@ Booking queda completado con BKG-001..006; Payments permanece pendiente. La vali
 
 ## Payment
 
-- **PAY-001 — Register Payment.** Estado: In Progress. Dominio: Payment. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **PAY-001 — Register Payment.** Estado: Completed. Dominio: Payment. Prioridad: Alta. Endpoint: `POST /api/businesses/:businessId/bookings/:bookingId/payments`. Pruebas obligatorias: unitarias, integración PostgreSQL, E2E y aceptación. Definition of Done: aplicada. Evidencia técnica: PR `#43`; feature HEAD `6f25a225e767b029ae4362d431957dcfb70716d9`; merge `d1b685f0b1ff98b3dfa1efc00e27ade9c7405c60`; Backend CI run `34238206242`, success, con unitarias, integración PostgreSQL, E2E, aceptación, cobertura, arquitectura, Prisma y build aprobados. Review independiente documentada por `rolandobarros27`: **APPROVED**. Registra pagos manuales externos tenant-scoped mediante `payment.record`, con `Idempotency-Key` obligatorio, actor derivado de la autenticación, moneda y total derivados de PricingSnapshot, prevención de sobrepago y transacción PostgreSQL con bloqueo de Booking para concurrencia. No modifica Booking ni PricingSnapshot; no almacena datos sensibles de tarjeta o banca.
 - **PAY-002 — Payment Plan.** Estado: Planned. Dominio: Payment. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **PAY-003 — Payment History.** Estado: Planned. Dominio: Payment. Prioridad: Media. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **PAY-004 — Outstanding Balance.** Estado: Planned. Dominio: Payment. Prioridad: Alta. Endpoint: Pendiente de definición. Pruebas obligatorias: según convención. Definition of Done: según convención.
@@ -112,10 +112,10 @@ Availability ya considera conjuntamente Booking, Block y el estado operativo del
 | Availability | 4 | 4 | 0 | 0 | 0 |
 | Contact | 4 | 4 | 0 | 0 | 0 |
 | Booking | 6 | 6 | 0 | 0 | 0 |
-| Payment | 4 | 0 | 0 | 4 | 0 |
+| Payment | 4 | 1 | 0 | 3 | 0 |
 | Block | 3 | 3 | 0 | 0 | 0 |
 | Dashboard | 4 | 0 | 0 | 4 | 0 |
-| **Total** | **53** | **44** | **1** | **8** | **0** |
+| **Total** | **53** | **46** | **0** | **7** | **0** |
 
 Progreso de Identity & Access: 9 de 9 capacidades completadas (100%).
 
@@ -127,8 +127,10 @@ Progreso de Availability: 4 de 4 capacidades completadas (100%).
 
 Progreso de Booking: 6 de 6 capacidades completadas (100%).
 
-Progreso general del MVP: 44 de 53 capacidades completadas (83,0%).
+Progreso general del MVP: 46 de 53 capacidades completadas (86,8%).
 
 Progreso de Contact: 4 de 4 capacidades completadas (100%).
 
 Progreso de Block: 3 de 3 capacidades completadas (100%).
+
+Progreso de Payment: 1 de 4 capacidades completadas (25%).
