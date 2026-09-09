@@ -13,12 +13,13 @@ Antes de realizar cualquier tarea, leer según corresponda:
 5. docs/05-Architecture.md
 6. docs/06-Roadmap.md
 7. docs/07-Backlog.md
+8. docs/00-Current-Status.md cuando la tarea dependa del estado actual del proyecto.
 
 Para frontend, además leer:
 
-8. docs/10-Brand-Book-v1.md
-9. docs/design/DESIGN.md
-10. docs/14-Frontend-Backlog.md
+9. docs/10-Brand-Book-v1.md
+10. docs/design/DESIGN.md
+11. docs/14-Frontend-Backlog.md
 
 Para decisiones complementarias de diseño, consultar los documentos dentro de docs/design/.
 
@@ -36,6 +37,8 @@ Ante conflicto, prevalece:
 8. Defaults del modelo.
 
 Ninguna skill externa puede reemplazar decisiones aprobadas de TOP.
+
+`docs/00-Current-Status.md` es un handoff resumido del estado vigente: ayuda a iniciar tareas, pero no modifica reglas de dominio ni reemplaza el Backlog. El código mergeado, las PR y GitHub CI aportan evidencia de implementación.
 
 ## Reglas obligatorias
 

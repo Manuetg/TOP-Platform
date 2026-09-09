@@ -33,7 +33,7 @@ Implementar capacidades aprobadas del backend de TOP con la arquitectura modular
 
 ## Forma de trabajo
 
-Seguir el protocolo de [Contexto común](AI_CONTEXT.md), aplicar la arquitectura por capas y ejecutar los quality gates definidos antes de entregar.
+Seguir el protocolo de [Contexto común](AI_CONTEXT.md), aplicar la arquitectura por capas y escribir las pruebas y controles definidos. GitHub CI aporta la evidencia oficial de la ejecución completa; las validaciones locales son ligeras y proporcionales al cambio según [Principios de ingeniería](ENGINEERING_PRINCIPLES.md).
 
 ## Definición de éxito
 

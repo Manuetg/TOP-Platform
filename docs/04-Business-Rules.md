@@ -29,7 +29,7 @@ Cada regla indica ID, nombre, tipo, estado, dominios afectados, descripción, co
 ## 4. Pricing
 
 - **BR-015 — Precio fuera de Resource.** Tipo: Integridad. Estado: Aprobada. Dominios: Pricing, Resource. Descripción: el precio no se almacena en Resource. Comportamiento: se consulta Pricing. Excepciones: ninguna.
-- **BR-016 — Independencia económica.** Tipo: Integridad. Estado: Aprobada. Dominios: Pricing, Payment. Descripción: Pricing, plan de pagos y pagos reales son independientes. Comportamiento: no se mezclan responsabilidades. Excepciones: ninguna.
+- **BR-016 — Independencia económica.** Tipo: Integridad. Estado: Aprobada. Dominios: Pricing, Payment. Descripción: Pricing, Payment Plan y pagos reales mantienen responsabilidades separadas. Comportamiento: Payment no muta ni recalcula PricingSnapshot; la separación no elimina la referencia aprobada en BR-081, por la que el plan deriva del Snapshot su moneda y total acordado. Excepciones: ninguna.
 - **BR-017 — Pertenencia tarifaria.** Tipo: Integridad. Estado: Aprobada. Dominios: Pricing, Business. Descripción: toda lista o regla pertenece a un Negocio. Comportamiento: se aísla por Negocio. Excepciones: ninguna.
 - **BR-018 — Asignación tarifaria.** Tipo: Integridad. Estado: Aprobada. Dominios: Pricing, Resource. Descripción: una lista puede asignarse a varios Resources. Comportamiento: se consideran opciones aplicables. Excepciones: ninguna.
 - **BR-019 — Selección de tarifa.** Tipo: Configurable. Estado: Aprobada. Dominios: Pricing, Booking. Descripción: se sugiere tarifa y el usuario puede elegir otra válida. Comportamiento: se conserva selección. Excepciones: ninguna.
@@ -60,7 +60,7 @@ Cada regla indica ID, nombre, tipo, estado, dominios afectados, descripción, co
 - **BR-032G — Buffers de Availability.** Tipo: Configurable. Estado: Aprobada. Dominios: Availability, Booking. Descripción: los buffers son días enteros no negativos y expanden solo el intervalo de Booking `[checkInDate, checkOutDate)` a `[checkInDate - before, checkOutDate + after)` antes de la intersección. Comportamiento: no modifica la semántica semiabierta ni aplica a Block, que conserva `[startsAt, endsAt)` exactos. Excepciones: ninguna.
 - **BR-032H — Validación de overbooking.** Tipo: Integridad. Estado: Aprobada. Dominios: Availability, Booking. Descripción: antes de confirmar una Booking se validan todos sus Resources contra la semántica central de Availability. Comportamiento: AVL-004 es interna, no persiste ni expone endpoint público; recibe Resources únicos del Negocio y fechas válidas, aplica la regla efectiva de PENDING y buffers solo a Booking, y devuelve conflictos deterministas por Resource. Con overbooking deshabilitado, cualquier conflicto bloqueante impide la validación. Excepciones: ninguna.
 
-**Pendientes:** solapamiento exacto, No Show, buffers, concurrencia, orden de alternativas y adultos/menores.
+**Pendientes:** política para habilitar overbooking, orden de alternativas, capacidad de adultos/menores y comportamiento avanzado de No Show. La intersección semiabierta, los buffers y la revalidación concurrente de Confirm ya están definidos.
 
 ## 6. Contact
 
@@ -80,7 +80,7 @@ Cada regla indica ID, nombre, tipo, estado, dominios afectados, descripción, co
 - **BR-041 — Estadía y pagos.** Tipo: Integridad. Estado: Aprobada. Dominios: Booking, Payment. Descripción: salida es posterior a entrada cuando ambas fechas existen; puede incluir varios Resources y existir sin pagos. Comportamiento: en `DRAFT`, las fechas `YYYY-MM-DD` pueden ser individuales; adultos y menores opcionales son enteros mayores o iguales a cero; `resourceIds` no admite duplicados y su reemplazo es atómico. Excepciones: ninguna.
 - **BR-042 — Estados independientes.** Tipo: Integridad. Estado: Aprobada. Dominios: Booking, Payment. Descripción: estado operativo y financiero son independientes; check-in/out son eventos. Comportamiento: no se mezclan. Excepciones: ninguna.
 - **BR-043 — Historial de Booking.** Tipo: Integridad. Estado: Aprobada. Dominios: Booking. Descripción: no se elimina; Cancelada conserva historial; No Show difiere de Cancelada; Finalizada es irreversible. Comportamiento: se preserva trazabilidad. Excepciones: ninguna.
-- **BR-044 — Número y cambios.** Tipo: Integridad. Estado: Aprobada. Dominios: Booking. Descripción: número visible es único por Negocio y no se reutiliza; cambios se auditan. Comportamiento: `BKG-004` solo modifica `DRAFT` y no permite editar estado ni Negocio; Availability y precio no se consultan todavía. Fechas/Resource deberán revalidar Availability cuando se defina la confirmación. Excepciones: ninguna.
+- **BR-044 — Número y cambios.** Tipo: Integridad. Estado: Aprobada. Dominios: Booking. Descripción: el número visible será único por Negocio y no se reutilizará cuando se implemente; los cambios se auditan. Comportamiento: `BKG-004` solo modifica `DRAFT` y no permite editar estado ni Negocio; BKG-005 revalida Availability y Pricing al confirmar. Excepciones: la numeración visible continúa pendiente de implementación.
 - **BR-045 — Transiciones válidas.** Tipo: Integridad. Estado: Aprobada. Dominios: Booking. Descripción: Borrador→Pendiente/Cancelada; Pendiente→Confirmada/Cancelada; Confirmada→En curso/Cancelada/No Show; En curso→Finalizada. Comportamiento: solo se permiten estas transiciones. Excepciones: ninguna.
 - **BR-046 — Transiciones inválidas.** Tipo: Integridad. Estado: Aprobada. Dominios: Booking. Descripción: Finalizada no vuelve, Cancelada no confirma, No Show no entra en curso y En curso no vuelve a Pendiente. Comportamiento: se rechazan. Excepciones: ninguna.
 
@@ -101,10 +101,10 @@ Cada regla indica ID, nombre, tipo, estado, dominios afectados, descripción, co
 
 - **BR-052 — Alcance de Block.** Tipo: Integridad. Estado: Aprobada. Dominios: Block, Business, Resource. Descripción: pertenece a un Negocio y afecta exactamente un Resource del mismo. Comportamiento: se rechaza alcance cruzado; varios Resources requieren un Block por Resource. Excepciones: ninguna.
 - **BR-053 — Período y bloqueo.** Tipo: Integridad. Estado: Aprobada. Dominios: Block, Availability. Descripción: `startsAt` y `endsAt` son RFC3339 con offset explícito, se persisten como instantes y forman `[startsAt, endsAt)`, con final estrictamente posterior al inicio. Comportamiento: `SCHEDULED` y el estado efectivo `ACTIVE` bloquean; `CANCELLED` no y `COMPLETED` no bloquea futuro. Excepciones: ninguna.
-- **BR-054 — Conflictos de Block.** Tipo: Integridad. Estado: Aprobada. Dominios: Block, Booking. Descripción: no usa reservas ficticias; la validación de conflicto con Booking confirmada o en curso se incorpora cuando exista persistencia de Booking y antes del cierre de Availability o Booking. Comportamiento: no se resuelven conflictos silenciosamente. Excepciones: ninguna.
+- **BR-054 — Conflictos de Block.** Tipo: Integridad. Estado: Aprobada. Dominios: Block, Booking. Descripción: no usa reservas ficticias; Availability y la confirmación de Booking consideran Blocks efectivos y Bookings bloqueantes mediante la validación central vigente. Comportamiento: no se resuelven conflictos silenciosamente. Excepciones: ninguna.
 - **BR-055 — Historial, estado y cancelación.** Tipo: Integridad. Estado: Aprobada. Dominios: Block. Descripción: Block es indisponibilidad, no mantenimiento; persiste como `SCHEDULED` o `CANCELLED`, mientras `ACTIVE` y `COMPLETED` son estados efectivos derivados por tiempo. Comportamiento: no se elimina físicamente; cancelar requiere motivo de 2 a 500 caracteres; `CANCELLED` es idempotente y `COMPLETED` devuelve conflicto. Excepciones: ninguna.
 
-**Pendientes:** conflicto con Booking, múltiples Resources en una sola operación, recurrencia, día completo, buffers e integración Maintenance/Cleaning.
+**Pendientes:** múltiples Resources en una sola operación, recurrencia, día completo e integración Maintenance/Cleaning. Los buffers de Booking ya se resuelven mediante Availability Rules.
 
 ## 10. Auditoría e historial
 
@@ -119,15 +119,15 @@ Cada regla indica ID, nombre, tipo, estado, dominios afectados, descripción, co
 - **BR-060 — Administrador.** Tipo: Autorización. Estado: Aprobada. Dominios: Todos. Descripción: opera y configura, salvo propietario y suscripción. Comportamiento: se excluyen esas áreas. Excepciones: ninguna.
 - **BR-061 — Recepcionista y Consulta.** Tipo: Autorización. Estado: Aprobada. Dominios: Contact, Booking, Payment, Availability. Descripción: Recepcionista opera esas áreas y check-in/out; Consulta solo lee. Comportamiento: permisos limitados. Excepciones: ninguna.
 
-**Pendientes:** matriz exacta, Pricing, anulación de Payment, cancelación de Booking y usuarios.
+La matriz Role → Capability vigente se define en BR-080. Permanecen pendientes la autoridad GLOBAL, el cambio posterior de roles, Ownership/Subscription y la autorización de capacidades futuras como anulación o reembolso de Payment.
 
 ## 12. Concurrencia e integridad
 
 - **BR-062 — Confirmación atómica.** Tipo: Integridad. Estado: Aprobada. Dominios: Availability, Booking. Descripción: se revalida dentro de confirmación; no hay confirmaciones incompatibles simultáneas. Comportamiento: operación atómica. Excepciones: ninguna.
 - **BR-063 — Control concurrente.** Tipo: Integridad. Estado: Aprobada. Dominios: Todos. Descripción: cambios detectan versión desactualizada; frontend no es suficiente. Comportamiento: reglas críticas se aplican en backend. Excepciones: ninguna.
-- **BR-064 — Idempotencia financiera.** Tipo: Integridad. Estado: Aprobada. Dominios: Booking, Payment. Descripción: operaciones evitan duplicación accidental; solicitudes repetidas no crean duplicados cuando se implemente idempotencia. Comportamiento: prevenir repetición. Excepciones: implementación pendiente.
+- **BR-064 — Idempotencia financiera.** Tipo: Integridad. Estado: Aprobada. Dominios: Booking, Payment. Descripción: operaciones evitan duplicación accidental. Comportamiento: PAY-001 usa `Idempotency-Key` con alcance por Business y PAY-002 conserva la aplicación única en reintentos; las capacidades financieras futuras deben definir su estrategia sin crear duplicados. Excepciones: ninguna para PAY-001/PAY-002.
 
-La implementación técnica queda **Pendiente** para Architecture.
+Los mecanismos concretos de capacidades futuras se definen en Architecture durante su implementación.
 
 ## 13. Restricciones del MVP
 
@@ -137,13 +137,10 @@ La implementación técnica queda **Pendiente** para Architecture.
 
 ## 14. Decisiones pendientes priorizadas
 
-### Bloqueantes para Architecture
+### Próximas definiciones del MVP
 
-- Solapamiento temporal, concurrencia al confirmar, múltiples Resources, numeración de Booking, zona horaria, almacenamiento monetario/redondeo y matriz inicial de autorización.
-
-### Bloqueantes para MVP funcional
-
-- Booking Pendiente, confirmación tras pago, campos mínimos de Contact, métodos iniciales de Payment, tipos de Block, cancelación y No Show.
+- PAY-003 — Payment History, PAY-004 — Outstanding Balance y las capacidades de Dashboard conservan sus contratos pendientes en el Backlog. PAY-004 es la siguiente discovery recomendada.
+- El tratamiento financiero de cancelaciones y No Show permanece pendiente y no se infiere de Booking ni Payment actuales.
 
 ### No bloqueantes o futuras
 
@@ -165,7 +162,7 @@ La implementación técnica queda **Pendiente** para Architecture.
 - **BR-079 — Actualización self-service de User.** Tipo: Autorización e integridad. Estado: Aprobada. Dominios: Identity & Access. Descripción: IAM-005 permite que un User `ACTIVE` autenticado cambie exclusivamente su propio email. Comportamiento: `sub` debe coincidir con el User del path; el email se normaliza y conserva unicidad global; body vacío o email inválido se rechazan; credencial, contraseña, estado, membresías, roles y sesiones permanecen sin cambios. Un User `DISABLED` no puede actualizarse. Excepciones: IAM-005 no habilita administración de terceros ni revoca access/refresh tokens vigentes por un cambio de email.
 - **BR-080 — Política estática de capabilities.** Tipo: Autorización. Estado: Aprobada. Dominios: Todos. Descripción: IAM-008 aplica una matriz estática y tipada Role → Capability para los roles tenant-scoped del MVP. Comportamiento: toda capability BUSINESS exige Membership vigente del actor en el Business solicitado y se deniega por defecto si falta Membership, Business correcto, capability declarada o Role permitido; el verbo HTTP no sustituye la semántica de la capability. `OWNER` accede a todo su Business; `ADMIN` no archiva Business ni asigna OWNER; `RECEPTIONIST` opera Contacts, Availability, Blocks y Bookings, calcula precio estándar, pero no configura Resources, Pricing ni Availability Rules; `VIEWER` accede solo a capabilities de lectura, incluido cálculo estándar sin efectos. Las operaciones GLOBAL de crear Business, crear User y deshabilitar User requieren una autoridad de plataforma aún no implementada y quedan fail-closed por HTTP. Excepciones: `payment.read` y `payment.record` quedan reservadas para PAY; void/refund, cambio posterior de Role, Ownership/Subscription y Dashboard requieren definición en sus historias.
 
-**Pendientes:** verificación contra contraseñas comprometidas, transiciones de User, estado individual de membresía, matriz detallada de permisos y mecanismo administrativo que protegerá `POST /api/users` cuando se habilite como endpoint.
+**Pendientes:** verificación contra contraseñas comprometidas, transiciones de User, estado individual de membresía, autoridad GLOBAL y mecanismo administrativo que protegerá `POST /api/users` cuando se habilite como endpoint.
 # Amenities híbridos
 
 - Los amenities globales TOP son activos y visibles para todos los Businesses.

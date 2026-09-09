@@ -140,13 +140,13 @@ Identity & Access no:
 - inicia sesión ni emite tokens al crear un User;
 - crea credenciales como parte de la gestión de membresías;
 - crea membresías como parte de la creación de User;
-- administra sesiones, refresh tokens ni revocación como parte del modelo inicial.
 
 ### 4. Conceptos principales
 
 - **User:** identidad global de una persona que puede acceder a TOP.
 - **LocalCredential:** credencial local asociada a un User para autenticación propia.
 - **UserBusinessMembership:** pertenencia de un User a un Business con un rol.
+- **RefreshSession:** sesión renovable asociada a un User, representada mediante un token opaco cuyo hash se persiste para rotación y revocación.
 - **Rol:** nivel inicial de autorización de una membresía: `OWNER`, `ADMIN`, `RECEPTIONIST` o `VIEWER`.
 - **Contexto de Negocio:** Business dentro del cual se autoriza una operación.
 
@@ -182,6 +182,14 @@ La contraseña aceptada tiene entre 12 y 128 caracteres, permite espacios y cara
 
 No se agrega un estado de membresía al modelo mínimo: el estado `DISABLED` del User impide su acceso. La desactivación individual de una membresía queda pendiente de definición.
 
+#### RefreshSession
+
+- User asociado.
+- Hash SHA-256 del refresh token opaco.
+- Vencimiento, rotación y revocación.
+
+El token sin hash solo se entrega al cliente y no se persiste ni registra en logs.
+
 ### 6. Reglas de negocio
 
 - User es una identidad global y puede pertenecer a varios Businesses.
@@ -199,7 +207,7 @@ No se agrega un estado de membresía al modelo mínimo: el estado `DISABLED` del
 - Login devuelve las membresías disponibles y no selecciona automáticamente un Business activo.
 - La autorización se valida siempre en backend.
 - El catálogo de roles del MVP es cerrado: `OWNER`, `ADMIN`, `RECEPTIONIST` y `VIEWER`; el rol pertenece a la membresía y nunca al User global.
-- `VIEWER` solo puede ejecutar operaciones de lectura dentro de los Businesses en los que posee membresía. La matriz granular de las demás acciones permanece fuera de IAM-007.
+- `VIEWER` solo puede ejecutar operaciones de lectura dentro de los Businesses en los que posee membresía. IAM-008 define la matriz estática Role → Capability vigente para las demás acciones.
 - Los access tokens representan únicamente la identidad del User; la autorización resuelve la membresía y su rol vigente en backend.
 
 ### 7. Estados
@@ -220,16 +228,18 @@ Los eventos de dominio y de auditoría específicos de Identity & Access están 
 - User se relaciona con una LocalCredential para la autenticación propia del MVP.
 - User se relaciona con uno o varios Businesses mediante UserBusinessMembership.
 - UserBusinessMembership pertenece a un User y a un Business.
+- RefreshSession pertenece a un User y permite rotación y revocación de sesiones sin incorporar autorización al token.
 - Un Business puede tener varios Users mediante UserBusinessMembership.
 - Los módulos operativos consumen el contexto autorizado de Business, sin acceder a credenciales.
 
-User y LocalCredential mantienen una relación uno a uno. No se definen aún otros detalles técnicos de base de datos ni relaciones con sesiones o refresh tokens.
+User y LocalCredential mantienen una relación uno a uno. Un User puede tener varias RefreshSessions.
 
 ### 10. Capacidades
 
 - Crear User.
 - Gestionar UserBusinessMembership.
 - Iniciar sesión.
+- Renovar y cerrar sesión.
 - Actualizar User.
 - Deshabilitar User.
 - Gestionar roles y permisos según el backlog.
@@ -247,13 +257,12 @@ User y LocalCredential mantienen una relación uno a uno. No se definen aún otr
 - No exponer contraseña, passwordHash, tokens ni membresías inexistentes al crear un User.
 - No almacenar contraseñas, hashes o tokens en logs.
 - No seleccionar un contexto de Business sin una acción o autorización explícita posterior.
-- No incorporar Session ni RefreshToken al modelo inicial.
+- No persistir refresh tokens en claro ni incorporar roles o permisos a los tokens.
 
 ### 12. Pendientes
 
 - Transiciones de estado de User.
 - Gestión individual del estado de una membresía.
-- Matriz detallada de permisos por rol.
 - Selección explícita del contexto activo de Business.
 
 ## Resource
@@ -364,7 +373,6 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - Catálogo inicial de tipos de recurso.
 - Catálogo inicial de amenidades.
 - Límites y formatos de imágenes.
-- Reglas exactas de autorización.
 - Validaciones específicas de capacidad.
 
 ## Pricing
@@ -480,7 +488,7 @@ Pricing no:
 - El precio debe mostrar un desglose comprensible por noche o concepto.
 - La moneda debe ser válida para el Negocio.
 - No se eliminan físicamente listas o reglas utilizadas históricamente.
-- Pricing y plan de pagos son conceptos independientes.
+- Pricing y Payment Plan mantienen responsabilidades separadas: Payment Plan no muta PricingSnapshot, pero usa su moneda y total acordado como referencia inmutable.
 - Pricing y pagos reales son conceptos independientes.
 
 ### 7. Estados
@@ -524,7 +532,7 @@ Para Pricing Snapshot:
 - Booking conserva una referencia al Pricing Snapshot.
 - Pricing no depende de Payment.
 - Pricing no depende de Availability para calcular un precio.
-- El plan de pagos es independiente del precio acordado.
+- Payment Plan no modifica el precio acordado y deriva moneda y total del Pricing Snapshot vigente de la Booking.
 
 No se definen aún las cardinalidades técnicas de base de datos.
 
@@ -562,7 +570,6 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - Catálogo inicial de tipos de regla.
 - Tratamiento de impuestos.
 - Política de redondeo monetario.
-- Reglas exactas de autorización.
 - Alcance preciso de promociones dentro del MVP.
 - Soporte de múltiples monedas.
 - Forma exacta de asignación entre planes y Resources.
@@ -603,13 +610,13 @@ No se requiere zona horaria para AVL-003: los buffers usan la misma granularidad
 
 ### Contrato AVL-004 — Overbooking Validation
 
-`AVL-004` define una validación interna reutilizable para Booking; no expone un endpoint público independiente ni persiste resultados. Recibe `businessId`, uno o más `resourceIds` únicos y un rango estricto `checkInDate`/`checkOutDate` en formato `YYYY-MM-DD`, con intervalo semiabierto `[checkInDate, checkOutDate)` y salida posterior a entrada. Su consumidor inicial será la futura Confirmación de Booking, que deberá invocarla inmediatamente antes de cambiar el estado; esa transición no forma parte de AVL-004.
+`AVL-004` define una validación interna reutilizable para Booking; no expone un endpoint público independiente ni persiste resultados. Recibe `businessId`, uno o más `resourceIds` únicos y un rango estricto `checkInDate`/`checkOutDate` en formato `YYYY-MM-DD`, con intervalo semiabierto `[checkInDate, checkOutDate)` y salida posterior a entrada. Confirm Booking la invoca inmediatamente antes de cambiar el estado; esa transición pertenece a Booking y no a AVL-004.
 
 La validación reutiliza la semántica central y los contratos públicos de AVL-001, AVL-002 y AVL-003, sin duplicar intersecciones: verifica Business y Resources dentro del mismo tenant, estado operativo del Resource, Bookings bloqueantes, Blocks efectivos y la regla efectiva del Business. Aplica `pendingBlocksAvailability` y los buffers diarios solo a Bookings; los Blocks conservan sus instantes exactos. Un Resource `OUT_OF_SERVICE` o `ARCHIVED`, una Booking bloqueante o un Block efectivo intersectante producen conflicto. Con overbooking deshabilitado, cualquier conflicto bloqueante hace fallar la validación; sin conflictos, el resultado es válido.
 
 El resultado contractual contiene `valid` y `conflicts[]`, con un elemento por Resource en conflicto formado por `resourceId` y `reasons[]`. Las razones reutilizan exactamente `RESOURCE_OUT_OF_SERVICE`, `RESOURCE_ARCHIVED`, `BOOKING_CONFLICT` y `BLOCK_CONFLICT`, sin duplicados y en el orden determinista vigente de Availability. No hay auto-asignación, cálculo de Pricing, Payments, Pricing Snapshot ni escritura de Availability.
 
-La Definition of Done de AVL-004 requiere una capacidad interna reusable que cubra uno y múltiples Resources, tenant isolation, reglas efectivas, intersección semiabierta y buffers de Booking; resultado determinista por Resource; y evidencia unitaria, integración y de la futura revalidación de confirmación cuando esa capacidad exista. Quedan fuera de este contrato la transición/Confirm Booking, un endpoint público, configuración que habilite overbooking, capacidad, alternativas y cualquier persistencia.
+La Definition of Done de AVL-004 requiere una capacidad interna reusable que cubra uno y múltiples Resources, tenant isolation, reglas efectivas, intersección semiabierta y buffers de Booking; resultado determinista por Resource; y evidencia unitaria, de integración y de su consumo por Confirm Booking. Quedan fuera de este contrato la transición de Booking, un endpoint público, configuración que habilite overbooking, capacidad, alternativas y cualquier persistencia.
 
 ### 1. Propósito
 
@@ -815,7 +822,6 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - Política de buffers entre reservas.
 - Reglas de capacidad para adultos y menores.
 - Rendimiento objetivo y estrategia de caché.
-- Reglas exactas de autorización.
 - Tratamiento de cambios simultáneos por múltiples usuarios.
 
 ## Contact
@@ -975,7 +981,6 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - Tipos de documento iniciales.
 - Reglas exactas para detectar duplicados.
 - Proceso de fusión manual de duplicados.
-- Reglas exactas de autorización.
 - Política de retención y privacidad de datos personales.
 - Información exacta de huéspedes adicionales.
 - Posibilidad futura de contactos corporativos o empresas.
@@ -990,7 +995,7 @@ Representar y administrar el acuerdo comercial y operativo mediante el cual un C
 
 Booking es responsable de mantener la identidad de la reserva, relacionarla con un Negocio, Contact responsable y uno o más Resources, administrar fechas y estado operativo, y coordinar confirmación, cancelación, check-in, check-out y finalización.
 
-También referencia el Pricing Snapshot acordado, se relaciona con plan de pagos y pagos recibidos, mantiene huéspedes adicionales y observaciones operativas, conserva historial y auditoría, bloquea disponibilidad según estado y configuración del Negocio, y genera un número visible secuencial dentro del Negocio.
+También referencia el Pricing Snapshot acordado, se relaciona con plan de pagos y pagos recibidos, mantiene huéspedes adicionales y observaciones operativas, conserva historial y auditoría y bloquea disponibilidad según estado y configuración del Negocio. El número visible secuencial dentro del Negocio continúa como decisión aprobada pendiente de implementación.
 
 ### 3. No Responsabilidad
 
@@ -1135,7 +1140,6 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - Tratamiento de early check-in y late check-out.
 - BKG-005 valida conjuntamente todos los Resources de la Booking mediante la capacidad reutilizable AVL-004 antes de crear un estado bloqueante o confirmar.
 - Numeración inicial y formato visible, pendiente antes de confirmación.
-- Reglas exactas de autorización por rol.
 - Validaciones de adultos, menores y capacidad.
 - Campos obligatorios de huéspedes adicionales.
 - La semántica temporal MVP usa fechas `YYYY-MM-DD` e intervalos semiabiertos; horarios exactos y tratamiento horario avanzado permanecen fuera de este slice.
@@ -1150,9 +1154,9 @@ Administrar los acuerdos de cobro y los pagos reales asociados a una Booking, pe
 
 ### 2. Responsabilidad
 
-Payment administra el plan de pagos acordado, adelantos o cuotas flexibles y pagos reales recibidos, incluidos pagos parciales y su aplicación a obligaciones previstas.
+Payment administra el plan de pagos acordado, sus cuotas, los pagos reales recibidos y su aplicación parcial o total a obligaciones previstas.
 
-Calcula importes pagados, pendientes y vencidos; mantiene el estado financiero derivado; registra método, fecha, referencia y comprobante; permite anular pagos sin eliminar historial y conserva auditoría completa, separando planes de pagos y transacciones reales.
+PAY-001 y PAY-002 registran método, fecha, referencia y actor; distribuyen Payments entre cuotas y derivan el estado de cada cuota. Saldo general, historial público, comprobantes, anulación y reembolso pertenecen a capacidades posteriores.
 
 ### 3. No Responsabilidad
 
@@ -1170,17 +1174,20 @@ No emite facturación electrónica, administra contabilidad general, realiza con
 
 #### Plan de pagos
 
-- Id, Negocio, Booking, Tipo de plan, Estado, Total acordado y Moneda.
+- Id, Negocio, Booking, Total acordado y Moneda.
 - Fecha de creación, Fecha de modificación, Usuario creador y Usuario modificador.
+- PAY-002 no persiste tipo ni estado del plan; esas extensiones son futuras.
 
 #### Pago previsto
 
-- Id, Concepto, Monto, Porcentaje opcional, Fecha de vencimiento opcional, Estado, Orden y Observaciones.
+- Id, Plan de pagos, Monto, Fecha de vencimiento opcional y Orden.
+- El estado se deriva de monto, aplicaciones y vencimiento; no se persiste.
 
 #### Pago real
 
-- Id, Negocio, Booking, Fecha y hora, Monto, Moneda, Método de pago, Referencia opcional y Observaciones.
-- Comprobante opcional, Usuario que registró el pago, Estado, Fecha de creación, Fecha de anulación opcional, Usuario que anuló opcional y Motivo de anulación opcional.
+- Id, Negocio, Booking, Fecha y hora, Monto, Moneda, Método de pago, Referencia y observación opcionales.
+- Usuario que registró el pago, estado `RECORDED`, clave y huella de idempotencia y fecha de creación.
+- Comprobante, anulación y reembolso son extensiones futuras.
 
 #### Aplicación de pago
 
@@ -1194,14 +1201,16 @@ La información derivada puede calcularse y no debe necesariamente persistirse c
 
 ### 6. Reglas de negocio
 
-- Todo plan de pagos pertenece exactamente a una Booking y a un Negocio. Una Booking puede existir sin plan de pagos o pagos reales; el plan es independiente del Pricing Snapshot.
-- Un plan puede contener uno o múltiples pagos previstos; importes y vencimientos se definen libremente. Puede usarse una plantilla o crearse uno personalizado.
+- Todo plan de pagos pertenece exactamente a una Booking y a un Negocio. Una Booking puede existir sin plan de pagos o pagos reales. El plan requiere PricingSnapshot, deriva de él moneda y total y nunca lo modifica.
+- PAY-002 admite entre 1 y 100 pagos previstos con montos positivos; su suma coincide con el total acordado. Los vencimientos son opcionales y el orden de entrada se conserva. Las plantillas quedan fuera de PAY-002.
 - Un pago real puede cubrir total o parcialmente un pago previsto; uno previsto puede cubrirse mediante varios reales y un real puede distribuirse entre varios previstos si las reglas lo permiten.
 - PAY-002 usa un único plan por Booking con entre 1 y 100 pagos previstos. La suma del plan coincide con el total del Pricing Snapshot. La distribución automática consume primero el vencimiento más antiguo, deja las cuotas sin vencimiento al final y usa el orden del plan como desempate. Los pagos históricos se aplican por `paidAt`, `createdAt` e `id`. El plan solo puede reemplazarse antes de que exista una aplicación.
-- Ningún pago real se elimina físicamente: uno incorrecto debe anularse con motivo y auditoría.
+- PAY-002 crea o reemplaza el plan únicamente para Bookings `CONFIRMED` o `IN_PROGRESS`; la lectura histórica se conserva cuando existe el plan.
+- PAY-001 admite los métodos cerrados `CASH`, `BANK_TRANSFER`, `CARD` y `OTHER`; `CARD` registra un pago externo y no procesa ni almacena datos sensibles.
+- Ningún pago real se elimina físicamente. La anulación de un pago incorrecto requiere una capacidad futura con motivo y auditoría.
 - El estado financiero se calcula desde pagos reales válidos. Registrar un pago no cambia el precio ni confirma una Booking, salvo regla explícita del Negocio.
-- Pagos anulados no cuentan para el saldo; su monto debe ser mayor que cero y la moneda válida para Negocio y compatible con Booking.
-- Comprobantes son opcionales salvo configuración contraria. Cambios en plantillas no modifican planes asociados; planes confirmados conservan historial.
+- PAY-001 registra únicamente pagos `RECORDED`; una futura anulación deberá excluir esos pagos del saldo. El monto es mayor que cero y la moneda deriva del PricingSnapshot de la Booking.
+- Comprobantes y plantillas son capacidades futuras y no forman parte de PAY-001/PAY-002.
 - No se permite saldo negativo salvo política explícita de sobrepago. Reembolsos y devoluciones conservan trazabilidad completa.
 
 ### 7. Estados
@@ -1216,7 +1225,8 @@ La información derivada puede calcularse y no debe necesariamente persistirse c
 
 #### Pago real
 
-- Registrado, Anulado y Reembolsado (futuro).
+- `RECORDED` en PAY-001.
+- Anulado y reembolsado son estados futuros, sujetos a sus contratos correspondientes.
 
 #### Estado financiero derivado de Booking
 
@@ -1224,8 +1234,10 @@ La información derivada puede calcularse y no debe necesariamente persistirse c
 
 ### 8. Eventos
 
-- `PaymentPlanCreated`, `PaymentPlanUpdated`, `PaymentPlanActivated`, `PaymentScheduleItemCreated` y `PaymentScheduleItemUpdated`.
-- `PaymentRegistered`, `PaymentPartiallyApplied`, `PaymentFullyApplied`, `PaymentVoided`, `PaymentReceiptAttached`, `PaymentOverdue`, `BookingFinancialStatusChanged`, `RefundRegistered` y `OverpaymentDetected`.
+Los siguientes eventos son candidatos para capacidades futuras y no implican mensajería ni comportamiento ya implementado:
+
+- `PaymentPlanCreated`, `PaymentPlanUpdated`, `PaymentRegistered`, `PaymentPartiallyApplied` y `PaymentFullyApplied`.
+- `PaymentVoided`, `PaymentReceiptAttached`, `PaymentOverdue`, `BookingFinancialStatusChanged`, `RefundRegistered` y `OverpaymentDetected`.
 
 Payment puede consumir `BookingCreated`, `BookingConfirmed`, `BookingCancelled`, `PricingSnapshotCreated`, `CheckInCompleted` y `CheckOutCompleted`.
 
@@ -1233,19 +1245,20 @@ No se asume una implementación técnica basada en mensajería o event bus.
 
 ### 9. Relaciones
 
-- Payment pertenece a Business; el plan pertenece a Booking, que puede tener un plan y múltiples pagos reales.
+- Payment pertenece a Business; el plan pertenece a Booking, que puede tener cero o un plan y múltiples pagos reales.
 - Un plan contiene múltiples pagos previstos; un pago real puede aplicarse a uno o más previstos.
 - Payment consulta el total acordado del Pricing Snapshot relacionado; Contact puede ser referencia del pagador, pero el pago pertenece a Booking.
 - Files almacena comprobantes; Audit y Activity registran movimientos financieros.
 
-No se definen aún las cardinalidades técnicas de base de datos.
+PaymentApplication materializa la relación entre un Payment y una cuota del plan de la misma Booking y Business.
 
 ### 10. Capacidades
 
-- Crear, actualizar, cancelar o aplicar plantilla a un plan de pagos; crear plan sin cuotas, con adelanto y saldo o personalizado.
-- Agregar o actualizar pago previsto; registrar pago real o parcial y aplicarlo a una o varias cuotas.
-- Consultar saldo, vencidos, estado, historial y próximos vencimientos; adjuntar comprobante y anular pago.
-- Registrar reembolso (futuro).
+- Crear, consultar y reemplazar un plan antes de su primera aplicación.
+- Registrar un pago real y aplicarlo automáticamente a una o varias cuotas.
+- Leer Payment Plan con `payment.read` y registrar Payments o escribir el plan con `payment.record`, según la matriz IAM-008.
+- Consultar saldo, vencidos, historial y próximos vencimientos en capacidades posteriores.
+- Adjuntar comprobante, anular pagos y registrar reembolsos en capacidades futuras.
 
 ### 11. Restricciones
 
@@ -1260,12 +1273,10 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - Regla definitiva de confirmación automática tras primer pago.
 - Política de sobrepago y saldo a favor.
 - Tratamiento exacto de reembolsos.
-- Métodos de pago iniciales.
 - Formatos y límites de comprobantes.
 - Política de vencimientos y pagos atrasados.
 - Múltiples monedas.
 - Política de redondeo.
-- Reglas exactas de autorización.
 - Tratamiento financiero de cancelaciones y No Show.
 - Integración futura con pagos online.
 
@@ -1360,11 +1371,8 @@ No se definen aún las cardinalidades técnicas de base de datos.
 
 ### 12. Pendientes
 
-- Regla exacta ante conflicto con Booking existente, dependiente de la persistencia de Booking.
 - Bloqueo de múltiples Resources en una sola operación.
 - Tratamiento de bloqueos recurrentes y de día completo.
-- Buffers automáticos antes o después de una Booking.
-- Reglas exactas de autorización.
 - Tratamiento de zonas horarias.
 - Alcance de integración futura con Maintenance y Cleaning.
 - Visualización exacta en Calendario.

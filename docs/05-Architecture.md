@@ -28,7 +28,7 @@ Un único despliegue contiene módulos con límites explícitos. Cada módulo ex
 - `pricing`: tarifas, reglas y Pricing Snapshot.
 - `availability`: consultas y revalidación de disponibilidad.
 - `contact`: contactos responsables e historial.
-- `booking`: reservas, estados, estadías y número visible.
+- `booking`: reservas, estados y estadías; la numeración visible aprobada continúa pendiente de implementación.
 - `payment`: planes, pagos, aplicaciones y saldo derivado.
 - `block`: indisponibilidades operativas.
 - `audit`: historial y trazabilidad.
@@ -43,7 +43,7 @@ Un único despliegue contiene módulos con límites explícitos. Cada módulo ex
 
 ## 7. Dependencias permitidas entre módulos
 
-Los módulos dependen de contratos de aplicación, no de infraestructura ajena. `booking` puede invocar `availability`, `pricing`, `contact`, `payment`, `audit` y `files`; `availability` consulta contratos de `resource`, `booking`, `block` y `business`; `payment` consulta el total acordado de `booking`/`pricing`. Se prohíben dependencias circulares.
+Los módulos dependen de contratos públicos de Application, no de infraestructura ajena. `booking` consume contratos de `availability`, `pricing` y `contact`; `availability` consulta contratos de `resource`, `booking`, `block` y `business`; `payment` consume contratos públicos de `booking` y `pricing` para resolver la Booking y su PricingSnapshot. Booking no depende de Payment en el MVP vigente. Una relación entre datos no autoriza imports bidireccionales y se prohíben dependencias circulares.
 
 ## 8. Modelo multi-tenant
 
@@ -51,12 +51,14 @@ Los módulos dependen de contratos de aplicación, no de infraestructura ajena. 
 
 ## 9. Identidad y autorización
 
-Identificadores internos UUID. Roles: `OWNER`, `ADMIN`, `RECEPTIONIST` y `VIEWER`. Todas las autorizaciones se validan en backend, dentro de application antes de ejecutar capacidades.
+Identificadores internos UUID. Roles tenant-scoped: `OWNER`, `ADMIN`, `RECEPTIONIST` y `VIEWER`. Todas las autorizaciones se validan en backend antes de ejecutar capacidades y la matriz Role → Capability de IAM-008 es la autoridad.
 
-- `OWNER`: acceso total, usuarios, configuración, Pricing, anulaciones, suscripción y propiedad.
-- `ADMIN`: operación, configuración, usuarios excepto propiedad, Pricing, anulaciones y Resources.
-- `RECEPTIONIST`: Contacts, Availability, Bookings, check-in, check-out y registro de Payments.
-- `VIEWER`: solo lectura.
+- `OWNER`: accede a las capabilities BUSINESS vigentes de su Negocio.
+- `ADMIN`: opera y configura dentro de las capabilities vigentes; no archiva Business ni asigna OWNER.
+- `RECEPTIONIST`: opera las capabilities aprobadas de Contact, Availability, Block, Booking y Payment; no configura Resource, Pricing ni Availability Rules.
+- `VIEWER`: accede únicamente a capabilities de lectura.
+
+Los roles tenant-scoped no conceden autoridad GLOBAL. Payment void/refund, Ownership/Subscription y sus autorizaciones permanecen fuera del alcance implementado.
 
 El rol se resuelve desde UserBusinessMembership para el `userId + businessId` solicitado y no se incluye en el JWT. IAM-007 no incorpora endpoints de Roles, cambio posterior de rol ni un modelo persistido de Permissions.
 
@@ -68,9 +70,9 @@ IAM-005 es self-service sobre la identidad global: `PATCH /api/users/:userId` ex
 
 ## 10. Persistencia
 
-PostgreSQL es la base relacional. Relaciones many-to-many se representan explícitamente cuando el dominio lo requiere. `BookingResource` es la relación conceptual entre Booking y Resource, con Booking, Resource, fecha de entrada y fecha de salida. El flujo principal se optimiza para una unidad, pero el modelo soporta múltiples Resources.
+PostgreSQL es la base relacional. Relaciones many-to-many se representan explícitamente cuando el dominio lo requiere. `BookingResource` relaciona Booking y Resource; las fechas de estadía pertenecen a Booking. El flujo principal se optimiza para una unidad, pero el modelo soporta múltiples Resources.
 
-Booking usa UUID interno y número entero secuencial único por Negocio como identificador visible, inicialmente con formato `#000001`. Los números nunca se reutilizan y se asignan dentro de la transacción de confirmación.
+Booking usa UUID interno. El número entero secuencial único por Negocio sigue aprobado como identificador visible futuro, pero no forma parte del schema implementado actual.
 
 ## 11. Modelo monetario
 
@@ -84,7 +86,7 @@ Los intervalos temporales son semiabiertos: `[inicio, fin)`. Una Booking que ter
 
 ## 13. Transacciones y concurrencia
 
-Confirmar Booking ocurre en una única transacción atómica: valida autorización y datos, revalida Availability, protege los registros necesarios, asigna número visible, persiste Booking confirmada y Pricing Snapshot, registra auditoría y confirma la transacción.
+Confirmar Booking ocurre en una única transacción atómica: valida autorización y datos, revalida Availability, protege los registros necesarios, persiste Booking confirmada y Pricing Snapshot, registra su Timeline y confirma la transacción.
 
 Dos solicitudes incompatibles sobre el mismo Resource no pueden completarse. La implementación inicial usa transacción de base de datos, bloqueo pesimista o restricción equivalente, verificación final de solapamiento e idempotencia para evitar duplicados. El mecanismo concreto de Prisma/PostgreSQL se define durante implementación, sin cambiar este comportamiento.
 
@@ -94,7 +96,7 @@ Los módulos pueden publicar eventos internos después de completar la transacci
 
 ## 15. API
 
-API HTTP versionada, orientada a recursos y casos de uso. Autentica usuarios, resuelve contexto de Negocio, valida DTOs y delega en application. La especificación de endpoints queda pendiente.
+API HTTP versionada, orientada a recursos y casos de uso. Autentica usuarios, resuelve contexto de Negocio, valida DTOs y delega en application. Los endpoints implementados se documentan en el Backlog y OpenAPI; los contratos de capacidades planificadas permanecen pendientes hasta su discovery.
 
 ## 16. Archivos y comprobantes
 

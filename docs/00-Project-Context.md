@@ -22,20 +22,28 @@ TOP centraliza la operación en una única plataforma.
 
 El mercado inicial es Paraguay. El segmento inicial comprende cabañas, posadas, glampings y hoteles boutique con aproximadamente 1 a 30 unidades. La expansión futura prevista es Latinoamérica.
 
-Los usuarios identificados son Propietario, Recepcionista y Administrador.
+Los usuarios identificados son Propietario, Administrador, Recepcionista y Consulta (`VIEWER`).
 
 ## Estado actual del MVP
 
-El MVP incluye Negocio, Recursos, Precios, Disponibilidad, Reservas, Pagos, Calendario y Dashboard.
+El MVP incluye Negocio, Identity & Access, Recursos, Precios, Disponibilidad, Contactos, Reservas, Pagos, Bloqueos y Dashboard.
 
-La épica Business está completada al 100%: cinco de cinco capacidades. Identity & Access es la siguiente épica; la siguiente capacidad aprobada es IAM-004 — Create User. Login depende de IAM-009 — Manage User-Business Membership, que ya forma parte del backlog y debe implementarse antes de Login.
+El backend tiene 47 de 53 capacidades completadas (88,7%). La última historia completada es PAY-002 — Payment Plan. Payment tiene 2 de 4 capacidades completadas (50%), no hay una historia backend activa y la siguiente discovery recomendada es PAY-004 — Outstanding Balance.
 
-El estado operativo de cada capacidad se mantiene en el [Backlog](07-Backlog.md).
+El estado operativo de cada capacidad se mantiene en el [Backlog](07-Backlog.md). [Estado actual](00-Current-Status.md) ofrece el handoff resumido vigente.
 
 ## Módulos implementados
 
-- Business: 100% de la épica completada.
-- Los demás módulos del MVP permanecen planificados, salvo decisiones documentales fundacionales de Identity & Access.
+- Business: 5 / 5.
+- Identity & Access: 9 / 9.
+- Resource: 9 / 9.
+- Pricing: 5 / 5.
+- Availability: 4 / 4.
+- Contact: 4 / 4.
+- Booking: 6 / 6.
+- Payment: 2 / 4.
+- Block: 3 / 3.
+- Dashboard: 0 / 4.
 
 ## Arquitectura general
 
@@ -65,11 +73,12 @@ La autenticación propia en NestJS para el MVP está definida en [ADR-001](13-ad
 - [05-Architecture.md](05-Architecture.md): decisiones técnicas y arquitectura.
 - [06-Roadmap.md](06-Roadmap.md): secuencia de evolución aprobada.
 - [07-Backlog.md](07-Backlog.md): plan operativo y estado de capacidades.
+- [00-Current-Status.md](00-Current-Status.md): handoff resumido del estado vigente.
 - [13-adr/](13-adr/): decisiones arquitectónicas.
 - [../ai/AI_CONTEXT.md](../ai/AI_CONTEXT.md): contexto común y protocolo para agentes de IA.
 
 ## Fuentes de verdad
 
-Las decisiones de producto y dominio se consultan en los documentos `01` a `07`. El backlog es la fuente operativa del estado y orden de capacidades. Los ADRs son la fuente de las decisiones técnicas importantes.
+Las decisiones de producto y dominio se consultan en los documentos `01` a `07`. El Backlog es la fuente operativa del estado y orden de capacidades; Estado actual lo resume sin reemplazarlo. Los ADRs son la fuente de las decisiones técnicas importantes. El código mergeado, las PR y GitHub CI aportan evidencia de implementación.
 
 Ante una ausencia de información, se debe registrar **Pendiente de definición** en vez de inventar una funcionalidad o regla.

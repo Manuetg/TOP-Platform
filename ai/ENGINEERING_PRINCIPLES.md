@@ -10,7 +10,7 @@ Unitarias con Jest; integración para persistencia, transacciones y módulos; AP
 
 ## Requisitos de Gherkin
 
-Cada capacidad relevante tiene escenarios legibles, ejecutables y aislados. Booking se incorporará cuando su implementación esté aprobada.
+Cada capacidad relevante tiene escenarios legibles, ejecutables y aislados. Las capacidades implementadas, incluida Booking, conservan cobertura de aceptación cuando corresponde.
 
 ## Umbrales de cobertura
 
@@ -34,7 +34,7 @@ Toda consulta operativa requiere `businessId`; pruebas cubren aislamiento y acce
 
 ## Procedimiento de QA
 
-Ejecutar `npm run quality:check`, `npx prisma validate` y mutation testing según el flujo de CI y la capacidad modificada. Cubrir concurrencia e idempotencia cuando aplique.
+Codex escribe las pruebas aplicables y GitHub CI es la evidencia oficial de la ejecución completa. No es obligatorio ejecutar localmente todas las suites: cobertura, mutation testing y regresión completa se delegan al workflow oficial cuando correspondan al cambio. Pueden usarse validaciones locales ligeras y proporcionales, como `git diff --check`, lint, build o `prisma validate`, cuando sean necesarias. Concurrencia e idempotencia se cubren cuando aplican y esta política no reduce umbrales ni controles.
 
 ## Excepciones y aprobación
 

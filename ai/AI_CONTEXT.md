@@ -15,14 +15,17 @@ Establecer un contexto único y un protocolo de trabajo para los agentes de IA d
 7. [Arquitectura](../docs/05-Architecture.md).
 8. [Roadmap](../docs/06-Roadmap.md).
 9. [Backlog](../docs/07-Backlog.md).
-10. [ADRs](../docs/13-adr/).
+10. [Estado actual](../docs/00-Current-Status.md), cuando la tarea dependa del estado vigente.
+11. [ADRs](../docs/13-adr/).
 
 Para cambios de backend, leer también [Principios de ingeniería](ENGINEERING_PRINCIPLES.md).
 Para tareas de diseño, leer también [Design Context](../docs/design/DESIGN.md) y [Brand Book v1](../docs/10-Brand-Book-v1.md). `08-Fundamentos-de-Diseno-de-Producto.md` contiene decisiones visuales provisionales anteriores.
 
 ## Principios compartidos
 
-- La documentación es la fuente de verdad.
+- Domain Bible y Business Rules son la autoridad funcional; el Backlog es la autoridad operativa de alcance y estado.
+- Estado actual es un handoff resumido y no puede modificar reglas de dominio ni el Backlog.
+- El código mergeado, las PR y GitHub CI son evidencia de implementación y validación.
 - No inventar funcionalidades, reglas ni decisiones.
 - Mantener aislamiento por Business y autorización en backend.
 - No ampliar el MVP sin autorización explícita.

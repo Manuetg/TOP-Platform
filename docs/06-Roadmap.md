@@ -6,13 +6,11 @@ Este documento registra la secuencia de evolución del MVP y las iniciativas fut
 
 ## Estado actual
 
-La épica Business está completada.
+Business, Identity & Access, Resource, Pricing, Availability, Contact, Booking y Block están completados. Payment tiene 2 de 4 capacidades completadas; Dashboard permanece planificado. La siguiente capacidad recomendada es PAY-004 — Outstanding Balance, comenzando por discovery. El orden operativo vigente se encuentra en [07-Backlog.md](07-Backlog.md).
 
-## Próxima épica
+## Secuencia histórica de dominios del MVP
 
-Identity & Access es la próxima épica. Su secuencia comienza con IAM-004 — Create User mediante aprovisionamiento administrativo y continúa con IAM-009 — Manage User-Business Membership antes de Login. El orden operativo vigente se encuentra en [07-Backlog.md](07-Backlog.md).
-
-## Secuencia de dominios del MVP
+La siguiente secuencia conserva la referencia usada para estructurar el MVP; no representa el estado ni el orden operativo actual:
 
 1. Business.
 2. Identity & Access.
