@@ -31,20 +31,25 @@ Alcance:
 ## Estado Backend
 
 Última historia completada:
-- PAY-001 — Register Payment — Completed
+- PAY-002 — Payment Plan — Completed
 
 Estado del MVP:
-- 46 / 53 capacidades completadas
-- 86,8%
+- 47 / 53 capacidades completadas
+- 88,7%
 
 Booking:
 - 6 / 6 completadas
 
 Capacidad backend actualmente en desarrollo:
-- PAY-002 — Payment Plan — In Progress. Payment mantiene 1 / 4 capacidades completadas (25%).
+- Ninguna. Payment tiene 2 / 4 capacidades completadas (50%).
 
 Siguiente capacidad backend:
-- Completar PAY-002 mediante CI y review independiente antes de seleccionar la siguiente capacidad.
+- PAY-004 — Outstanding Balance — Planned, prioridad Alta; requiere discovery para definir contrato y cálculos derivados.
+
+Validación de cambios backend:
+- Backend CI en estado `SUCCESS` es obligatorio.
+- Mientras `rolandobarros27` sea el único responsable backend, la revisión técnica se registra como `backend self-review documentada`, sin describirla como independiente.
+- Una review externa se registra como tal únicamente cuando la realiza una persona con responsabilidad y capacidad técnica real sobre backend; no se aplican waivers automáticos.
 
 Pendientes principales posteriores:
 - Platform Administration / Global Authority pendiente de definición
@@ -105,7 +110,7 @@ Booking Timeline:
 - Cancel admite `reason` opcional en `details`; no existe backfill para Bookings anteriores a BKG-006.
 - Breaking change: no.
 
-Payment Plan (PAY-002, en desarrollo):
+Payment Plan (PAY-002):
 - `POST /api/businesses/:businessId/bookings/:bookingId/payment-plan`
 - `GET /api/businesses/:businessId/bookings/:bookingId/payment-plan`
 - `PUT /api/businesses/:businessId/bookings/:bookingId/payment-plan`
@@ -125,6 +130,7 @@ Cuando Backend modifica un contrato que consume Frontend, actualizar esta secci�
 
 ## Cambios recientes relevantes para Frontend
 
+- PAY-002 finalizado: Payment Plan permite crear, consultar y reemplazar planes antes de la primera aplicación; los Payments se distribuyen automáticamente entre cuotas y los estados se derivan de montos, aplicaciones y vencimientos.
 - IAM-008 finalizado: cambio de comportamiento de autorización, sin breaking change de schema. RECEPTIONIST conserva lecturas de Resources, operación de Booking, cancelación de Booking, Blocks y cálculo estándar de Pricing; no puede mutar Resources, Pricing ni Availability Rules, ni ejecutar Pricing override.
 - ADMIN no puede archivar Business ni asignar OWNER; VIEWER permanece read-only por capability y puede ejecutar el cálculo estándar de Pricing sin efectos persistentes.
 - Los Roles tenant-scoped no autorizan Create Business, Create User ni Disable User; estas operaciones GLOBAL permanecen fail-closed hasta definir Platform Authority.
