@@ -158,6 +158,7 @@ model Business {
   availabilityRule      AvailabilityRule?
   amenities             Amenity[]
   payments              Payment[]
+  paymentPlans          PaymentPlan[]
 }
 
 model AvailabilityRule {
@@ -351,6 +352,7 @@ model Booking {
   resources       BookingResource[]
   pricingSnapshot PricingSnapshot?
   payments        Payment[]
+  paymentPlan     PaymentPlan?
   timelineEvents  BookingTimelineEvent[]
 
   @@unique([id, businessId])
@@ -375,8 +377,52 @@ model Payment {
   createdAt DateTime @default(now())
   business Business @relation(fields:[businessId],references:[id],onDelete:Restrict)
   booking Booking @relation(fields:[bookingId],references:[id],onDelete:Restrict)
+  applications PaymentApplication[]
   @@unique([businessId,idempotencyKey])
   @@index([businessId,bookingId,paidAt,id])
+}
+
+model PaymentPlan {
+  id                 String                   @id @default(uuid())
+  businessId         String
+  bookingId          String                   @unique
+  currency           String
+  totalAmountMinor   Int
+  createdByUserId    String
+  updatedByUserId    String
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  business           Business                 @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  booking            Booking                  @relation(fields: [bookingId, businessId], references: [id, businessId], onDelete: Restrict)
+  installments       PaymentPlanInstallment[]
+
+  @@unique([bookingId, businessId])
+  @@index([businessId, bookingId])
+}
+
+model PaymentPlanInstallment {
+  id            String               @id @default(uuid())
+  paymentPlanId String
+  amountMinor   Int
+  dueDate       DateTime?             @db.Date
+  sortOrder     Int
+  paymentPlan   PaymentPlan           @relation(fields: [paymentPlanId], references: [id], onDelete: Cascade)
+  applications  PaymentApplication[]
+
+  @@unique([paymentPlanId, sortOrder])
+  @@index([paymentPlanId, dueDate])
+}
+
+model PaymentApplication {
+  paymentId    String
+  installmentId String
+  amountMinor  Int
+  createdAt    DateTime               @default(now())
+  payment      Payment                @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  installment  PaymentPlanInstallment @relation(fields: [installmentId], references: [id], onDelete: Restrict)
+
+  @@id([paymentId, installmentId])
+  @@index([installmentId])
 }
 
 model BookingTimelineEvent {

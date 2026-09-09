@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { BookingRepository, BookingStatus } from '../../booking/booking.contract';
 import { BusinessRepository, BusinessStatus } from '../../business/business.contract';
-import { PricingSnapshotRepository } from '../../pricing/domain/pricing-snapshot.repository';
+import { PricingSnapshotRepository } from '../../pricing/pricing.contract';
 import { PAYMENT_REPOSITORY, Payment, PaymentMethod, PaymentRepository, PaymentStatus } from '../domain/payment';
 export class PaymentInputError extends Error {} export class PaymentNotFoundError extends Error {} export class PaymentConflictError extends Error {}
 export interface RegisterPaymentInput { businessId:string; bookingId:string; amountMinor:unknown; method:unknown; paidAt:unknown; reference?:unknown; note?:unknown; idempotencyKey:unknown; actorUserId:string; }
