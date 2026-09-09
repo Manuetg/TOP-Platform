@@ -1,6 +1,6 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-09-08
+Última actualización: 2026-09-09
 
 ## Responsabilidades
 
@@ -41,10 +41,10 @@ Booking:
 - 6 / 6 completadas
 
 Capacidad backend actualmente en desarrollo:
-- Ninguna. PAY-001 fue completada; Payment 1 / 4 (25%).
+- PAY-002 — Payment Plan — In Progress. Payment mantiene 1 / 4 capacidades completadas (25%).
 
 Siguiente capacidad backend:
-- PAY-002 — Payment Plan — Planned, prioridad Alta.
+- Completar PAY-002 mediante CI y review independiente antes de seleccionar la siguiente capacidad.
 
 Pendientes principales posteriores:
 - Platform Administration / Global Authority pendiente de definición
@@ -104,6 +104,13 @@ Booking Timeline:
 - Eventos: `BOOKING_CREATED`, `BOOKING_SUBMITTED`, `BOOKING_CONFIRMED`, `BOOKING_CANCELLED`.
 - Cancel admite `reason` opcional en `details`; no existe backfill para Bookings anteriores a BKG-006.
 - Breaking change: no.
+
+Payment Plan (PAY-002, en desarrollo):
+- `POST /api/businesses/:businessId/bookings/:bookingId/payment-plan`
+- `GET /api/businesses/:businessId/bookings/:bookingId/payment-plan`
+- `PUT /api/businesses/:businessId/bookings/:bookingId/payment-plan`
+- El plan usa total y moneda del PricingSnapshot, aplica Payments automáticamente y no modifica Booking ni PricingSnapshot.
+- Breaking change: no; agrega endpoints y persistencia.
 
 ## Regla de coordinación Backend → Frontend
 

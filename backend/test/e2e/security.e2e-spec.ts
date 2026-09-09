@@ -139,6 +139,15 @@ describe('Protección JWT y membresía', () => {
     await request(app.getHttpServer()).patch(`/api/security-probe/businesses/${businessId}/administrative`).set('Authorization', `Bearer ${token}`).expect(200);
   });
 
+  it('rechaza a VIEWER al crear un Payment Plan con payment.record', async () => {
+    memberships = [membership(businessId, MembershipRole.VIEWER)];
+    await request(app.getHttpServer())
+      .post(`/api/businesses/${businessId}/bookings/${timelineBookingId}/payment-plan`)
+      .set('Authorization', `Bearer ${await bearer()}`)
+      .send({ installments: [{ amountMinor: 100 }] })
+      .expect(403);
+  });
+
   it('rechaza RECEPTIONIST en una operación OWNER/ADMIN', async () => {
     memberships = [membership(businessId, MembershipRole.RECEPTIONIST)];
     await request(app.getHttpServer()).patch(`/api/security-probe/businesses/${businessId}/administrative`).set('Authorization', `Bearer ${await bearer()}`).expect(403);

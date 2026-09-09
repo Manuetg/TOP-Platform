@@ -44,8 +44,9 @@ import { BLOCK_AVAILABILITY_LOOKUP } from '../../../src/modules/block/block.cont
 import { AVAILABILITY_RULES_REPOSITORY } from '../../../src/modules/availability/domain/availability-rules.repository';
 import { availabilityRulesRepositoryFake, resetAvailabilityRulesRepositoryFake } from './availability-rules.repository.fake';
 import { PAYMENT_REPOSITORY } from '../../../src/modules/payment/domain/payment';
+import { PAYMENT_PLAN_REPOSITORY } from '../../../src/modules/payment/domain/payment-plan';
 import { PRICING_SNAPSHOT_REPOSITORY } from '../../../src/modules/pricing/pricing.contract';
-import { paymentRepositoryFake, pricingSnapshotRepositoryFake, resetPaymentFakes } from './payment-repository.fake';
+import { paymentPlanRepositoryFake, paymentRepositoryFake, pricingSnapshotRepositoryFake, resetPaymentFakes } from './payment-repository.fake';
 import type { NextFunction, Response } from 'express';
 import type { AuthenticatedRequest } from '../../../src/shared/security/authenticated-principal';
 
@@ -88,6 +89,7 @@ Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
     .overrideProvider(BLOCK_AVAILABILITY_LOOKUP).useValue(blockRepositoryFake)
     .overrideProvider(AVAILABILITY_RULES_REPOSITORY).useValue(availabilityRulesRepositoryFake)
     .overrideProvider(PAYMENT_REPOSITORY).useValue(paymentRepositoryFake)
+    .overrideProvider(PAYMENT_PLAN_REPOSITORY).useValue(paymentPlanRepositoryFake)
     .overrideProvider(PRICING_SNAPSHOT_REPOSITORY).useValue(pricingSnapshotRepositoryFake)
     .overrideProvider(FILE_STORAGE).useValue(acceptanceFileStorage)
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
