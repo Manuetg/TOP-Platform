@@ -93,8 +93,9 @@ Cada regla indica ID, nombre, tipo, estado, dominios afectados, descripción, co
 - **BR-049 — Integridad del pago.** Tipo: Integridad. Estado: Aprobada. Dominios: Payment. Descripción: pagos no se eliminan; incorrecto se anula con motivo; anulados no cuentan; monto es mayor que cero. Comportamiento: se conserva trazabilidad. Excepciones: ninguna.
 - **BR-050 — Estado financiero.** Tipo: Integridad. Estado: Aprobada. Dominios: Payment, Pricing, Booking. Descripción: pago no cambia Snapshot ni confirma salvo regla; estado deriva de válidos. Comportamiento: no hay saldo negativo salvo sobrepago explícito. Excepciones: política futura.
 - **BR-051 — Reembolsos y seguridad.** Tipo: Restricción del MVP. Estado: Aprobada. Dominios: Payment. Descripción: reembolso es trazable; no se almacenan tarjetas sensibles. Comportamiento: se rechazan datos sensibles. Excepciones: ninguna.
+- **BR-081 — Plan de pagos y aplicaciones.** Tipo: Integridad. Estado: Aprobada. Dominios: Payment. Descripción: una Booking confirmada puede tener un único plan de 1 a 100 cuotas cuya suma coincide exactamente con el PricingSnapshot. Comportamiento: la moneda y el total se derivan del Snapshot; las cuotas admiten vencimientos opcionales, pasados o repetidos y conservan el orden de entrada. Payments `RECORDED` se aplican automáticamente por vencimiento ascendente, cuotas sin fecha al final y orden estable; los Payments históricos se procesan por `paidAt`, `createdAt` e `id`. Un plan solo puede reemplazarse antes de su primera aplicación; planes, pagos, aplicaciones, Booking y PricingSnapshot se persisten sin reescritura parcial. Excepciones: ninguna.
 
-**Pendientes:** sobrepagos, saldo a favor, reembolsos, métodos iniciales, comprobantes, vencimientos, distribución entre cuotas, monedas, cancelaciones y No Show.
+**Pendientes:** saldo a favor, reembolsos, comprobantes, cancelaciones y No Show.
 
 ## 9. Block
 

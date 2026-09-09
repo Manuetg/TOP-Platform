@@ -1197,6 +1197,7 @@ La información derivada puede calcularse y no debe necesariamente persistirse c
 - Todo plan de pagos pertenece exactamente a una Booking y a un Negocio. Una Booking puede existir sin plan de pagos o pagos reales; el plan es independiente del Pricing Snapshot.
 - Un plan puede contener uno o múltiples pagos previstos; importes y vencimientos se definen libremente. Puede usarse una plantilla o crearse uno personalizado.
 - Un pago real puede cubrir total o parcialmente un pago previsto; uno previsto puede cubrirse mediante varios reales y un real puede distribuirse entre varios previstos si las reglas lo permiten.
+- PAY-002 usa un único plan por Booking con entre 1 y 100 pagos previstos. La suma del plan coincide con el total del Pricing Snapshot. La distribución automática consume primero el vencimiento más antiguo, deja las cuotas sin vencimiento al final y usa el orden del plan como desempate. Los pagos históricos se aplican por `paidAt`, `createdAt` e `id`. El plan solo puede reemplazarse antes de que exista una aplicación.
 - Ningún pago real se elimina físicamente: uno incorrecto debe anularse con motivo y auditoría.
 - El estado financiero se calcula desde pagos reales válidos. Registrar un pago no cambia el precio ni confirma una Booking, salvo regla explícita del Negocio.
 - Pagos anulados no cuentan para el saldo; su monto debe ser mayor que cero y la moneda válida para Negocio y compatible con Booking.
@@ -1207,11 +1208,11 @@ La información derivada puede calcularse y no debe necesariamente persistirse c
 
 #### Plan de pagos
 
-- Borrador, Activo, Completado y Cancelado.
+- PAY-002 no persiste estado del plan; su ciclo de vida ampliado queda fuera de esta capacidad.
 
 #### Pago previsto
 
-- Pendiente, Pagado parcialmente, Pagado, Vencido y Cancelado.
+- `PENDING`, `PARTIALLY_PAID`, `PAID` y `OVERDUE`, derivados de vencimiento, monto y aplicaciones. PAY-002 no persiste este estado.
 
 #### Pago real
 
@@ -1262,11 +1263,9 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - Métodos de pago iniciales.
 - Formatos y límites de comprobantes.
 - Política de vencimientos y pagos atrasados.
-- Distribución de un pago entre varias cuotas.
 - Múltiples monedas.
 - Política de redondeo.
 - Reglas exactas de autorización.
-- Edición de planes después de confirmar la reserva.
 - Tratamiento financiero de cancelaciones y No Show.
 - Integración futura con pagos online.
 
