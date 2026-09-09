@@ -43,7 +43,7 @@ export class PrismaPaymentPlanRepository implements PaymentPlanRepository {
 
   async findByBooking(data: { businessId: string; bookingId: string }): Promise<PaymentPlan | null> {
     const row = await this.prisma.paymentPlan.findFirst({ where: data, include: planInclude });
-    return row ? mapPlan(row as PlanRow) : null;
+    return row ? mapPlan(row) : null;
   }
 
   async replace(data: CreatePaymentPlanData): Promise<PaymentPlan> {
@@ -74,7 +74,7 @@ export class PrismaPaymentPlanRepository implements PaymentPlanRepository {
   private async requirePlan(transaction: Prisma.TransactionClient, businessId: string, bookingId: string): Promise<PaymentPlan> {
     const row = await transaction.paymentPlan.findFirst({ where: { businessId, bookingId }, include: planInclude });
     if (!row) throw new Error('PAYMENT_PLAN_NOT_FOUND');
-    return mapPlan(row as PlanRow);
+    return mapPlan(row);
   }
 }
 
