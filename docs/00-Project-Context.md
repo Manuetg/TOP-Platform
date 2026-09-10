@@ -36,7 +36,7 @@ Calendario permanece como área visible del producto. Su contrato backend inicia
 
 Identity & Access, Contact y Block son dominios y capacidades técnicas necesarias para entregar las áreas funcionales aprobadas. Su presencia en el backlog backend no amplía por sí misma el alcance comercial del MVP.
 
-El backlog backend del MVP tiene 47 de 53 capacidades completadas (88,7%). La última historia completada es PAY-002 — Payment Plan. Payment tiene 2 de 4 capacidades completadas (50%), no hay una historia backend activa y la siguiente discovery recomendada es PAY-004 — Outstanding Balance.
+El backlog backend del MVP tiene 48 de 53 capacidades completadas (90,6%). La última historia completada es PAY-004 — Outstanding Balance. Payment tiene 3 de 4 capacidades completadas (75%), no hay una historia backend activa y la siguiente discovery recomendada es PAY-003 — Payment History.
 
 El estado operativo de cada capacidad se mantiene en el [Backlog](07-Backlog.md). [Estado actual](00-Current-Status.md) ofrece el handoff resumido vigente.
 
@@ -49,7 +49,7 @@ El estado operativo de cada capacidad se mantiene en el [Backlog](07-Backlog.md)
 - Availability: 4 / 4.
 - Contact: 4 / 4.
 - Booking: 6 / 6.
-- Payment: 2 / 4.
+- Payment: 3 / 4.
 - Block: 3 / 3.
 - Dashboard: 0 / 4.
 
