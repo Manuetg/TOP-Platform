@@ -50,6 +50,8 @@ import { PRICING_SNAPSHOT_REPOSITORY } from '../../../src/modules/pricing/pricin
 import { outstandingBalanceRepositoryFake, paymentPlanRepositoryFake, paymentRepositoryFake, pricingSnapshotRepositoryFake, resetPaymentFakes } from './payment-repository.fake';
 import type { NextFunction, Response } from 'express';
 import type { AuthenticatedRequest } from '../../../src/shared/security/authenticated-principal';
+import { OCCUPANCY_PROJECTION_READER } from '../../../src/modules/availability/availability.contract';
+import { occupancyProjectionReaderFake, resetOccupancyProjectionReaderFake } from './occupancy-projection-reader.fake';
 
 export const acceptanceFileStorage = new InMemoryFileStorage();
 
@@ -67,6 +69,7 @@ Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
   resetBlockRepositoryFake();
   resetAvailabilityRulesRepositoryFake();
   resetPaymentFakes();
+  resetOccupancyProjectionReaderFake();
   const refreshSessions = new Map<string, RefreshSession>();
   const accessTokens = {
     issue: (payload: { sub: string }) => Promise.resolve({ token: `token:${payload.sub}`, expiresIn: 900 }),
@@ -93,6 +96,7 @@ Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
     .overrideProvider(PAYMENT_PLAN_REPOSITORY).useValue(paymentPlanRepositoryFake)
     .overrideProvider(OUTSTANDING_BALANCE_REPOSITORY).useValue(outstandingBalanceRepositoryFake)
     .overrideProvider(PRICING_SNAPSHOT_REPOSITORY).useValue(pricingSnapshotRepositoryFake)
+    .overrideProvider(OCCUPANCY_PROJECTION_READER).useValue(occupancyProjectionReaderFake)
     .overrideProvider(FILE_STORAGE).useValue(acceptanceFileStorage)
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)

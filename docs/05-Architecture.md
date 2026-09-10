@@ -31,6 +31,7 @@ Un único despliegue contiene módulos con límites explícitos. Cada módulo ex
 - `booking`: reservas, estados y estadías; la numeración visible aprobada continúa pendiente de implementación.
 - `payment`: planes, pagos, aplicaciones y saldo derivado.
 - `block`: indisponibilidades operativas.
+- `dashboard`: composición read-only de KPI derivados, sin persistencia propia.
 - `audit`: historial y trazabilidad.
 - `files`: adjuntos y comprobantes.
 
@@ -46,6 +47,8 @@ Un único despliegue contiene módulos con límites explícitos. Cada módulo ex
 Los módulos dependen de contratos públicos de Application, no de infraestructura ajena. `booking` consume contratos de `availability`, `pricing` y `contact`; `availability` consulta contratos de `resource`, `booking`, `block` y `business`; `payment` consume contratos públicos de `booking` y `pricing` para resolver la Booking y su PricingSnapshot. Booking no depende de Payment en el MVP vigente. Una relación entre datos no autoriza imports bidireccionales y se prohíben dependencias circulares.
 
 PAY-004 reside en `payment` como Query Use Case read-only. Resuelve Business, Booking y PricingSnapshot mediante contratos públicos y obtiene su proyección financiera desde un repositorio de lectura propio. La infraestructura agrega Payments, installments y PaymentApplications mediante una única sentencia PostgreSQL con agregados independientes, evitando multiplicación de filas y observando un único snapshot MVCC sin bloqueo pesimista. No persiste balances ni estados derivados.
+
+Dashboard consume contratos públicos de Application de los dominios propietarios. DSH-002 obtiene su proyección desde Availability, que agrega Resource, BookingResource, Booking y Block en PostgreSQL sin exponer su infraestructura a Dashboard. DSH-002 no tiene endpoint propio; DSH-001 compondrá las proyecciones internas de Occupancy, Revenue y Reservations bajo el contrato público del Dashboard. Los dominios fuente no dependen de Dashboard.
 
 ## 8. Modelo multi-tenant
 

@@ -41,10 +41,10 @@ Booking:
 - 6 / 6 completadas
 
 Capacidad backend actualmente en desarrollo:
-- Ninguna. Payment tiene 4 / 4 capacidades completadas (100%).
+- DSH-002 — Occupancy KPI — In Progress. Es una proyección interna sin endpoint HTTP, basada en el inventario operacional actual.
 
 Siguiente capacidad backend:
-- Dashboard es el siguiente bloque funcional pendiente. Corresponde realizar un discovery conjunto antes de definir la secuencia de DSH-001..004.
+- DSH-003 — Revenue KPI, después del cierre verificado de DSH-002. La secuencia aprobada continúa con DSH-004 y finalmente DSH-001 como agregador público.
 
 Validación de cambios backend:
 - Backend CI en estado `SUCCESS` es obligatorio.

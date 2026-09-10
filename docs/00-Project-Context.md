@@ -36,7 +36,7 @@ Calendario permanece como área visible del producto. Su contrato backend inicia
 
 Identity & Access, Contact y Block son dominios y capacidades técnicas necesarias para entregar las áreas funcionales aprobadas. Su presencia en el backlog backend no amplía por sí misma el alcance comercial del MVP.
 
-El backlog backend del MVP tiene 49 de 53 capacidades completadas (92,5%). La última historia completada es PAY-003 — Payment History. Payment tiene sus 4 capacidades completadas (100%), no hay una historia backend activa y Dashboard es el siguiente bloque funcional pendiente. Antes de implementar una capacidad Dashboard corresponde realizar un discovery conjunto que determine la secuencia entre DSH-001..004.
+El backlog backend del MVP tiene 49 de 53 capacidades completadas (92,5%). La última historia completada es PAY-003 — Payment History. Payment tiene sus 4 capacidades completadas (100%) y DSH-002 — Occupancy KPI es la capacidad backend activa. El contrato conjunto de Dashboard establece la secuencia DSH-002, DSH-003, DSH-004 y DSH-001; esta última compondrá las tres proyecciones bajo el único endpoint público del bloque.
 
 El estado operativo de cada capacidad se mantiene en el [Backlog](07-Backlog.md). [Estado actual](00-Current-Status.md) ofrece el handoff resumido vigente.
 
