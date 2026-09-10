@@ -1,0 +1,62 @@
+.availability-nav {
+  display: flex;
+  gap: var(--space-1);
+  width: fit-content;
+  margin-bottom: var(--space-6);
+  padding: 4px;
+  background: rgb(41 67 74 / 5%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.availability-nav__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: calc(var(--radius-md) - 3px);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.availability-nav__link:hover {
+  color: var(--color-text-primary);
+}
+
+.availability-nav__link--active {
+  color: var(--color-brand-primary);
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px rgb(41 67 74 / 10%);
+}
+
+.availability-nav__link--disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.availability-nav__link--disabled:hover {
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 520px) {
+  .availability-nav {
+    width: 100%;
+  }
+
+  .availability-nav__link {
+    flex: 1;
+    padding-inline: var(--space-2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .availability-nav__link {
+    transition: none;
+  }
+}

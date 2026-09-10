@@ -1125,58 +1125,105 @@ Validación:
 
 ## FE-AVL-001 — Availability Check
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
 Consultar disponibilidad de un Resource para un rango de fechas.
 
-Criterios de aceptación:
+Implementado:
 
-- usa backend;
-- muestra available/unavailable;
-- muestra razones de conflicto cuando corresponda;
-- frontend no recalcula Availability.
+- consulta business-scoped contra `GET /businesses/:businessId/availability`;
+- selector de Resource reutilizando el catálogo real de Resources;
+- selección de fecha de entrada y salida;
+- validación de rango antes de consultar;
+- representación de `AVAILABLE` y `UNAVAILABLE`;
+- representación textual de razones:
+  - `RESOURCE_OUT_OF_SERVICE`;
+  - `RESOURCE_ARCHIVED`;
+  - `BOOKING_CONFLICT`;
+  - `BLOCK_CONFLICT`;
+- frontend no recalcula Availability;
+- el backend permanece como fuente de verdad;
+- cambio de Resource o fechas invalida visualmente el resultado anterior;
+- responsive desktop/mobile;
+- estados inicial, loading y error.
+
+Validación:
+
+- probado funcionalmente contra backend real;
+- probado en desktop y mobile;
+- tests API y UI implementados;
+- regresión completa de frontend aprobada con test, build y lint.
 
 ---
 
 ## FE-AVL-002 — Availability Calendar
 
-Estado: Planned
+Estado: Reubicado a Calendar
 
-Objetivo:
+Objetivo original:
 
 Mostrar disponibilidad de Resources en vista calendario.
 
-Criterios de aceptación:
+Decisión de producto:
 
-- responsive;
-- rango consultable;
-- estados visuales claros;
-- backend es fuente de verdad.
+La vista calendario no se implementa como una pantalla interna de Availability para evitar duplicar el módulo principal `Calendar`.
+
+El endpoint backend existente:
+
+`GET /businesses/:businessId/availability/calendar`
+
+se conserva como contrato válido y podrá ser reutilizado por el módulo principal Calendar como una de sus fuentes de datos.
+
+Alcance esperado en Calendar:
+
+- vista temporal operativa por Resource y fecha;
+- representación de disponibilidad derivada;
+- integración visual futura con Bookings y Blocks;
+- backend como fuente de verdad;
+- sin inventar navegación desde celdas cuando el contrato no expone Booking ID o Block ID.
+
+No implementado como ruta/pantalla dentro de Availability.
 
 ---
 
 ## FE-AVL-003 — Availability Rules
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
 Mostrar y editar reglas de disponibilidad del Business.
 
-Campos actuales:
+Campos implementados:
 
 - `pendingBlocksAvailability`;
 - `bufferBeforeDays`;
 - `bufferAfterDays`.
 
-Criterios de aceptación:
+Implementado:
 
-- carga valores backend;
-- guarda cambios;
-- explica visualmente el efecto de cada regla;
-- no replica el algoritmo de disponibilidad.
+- carga business-scoped contra `GET /businesses/:businessId/availability-rules`;
+- actualización contra `PATCH /businesses/:businessId/availability-rules`;
+- toggle para definir si Booking `PENDING` bloquea disponibilidad;
+- edición de buffer antes;
+- edición de buffer después;
+- buffers validados como enteros iguales o mayores a 0;
+- explicación visual del efecto de las reglas;
+- aclaración de que los buffers afectan conflictos con Booking y no alteran el rango propio de Block;
+- estados loading, error y confirmación de guardado;
+- navegación interna `Consultar | Reglas`;
+- responsive desktop/mobile;
+- frontend no replica el algoritmo de Availability.
+
+Validación:
+
+- probado funcionalmente contra backend real;
+- persistencia verificada después de recargar;
+- probado en desktop y mobile;
+- tests API y UI implementados;
+- regresión completa de frontend aprobada con test, build y lint.
 
 ---
 
