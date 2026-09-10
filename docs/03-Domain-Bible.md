@@ -1379,3 +1379,19 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - Tratamiento de zonas horarias.
 - Alcance de integración futura con Maintenance y Cleaning.
 - Visualización exacta en Calendario.
+
+## Dashboard
+
+### Contrato conjunto del MVP
+
+Dashboard es una proyección read-only tenant-scoped y no persiste métricas, snapshots ni estados propios. DSH-002, DSH-003 y DSH-004 proveen proyecciones internas de Occupancy, Revenue y Reservations; DSH-001 las compondrá posteriormente mediante el único endpoint público `GET /api/businesses/:businessId/dashboard`. La secuencia aprobada es DSH-002, DSH-003, DSH-004 y DSH-001.
+
+### Contrato DSH-002 — Occupancy KPI
+
+DSH-002 calcula la proporción de Resource-nights ocupadas respecto de Resource-nights vendibles durante un período obligatorio `[from, to)` de hasta 31 días, interpretado en la timezone IANA del Business. Usa exclusivamente el inventario operacional actual: solo Resources actualmente `ACTIVE` participan en numerador y denominador, incluso para períodos históricos. Una Resource comienza a aportar desde la fecha local de su `createdAt`; `OUT_OF_SERVICE` y `ARCHIVED` quedan fuera de ambos agregados.
+
+El numerador cuenta unidades distintas `resourceId + localDate` cubiertas por Bookings `CONFIRMED`, `IN_PROGRESS` o `COMPLETED`; excluye `DRAFT`, `PENDING`, `CANCELLED` y `NO_SHOW`. Una Booking con varios Resources aporta una Resource-night por Resource y noche. El denominador contiene las noches potencialmente vendibles del inventario elegible y no se reduce por Bookings. Cada Resource-night intersectada por uno o más Blocks no cancelados se resta una sola vez del denominador y no se convierte en ocupación.
+
+La proyección interna devuelve `occupiedResourceNights`, `sellableResourceNights` y `occupancyRateBasisPoints`. La tasa es `round(occupiedResourceNights * 10000 / sellableResourceNights)`; 10.000 representa 100% y un denominador cero produce `null`. Valores negativos o una ocupación superior al inventario vendible constituyen una invariante interna y no se corrigen mediante clamp.
+
+Resource no conserva historial de cambios de estado. Por ello, Occupancy del MVP describe el período solicitado sobre el inventario operacional actual y no reconstruye qué Resources estaban `ACTIVE`, `OUT_OF_SERVICE` o `ARCHIVED` en cada fecha histórica. Esta limitación es contractual y no autoriza agregar ResourceStatusHistory dentro de DSH-002.
