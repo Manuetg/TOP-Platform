@@ -75,19 +75,22 @@ export class ListPaymentsUseCase {
     try {
       const buffer = Buffer.from(value, 'base64url');
       if (buffer.toString('base64url') !== value) this.invalidCursor();
-      const decoded = JSON.parse(buffer.toString('utf8')) as Record<string, unknown>;
-      if (!decoded || typeof decoded !== 'object' || Array.isArray(decoded)) this.invalidCursor();
-      const keys = Object.keys(decoded).sort();
-      if (keys.join(',') !== 'createdAt,id,paidAt') this.invalidCursor();
-      return {
-        paidAt: this.cursorDate(decoded.paidAt),
-        createdAt: this.cursorDate(decoded.createdAt),
-        id: this.uuid(decoded.id, 'cursor'),
-      };
+      return this.decodedCursor(JSON.parse(buffer.toString('utf8')));
     } catch (error: unknown) {
       if (error instanceof PaymentHistoryInputError) throw error;
       this.invalidCursor();
     }
+  }
+
+  private decodedCursor(value: unknown): PaymentCursor {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) this.invalidCursor();
+    const decoded = value as Record<string, unknown>;
+    if (Object.keys(decoded).sort().join(',') !== 'createdAt,id,paidAt') this.invalidCursor();
+    return {
+      paidAt: this.cursorDate(decoded.paidAt),
+      createdAt: this.cursorDate(decoded.createdAt),
+      id: this.uuid(decoded.id, 'cursor'),
+    };
   }
 
   private cursorDate(value: unknown): Date {

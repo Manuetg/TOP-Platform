@@ -16,7 +16,7 @@ describe('PrismaPaymentRepository', () => {
     findMany.mockResolvedValue([]);
     const before = { paidAt: new Date('2026-09-09T18:00:00.000Z'), createdAt: new Date('2026-09-09T18:01:00.000Z'), id: '33333333-3333-4333-8333-333333333333' };
     await subject.listByBooking({ businessId: data().businessId, bookingId: data().bookingId, before, limit: 51 });
-    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+    expect(findMany).toHaveBeenCalledWith({
       where: {
         businessId: data().businessId,
         bookingId: data().bookingId,
@@ -28,11 +28,19 @@ describe('PrismaPaymentRepository', () => {
       },
       orderBy: [{ paidAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
       take: 51,
-    }));
-    const select = findMany.mock.calls[0][0].select;
-    expect(select).not.toHaveProperty('businessId');
-    expect(select).not.toHaveProperty('idempotencyKey');
-    expect(select).not.toHaveProperty('requestFingerprint');
-    expect(select).not.toHaveProperty('applications');
+      select: {
+        id: true,
+        bookingId: true,
+        amountMinor: true,
+        currency: true,
+        method: true,
+        reference: true,
+        note: true,
+        paidAt: true,
+        createdAt: true,
+        recordedByUserId: true,
+        status: true,
+      },
+    });
   });
 });

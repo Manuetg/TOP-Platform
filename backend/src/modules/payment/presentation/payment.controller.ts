@@ -42,7 +42,7 @@ export class PaymentController {
   ): Promise<PaymentHistoryResponseDto> {
     try {
       const page = await this.list.execute({ businessId, bookingId, cursor: query.cursor, limit: query.limit });
-      return { items: page.items.map(PaymentHistoryItemResponseDto.fromDomain), pageInfo: page.pageInfo };
+      return { items: page.items.map((payment) => PaymentHistoryItemResponseDto.fromDomain(payment)), pageInfo: page.pageInfo };
     } catch (error: unknown) {
       if (error instanceof PaymentHistoryInputError) throw new BadRequestException(error.message);
       if (error instanceof PaymentHistoryNotFoundError) throw new NotFoundException(error.message);
