@@ -1,115 +1,172 @@
-﻿.resource-edit-page {
-  width: 100%;
-  max-width: 980px;
-  margin: 0 auto;
+.resource-edit-page {
+  width: min(100%, 940px);
+  margin: 0;
 }
 
 .resource-edit-back {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  margin: 0 0 20px;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  margin: 0 0 var(--space-3);
   padding: 0;
   color: var(--color-text-secondary);
   background: transparent;
   border: 0;
+  border-radius: var(--radius-md);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
 }
 
-.resource-edit-header {
-  margin-bottom: 28px;
+.resource-edit-back:hover {
+  color: var(--color-text-primary);
 }
 
-.resource-edit-eyebrow {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--color-brand-primary);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+.resource-edit-back:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.resource-edit-header {
+  margin-bottom: var(--space-6);
 }
 
 .resource-edit-header h1 {
   margin: 0;
-  font-size: clamp(1.9rem, 4vw, 2.4rem);
-  line-height: 1.12;
+  color: var(--color-text-primary);
+  font-size: clamp(1.75rem, 3vw, 2.125rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
 }
 
 .resource-edit-header p {
   max-width: 620px;
-  margin: 10px 0 0;
+  margin: var(--space-2) 0 0;
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.6;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.resource-edit-header strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
 }
 
 .resource-edit-form {
-  display: grid;
-  gap: 16px;
+  width: 100%;
 }
 
-.resource-edit-card {
-  padding: 20px;
+.resource-edit-surface {
+  overflow: hidden;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
-.resource-edit-card__header {
-  margin-bottom: 20px;
+.resource-edit-section {
+  padding: var(--space-6);
 }
 
-.resource-edit-card__header h2 {
+.resource-edit-section + .resource-edit-section {
+  border-top: 1px solid var(--color-border);
+}
+
+.resource-edit-section__header {
+  margin-bottom: var(--space-5);
+}
+
+.resource-edit-section__header h2 {
   margin: 0;
+  color: var(--color-text-primary);
   font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
-.resource-edit-card__header p {
-  margin: 6px 0 0;
+.resource-edit-section__header p {
+  max-width: 600px;
+  margin: var(--space-1) 0 0;
   color: var(--color-text-secondary);
   font-size: 0.78rem;
+  line-height: 1.5;
 }
 
 .resource-edit-fields {
   display: grid;
+  grid-template-columns: repeat(
+    2,
+    minmax(0, 1fr)
+  );
   align-items: start;
-  gap: 16px;
+  gap: var(--space-5);
+}
+
+.resource-edit-fields--three {
+  grid-template-columns: repeat(
+    3,
+    minmax(0, 1fr)
+  );
 }
 
 .resource-edit-field {
   display: grid;
-  gap: 7px;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.resource-edit-field--full {
+  grid-column: 1 / -1;
 }
 
 .resource-edit-field > span {
+  color: var(--color-text-primary);
   font-size: 0.78rem;
   font-weight: 600;
+  line-height: 1.4;
 }
 
 .resource-edit-field input,
 .resource-edit-field textarea {
   width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
+  min-width: 0;
   color: var(--color-text-primary);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .resource-edit-field input {
   height: 44px;
+  padding: 0 var(--space-3);
 }
 
 .resource-edit-field textarea {
-  min-height: 112px;
+  min-height: 116px;
+  padding: var(--space-3);
+  line-height: 1.5;
   resize: vertical;
+}
+
+.resource-edit-field input:hover,
+.resource-edit-field textarea:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.resource-edit-field input:focus,
+.resource-edit-field textarea:focus {
+  border-color: var(--color-brand-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px
+    rgb(21 92 76 / 12%);
 }
 
 .resource-edit-field input[aria-invalid="true"],
@@ -120,7 +177,7 @@
 .resource-edit-field small {
   color: var(--color-error);
   font-size: 0.72rem;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .resource-edit-field__help {
@@ -128,51 +185,94 @@
 }
 
 .resource-edit-error {
-  padding: 14px 16px;
+  padding: var(--space-4);
   color: var(--color-error);
   background: rgb(180 35 24 / 5%);
   border: 1px solid rgb(180 35 24 / 18%);
   border-radius: var(--radius-md);
   font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.resource-edit-error p {
+  margin: 0 0 var(--space-3);
+}
+
+.resource-edit-error--submit {
+  margin: 0 var(--space-6) var(--space-5);
 }
 
 .resource-edit-state {
-  padding: 24px;
+  padding: var(--space-6);
   color: var(--color-text-secondary);
 }
 
 .resource-edit-actions {
   display: flex;
-  flex-direction: column-reverse;
-  gap: 10px;
-  padding-top: 4px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  background: rgb(0 0 0 / 1.5%);
+  border-top: 1px solid var(--color-border);
 }
 
 .resource-edit-actions .top-button {
-  width: 100%;
+  min-height: 44px;
 }
 
-@media (min-width: 768px) {
-  .resource-edit-fields {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
+@media (max-width: 767px) {
+  .resource-edit-page {
+    width: 100%;
   }
 
+  .resource-edit-back {
+    margin-bottom: var(--space-2);
+  }
+
+  .resource-edit-header {
+    margin-bottom: var(--space-5);
+  }
+
+  .resource-edit-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .resource-edit-header p {
+    font-size: 0.82rem;
+  }
+
+  .resource-edit-surface {
+    border-radius: var(--radius-lg);
+  }
+
+  .resource-edit-section {
+    padding: var(--space-5);
+  }
+
+  .resource-edit-section__header {
+    margin-bottom: var(--space-4);
+  }
+
+  .resource-edit-fields,
   .resource-edit-fields--three {
-    grid-template-columns:
-      repeat(3, minmax(0, 1fr));
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
   }
 
   .resource-edit-field--full {
-    grid-column: 1 / -1;
+    grid-column: auto;
+  }
+.resource-edit-error--submit {
+    margin: 0 var(--space-5) var(--space-4);
   }
 
   .resource-edit-actions {
-    flex-direction: row;
-    justify-content: flex-end;
+    flex-direction: column-reverse;
+    padding: var(--space-5);
   }
 
   .resource-edit-actions .top-button {
-    width: auto;
+    width: 100%;
   }
 }

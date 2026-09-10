@@ -24,7 +24,6 @@ import { AuthProvider } from "../../auth/context/AuthContext";
 import { deleteResourceImage } from "../api/delete-resource-image";
 import { disableResource } from "../api/disable-resource";
 import { reactivateResource } from "../api/reactivate-resource";
-import { reorderResourceImages } from "../api/reorder-resource-images";
 import { uploadResourceImage } from "../api/upload-resource-image";
 import { useResourceImages } from "../queries/use-resource-images";
 import { useResource } from "../queries/use-resource";
@@ -49,9 +48,6 @@ vi.mock("../api/delete-resource-image", () => ({
   deleteResourceImage: vi.fn(),
 }));
 
-vi.mock("../api/reorder-resource-images", () => ({
-  reorderResourceImages: vi.fn(),
-}));
 vi.mock("../api/disable-resource", () => ({
   disableResource: vi.fn(),
 }));
@@ -65,7 +61,6 @@ const mockedDisableResource = vi.mocked(disableResource);
 const mockedReactivateResource = vi.mocked(reactivateResource);
 const mockedUploadResourceImage = vi.mocked(uploadResourceImage);
 const mockedDeleteResourceImage = vi.mocked(deleteResourceImage);
-const mockedReorderResourceImages = vi.mocked(reorderResourceImages);
 
 const activeResource: Resource = {
   id: "resource-1",
@@ -142,7 +137,6 @@ describe("ResourceDetailPage", () => {
     mockedReactivateResource.mockReset();
     mockedUploadResourceImage.mockReset();
     mockedDeleteResourceImage.mockReset();
-    mockedReorderResourceImages.mockReset();
 
     mockedUseResourceImages.mockReturnValue({
       data: [],
@@ -171,13 +165,13 @@ describe("ResourceDetailPage", () => {
     expect(screen.getByText("Wi-Fi")).toBeInTheDocument();
 
     expect(
-      screen.getByRole("button", {
+      screen.getByRole("switch", {
         name: "Poner fuera de servicio",
       }),
     ).toBeInTheDocument();
   });
 
-  it("disables an active resource after confirmation", async () => {
+  it("disables an active resource from the status switch", async () => {
     const user = userEvent.setup();
 
     mockResource(activeResource);
@@ -189,10 +183,6 @@ describe("ResourceDetailPage", () => {
     };
 
     mockedDisableResource.mockResolvedValue(updatedResource);
-
-    const confirmMock = vi
-      .spyOn(window, "confirm")
-      .mockReturnValue(true);
 
     const { queryClient } = renderPage();
 
@@ -207,13 +197,9 @@ describe("ResourceDetailPage", () => {
     );
 
     await user.click(
-      screen.getByRole("button", {
+      screen.getByRole("switch", {
         name: "Poner fuera de servicio",
       }),
-    );
-
-    expect(confirmMock).toHaveBeenCalledWith(
-      '¿Querés poner "Cabaña Norte" fuera de servicio?',
     );
 
     await waitFor(() => {
@@ -244,7 +230,7 @@ describe("ResourceDetailPage", () => {
     });
   });
 
-  it("reactivates an out-of-service resource after confirmation", async () => {
+  it("reactivates an out-of-service resource from the status switch", async () => {
     const user = userEvent.setup();
 
     const outOfServiceResource: Resource = {
@@ -261,10 +247,6 @@ describe("ResourceDetailPage", () => {
     };
 
     mockedReactivateResource.mockResolvedValue(updatedResource);
-
-    const confirmMock = vi
-      .spyOn(window, "confirm")
-      .mockReturnValue(true);
 
     const { queryClient } = renderPage();
 
@@ -289,13 +271,9 @@ describe("ResourceDetailPage", () => {
     ).not.toBeInTheDocument();
 
     await user.click(
-      screen.getByRole("button", {
+      screen.getByRole("switch", {
         name: "Reactivar recurso",
       }),
-    );
-
-    expect(confirmMock).toHaveBeenCalledWith(
-      '¿Querés reactivar "Cabaña Norte"?',
     );
 
     await waitFor(() => {
@@ -693,125 +671,8 @@ describe("ResourceDetailPage", () => {
         name: "Agregar imagen",
       }),
     ).toBeDisabled();
-
-    expect(
-      screen.getByText("10 de 10"),
-    ).toBeInTheDocument();
   });
-  it("moves the selected Resource image to the right", async () => {
-    const user = userEvent.setup();
 
-    mockResource(activeResource);
-
-    const images: ResourceImage[] = [
-      {
-        id: "image-1",
-        resourceId: activeResource.id,
-        url: "https://signed.test/image-1.jpg",
-        mimeType: "image/jpeg",
-        sizeBytes: 1024,
-        sortOrder: 0,
-        createdAt: "2026-09-03T00:00:00.000Z",
-        updatedAt: "2026-09-03T00:00:00.000Z",
-      },
-      {
-        id: "image-2",
-        resourceId: activeResource.id,
-        url: "https://signed.test/image-2.jpg",
-        mimeType: "image/jpeg",
-        sizeBytes: 2048,
-        sortOrder: 1,
-        createdAt: "2026-09-03T00:01:00.000Z",
-        updatedAt: "2026-09-03T00:01:00.000Z",
-      },
-      {
-        id: "image-3",
-        resourceId: activeResource.id,
-        url: "https://signed.test/image-3.jpg",
-        mimeType: "image/jpeg",
-        sizeBytes: 3072,
-        sortOrder: 2,
-        createdAt: "2026-09-03T00:02:00.000Z",
-        updatedAt: "2026-09-03T00:02:00.000Z",
-      },
-    ];
-
-    mockedUseResourceImages.mockReturnValue({
-      data: images,
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    } as never);
-
-    mockedReorderResourceImages.mockResolvedValue(undefined);
-
-    const { queryClient } = renderPage();
-
-    const setQueryDataSpy = vi.spyOn(
-      queryClient,
-      "setQueryData",
-    );
-
-    const invalidateQueriesSpy = vi.spyOn(
-      queryClient,
-      "invalidateQueries",
-    );
-
-    expect(
-      screen.getByRole("button", {
-        name: "Mover izquierda",
-      }),
-    ).toBeDisabled();
-
-    await user.click(
-      screen.getByRole("button", {
-        name: "Mover derecha",
-      }),
-    );
-
-    await waitFor(() => {
-      expect(mockedReorderResourceImages).toHaveBeenCalledWith({
-        businessId: expect.any(String),
-        resourceId: activeResource.id,
-        imageIds: ["image-2", "image-1", "image-3"],
-        accessToken: undefined,
-      });
-    });
-
-    expect(setQueryDataSpy).toHaveBeenCalledWith(
-      [
-        "resources",
-        expect.any(String),
-        activeResource.id,
-        "images",
-      ],
-      [
-        {
-          ...images[1],
-          sortOrder: 0,
-        },
-        {
-          ...images[0],
-          sortOrder: 1,
-        },
-        {
-          ...images[2],
-          sortOrder: 2,
-        },
-      ],
-    );
-
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: [
-        "resources",
-        expect.any(String),
-        activeResource.id,
-        "images",
-      ],
-      exact: true,
-    });
-  });
 
   it("deletes the selected Resource image after confirmation", async () => {
     const user = userEvent.setup();
@@ -885,7 +746,7 @@ describe("ResourceDetailPage", () => {
 
     await user.click(
       screen.getByRole("button", {
-        name: "Eliminar",
+        name: "Eliminar imagen",
       }),
     );
 
@@ -962,7 +823,7 @@ describe("ResourceDetailPage", () => {
 
     await user.click(
       screen.getByRole("button", {
-        name: "Eliminar",
+        name: "Eliminar imagen",
       }),
     );
 
@@ -1009,20 +870,14 @@ describe("ResourceDetailPage", () => {
     renderPage();
 
     expect(
-      screen.getByRole("button", {
-        name: "Mover izquierda",
+      screen.getByRole("switch", {
+        name: "Recurso archivado",
       }),
     ).toBeDisabled();
 
     expect(
       screen.getByRole("button", {
-        name: "Mover derecha",
-      }),
-    ).toBeDisabled();
-
-    expect(
-      screen.getByRole("button", {
-        name: "Eliminar",
+        name: "Eliminar imagen",
       }),
     ).toBeDisabled();
 

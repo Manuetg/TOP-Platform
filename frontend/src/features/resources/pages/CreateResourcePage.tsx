@@ -137,6 +137,10 @@ const onSubmit = handleSubmit(async (values) => {
         onSubmit={onSubmit}
         noValidate
       >
+        <input
+          type="hidden"
+          {...register("sortOrder")}
+        />
         <section className="resource-create-card">
           <div className="resource-create-card__header">
             <h2>Información general</h2>
@@ -270,34 +274,6 @@ const onSubmit = handleSubmit(async (values) => {
                     errors.capacityMaximumChildren
                       .message
                   }
-                </small>
-              )}
-            </label>
-          </div>
-        </section>
-
-        <section className="resource-create-card">
-          <div className="resource-create-card__header">
-            <h2>Orden</h2>
-            <p>
-              Posición utilizada para organizar recursos.
-            </p>
-          </div>
-
-          <div className="resource-create-fields">
-            <label className="resource-create-field">
-              <span>Posición</span>
-
-              <input
-                type="number"
-                min="0"
-                max="9999"
-                {...register("sortOrder")}
-              />
-
-              {errors.sortOrder && (
-                <small role="alert">
-                  {errors.sortOrder.message}
                 </small>
               )}
             </label>

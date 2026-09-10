@@ -689,8 +689,9 @@ Implementado:
 - formulario responsive mobile/desktop;
 - creación real mediante `POST /api/businesses/:businessId/resources`;
 - validación frontend con Zod y React Hook Form;
-- nombre, descripción, capacidades y orden;
+- nombre, descripción y capacidades;
 - `internalCode` generado automáticamente a partir del nombre;
+- `sortOrder` preservado como dato técnico del contrato, con valor inicial interno, sin exponerse como campo operativo al usuario;
 - normalización del código interno a formato compatible con backend;
 - feedback de errores;
 - redirección al detalle luego de crear;
@@ -723,7 +724,8 @@ Implementado:
 - formulario responsive reutilizando las reglas visuales del módulo;
 - edición real mediante `PATCH /api/businesses/:businessId/resources/:resourceId`;
 - validación frontend con Zod y React Hook Form;
-- edición de nombre, `internalCode`, descripción, capacidades y orden;
+- edición de nombre, `internalCode`, descripción y capacidades;
+- `sortOrder` preservado internamente durante la edición sin exponerse como campo visual;
 - normalización de `internalCode` a mayúsculas antes del envío;
 - manejo de errores del backend;
 - actualización inmediata de la cache del detalle tras guardar;
@@ -751,7 +753,7 @@ Implementado:
 
 - `ACTIVE → OUT_OF_SERVICE` mediante `PATCH /api/businesses/:businessId/resources/:resourceId/disable`;
 - `OUT_OF_SERVICE → ACTIVE` mediante `PATCH /api/businesses/:businessId/resources/:resourceId/reactivate`;
-- confirmación previa a cada transición;
+- transición directa mediante control semántico `switch`, sin modal de confirmación;
 - estado de procesamiento durante la operación;
 - manejo de errores;
 - actualización inmediata de la cache del detalle;
@@ -813,9 +815,9 @@ Implementado — Imágenes:
 - selección automática de una imagen recién cargada;
 - eliminación mediante `DELETE /api/businesses/:businessId/resources/:resourceId/images/:imageId`;
 - confirmación previa a la eliminación;
-- reordenamiento mediante `PUT /api/businesses/:businessId/resources/:resourceId/images/order`;
-- controles de movimiento anterior/siguiente para establecer el orden sin introducir drag-and-drop fuera del alcance MVP;
-- persistencia del orden completo de imágenes;
+- backend mantiene capacidad de reordenamiento mediante `PUT /api/businesses/:businessId/resources/:resourceId/images/order`;
+- el refinement final del MVP no expone controles de reordenamiento en la UI; la capacidad backend queda disponible para una iteración futura;
+- persistencia del orden completo de imágenes soportada por backend;
 - `sortOrder = 0` utilizado como convención de portada del Resource;
 - compactación del orden luego de eliminar una imagen gestionada por backend;
 - actualización inmediata de cache después de upload, delete y reorder;
@@ -855,8 +857,8 @@ Criterios de aceptación cumplidos:
 - upload persiste y continúa disponible tras refresh;
 - carrusel permite recorrer imágenes persistidas;
 - imágenes pueden eliminarse;
-- imágenes pueden reordenarse;
-- el nuevo orden persiste tras refresh;
+- el orden de imágenes continúa soportado por backend, aunque el MVP final no expone controles manuales de reordenamiento;
+- cuando el orden es modificado mediante el contrato backend, persiste tras refresh;
 - cambiar el primer elemento cambia la portada;
 - eliminación compacta correctamente el orden restante;
 - listado y detalle son consistentes;
@@ -904,7 +906,7 @@ Implementado:
 - opción `Todos` para remover el filtro de estado;
 - combinación de búsqueda textual y estado;
 - contador dinámico de Resources visibles;
-- botón `Limpiar filtros` cuando existen filtros activos;
+- acción secundaria `Limpiar` cuando existen filtros activos;
 - empty state específico cuando existen Resources pero ningún resultado coincide;
 - preservación del empty state original cuando el Business todavía no tiene Resources;
 - controles con labels accesibles;
@@ -931,7 +933,7 @@ Criterios de aceptación cumplidos:
 
 Validación:
 
-- suite específica `ResourceListPage`: 10/10 tests aprobados;
+- suite específica `ResourceListPage`: 12/12 tests aprobados tras el refinement final;
 - suite frontend completa: 21 test files y 64 tests aprobados;
 - build productivo aprobado;
 - lint aprobado con 0 warnings y 0 errors;
@@ -943,8 +945,50 @@ Validación:
 - comportamiento responsive y foco visual revisados y aprobados.
 ---
 
-# 7A. FE-SUB — Subscription & Entitlements
+### Cierre UX/UI de Resources — MVP
 
+Refinement final aprobado para el MVP:
+
+- `Resource List` refinado para priorizar escaneabilidad, jerarquía y densidad operativa;
+- header simplificado con CTA principal `Nuevo recurso`;
+- búsqueda por nombre o `internalCode` preservada;
+- filtro por estado preservado sin introducir filtros no soportados por el dominio actual;
+- contador dinámico de resultados preservado;
+- cards desktop simplificadas con portada, nombre, capacidad máxima, estado y navegación al detalle;
+- portadas reales y fallback visual TOP preservados;
+- versión mobile transformada en un `Resource Story Deck` horizontal;
+- navegación mobile mediante swipe nativo y `scroll-snap`;
+- card activa mobile destacada mediante profundidad, escala y transición visual;
+- soporte de `prefers-reduced-motion`;
+- cards mobile muestran nombre, capacidad máxima, amenities principales y estado;
+- `internalCode` permanece disponible en desktop pero se oculta en el Story Deck mobile para reducir ruido visual;
+- amenities mobile limitados visualmente a tres elementos más contador de restantes;
+- `Resource Detail` refinado con jerarquía de imagen, información, amenities y acciones;
+- estado operativo representado mediante `switch` semántico;
+- edición disponible desde el detalle;
+- gestión de imágenes conserva upload, navegación y delete;
+- reordenamiento manual de imágenes no se expone en la UI final del MVP;
+- `Create Resource` y `Edit Resource` refinados como formularios compactos y consistentes;
+- `sortOrder` permanece en el contrato técnico pero deja de mostrarse como campo editable;
+- responsive mobile/tablet/desktop revisado;
+- targets interactivos, foco y reducción de movimiento preservados conforme a los lineamientos de accesibilidad del frontend;
+- no se introdujeron nuevas reglas de negocio, endpoints, permisos ni capacidades fuera del alcance existente.
+
+Estado funcional del módulo:
+
+**Resources se considera completo para el MVP a nivel funcional y UX/UI.**
+
+Validación final:
+
+- suite específica `ResourceListPage`: 12/12 tests aprobados;
+- suite frontend completa aprobada;
+- build productivo aprobado;
+- lint aprobado sin errores;
+- validación visual manual aprobada en desktop y mobile;
+- navegación, filtros, imágenes, estados, Create, Edit, Detail y Story Deck mobile validados manualmente.
+
+---
+# 7A. FE-SUB — Subscription & Entitlements
 ## FE-SUB-001 — Subscription Entitlements & Usage UI
 
 Estado: Planned
@@ -1491,7 +1535,7 @@ Si frontend necesita un cambio backend:
 | Foundation | 1 | 3 | 0 | 0 |
 | IAM | 0 | 1 | 5 | 0 |
 | Business | 0 | 0 | 3 | 0 |
-| Resource | 0 | 0 | 6 | 0 |
+| Resource | 0 | 0 | 7 | 0 |
 | Contact | 0 | 0 | 4 | 0 |
 | Availability | 0 | 0 | 3 | 0 |
 | Pricing | 0 | 0 | 5 | 0 |
@@ -1499,5 +1543,5 @@ Si frontend necesita un cambio backend:
 | Block | 0 | 0 | 3 | 0 |
 | Payment | 0 | 0 | 0 | 1 |
 | Dashboard | 0 | 0 | 0 | 1 |
-| **TOTAL** | **1** | **4** | **36** | **3** |
+| **TOTAL** | **1** | **4** | **37** | **3** |
 

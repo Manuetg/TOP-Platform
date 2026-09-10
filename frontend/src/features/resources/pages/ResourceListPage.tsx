@@ -1,12 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowRight,
-  BedDouble,
   Building2,
+  ChevronRight,
   ImageIcon,
   Plus,
   Search,
-  Users,
   X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -28,8 +26,8 @@ interface ResourceListPageProps {
 const TEMP_BUSINESS_ID =
   import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
-
 type ResourceStatusFilter = "ALL" | ResourceStatus;
+
 function getResourceStatusLabel(status: ResourceStatus) {
   switch (status) {
     case "ACTIVE":
@@ -51,12 +49,19 @@ function ResourceCard({
   cover,
 }: ResourceCardProps) {
   const navigate = useNavigate();
-  const visibleAmenities = resource.amenities.slice(0, 4);
-  const remainingAmenities =
-    resource.amenities.length - visibleAmenities.length;
+
+  const openResource = () =>
+    navigate(`/app/resources/${resource.id}`);
 
   return (
     <article className="resource-list-card">
+      <button
+        type="button"
+        className="resource-list-card__link"
+        onClick={openResource}
+        aria-label={`Ver ${resource.name}`}
+      />
+
       <div className="resource-list-card__media">
         {cover ? (
           <img
@@ -67,7 +72,11 @@ function ResourceCard({
         ) : (
           <div className="resource-list-card__media-placeholder">
             <div className="resource-list-card__illustration">
-              <Building2 size={42} aria-hidden="true" />
+              <Building2
+                size={34}
+                strokeWidth={1.6}
+                aria-hidden="true"
+              />
             </div>
 
             <span>Imagen del recurso</span>
@@ -76,103 +85,63 @@ function ResourceCard({
       </div>
 
       <div className="resource-list-card__body">
-        <div className="resource-list-card__heading">
-          <div className="resource-list-card__identity">
-            <div className="resource-list-card__title-row">
-              <h2>{resource.name}</h2>
+        <div className="resource-list-card__identity">
+          <h2>{resource.name}</h2>
 
-              <span
-                className={`resource-list-card__status resource-list-card__status--${resource.status.toLowerCase()}`}
-              >
-                <span
-                  className="resource-list-card__status-dot"
-                  aria-hidden="true"
-                />
-
-                {getResourceStatusLabel(resource.status)}
-              </span>
-            </div>
-
-            <p className="resource-list-card__code">
+          <p className="resource-list-card__meta">
+            <span className="resource-list-card__code">
               {resource.internalCode}
-            </p>
-          </div>
-
-
-        </div>
-
-        <div className="resource-list-card__metadata">
-          <div className="resource-list-card__metadata-item">
-            <div className="resource-list-card__metadata-icon">
-              <Users size={18} aria-hidden="true" />
-            </div>
-
-            <div>
-              <span>Capacidad</span>
-              <strong>
-                {resource.capacityMinimum}–{resource.capacityMaximum} huéspedes
-              </strong>
-            </div>
-          </div>
-
-          <div className="resource-list-card__metadata-item">
-            <div className="resource-list-card__metadata-icon">
-              <BedDouble size={18} aria-hidden="true" />
-            </div>
-
-            <div>
-              <span>Niños</span>
-              <strong>
-                Hasta {resource.capacityMaximumChildren}
-              </strong>
-            </div>
-          </div>
-        </div>
-
-        <div className="resource-list-card__amenities">
-          {visibleAmenities.length > 0 ? (
-            <>
-              {visibleAmenities.map((amenity) => (
-                <span
-                  key={amenity.id}
-                  className="resource-list-card__amenity"
-                >
-                  {amenity.name}
-                </span>
-              ))}
-
-              {remainingAmenities > 0 && (
-                <span className="resource-list-card__amenity">
-                  +{remainingAmenities}
-                </span>
-              )}
-            </>
-          ) : (
-            <span className="resource-list-card__amenities-empty">
-              Sin amenities configurados
+              <span aria-hidden="true"> · </span>
             </span>
-          )}
+
+            <span>
+              Hasta {resource.capacityMaximum}{" "}
+              {resource.capacityMaximum === 1
+                ? "huésped"
+                : "huéspedes"}
+            </span>
+          </p>
+
+          <div className="resource-list-card__amenities">
+            {resource.amenities.length > 0 ? (
+              <>
+                {resource.amenities
+                  .slice(0, 3)
+                  .map((amenity) => (
+                    <span
+                      key={amenity.id}
+                      className="resource-list-card__amenity"
+                    >
+                      {amenity.name}
+                    </span>
+                  ))}
+
+                {resource.amenities.length > 3 && (
+                  <span className="resource-list-card__amenity">
+                    +{resource.amenities.length - 3}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="resource-list-card__amenities-empty">
+                Sin amenities
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="resource-list-card__footer">
-          <Button
-            type="button"
-            variant="secondary"
-            className="resource-list-card__edit"
-            onClick={() =>
-              navigate(`/app/resources/${resource.id}`)
-            }
+          <span
+            className={`resource-list-card__status resource-list-card__status--${resource.status.toLowerCase()}`}
           >
-            <span className="resource-list-card__edit-mobile">
-              Ver
-            </span>
+            {getResourceStatusLabel(resource.status)}
+          </span>
 
-            <span className="resource-list-card__edit-desktop">
-              Ver detalle
-            </span>
-
-            <ArrowRight size={15} aria-hidden="true" />
-          </Button>
+          <ChevronRight
+            className="resource-list-card__chevron"
+            size={20}
+            aria-hidden="true"
+          />
         </div>
       </div>
     </article>
@@ -184,6 +153,7 @@ export function ResourceListPage({
 }: ResourceListPageProps) {
   const navigate = useNavigate();
   const { session } = useAuth();
+
   const {
     data: resources,
     isLoading,
@@ -195,15 +165,21 @@ export function ResourceListPage({
     accessToken: session?.accessToken,
   });
 
-  const {
-    data: imageCovers,
-  } = useResourceImageCovers({
-    businessId,
-    accessToken: session?.accessToken,
-  });
+  const { data: imageCovers } =
+    useResourceImageCovers({
+      businessId,
+      accessToken: session?.accessToken,
+    });
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] =
     useState<ResourceStatusFilter>("ALL");
+
+  const resourceDeckRef =
+    useRef<HTMLDivElement | null>(null);
+
+  const [activeResourceIndex, setActiveResourceIndex] =
+    useState(0);
 
   const normalizedSearchTerm =
     searchTerm.trim().toLocaleLowerCase();
@@ -227,7 +203,11 @@ export function ResourceListPage({
 
       return matchesSearch && matchesStatus;
     });
-  }, [normalizedSearchTerm, resources, statusFilter]);
+  }, [
+    normalizedSearchTerm,
+    resources,
+    statusFilter,
+  ]);
 
   const imageCoverByResourceId = useMemo(
     () =>
@@ -239,6 +219,7 @@ export function ResourceListPage({
       ),
     [imageCovers],
   );
+
   const hasActiveFilters =
     normalizedSearchTerm.length > 0 ||
     statusFilter !== "ALL";
@@ -247,6 +228,79 @@ export function ResourceListPage({
     setSearchTerm("");
     setStatusFilter("ALL");
   }
+
+  useEffect(() => {
+    const deck = resourceDeckRef.current;
+
+    if (!deck) {
+      return;
+    }
+
+    const updateActiveCard = () => {
+      if (window.innerWidth >= 768) {
+        return;
+      }
+
+      const cards = Array.from(
+        deck.querySelectorAll<HTMLElement>(
+          ".resource-list-card",
+        ),
+      );
+
+      if (cards.length === 0) {
+        return;
+      }
+
+      const deckRect = deck.getBoundingClientRect();
+      const deckCenter =
+        deckRect.left + deckRect.width / 2;
+
+      let closestIndex = 0;
+      let closestDistance = Number.POSITIVE_INFINITY;
+
+      cards.forEach((card, index) => {
+        const cardRect = card.getBoundingClientRect();
+        const cardCenter =
+          cardRect.left + cardRect.width / 2;
+
+        const distance = Math.abs(
+          deckCenter - cardCenter,
+        );
+
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndex = index;
+        }
+      });
+
+      setActiveResourceIndex(closestIndex);
+    };
+
+    updateActiveCard();
+
+    deck.addEventListener(
+      "scroll",
+      updateActiveCard,
+      { passive: true },
+    );
+
+    window.addEventListener(
+      "resize",
+      updateActiveCard,
+    );
+
+    return () => {
+      deck.removeEventListener(
+        "scroll",
+        updateActiveCard,
+      );
+
+      window.removeEventListener(
+        "resize",
+        updateActiveCard,
+      );
+    };
+  }, [filteredResources.length]);
 
   if (!businessId) {
     return (
@@ -257,7 +311,8 @@ export function ResourceListPage({
         <h1 id="resources-title">Recursos</h1>
 
         <p>
-          Configurá VITE_DEV_BUSINESS_ID para cargar los recursos durante el desarrollo.
+          Configurá VITE_DEV_BUSINESS_ID para cargar los
+          recursos durante el desarrollo.
         </p>
       </section>
     );
@@ -321,45 +376,25 @@ export function ResourceListPage({
     >
       <header className="resource-list-header">
         <div className="resource-list-header__copy">
-          <span className="resource-list-header__eyebrow">
-            Gestión de unidades
-          </span>
-
           <h1 id="resources-title">Recursos</h1>
 
           <p>
-            Administrá las habitaciones, cabañas o unidades disponibles para reservas.
+            Gestioná las unidades, espacios y activos
+            operativos del alojamiento.
           </p>
         </div>
 
         <Button
-  type="button"
-  className="resource-list-header__create"
-          onClick={() => navigate("/app/resources/new")}
->
-  <Plus size={16} aria-hidden="true" />
-  <span className="resource-list-header__create-mobile">
-    Nuevo
-  </span>
-  <span className="resource-list-header__create-desktop">
-    Nuevo recurso
-  </span>
-</Button>
+          type="button"
+          className="resource-list-header__create"
+          onClick={() =>
+            navigate("/app/resources/new")
+          }
+        >
+          <Plus size={18} aria-hidden="true" />
+          Nuevo recurso
+        </Button>
       </header>
-
-      <div className="resource-list-usage">
-        <div className="resource-list-usage__icon">
-          <BedDouble size={20} aria-hidden="true" />
-        </div>
-
-        <div className="resource-list-usage__content">
-          <span>Recursos configurados</span>
-
-          <strong>
-            {resourceCount} {resourceCount === 1 ? "recurso" : "recursos"}
-          </strong>
-        </div>
-      </div>
 
       {resourceCount === 0 ? (
         <div className="resource-list-empty">
@@ -371,37 +406,48 @@ export function ResourceListPage({
             <h2>Creá tu primer recurso</h2>
 
             <p>
-              Los recursos representan las habitaciones, cabañas o unidades que pueden recibir reservas.
+              Los recursos representan las habitaciones,
+              cabañas o unidades que pueden recibir
+              reservas.
             </p>
           </div>
 
-          <Button type="button">
+          <Button
+            type="button"
+            onClick={() =>
+              navigate("/app/resources/new")
+            }
+          >
             <Plus size={18} aria-hidden="true" />
             Nuevo recurso
           </Button>
         </div>
       ) : (
-        <div className="resource-list-content">
+        <>
           <div
             className="resource-list-filters"
             aria-label="Filtros de recursos"
           >
             <div className="resource-list-filters__search">
               <label htmlFor="resource-search">
-                Buscar recurso
+                Buscar
               </label>
 
               <div className="resource-list-filters__search-control">
-                <Search size={17} aria-hidden="true" />
+                <Search
+                  size={18}
+                  aria-hidden="true"
+                />
 
                 <input
                   id="resource-search"
                   type="search"
+                  aria-label="Buscar recurso"
                   value={searchTerm}
                   onChange={(event) =>
                     setSearchTerm(event.target.value)
                   }
-                  placeholder="Nombre o código interno"
+                  placeholder="Buscar por nombre o código..."
                 />
               </div>
             </div>
@@ -416,7 +462,8 @@ export function ResourceListPage({
                 value={statusFilter}
                 onChange={(event) =>
                   setStatusFilter(
-                    event.target.value as ResourceStatusFilter,
+                    event.target
+                      .value as ResourceStatusFilter,
                   )
                 }
               >
@@ -438,24 +485,19 @@ export function ResourceListPage({
                 className="resource-list-filters__clear"
                 onClick={clearFilters}
               >
-                <X size={15} aria-hidden="true" />
-                Limpiar filtros
+                <X size={16} aria-hidden="true" />
+                Limpiar
               </Button>
             )}
           </div>
-          <div className="resource-list-content__heading">
-            <div>
-              <h2>Tus recursos</h2>
 
-              <p>
-                Información principal de las unidades configuradas en este negocio.
-              </p>
-            </div>
-
-            <span className="resource-list-content__count">
-              {filteredResources.length}
-            </span>
+          <div className="resource-list-summary">
+            {filteredResources.length}{" "}
+            {filteredResources.length === 1
+              ? "recurso"
+              : "recursos"}
           </div>
+
           {filteredResources.length === 0 ? (
             <div
               className="resource-list-no-results"
@@ -464,10 +506,11 @@ export function ResourceListPage({
               <Search size={28} aria-hidden="true" />
 
               <div>
-                <h3>No encontramos recursos</h3>
+                <h2>No encontramos recursos</h2>
 
                 <p>
-                  Probá con otro nombre, código interno o estado.
+                  Probá con otro nombre, código interno o
+                  estado.
                 </p>
               </div>
 
@@ -480,19 +523,33 @@ export function ResourceListPage({
               </Button>
             </div>
           ) : (
-            <div className="resource-list-items">
-              {filteredResources.map((resource) => (
-                <ResourceCard
-                  key={resource.id}
-                  resource={resource}
-                  cover={imageCoverByResourceId.get(
-                    resource.id,
-                  )}
-                />
-              ))}
+            <div
+              ref={resourceDeckRef}
+              className="resource-list-items"
+              aria-label="Recursos"
+            >
+              {filteredResources.map(
+                (resource, index) => (
+                  <div
+                    key={resource.id}
+                    className={`resource-list-deck-item${
+                      index === activeResourceIndex
+                        ? " resource-list-deck-item--active"
+                        : ""
+                    }`}
+                  >
+                    <ResourceCard
+                      resource={resource}
+                      cover={imageCoverByResourceId.get(
+                        resource.id,
+                      )}
+                    />
+                  </div>
+                ),
+              )}
             </div>
           )}
-        </div>
+        </>
       )}
     </section>
   );

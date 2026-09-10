@@ -1,15 +1,11 @@
 import {
   ArrowLeft,
-  BedDouble,
   Building2,
   ChevronLeft,
   ChevronRight,
   ImagePlus,
-  MoveLeft,
-  MoveRight,
   Pencil,
   Trash2,
-  Users,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import type { ChangeEvent } from "react";
@@ -20,7 +16,6 @@ import { useAuth } from "../../auth/context/AuthContext";
 import { deleteResourceImage } from "../api/delete-resource-image";
 import { disableResource } from "../api/disable-resource";
 import { reactivateResource } from "../api/reactivate-resource";
-import { reorderResourceImages } from "../api/reorder-resource-images";
 import { uploadResourceImage } from "../api/upload-resource-image";
 import { ResourceAmenitiesEditor } from "../components/ResourceAmenitiesEditor";
 import { useResourceImages } from "../queries/use-resource-images";
@@ -31,8 +26,6 @@ import "./ResourceDetailPage.css";
 const TEMP_BUSINESS_ID =
   import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
-
-
 const MAX_RESOURCE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const MAX_RESOURCE_IMAGES = 10;
 
@@ -41,6 +34,7 @@ const ALLOWED_RESOURCE_IMAGE_TYPES = new Set([
   "image/png",
   "image/webp",
 ]);
+
 function getResourceStatusLabel(status: ResourceStatus) {
   switch (status) {
     case "ACTIVE":
@@ -57,6 +51,7 @@ export function ResourceDetailPage() {
   const queryClient = useQueryClient();
   const { resourceId = "" } = useParams();
   const { session } = useAuth();
+
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [statusActionError, setStatusActionError] = useState<string | null>(
     null,
@@ -71,6 +66,9 @@ export function ResourceDetailPage() {
     null,
   );
   const [isManagingImage, setIsManagingImage] = useState(false);
+  const [failedImageIds, setFailedImageIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const {
     data: resource,
@@ -94,15 +92,16 @@ export function ResourceDetailPage() {
   });
 
   const selectedImageIndex = currentImageId
-    ? resourceImages.findIndex(
-        (image) => image.id === currentImageId,
-      )
+    ? resourceImages.findIndex((image) => image.id === currentImageId)
     : -1;
 
   const displayedImageIndex =
     selectedImageIndex >= 0 ? selectedImageIndex : 0;
 
   const currentImage = resourceImages[displayedImageIndex];
+  const currentImageFailed = currentImage
+    ? failedImageIds.has(currentImage.id)
+    : false;
 
   function showPreviousImage() {
     if (resourceImages.length <= 1) {
@@ -130,26 +129,6 @@ export function ResourceDetailPage() {
     setCurrentImageId(resourceImages[nextIndex].id);
   }
 
-
-  if (!TEMP_BUSINESS_ID || !resourceId) {
-    return (
-      <section className="resource-detail-page">
-        <h1>Recurso</h1>
-        <p>No se pudo determinar el recurso solicitado.</p>
-      </section>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <section className="resource-detail-page">
-        <div className="resource-detail-loading" role="status">
-          Cargando recurso…
-        </div>
-      </section>
-    );
-  }
-
   async function handleImageChange(
     event: ChangeEvent<HTMLInputElement>,
   ) {
@@ -162,17 +141,13 @@ export function ResourceDetailPage() {
     setImageActionError(null);
 
     if (!ALLOWED_RESOURCE_IMAGE_TYPES.has(file.type)) {
-      setImageActionError(
-        "La imagen debe ser JPEG, PNG o WEBP.",
-      );
+      setImageActionError("La imagen debe ser JPEG, PNG o WEBP.");
       event.target.value = "";
       return;
     }
 
     if (file.size > MAX_RESOURCE_IMAGE_SIZE_BYTES) {
-      setImageActionError(
-        "La imagen no puede superar 5 MB.",
-      );
+      setImageActionError("La imagen no puede superar 5 MB.");
       event.target.value = "";
       return;
     }
@@ -228,84 +203,6 @@ export function ResourceDetailPage() {
       event.target.value = "";
     }
   }
-  async function handleMoveCurrentImage(
-    direction: "previous" | "next",
-  ) {
-    if (
-      !resource ||
-      !currentImage ||
-      isManagingImage ||
-      resource.status === "ARCHIVED"
-    ) {
-      return;
-    }
-
-    const targetIndex =
-      direction === "previous"
-        ? displayedImageIndex - 1
-        : displayedImageIndex + 1;
-
-    if (
-      targetIndex < 0 ||
-      targetIndex >= resourceImages.length
-    ) {
-      return;
-    }
-
-    const reorderedImages = [...resourceImages];
-    const [movedImage] = reorderedImages.splice(
-      displayedImageIndex,
-      1,
-    );
-
-    reorderedImages.splice(targetIndex, 0, movedImage);
-
-    const normalizedImages = reorderedImages.map(
-      (image, sortOrder) => ({
-        ...image,
-        sortOrder,
-      }),
-    );
-
-    const imageQueryKey = [
-      "resources",
-      TEMP_BUSINESS_ID,
-      resource.id,
-      "images",
-    ];
-
-    setImageActionError(null);
-    setIsManagingImage(true);
-
-    try {
-      await reorderResourceImages({
-        businessId: TEMP_BUSINESS_ID,
-        resourceId: resource.id,
-        imageIds: normalizedImages.map((image) => image.id),
-        accessToken: session?.accessToken,
-      });
-
-      queryClient.setQueryData(
-        imageQueryKey,
-        normalizedImages,
-      );
-
-      setCurrentImageId(currentImage.id);
-
-      await queryClient.invalidateQueries({
-        queryKey: imageQueryKey,
-        exact: true,
-      });
-    } catch (reorderError) {
-      setImageActionError(
-        reorderError instanceof Error
-          ? reorderError.message
-          : "No pudimos cambiar el orden de las imágenes.",
-      );
-    } finally {
-      setIsManagingImage(false);
-    }
-  }
 
   async function handleDeleteCurrentImage() {
     if (
@@ -350,10 +247,7 @@ export function ResourceDetailPage() {
           sortOrder,
         }));
 
-      queryClient.setQueryData(
-        imageQueryKey,
-        remainingImages,
-      );
+      queryClient.setQueryData(imageQueryKey, remainingImages);
 
       const nextSelectedImage =
         remainingImages[
@@ -379,16 +273,9 @@ export function ResourceDetailPage() {
       setIsManagingImage(false);
     }
   }
+
   async function handleDisableResource() {
     if (!resource || resource.status !== "ACTIVE") {
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `¿Querés poner "${resource.name}" fuera de servicio?`,
-    );
-
-    if (!confirmed) {
       return;
     }
 
@@ -427,14 +314,6 @@ export function ResourceDetailPage() {
       return;
     }
 
-    const confirmed = window.confirm(
-      `¿Querés reactivar "${resource.name}"?`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     setStatusActionError(null);
     setIsUpdatingStatus(true);
 
@@ -465,6 +344,25 @@ export function ResourceDetailPage() {
     }
   }
 
+  if (!TEMP_BUSINESS_ID || !resourceId) {
+    return (
+      <section className="resource-detail-page">
+        <h1>Recurso</h1>
+        <p>No se pudo determinar el recurso solicitado.</p>
+      </section>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <section className="resource-detail-page">
+        <div className="resource-detail-loading" role="status">
+          Cargando recurso…
+        </div>
+      </section>
+    );
+  }
+
   if (isError || !resource) {
     const message =
       error instanceof Error
@@ -473,14 +371,14 @@ export function ResourceDetailPage() {
 
     return (
       <section className="resource-detail-page">
-        <Button
+        <button
           type="button"
-          variant="secondary"
+          className="resource-detail-back"
           onClick={() => navigate("/app/resources")}
         >
-          <ArrowLeft size={16} aria-hidden="true" />
-          Volver a Recursos
-        </Button>
+          <ArrowLeft size={20} aria-hidden="true" />
+          Recursos
+        </button>
 
         <div className="resource-detail-error" role="alert">
           <p>{message}</p>
@@ -497,6 +395,8 @@ export function ResourceDetailPage() {
     );
   }
 
+  const canManageImages = resource.status !== "ARCHIVED";
+
   return (
     <section
       className="resource-detail-page"
@@ -507,73 +407,52 @@ export function ResourceDetailPage() {
         className="resource-detail-back"
         onClick={() => navigate("/app/resources")}
       >
-        <ArrowLeft size={16} aria-hidden="true" />
-        Volver a Recursos
+        <ArrowLeft size={20} aria-hidden="true" />
+        Recursos
       </button>
 
       <header className="resource-detail-header">
-        <div>
-          <span className="resource-detail-eyebrow">
-            Recurso
-          </span>
+        <div className="resource-detail-title-group">
+          <h1 id="resource-detail-title">{resource.name}</h1>
 
-          <div className="resource-detail-title-row">
-            <h1 id="resource-detail-title">
-              {resource.name}
-            </h1>
-
-            <span
-              className={`resource-detail-status resource-detail-status--${resource.status.toLowerCase()}`}
-            >
-              <span
-                className="resource-detail-status__dot"
-                aria-hidden="true"
-              />
-              {getResourceStatusLabel(resource.status)}
-            </span>
-          </div>
-
-          <p className="resource-detail-code">
-            {resource.internalCode}
-          </p>
-        </div>
-
-        <div className="resource-detail-actions">
-          <Button
+          <button
             type="button"
-            variant="secondary"
-            onClick={() =>
-              navigate(`/app/resources/${resource.id}/edit`)
+            role="switch"
+            aria-checked={resource.status === "ACTIVE"}
+            aria-label={
+              resource.status === "ACTIVE"
+                ? "Poner fuera de servicio"
+                : resource.status === "OUT_OF_SERVICE"
+                  ? "Reactivar recurso"
+                  : "Recurso archivado"
             }
+            className={`resource-detail-status-switch resource-detail-status-switch--${resource.status.toLowerCase()}`}
+            disabled={
+              isUpdatingStatus || resource.status === "ARCHIVED"
+            }
+            onClick={() => {
+              if (resource.status === "ACTIVE") {
+                void handleDisableResource();
+              } else if (resource.status === "OUT_OF_SERVICE") {
+                void handleReactivateResource();
+              }
+            }}
           >
-            <Pencil size={16} aria-hidden="true" />
-            Editar recurso
-          </Button>
-
-          {resource.status === "ACTIVE" ? (
-            <Button
-              type="button"
-              variant="danger"
-              disabled={isUpdatingStatus}
-              onClick={() => void handleDisableResource()}
-            >
-              {isUpdatingStatus
-                ? "Procesando…"
-                : "Poner fuera de servicio"}
-            </Button>
-          ) : null}
-          {resource.status === "OUT_OF_SERVICE" ? (
-            <Button
-              type="button"
-              disabled={isUpdatingStatus}
-              onClick={() => void handleReactivateResource()}
-            >
-              {isUpdatingStatus
-                ? "Procesando…"
-                : "Reactivar recurso"}
-            </Button>
-          ) : null}
+            <span aria-hidden="true" />
+          </button>
         </div>
+
+        <button
+          type="button"
+          className="resource-detail-edit-button"
+          aria-label="Editar recurso"
+          onClick={() =>
+            navigate(`/app/resources/${resource.id}/edit`)
+          }
+        >
+          <Pencil size={20} aria-hidden="true" />
+          <span>Editar recurso</span>
+        </button>
       </header>
 
       {statusActionError ? (
@@ -582,244 +461,219 @@ export function ResourceDetailPage() {
         </div>
       ) : null}
 
-      <div className="resource-detail-media">
-        {areImagesLoading ? (
-          <div
-            className="resource-detail-media__placeholder"
-            role="status"
-          >
-            <span>Cargando imagen…</span>
-          </div>
-        ) : currentImage ? (
-          <>
-            <img
-              className="resource-detail-media__image"
-              src={currentImage.url}
-              alt={resource.name}
-            />
-
-            {resourceImages.length > 1 ? (
+      <div className="resource-detail-layout">
+        <article className="resource-detail-card resource-detail-media-card">
+          <div className="resource-detail-media">
+            {areImagesLoading ? (
+              <div
+                className="resource-detail-media__placeholder"
+                role="status"
+              >
+                <Building2 size={32} aria-hidden="true" />
+                <span>Cargando imagen…</span>
+              </div>
+            ) : currentImage && !currentImageFailed ? (
               <>
-                <button
-                  type="button"
-                  className="resource-detail-media__control resource-detail-media__control--previous"
-                  aria-label="Imagen anterior"
-                  onClick={showPreviousImage}
-                >
-                  <ChevronLeft size={22} aria-hidden="true" />
-                </button>
+                <img
+                  className="resource-detail-media__image"
+                  src={currentImage.url}
+                  alt={resource.name}
+                  onError={() => {
+                    setFailedImageIds((current) => {
+                      const next = new Set(current);
+                      next.add(currentImage.id);
+                      return next;
+                    });
+                  }}
+                />
 
                 <button
                   type="button"
-                  className="resource-detail-media__control resource-detail-media__control--next"
-                  aria-label="Imagen siguiente"
-                  onClick={showNextImage}
+                  className="resource-detail-icon-button resource-detail-icon-button--overlay resource-detail-icon-button--danger"
+                  aria-label="Eliminar imagen"
+                  disabled={!canManageImages || isManagingImage}
+                  onClick={() => void handleDeleteCurrentImage()}
                 >
-                  <ChevronRight size={22} aria-hidden="true" />
+                  <Trash2 size={20} aria-hidden="true" />
                 </button>
-
-                <div
-                  className="resource-detail-media__counter"
-                  aria-live="polite"
-                >
-                  {displayedImageIndex + 1} / {resourceImages.length}
-                </div>
-
-                <div
-                  className="resource-detail-media__dots"
-                  aria-label="Seleccionar imagen"
-                >
-                  {resourceImages.map((image, index) => (
-                    <button
-                      key={image.id}
-                      type="button"
-                      className={
-                        index === displayedImageIndex
-                          ? "resource-detail-media__dot resource-detail-media__dot--active"
-                          : "resource-detail-media__dot"
-                      }
-                      aria-label={`Ver imagen ${index + 1} de ${resourceImages.length}`}
-                      aria-current={
-                        index === displayedImageIndex
-                          ? "true"
-                          : undefined
-                      }
-                      onClick={() => setCurrentImageId(image.id)}
-                    />
-                  ))}
-                </div>
               </>
-            ) : null}
-          </>
-        ) : (
-          <div
-            className="resource-detail-media__placeholder"
-            role="img"
-            aria-label={`Imagen de ${resource.name} no configurada`}
-          >
-            <Building2 size={36} aria-hidden="true" />
+            ) : (
+              <div
+                className="resource-detail-media__placeholder"
+                role="img"
+                aria-label={`Imagen de ${resource.name} no configurada`}
+              >
+                <Building2 size={36} aria-hidden="true" />
+                <div>
+                  <strong>{resource.name}</strong>
+                  <span>Imagen del recurso no configurada</span>
+                </div>
+              </div>
+            )}
+          </div>
 
-            <div>
-              <strong>{resource.name}</strong>
-              <span>Imagen del recurso no configurada</span>
+          <footer className="resource-detail-media-toolbar">
+            <span
+              className="resource-detail-media-count"
+              aria-live="polite"
+            >
+              {resourceImages.length > 0
+                ? `${displayedImageIndex + 1} / ${resourceImages.length}`
+                : `0 / ${MAX_RESOURCE_IMAGES}`}
+            </span>
+
+            <div
+              className="resource-detail-media-navigation"
+              aria-label="Navegación de imágenes"
+            >
+              {resourceImages.length > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    className="resource-detail-carousel-button"
+                    aria-label="Imagen anterior"
+                    onClick={showPreviousImage}
+                  >
+                    <ChevronLeft size={20} aria-hidden="true" />
+                  </button>
+
+                  <div className="resource-detail-media-dots">
+                    {resourceImages.map((image, index) => (
+                      <button
+                        key={image.id}
+                        type="button"
+                        className={
+                          index === displayedImageIndex
+                            ? "resource-detail-media-dot resource-detail-media-dot--active"
+                            : "resource-detail-media-dot"
+                        }
+                        aria-label={`Ver imagen ${index + 1} de ${resourceImages.length}`}
+                        aria-current={
+                          index === displayedImageIndex
+                            ? "true"
+                            : undefined
+                        }
+                        onClick={() => setCurrentImageId(image.id)}
+                      />
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="resource-detail-carousel-button"
+                    aria-label="Imagen siguiente"
+                    onClick={showNextImage}
+                  >
+                    <ChevronRight size={20} aria-hidden="true" />
+                  </button>
+                </>
+              ) : null}
             </div>
-          </div>
-        )}
-      </div>
 
-      <div className="resource-detail-image-manager">
-        <div className="resource-detail-image-manager__copy">
-          <strong>Imágenes del recurso</strong>
-          <span>
-            {resourceImages.length} de {MAX_RESOURCE_IMAGES}
-          </span>
-        </div>
-
-        <input
-          ref={imageInputRef}
-          className="resource-detail-image-input"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          disabled={
-            isUploadingImage ||
-            resource.status === "ARCHIVED" ||
-            resourceImages.length >= MAX_RESOURCE_IMAGES
-          }
-          onChange={(event) => void handleImageChange(event)}
-        />
-
-        <div className="resource-detail-image-manager__actions">
-          {currentImage ? (
-            <>
-              <Button
-                type="button"
-                variant="secondary"
+            <div className="resource-detail-media-actions">
+              <input
+                ref={imageInputRef}
+                className="resource-detail-image-input"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
                 disabled={
+                  isUploadingImage ||
                   isManagingImage ||
-                  resource.status === "ARCHIVED" ||
-                  displayedImageIndex === 0
+                  !canManageImages ||
+                  resourceImages.length >= MAX_RESOURCE_IMAGES
                 }
-                onClick={() =>
-                  void handleMoveCurrentImage("previous")
-                }
-              >
-                <MoveLeft size={16} aria-hidden="true" />
-                Mover izquierda
-              </Button>
+                onChange={(event) => void handleImageChange(event)}
+              />
 
-              <Button
+              <button
                 type="button"
-                variant="secondary"
+                className="resource-detail-icon-button"
+                aria-label={
+                  isUploadingImage
+                    ? "Subiendo imagen"
+                    : "Agregar imagen"
+                }
                 disabled={
+                  isUploadingImage ||
                   isManagingImage ||
-                  resource.status === "ARCHIVED" ||
-                  displayedImageIndex ===
-                    resourceImages.length - 1
+                  !canManageImages ||
+                  resourceImages.length >= MAX_RESOURCE_IMAGES
                 }
-                onClick={() =>
-                  void handleMoveCurrentImage("next")
-                }
+                onClick={() => imageInputRef.current?.click()}
               >
-                <MoveRight size={16} aria-hidden="true" />
-                Mover derecha
-              </Button>
+                <ImagePlus size={20} aria-hidden="true" />
+              </button>
+            </div>
+          </footer>
 
-              <Button
-                type="button"
-                variant="danger"
-                disabled={
-                  isManagingImage ||
-                  resource.status === "ARCHIVED"
-                }
-                onClick={() =>
-                  void handleDeleteCurrentImage()
-                }
-              >
-                <Trash2 size={16} aria-hidden="true" />
-                {isManagingImage
-                  ? "Procesando…"
-                  : "Eliminar"}
-              </Button>
-            </>
+          {imageActionError ? (
+            <div
+              className="resource-detail-inline-error"
+              role="alert"
+            >
+              {imageActionError}
+            </div>
           ) : null}
-
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={
-              isUploadingImage ||
-              isManagingImage ||
-              resource.status === "ARCHIVED" ||
-              resourceImages.length >= MAX_RESOURCE_IMAGES
-            }
-            onClick={() => imageInputRef.current?.click()}
-          >
-            <ImagePlus size={16} aria-hidden="true" />
-            {isUploadingImage ? "Subiendo…" : "Agregar imagen"}
-          </Button>
-        </div>
-      </div>
-
-      {imageActionError ? (
-        <div
-          className="resource-detail-image-error"
-          role="alert"
-        >
-          {imageActionError}
-        </div>
-      ) : null}
-      <div className="resource-detail-grid">
-        <article className="resource-detail-card resource-detail-card--main">
-          <div className="resource-detail-card__heading">
-            <Building2 size={20} aria-hidden="true" />
-            <h2>Información general</h2>
-          </div>
-
-          <div className="resource-detail-description">
-            <span>Descripción</span>
-            <p>
-              {resource.description?.trim()
-                ? resource.description
-                : "Sin descripción configurada."}
-            </p>
-          </div>
         </article>
 
-        <article className="resource-detail-card">
-          <div className="resource-detail-card__heading">
-            <Users size={20} aria-hidden="true" />
-            <h2>Capacidad</h2>
-          </div>
+        <article className="resource-detail-card resource-detail-info-card">
+          <h2>Información</h2>
 
-          <dl className="resource-detail-stats">
+          <dl className="resource-detail-info-list">
             <div>
-              <dt>Huéspedes</dt>
+              <dt>Código</dt>
+              <dd>{resource.internalCode}</dd>
+            </div>
+
+            <div>
+              <dt>Capacidad</dt>
               <dd>
-                {resource.capacityMinimum}–
-                {resource.capacityMaximum}
+                {resource.capacityMinimum}–{resource.capacityMaximum} huéspedes
+                {" · "}
+                {resource.capacityMaximumChildren} niños
               </dd>
             </div>
 
             <div>
-              <dt>Niños</dt>
+              <dt>Descripción</dt>
               <dd>
-                Hasta {resource.capacityMaximumChildren}
+                {resource.description?.trim()
+                  ? resource.description
+                  : "Sin descripción configurada."}
+              </dd>
+            </div>
+
+            <div>
+              <dt>Estado operativo</dt>
+              <dd>
+                <span
+                  className={`resource-detail-status-badge resource-detail-status-badge--${resource.status.toLowerCase()}`}
+                >
+                  {getResourceStatusLabel(resource.status)}
+                </span>
               </dd>
             </div>
           </dl>
         </article>
 
-        <article className="resource-detail-card">
-          <div className="resource-detail-card__heading">
-            <BedDouble size={20} aria-hidden="true" />
-            <h2>Amenities</h2>
-          </div>
+        <article className="resource-detail-card resource-detail-amenities-card">
+          <h2>Amenities</h2>
 
           <ResourceAmenitiesEditor
             businessId={TEMP_BUSINESS_ID}
             resource={resource}
             accessToken={session?.accessToken}
           />
+        </article>
+
+        <article
+          className="resource-detail-card resource-detail-actions-card"
+          aria-label="Acciones"
+        >
+          <h2>Acciones</h2>
+          <span className="resource-detail-visually-hidden">
+            No hay acciones adicionales disponibles.
+          </span>
         </article>
       </div>
     </section>
