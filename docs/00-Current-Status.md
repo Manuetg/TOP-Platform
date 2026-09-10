@@ -53,7 +53,7 @@ Validación de cambios backend:
 
 Pendientes principales posteriores:
 - Platform Administration / Global Authority pendiente de definición
-- Payment
+- PAY-003 — Payment History y PAY-004 — Outstanding Balance
 - Dashboard
 
 ## Estado Frontend
