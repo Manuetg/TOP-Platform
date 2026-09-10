@@ -33,7 +33,7 @@ Alcance:
 Última historia completada:
 - PAY-002 — Payment Plan — Completed
 
-Estado del MVP:
+Estado del backlog backend del MVP:
 - 47 / 53 capacidades completadas
 - 88,7%
 
