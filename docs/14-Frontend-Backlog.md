@@ -1027,45 +1027,100 @@ Criterios de aceptación:
 # 8. FE-CON — Contacts
 
 ## FE-CON-001 — Contact Search/List
-
-Estado: Planned
+Estado: Completed
 
 Objetivo:
+Buscar y listar huéspedes/contactos del Business activo.
 
-Buscar y listar huéspedes/contactos.
+Implementado:
+- listado business-scoped contra `GET /businesses/:businessId/contacts`;
+- búsqueda server-side por nombre, teléfono, WhatsApp, email o documento;
+- debounce de búsqueda;
+- estados de loading, error, vacío y sin resultados;
+- navegación a Contact Detail;
+- CTA para crear un nuevo contacto;
+- tabla operativa en desktop;
+- cards adaptadas para mobile;
+- representación visible de estado `ACTIVE`, `INACTIVE` y `ARCHIVED`.
 
----
+Validación:
+- probado funcionalmente en desktop y mobile;
+- tests API y UI implementados;
+- regresión completa de frontend aprobada con test, build y lint.
 
 ## FE-CON-002 — Contact Detail
-
-Estado: Planned
+Estado: Completed
 
 Objetivo:
+Mostrar la ficha detallada de un Contact.
 
-Mostrar ficha detallada de un Contact.
+Implementado:
+- carga business-scoped contra `GET /businesses/:businessId/contacts/:contactId`;
+- identidad y estado del contacto;
+- información personal;
+- documento;
+- teléfono / WhatsApp;
+- email;
+- país y ciudad;
+- estados de loading y error;
+- navegación de regreso a Contact List;
+- navegación a Edit Contact.
 
----
+Validación:
+- probado funcionalmente en desktop y mobile;
+- tests UI implementados;
+- regresión completa de frontend aprobada.
 
 ## FE-CON-003 — Create Contact
-
-Estado: Planned
+Estado: Completed
 
 Objetivo:
-
 Crear un huésped/contacto.
 
----
+Implementado:
+- creación business-scoped contra `POST /businesses/:businessId/contacts`;
+- Nombre obligatorio;
+- Apellido obligatorio;
+- campo unificado `Teléfono / WhatsApp` obligatorio;
+- compatibilidad con el contrato backend actual enviando el número a `phone` y `whatsapp`;
+- Email opcional con validación de formato;
+- Tipo de documento mediante picklist `CI` / `Pasaporte`;
+- Número de documento opcional;
+- País mediante picklist con navegación nativa por teclado;
+- Paraguay seleccionado por defecto;
+- Ciudad opcional;
+- navegación automática al Contact Detail después de crear;
+- formulario responsive para desktop y mobile.
+
+Validación:
+- creación real contra backend probada satisfactoriamente;
+- probado funcionalmente en desktop y mobile;
+- tests API y UI implementados;
+- regresión completa de frontend aprobada.
 
 ## FE-CON-004 — Edit Contact
-
-Estado: Planned
+Estado: Completed
 
 Objetivo:
-
 Actualizar información de Contact.
 
----
+Implementado:
+- actualización business-scoped contra `PATCH /businesses/:businessId/contacts/:contactId`;
+- precarga de los datos actuales;
+- mismas reglas UX de Create Contact para Nombre, Apellido y Teléfono / WhatsApp;
+- mantenimiento del campo unificado de teléfono con persistencia en `phone` y `whatsapp`;
+- soporte de `CI` y `Pasaporte`;
+- selección de país desde el mismo catálogo de Create;
+- actualización de email, documento, país y ciudad;
+- navegación al Contact Detail después de guardar;
+- estados de loading y error;
+- formulario responsive para desktop y mobile.
 
+Validación:
+- actualización real contra backend probada satisfactoriamente;
+- probado funcionalmente en desktop y mobile;
+- tests API y UI implementados;
+- regresión completa de frontend aprobada.
 # 9. FE-AVL — Availability
 
 ## FE-AVL-001 — Availability Check
