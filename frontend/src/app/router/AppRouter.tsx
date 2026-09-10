@@ -11,6 +11,10 @@ import { ResourceListPage } from "../../features/resources/pages/ResourceListPag
 import { ResourceDetailPage } from "../../features/resources/pages/ResourceDetailPage";
 import { CreateResourcePage } from "../../features/resources/pages/CreateResourcePage";
 import { EditResourcePage } from "../../features/resources/pages/EditResourcePage";
+import { ContactListPage } from "../../features/contacts/pages/ContactListPage";
+import { CreateContactPage } from "../../features/contacts/pages/CreateContactPage";
+import { ContactDetailPage } from "../../features/contacts/pages/ContactDetailPage";
+import { EditContactPage } from "../../features/contacts/pages/EditContactPage";
 
 const router = createBrowserRouter([
   {
@@ -59,7 +63,19 @@ const router = createBrowserRouter([
       },
       {
         path: "contacts",
-        element: <AppSectionPage title="Contactos" />,
+        element: <ContactListPage />,
+      },
+      {
+        path: "contacts/new",
+        element: <CreateContactPage />,
+      },
+      {
+        path: "contacts/:contactId/edit",
+        element: <EditContactPage />,
+      },
+      {
+        path: "contacts/:contactId",
+        element: <ContactDetailPage />,
       },
       {
         path: "pricing",
