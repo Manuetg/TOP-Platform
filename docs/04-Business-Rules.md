@@ -94,6 +94,7 @@ Cada regla indica ID, nombre, tipo, estado, dominios afectados, descripción, co
 - **BR-050 — Estado financiero.** Tipo: Integridad. Estado: Aprobada. Dominios: Payment, Pricing, Booking. Descripción: pago no cambia Snapshot ni confirma salvo regla; estado deriva de válidos. Comportamiento: no hay saldo negativo salvo sobrepago explícito. Excepciones: política futura.
 - **BR-051 — Reembolsos y seguridad.** Tipo: Restricción del MVP. Estado: Aprobada. Dominios: Payment. Descripción: reembolso es trazable; no se almacenan tarjetas sensibles. Comportamiento: se rechazan datos sensibles. Excepciones: ninguna.
 - **BR-081 — Plan de pagos y aplicaciones.** Tipo: Integridad. Estado: Aprobada. Dominios: Payment. Descripción: una Booking confirmada puede tener un único plan de 1 a 100 cuotas cuya suma coincide exactamente con el PricingSnapshot. Comportamiento: la moneda y el total se derivan del Snapshot; las cuotas admiten vencimientos opcionales, pasados o repetidos y conservan el orden de entrada. Payments `RECORDED` se aplican automáticamente por vencimiento ascendente, cuotas sin fecha al final y orden estable; los Payments históricos se procesan por `paidAt`, `createdAt` e `id`. Un plan solo puede reemplazarse antes de su primera aplicación; planes, pagos, aplicaciones, Booking y PricingSnapshot se persisten sin reescritura parcial. Excepciones: ninguna.
+- **BR-082 — Saldo financiero derivado.** Tipo: Integridad. Estado: Aprobada. Dominios: Payment, Pricing, Booking. Descripción: PAY-004 calcula por Booking el total desde PricingSnapshot, el pagado desde Payments `RECORDED` y el saldo como su diferencia, sin persistir balances. Comportamiento: PaymentApplication solo determina vencido y próximo vencimiento; una cuota con saldo es vencida cuando su fecha pura es anterior a la fecha local IANA del Business, mientras fecha nula o igual a hoy no vence. El estado derivado usa precedencia `PAID`, `OVERDUE`, `PARTIALLY_PAID`, `UNPAID`; la lectura requiere `payment.read`, mantiene aislamiento tenant y falla ante un estado persistido imposible. Excepciones: sin PaymentPlan, vencido es cero y próximo vencimiento es nulo; Cancelled y No Show no agregan penalizaciones ni comportamiento financiero.
 
 **Pendientes:** saldo a favor, reembolsos, comprobantes, cancelaciones y No Show.
 
@@ -139,7 +140,7 @@ Los mecanismos concretos de capacidades futuras se definen en Architecture duran
 
 ### Próximas definiciones del MVP
 
-- PAY-003 — Payment History, PAY-004 — Outstanding Balance y las capacidades de Dashboard conservan sus contratos pendientes en el Backlog. PAY-004 es la siguiente discovery recomendada.
+- PAY-003 — Payment History y las capacidades de Dashboard conservan sus contratos pendientes en el Backlog. PAY-004 está en implementación con el contrato definido por BR-082.
 - El tratamiento financiero de cancelaciones y No Show permanece pendiente y no se infiere de Booking ni Payment actuales.
 
 ### No bloqueantes o futuras

@@ -9,6 +9,7 @@ import {
   type PaymentRepository,
   type RegisterPaymentData,
 } from '../../../src/modules/payment/domain/payment';
+import type { OutstandingBalanceRepository } from '../../../src/modules/payment/domain/outstanding-balance';
 
 interface Application {
   paymentId: string;
@@ -123,6 +124,23 @@ export const paymentRepositoryFake: PaymentRepository = {
     const plan = plans.find((item) => item.businessId === data.businessId && item.bookingId === data.bookingId);
     if (plan) apply(payment, plan);
     return Promise.resolve({ payment, duplicate: false });
+  },
+};
+
+export const outstandingBalanceRepositoryFake: OutstandingBalanceRepository = {
+  calculate: ({ businessId, bookingId, businessLocalDate }) => {
+    const paidAmountMinor = payments
+      .filter((item) => item.businessId === businessId && item.bookingId === bookingId && item.status === PaymentStatus.RECORDED)
+      .reduce((sum, item) => sum + item.amountMinor, 0);
+    const plan = plans.find((item) => item.businessId === businessId && item.bookingId === bookingId);
+    if (!plan) return Promise.resolve({ paymentPlanId: null, paidAmountMinor, planTotalAmountMinor: null, installmentTotalAmountMinor: 0, appliedAmountMinor: 0, overdueAmountMinor: 0, nextDueDate: null, nextDueAmountMinor: null });
+    const balances = plan.installments.map((installment) => {
+      const appliedAmountMinor = applications.filter((item) => item.installmentId === installment.id).reduce((sum, item) => sum + item.amountMinor, 0);
+      return { ...installment, appliedAmountMinor, outstandingAmountMinor: installment.amountMinor - appliedAmountMinor };
+    });
+    const overdueAmountMinor = balances.filter((item) => item.outstandingAmountMinor > 0 && item.dueDate !== null && item.dueDate.toISOString().slice(0, 10) < businessLocalDate).reduce((sum, item) => sum + item.outstandingAmountMinor, 0);
+    const nextDue = balances.filter((item) => item.outstandingAmountMinor > 0 && item.dueDate !== null).sort(compareInstallments)[0] ?? null;
+    return Promise.resolve({ paymentPlanId: plan.id, paidAmountMinor, planTotalAmountMinor: plan.totalAmountMinor, installmentTotalAmountMinor: balances.reduce((sum, item) => sum + item.amountMinor, 0), appliedAmountMinor: balances.reduce((sum, item) => sum + item.appliedAmountMinor, 0), overdueAmountMinor, nextDueDate: nextDue?.dueDate ?? null, nextDueAmountMinor: nextDue?.outstandingAmountMinor ?? null });
   },
 };
 
