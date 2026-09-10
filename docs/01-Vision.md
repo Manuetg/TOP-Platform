@@ -68,6 +68,8 @@ El MVP se limita a las siguientes áreas:
 - Calendario.
 - Dashboard.
 
+Los dominios técnicos y las capacidades de soporte necesarios para entregar estas áreas no constituyen por sí mismos una ampliación del alcance funcional del MVP.
+
 Todo elemento que no esté incluido expresamente en esta lista está fuera del MVP.
 
 La documentación actual establece los siguientes principios que deberán orientar su definición:

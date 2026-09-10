@@ -8,9 +8,15 @@ Este documento registra la secuencia de evolución del MVP y las iniciativas fut
 
 Business, Identity & Access, Resource, Pricing, Availability, Contact, Booking y Block están completados. Payment tiene 2 de 4 capacidades completadas; Dashboard permanece planificado. La siguiente capacidad recomendada es PAY-004 — Outstanding Balance, comenzando por discovery. El orden operativo vigente se encuentra en [07-Backlog.md](07-Backlog.md).
 
-## Secuencia histórica de dominios del MVP
+## Áreas funcionales del producto
 
-La siguiente secuencia conserva la referencia usada para estructurar el MVP; no representa el estado ni el orden operativo actual:
+El MVP mantiene las ocho áreas aprobadas en Vision y Product Strategy: Negocio, Recursos, Precios, Disponibilidad, Reservas, Pagos, Calendario y Dashboard. Identity & Access, Contact y Block son dominios backend de soporte y no representan áreas comerciales adicionales.
+
+Calendario es un área funcional visible. Su capacidad backend inicial está cubierta por AVL-002 — Availability Calendar y no requiere una épica backend `Calendar` separada. Cualquier ampliación futura deberá incorporarse al Backlog mediante aprobación explícita.
+
+## Secuencia histórica de dominios y capacidades backend
+
+La siguiente secuencia conserva la referencia usada para estructurar el backlog backend; no representa las áreas funcionales visibles, el estado ni el orden operativo actual:
 
 1. Business.
 2. Identity & Access.

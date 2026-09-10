@@ -26,13 +26,21 @@ Los usuarios identificados son Propietario, Administrador, Recepcionista y Consu
 
 ## Estado actual del MVP
 
-El MVP incluye Negocio, Identity & Access, Recursos, Precios, Disponibilidad, Contactos, Reservas, Pagos, Bloqueos y Dashboard.
+### Áreas funcionales del producto
 
-El backend tiene 47 de 53 capacidades completadas (88,7%). La última historia completada es PAY-002 — Payment Plan. Payment tiene 2 de 4 capacidades completadas (50%), no hay una historia backend activa y la siguiente discovery recomendada es PAY-004 — Outstanding Balance.
+El alcance funcional aprobado comprende ocho áreas: Negocio, Recursos, Precios, Disponibilidad, Reservas, Pagos, Calendario y Dashboard.
+
+Calendario permanece como área visible del producto. Su contrato backend inicial está cubierto por AVL-002 — Availability Calendar mediante `GET /api/businesses/:businessId/availability/calendar`; no existe una épica backend separada para Calendar.
+
+### Dominios backend de soporte
+
+Identity & Access, Contact y Block son dominios y capacidades técnicas necesarias para entregar las áreas funcionales aprobadas. Su presencia en el backlog backend no amplía por sí misma el alcance comercial del MVP.
+
+El backlog backend del MVP tiene 47 de 53 capacidades completadas (88,7%). La última historia completada es PAY-002 — Payment Plan. Payment tiene 2 de 4 capacidades completadas (50%), no hay una historia backend activa y la siguiente discovery recomendada es PAY-004 — Outstanding Balance.
 
 El estado operativo de cada capacidad se mantiene en el [Backlog](07-Backlog.md). [Estado actual](00-Current-Status.md) ofrece el handoff resumido vigente.
 
-## Módulos implementados
+## Progreso por dominio del backlog backend
 
 - Business: 5 / 5.
 - Identity & Access: 9 / 9.

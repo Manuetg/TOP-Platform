@@ -8,6 +8,8 @@ Pruebas obligatorias: unitarias, integración, E2E y aceptación, según aplique
 
 Los endpoints no definidos expresamente se marcan como **Pendiente de definición**.
 
+El total representa capacidades del backlog backend del MVP. Algunas corresponden a dominios de soporte como Identity & Access, Contact y Block; las capacidades no equivalen uno a uno con las áreas funcionales visibles definidas en Vision y Product Strategy.
+
 ## Business
 
 - **BUS-001 — Create Business.** Estado: Completed. Dominio: Business. Prioridad: Alta. Endpoint: `POST /api/businesses`. Pruebas obligatorias: unitarias, integración, E2E y aceptación. Definition of Done: aplicada.
@@ -60,6 +62,8 @@ Secuencia ejecutable: IAM-004, IAM-009, IAM-007 si requiere implementación adic
 - **AVL-002 — Availability Calendar.** Estado: Completed. Dominio: Availability. Prioridad: Alta. Endpoint: `GET /api/businesses/:businessId/availability/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD[&resourceId=<uuid>]`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commits `4490401`, `360a47e` y `e609737`; calendario derivado con rango `[from, to)` de hasta 31 días, matriz Resource×día para todos los Resources o un `resourceId` tenant-scoped, mismos estados y razones de AVL-001, orden determinista y consultas de Booking/Block por rango completo sin patrón N×M; sin persistencia, Pricing ni auto-assignment; arquitectura y quality gate aprobados; mutation segmentada: calendario 89,09%, controller 100% y lookups batch 100%.
 - **AVL-003 — Availability Rules.** Estado: Completed. Dominio: Availability. Prioridad: Alta. Endpoint: `GET` y `PATCH /api/businesses/:businessId/availability-rules`. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commits `9364b4b`, `f9d48b6` y `a261a94`; configuración única tenant-scoped con defaults compatibles (`pendingBlocksAvailability: true`, `bufferBeforeDays: 0`, `bufferAfterDays: 0`), validación de booleano y buffers enteros no negativos, y consumo centralizado por AVL-001/AVL-002 sin duplicar derivación. Los buffers aplican solo a Booking; Block conserva sus instantes exactos. Arquitectura sin violaciones, E2E y Acceptance focalizados, quality check y mutation segmentada 92,06% aprobados.
 - **AVL-004 — Overbooking Validation.** Estado: Completed. Dominio: Availability. Prioridad: Alta. Endpoint: no expone endpoint público; validación interna reutilizable consumida por Confirm Booking. Pruebas obligatorias: según convención. Definition of Done: aplicada. Evidencia técnica: commits `40180ea` y `d9ad979`; `ValidateOverbookingUseCase` valida uno o varios Resources tenant-scoped sobre `[checkInDate, checkOutDate)`, delega la semántica central a `CheckAvailabilityUseCase` sin duplicar intersecciones, aplica estados, Bookings, Blocks, `pendingBlocksAvailability` y buffers diarios y devuelve conflictos deterministas por Resource. Unit e integración focalizados, lint, build, quality check, Acceptance y arquitectura aprobados; mutation segmentada 88,89% (26 killed, 22 timeout, 6 survived, 0 no coverage), por encima del threshold vigente y sin bloqueo funcional relevante.
+
+AVL-002 es la capacidad backend inicial asociada al área funcional Calendario. No existe una épica backend `Calendar`; cualquier necesidad adicional requiere una capacidad aprobada en este Backlog.
 
 ## Contact
 
@@ -127,7 +131,7 @@ Progreso de Availability: 4 de 4 capacidades completadas (100%).
 
 Progreso de Booking: 6 de 6 capacidades completadas (100%).
 
-Progreso general del MVP: 47 de 53 capacidades completadas (88,7%).
+Progreso general del backlog backend del MVP: 47 de 53 capacidades completadas (88,7%).
 
 Progreso de Contact: 4 de 4 capacidades completadas (100%).
 

@@ -52,6 +52,8 @@ El MVP incluye únicamente las siguientes áreas:
 - Calendario.
 - Dashboard.
 
+Los dominios técnicos y las capacidades de soporte necesarios para implementar estas áreas no constituyen por sí mismos una ampliación del alcance funcional del MVP.
+
 Todo elemento que no esté incluido expresamente en esta lista está fuera del MVP.
 
 ## 7. No Objetivos
