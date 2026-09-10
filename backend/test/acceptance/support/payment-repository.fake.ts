@@ -125,7 +125,43 @@ export const paymentRepositoryFake: PaymentRepository = {
     if (plan) apply(payment, plan);
     return Promise.resolve({ payment, duplicate: false });
   },
+  listByBooking: ({ businessId, bookingId, before, limit }) => Promise.resolve(
+    payments
+      .filter((item) => item.businessId === businessId && item.bookingId === bookingId)
+      .sort(comparePaymentsDescending)
+      .filter((item) => !before || comparePaymentToCursor(item, before) > 0)
+      .slice(0, limit)
+      .map(toPublicPayment),
+  ),
 };
+
+function comparePaymentsDescending(left: Payment, right: Payment): number {
+  return right.paidAt.getTime() - left.paidAt.getTime()
+    || right.createdAt.getTime() - left.createdAt.getTime()
+    || right.id.localeCompare(left.id);
+}
+
+function comparePaymentToCursor(payment: Payment, cursor: { paidAt:Date; createdAt:Date; id:string }): number {
+  return cursor.paidAt.getTime() - payment.paidAt.getTime()
+    || cursor.createdAt.getTime() - payment.createdAt.getTime()
+    || cursor.id.localeCompare(payment.id);
+}
+
+function toPublicPayment(payment: Payment): Omit<Payment, 'businessId'|'idempotencyKey'|'requestFingerprint'> {
+  return {
+    id: payment.id,
+    bookingId: payment.bookingId,
+    amountMinor: payment.amountMinor,
+    currency: payment.currency,
+    method: payment.method,
+    reference: payment.reference,
+    note: payment.note,
+    paidAt: payment.paidAt,
+    createdAt: payment.createdAt,
+    recordedByUserId: payment.recordedByUserId,
+    status: payment.status,
+  };
+}
 
 export const outstandingBalanceRepositoryFake: OutstandingBalanceRepository = {
   calculate: ({ businessId, bookingId, businessLocalDate }) => {
@@ -149,3 +185,4 @@ export const pricingSnapshotRepositoryFake = { create: () => Promise.reject(new 
 export function resetPaymentFakes(): void { payments.length = 0; plans.length = 0; applications.length = 0; snapshots.clear(); }
 export function paymentCount(): number { return payments.length; }
 export function applicationCount(): number { return applications.length; }
+export function addPaymentFake(payment: Payment): void { payments.push(payment); }
