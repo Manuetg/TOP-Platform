@@ -160,14 +160,14 @@ describe("ResourceListPage", () => {
       }),
     ).toBeInTheDocument();
 
-    expect(screen.getByText("CAB-01")).toBeInTheDocument();
-    expect(
-      screen.getByText("1–4 huéspedes"),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/CAB-01/)).toBeInTheDocument();
+    expect(screen.getByText(/4 huéspedes/)).toBeInTheDocument();
 
     expect(
-      screen.getAllByText("Activo"),
-    ).toHaveLength(2);
+      screen.getByText("Activo", {
+        selector: ".resource-list-card__status",
+      }),
+    ).toBeInTheDocument();
   });
 
   it("renders the persisted Resource cover when one exists", () => {
@@ -451,7 +451,7 @@ describe("ResourceListPage", () => {
 
     await user.click(
       screen.getByRole("button", {
-        name: "Limpiar filtros",
+        name: "Limpiar",
       }),
     );
 

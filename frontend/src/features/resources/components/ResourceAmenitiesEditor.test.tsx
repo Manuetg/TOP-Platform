@@ -171,25 +171,31 @@ describe("ResourceAmenitiesEditor", () => {
 
     expect(
       screen.getByRole("checkbox", {
-        name: /Wi-Fi/i,
+        name: "Wi-Fi",
       }),
     ).toBeChecked();
 
     expect(
       screen.getByRole("checkbox", {
-        name: /Estacionamiento/i,
+        name: "Estacionamiento",
       }),
     ).not.toBeChecked();
+
+    expect(
+      screen.queryByRole("combobox", {
+        name: "Categoría",
+      }),
+    ).not.toBeInTheDocument();
   });
 
-  it("creates a business amenity and selects it immediately", async () => {
+  it("creates a business amenity with GENERAL and selects it immediately", async () => {
     const user = userEvent.setup();
 
     mockedCreateBusinessAmenity.mockResolvedValue({
       id: "amenity-custom-1",
       code: "CUSTOM_123",
       name: "Muelle privado",
-      category: "OUTDOOR",
+      category: "GENERAL",
       sortOrder: 0,
       scope: "BUSINESS",
     });
@@ -214,13 +220,6 @@ describe("ResourceAmenitiesEditor", () => {
       " Muelle privado ",
     );
 
-    await user.selectOptions(
-      screen.getByRole("combobox", {
-        name: "Categoría",
-      }),
-      "OUTDOOR",
-    );
-
     await user.click(
       screen.getByRole("button", {
         name: "Crear amenity personalizado",
@@ -233,7 +232,7 @@ describe("ResourceAmenitiesEditor", () => {
       ).toHaveBeenCalledWith({
         businessId: "business-1",
         name: "Muelle privado",
-        category: "OUTDOOR",
+        category: "GENERAL",
         accessToken: "access-token",
       });
     });
@@ -245,13 +244,9 @@ describe("ResourceAmenitiesEditor", () => {
 
     expect(
       screen.getByRole("checkbox", {
-        name: /Muelle privado/i,
+        name: "Muelle privado",
       }),
     ).toBeChecked();
-
-    expect(
-      screen.getByText(/Exterior · Personalizado/i),
-    ).toBeInTheDocument();
   });
 
   it("keeps the editor open and shows an error when custom creation fails", async () => {
@@ -335,7 +330,7 @@ describe("ResourceAmenitiesEditor", () => {
 
     await user.click(
       screen.getByRole("checkbox", {
-        name: /Estacionamiento/i,
+        name: "Estacionamiento",
       }),
     );
 
@@ -357,11 +352,7 @@ describe("ResourceAmenitiesEditor", () => {
     });
 
     expect(setQueryDataSpy).toHaveBeenCalledWith(
-      [
-        "resources",
-        "business-1",
-        "resource-1",
-      ],
+      ["resources", "business-1", "resource-1"],
       updatedResource,
     );
 
@@ -378,7 +369,7 @@ describe("ResourceAmenitiesEditor", () => {
       id: "amenity-custom-1",
       code: "CUSTOM_123",
       name: "Muelle privado",
-      category: "OUTDOOR",
+      category: "GENERAL",
       sortOrder: 0,
       scope: "BUSINESS",
     });
@@ -391,7 +382,7 @@ describe("ResourceAmenitiesEditor", () => {
           id: "amenity-custom-1",
           code: "CUSTOM_123",
           name: "Muelle privado",
-          category: "OUTDOOR",
+          category: "GENERAL",
           scope: "BUSINESS",
         },
       ],
@@ -421,7 +412,7 @@ describe("ResourceAmenitiesEditor", () => {
     await waitFor(() => {
       expect(
         screen.getByRole("checkbox", {
-          name: /Muelle privado/i,
+          name: "Muelle privado",
         }),
       ).toBeChecked();
     });
@@ -465,7 +456,7 @@ describe("ResourceAmenitiesEditor", () => {
 
     await user.click(
       screen.getByRole("checkbox", {
-        name: /Wi-Fi/i,
+        name: "Wi-Fi",
       }),
     );
 
@@ -500,7 +491,7 @@ describe("ResourceAmenitiesEditor", () => {
 
     await user.click(
       screen.getByRole("checkbox", {
-        name: /Estacionamiento/i,
+        name: "Estacionamiento",
       }),
     );
 
@@ -518,13 +509,13 @@ describe("ResourceAmenitiesEditor", () => {
 
     expect(
       screen.getByRole("checkbox", {
-        name: /Wi-Fi/i,
+        name: "Wi-Fi",
       }),
     ).toBeChecked();
 
     expect(
       screen.getByRole("checkbox", {
-        name: /Estacionamiento/i,
+        name: "Estacionamiento",
       }),
     ).not.toBeChecked();
   });
