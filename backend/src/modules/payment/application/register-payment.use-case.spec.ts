@@ -16,7 +16,7 @@ const payment = (overrides: Partial<Payment> = {}): Payment => ({ id: '44444444-
 describe('RegisterPaymentUseCase', () => {
   const register = jest.fn<ReturnType<PaymentRepository['register']>, Parameters<PaymentRepository['register']>>();
   const findBooking = jest.fn(); const findSnapshot = jest.fn(); const findBusiness = jest.fn();
-  const subject = new RegisterPaymentUseCase({ register }, { findByIdAndBusinessId: findBooking } as never, { findByBookingId: findSnapshot } as never, { findById: findBusiness } as never);
+  const subject = new RegisterPaymentUseCase({ register, listByBooking: jest.fn() }, { findByIdAndBusinessId: findBooking } as never, { findByBookingId: findSnapshot } as never, { findById: findBusiness } as never);
   const input = { businessId, bookingId, amountMinor: 40, method: PaymentMethod.CASH, paidAt, reference: ' Ref ', note: ' Nota ', idempotencyKey: ' key-1 ', actorUserId };
 
   beforeEach(() => { jest.resetAllMocks(); findBusiness.mockResolvedValue(business()); findBooking.mockResolvedValue(booking()); findSnapshot.mockResolvedValue({ id: 'snapshot', businessId, bookingId, currency: 'PYG', totalAmountMinor: 100, items: [], createdAt: new Date() }); register.mockResolvedValue({ payment: payment(), duplicate: false }); });

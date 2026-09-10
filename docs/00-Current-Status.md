@@ -1,6 +1,6 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-09-09
+Última actualización: 2026-09-10
 
 ## Responsabilidades
 
@@ -41,10 +41,10 @@ Booking:
 - 6 / 6 completadas
 
 Capacidad backend actualmente en desarrollo:
-- Ninguna. Payment tiene 3 / 4 capacidades completadas (75%).
+- PAY-003 — Payment History — In Progress. Payment conserva 3 / 4 capacidades completadas (75%) hasta el cierre posterior al merge.
 
 Siguiente capacidad backend:
-- PAY-003 — Payment History — Planned, prioridad Media; requiere discovery antes de implementación.
+- Completar PAY-003 mediante GitHub CI, backend self-review documentada y merge; no iniciar Dashboard dentro de la misma historia.
 
 Validación de cambios backend:
 - Backend CI en estado `SUCCESS` es obligatorio.
