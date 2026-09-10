@@ -6,7 +6,7 @@ Este documento registra la secuencia de evolución del MVP y las iniciativas fut
 
 ## Estado actual
 
-Business, Identity & Access, Resource, Pricing, Availability, Contact, Booking y Block están completados. Payment tiene 2 de 4 capacidades completadas, con PAY-004 — Outstanding Balance en implementación; Dashboard permanece planificado. El orden operativo vigente se encuentra en [07-Backlog.md](07-Backlog.md).
+Business, Identity & Access, Resource, Pricing, Availability, Contact, Booking y Block están completados. Payment tiene 3 de 4 capacidades completadas tras PAY-004 — Outstanding Balance; Dashboard permanece planificado. PAY-003 — Payment History es la siguiente discovery recomendada para completar Payment antes de iniciar Dashboard. El orden operativo vigente se encuentra en [07-Backlog.md](07-Backlog.md).
 
 ## Áreas funcionales del producto
 

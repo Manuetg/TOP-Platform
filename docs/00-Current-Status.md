@@ -31,20 +31,20 @@ Alcance:
 ## Estado Backend
 
 Última historia completada:
-- PAY-002 — Payment Plan — Completed
+- PAY-004 — Outstanding Balance — Completed
 
 Estado del backlog backend del MVP:
-- 47 / 53 capacidades completadas
-- 88,7%
+- 48 / 53 capacidades completadas
+- 90,6%
 
 Booking:
 - 6 / 6 completadas
 
 Capacidad backend actualmente en desarrollo:
-- PAY-004 — Outstanding Balance — In Progress. Payment tiene 2 / 4 capacidades completadas (50%).
+- Ninguna. Payment tiene 3 / 4 capacidades completadas (75%).
 
 Siguiente capacidad backend:
-- Completar PAY-004 mediante GitHub CI, backend self-review documentada, merge y cierre documental.
+- PAY-003 — Payment History — Planned, prioridad Media; requiere discovery antes de implementación.
 
 Validación de cambios backend:
 - Backend CI en estado `SUCCESS` es obligatorio.
@@ -117,7 +117,7 @@ Payment Plan (PAY-002):
 - El plan usa total y moneda del PricingSnapshot, aplica Payments automáticamente y no modifica Booking ni PricingSnapshot.
 - Breaking change: no; agrega endpoints y persistencia.
 
-Outstanding Balance (PAY-004, en implementación):
+Outstanding Balance (PAY-004):
 - `GET /api/businesses/:businessId/bookings/:bookingId/outstanding-balance`
 - Expone por Booking total, pagado, pendiente, vencido, estado financiero y próximo vencimiento derivados; no persiste un segundo saldo mutable.
 - Usa `payment.read`, funciona sin PaymentPlan cuando existe PricingSnapshot y conserva lectura histórica tenant-scoped.
@@ -136,6 +136,7 @@ Cuando Backend modifica un contrato que consume Frontend, actualizar esta secci�
 
 ## Cambios recientes relevantes para Frontend
 
+- PAY-004 finalizado: nuevo endpoint read-only de Outstanding Balance con `payment.read`; expone total, pagado, pendiente, vencido, estado financiero y próximo vencimiento derivados. Funciona sin PaymentPlan cuando existe PricingSnapshot y no introduce breaking change.
 - PAY-002 finalizado: Payment Plan permite crear, consultar y reemplazar planes antes de la primera aplicación; los Payments se distribuyen automáticamente entre cuotas y los estados se derivan de montos, aplicaciones y vencimientos.
 - IAM-008 finalizado: cambio de comportamiento de autorización, sin breaking change de schema. RECEPTIONIST conserva lecturas de Resources, operación de Booking, cancelación de Booking, Blocks y cálculo estándar de Pricing; no puede mutar Resources, Pricing ni Availability Rules, ni ejecutar Pricing override.
 - ADMIN no puede archivar Business ni asignar OWNER; VIEWER permanece read-only por capability y puede ejecutar el cálculo estándar de Pricing sin efectos persistentes.
