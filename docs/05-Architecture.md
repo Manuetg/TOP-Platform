@@ -45,6 +45,8 @@ Un único despliegue contiene módulos con límites explícitos. Cada módulo ex
 
 Los módulos dependen de contratos públicos de Application, no de infraestructura ajena. `booking` consume contratos de `availability`, `pricing` y `contact`; `availability` consulta contratos de `resource`, `booking`, `block` y `business`; `payment` consume contratos públicos de `booking` y `pricing` para resolver la Booking y su PricingSnapshot. Booking no depende de Payment en el MVP vigente. Una relación entre datos no autoriza imports bidireccionales y se prohíben dependencias circulares.
 
+PAY-004 reside en `payment` como Query Use Case read-only. Resuelve Business, Booking y PricingSnapshot mediante contratos públicos y obtiene su proyección financiera desde un repositorio de lectura propio. La infraestructura agrega Payments, installments y PaymentApplications mediante una única sentencia PostgreSQL con agregados independientes, evitando multiplicación de filas y observando un único snapshot MVCC sin bloqueo pesimista. No persiste balances ni estados derivados.
+
 ## 8. Modelo multi-tenant
 
 `business_id` forma parte de toda entidad operativa. Cada caso de uso valida el Negocio activo y las consultas se filtran obligatoriamente por ese contexto. No se permite cambiar el Negocio de una entidad existente.

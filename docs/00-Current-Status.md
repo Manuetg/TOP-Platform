@@ -41,10 +41,10 @@ Booking:
 - 6 / 6 completadas
 
 Capacidad backend actualmente en desarrollo:
-- Ninguna. Payment tiene 2 / 4 capacidades completadas (50%).
+- PAY-004 — Outstanding Balance — In Progress. Payment tiene 2 / 4 capacidades completadas (50%).
 
 Siguiente capacidad backend:
-- PAY-004 — Outstanding Balance — Planned, prioridad Alta; requiere discovery para definir contrato y cálculos derivados.
+- Completar PAY-004 mediante GitHub CI, backend self-review documentada, merge y cierre documental.
 
 Validación de cambios backend:
 - Backend CI en estado `SUCCESS` es obligatorio.
@@ -53,7 +53,7 @@ Validación de cambios backend:
 
 Pendientes principales posteriores:
 - Platform Administration / Global Authority pendiente de definición
-- PAY-003 — Payment History y PAY-004 — Outstanding Balance
+- PAY-003 — Payment History
 - Dashboard
 
 ## Estado Frontend
@@ -116,6 +116,12 @@ Payment Plan (PAY-002):
 - `PUT /api/businesses/:businessId/bookings/:bookingId/payment-plan`
 - El plan usa total y moneda del PricingSnapshot, aplica Payments automáticamente y no modifica Booking ni PricingSnapshot.
 - Breaking change: no; agrega endpoints y persistencia.
+
+Outstanding Balance (PAY-004, en implementación):
+- `GET /api/businesses/:businessId/bookings/:bookingId/outstanding-balance`
+- Expone por Booking total, pagado, pendiente, vencido, estado financiero y próximo vencimiento derivados; no persiste un segundo saldo mutable.
+- Usa `payment.read`, funciona sin PaymentPlan cuando existe PricingSnapshot y conserva lectura histórica tenant-scoped.
+- Breaking change: no; agrega un endpoint read-only.
 
 ## Regla de coordinación Backend → Frontend
 

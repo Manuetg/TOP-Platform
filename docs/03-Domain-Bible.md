@@ -1156,7 +1156,7 @@ Administrar los acuerdos de cobro y los pagos reales asociados a una Booking, pe
 
 Payment administra el plan de pagos acordado, sus cuotas, los pagos reales recibidos y su aplicación parcial o total a obligaciones previstas.
 
-PAY-001 y PAY-002 registran método, fecha, referencia y actor; distribuyen Payments entre cuotas y derivan el estado de cada cuota. Saldo general, historial público, comprobantes, anulación y reembolso pertenecen a capacidades posteriores.
+PAY-001 y PAY-002 registran método, fecha, referencia y actor; distribuyen Payments entre cuotas y derivan el estado de cada cuota. PAY-004 expone el saldo financiero derivado por Booking. Historial público, comprobantes, anulación y reembolso pertenecen a capacidades posteriores.
 
 ### 3. No Responsabilidad
 
@@ -1212,6 +1212,8 @@ La información derivada puede calcularse y no debe necesariamente persistirse c
 - PAY-001 registra únicamente pagos `RECORDED`; una futura anulación deberá excluir esos pagos del saldo. El monto es mayor que cero y la moneda deriva del PricingSnapshot de la Booking.
 - Comprobantes y plantillas son capacidades futuras y no forman parte de PAY-001/PAY-002.
 - No se permite saldo negativo salvo política explícita de sobrepago. Reembolsos y devoluciones conservan trazabilidad completa.
+- PAY-004 deriva el total desde PricingSnapshot y el pagado desde Payments `RECORDED`; PaymentApplication solo distribuye el dinero entre cuotas. Sin plan, vencido es cero y próximo vencimiento es nulo. Con plan, una cuota queda vencida cuando conserva saldo y su fecha pura es anterior a la fecha local IANA del Business; el próximo vencimiento es la primera cuota fechada pendiente por fecha, orden e id, y expone su saldo restante.
+- PAY-004 deriva `PAID`, `OVERDUE`, `PARTIALLY_PAID` y `UNPAID`, en ese orden de precedencia. No persiste balance ni estado, no bloquea por estado operativo cuando existe PricingSnapshot y falla ante datos financieros que violen la invariante del saldo.
 
 ### 7. Estados
 
@@ -1230,7 +1232,8 @@ La información derivada puede calcularse y no debe necesariamente persistirse c
 
 #### Estado financiero derivado de Booking
 
-- Sin pagos, Pago parcial, Pagada, Reembolsada y Con saldo a favor (futuro).
+- `UNPAID`, `PARTIALLY_PAID`, `PAID` y `OVERDUE` en PAY-004.
+- Reembolsada y Con saldo a favor permanecen futuras.
 
 ### 8. Eventos
 
@@ -1257,7 +1260,7 @@ PaymentApplication materializa la relación entre un Payment y una cuota del pla
 - Crear, consultar y reemplazar un plan antes de su primera aplicación.
 - Registrar un pago real y aplicarlo automáticamente a una o varias cuotas.
 - Leer Payment Plan con `payment.read` y registrar Payments o escribir el plan con `payment.record`, según la matriz IAM-008.
-- Consultar saldo, vencidos, historial y próximos vencimientos en capacidades posteriores.
+- Consultar saldo, vencidos y próximo vencimiento por Booking mediante PAY-004; consultar historial mediante PAY-003.
 - Adjuntar comprobante, anular pagos y registrar reembolsos en capacidades futuras.
 
 ### 11. Restricciones
