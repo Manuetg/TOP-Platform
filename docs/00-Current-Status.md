@@ -31,25 +31,29 @@ Alcance:
 ## Estado Backend
 
 Última historia completada:
-- PAY-003 — Payment History — Completed
+- DSH-002 — Occupancy KPI — Completed
 
 Estado del backlog backend del MVP:
-- 49 / 53 capacidades completadas
-- 92,5%
+- 50 / 53 capacidades completadas
+- 94,3%
 
 Booking:
 - 6 / 6 completadas
 
+Dashboard:
+- 1 / 4 completada (25%)
+
 Capacidad backend actualmente en desarrollo:
-- DSH-002 — Occupancy KPI — In Progress. Es una proyección interna sin endpoint HTTP, basada en el inventario operacional actual.
+- Ninguna.
 
 Siguiente capacidad backend:
-- DSH-003 — Revenue KPI, después del cierre verificado de DSH-002. La secuencia aprobada continúa con DSH-004 y finalmente DSH-001 como agregador público.
+- DSH-003 — Revenue KPI. La secuencia aprobada continúa con DSH-004 y finalmente DSH-001 como agregador público.
 
 Validación de cambios backend:
 - Backend CI en estado `SUCCESS` es obligatorio.
 - Mientras `rolandobarros27` sea el único responsable backend, la revisión técnica se registra como `backend self-review documentada`, sin describirla como independiente.
 - Una review externa se registra como tal únicamente cuando la realiza una persona con responsabilidad y capacidad técnica real sobre backend; no se aplican waivers automáticos.
+- Mutation Testing se difiere al quality gate preproducción por su costo de ejecución; el requisito y sus umbrales permanecen vigentes.
 
 Pendientes principales posteriores:
 - Platform Administration / Global Authority pendiente de definición
@@ -128,6 +132,10 @@ Payment History (PAY-003):
 - Expone únicamente los campos públicos de Payment, permite lectura histórica y no documenta la estructura interna del cursor como contrato para Frontend.
 - Breaking change: no; agrega lectura paginada sobre la colección existente de Payments.
 
+Occupancy KPI (DSH-002):
+- La proyección backend interna está completada y será expuesta posteriormente mediante DSH-001 — Business Dashboard.
+- No agrega endpoint público ni `dashboard.read` en esta historia.
+
 ## Regla de coordinación Backend → Frontend
 
 Cuando Backend modifica un contrato que consume Frontend, actualizar esta sección con:
@@ -141,6 +149,7 @@ Cuando Backend modifica un contrato que consume Frontend, actualizar esta secci�
 
 ## Cambios recientes relevantes para Frontend
 
+- DSH-002 finalizado: existe la proyección interna de Occupancy sobre el inventario operacional actual; no agrega contrato HTTP ni requiere integración frontend hasta DSH-001.
 - PAY-003 finalizado: nuevo GET paginado de Payment History por Booking con `payment.read`, respuesta `items + pageInfo`, campos públicos únicamente, lectura histórica y sin breaking change.
 - PAY-004 finalizado: nuevo endpoint read-only de Outstanding Balance con `payment.read`; expone total, pagado, pendiente, vencido, estado financiero y próximo vencimiento derivados. Funciona sin PaymentPlan cuando existe PricingSnapshot y no introduce breaking change.
 - PAY-002 finalizado: Payment Plan permite crear, consultar y reemplazar planes antes de la primera aplicación; los Payments se distribuyen automáticamente entre cuotas y los estados se derivan de montos, aplicaciones y vencimientos.
