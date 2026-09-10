@@ -27,8 +27,14 @@ const business = Business.create({
 describe('GetOccupancyKpiUseCase', () => {
   const findById = jest.fn<ReturnType<BusinessRepository['findById']>, Parameters<BusinessRepository['findById']>>();
   const read = jest.fn<ReturnType<OccupancyProjectionReader['read']>, Parameters<OccupancyProjectionReader['read']>>();
+  const businesses: BusinessRepository = {
+    create: jest.fn(),
+    findById,
+    list: jest.fn(),
+    update: jest.fn(),
+  };
   const subject = new GetOccupancyKpiUseCase(
-    { findById } as BusinessRepository,
+    businesses,
     { read },
   );
 
