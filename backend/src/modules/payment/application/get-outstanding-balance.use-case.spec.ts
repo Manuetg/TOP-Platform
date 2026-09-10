@@ -76,7 +76,7 @@ describe('GetOutstandingBalanceUseCase', () => {
   );
 
   beforeEach(() => {
-    jest.useFakeTimers().setSystemTime(new Date('2026-09-10T03:30:00.000Z'));
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-10T02:30:00.000Z'));
     jest.resetAllMocks();
     findBusiness.mockResolvedValue(business());
     findBooking.mockResolvedValue(booking());
@@ -171,7 +171,7 @@ describe('GetOutstandingBalanceUseCase', () => {
   it('uses the Business IANA timezone instead of the UTC calendar date', async () => {
     expect(
       localDateInTimeZone(
-        new Date('2026-09-10T03:30:00.000Z'),
+        new Date('2026-09-10T02:30:00.000Z'),
         'America/Asuncion',
       ),
     ).toBe('2026-09-09');
