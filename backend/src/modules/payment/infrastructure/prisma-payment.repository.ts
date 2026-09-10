@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../business/business.contract';
-import { Payment, PaymentRepository, RegisterPaymentData } from '../domain/payment';
+import { Payment, PaymentRepository, PublicPayment, RegisterPaymentData } from '../domain/payment';
 import { applyPaymentToPlan } from './prisma-payment-plan.repository';
 
 type RegisterPaymentResult = { payment: Payment; duplicate: boolean };
@@ -24,5 +24,37 @@ export class PrismaPaymentRepository implements PaymentRepository {
       if (plan?.businessId === data.businessId) await applyPaymentToPlan(transaction, plan.id, payment.id, payment.amountMinor);
       return { payment: payment as Payment, duplicate: false };
     });
+  }
+
+  async listByBooking(input: Parameters<PaymentRepository['listByBooking']>[0]): Promise<PublicPayment[]> {
+    const before = input.before;
+    return this.prisma.payment.findMany({
+      where: {
+        businessId: input.businessId,
+        bookingId: input.bookingId,
+        ...(before ? {
+          OR: [
+            { paidAt: { lt: before.paidAt } },
+            { paidAt: before.paidAt, createdAt: { lt: before.createdAt } },
+            { paidAt: before.paidAt, createdAt: before.createdAt, id: { lt: before.id } },
+          ],
+        } : {}),
+      },
+      orderBy: [{ paidAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
+      take: input.limit,
+      select: {
+        id: true,
+        bookingId: true,
+        amountMinor: true,
+        currency: true,
+        method: true,
+        reference: true,
+        note: true,
+        paidAt: true,
+        createdAt: true,
+        recordedByUserId: true,
+        status: true,
+      },
+    }) as Promise<PublicPayment[]>;
   }
 }

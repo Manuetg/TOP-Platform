@@ -8,6 +8,7 @@ import { PRICING_SNAPSHOT_REPOSITORY } from '../pricing/pricing.contract';
 import { PaymentPlanUseCases } from './application/payment-plan.use-cases';
 import { GetOutstandingBalanceUseCase } from './application/get-outstanding-balance.use-case';
 import { RegisterPaymentUseCase } from './application/register-payment.use-case';
+import { ListPaymentsUseCase } from './application/list-payments.use-case';
 import { OUTSTANDING_BALANCE_REPOSITORY } from './domain/outstanding-balance';
 import { PAYMENT_PLAN_REPOSITORY } from './domain/payment-plan';
 import { PAYMENT_REPOSITORY } from './domain/payment';
@@ -32,6 +33,7 @@ import { PaymentController } from './presentation/payment.controller';
     { provide: 'PAYMENT_SNAPSHOT_LOOKUP', useExisting: PRICING_SNAPSHOT_REPOSITORY },
     { provide: 'PAYMENT_BUSINESS_LOOKUP', useExisting: BUSINESS_REPOSITORY },
     RegisterPaymentUseCase,
+    ListPaymentsUseCase,
     PaymentPlanUseCases,
     GetOutstandingBalanceUseCase,
   ],
