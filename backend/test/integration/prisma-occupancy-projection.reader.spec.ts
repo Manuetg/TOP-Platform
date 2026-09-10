@@ -71,7 +71,7 @@ describeWithPostgres('PrismaOccupancyProjectionReader', () => {
     ['COMPLETED', 2],
     ['CANCELLED', 0],
     ['NO_SHOW', 0],
-  ] as const)('counts Booking status %s as %i occupied nights', async (status, expected)) => {
+  ] as const)('counts Booking status %s as %i occupied nights', async (status, expected) => {
     const owner = await business(status);
     const unit = await resource(owner.id, `STATUS-${status}`);
     await booking(owner.id, [unit.id], status);
