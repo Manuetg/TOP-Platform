@@ -31,20 +31,20 @@ Alcance:
 ## Estado Backend
 
 Última historia completada:
-- PAY-004 — Outstanding Balance — Completed
+- PAY-003 — Payment History — Completed
 
 Estado del backlog backend del MVP:
-- 48 / 53 capacidades completadas
-- 90,6%
+- 49 / 53 capacidades completadas
+- 92,5%
 
 Booking:
 - 6 / 6 completadas
 
 Capacidad backend actualmente en desarrollo:
-- PAY-003 — Payment History — In Progress. Payment conserva 3 / 4 capacidades completadas (75%) hasta el cierre posterior al merge.
+- Ninguna. Payment tiene 4 / 4 capacidades completadas (100%).
 
 Siguiente capacidad backend:
-- Completar PAY-003 mediante GitHub CI, backend self-review documentada y merge; no iniciar Dashboard dentro de la misma historia.
+- Dashboard es el siguiente bloque funcional pendiente. Corresponde realizar un discovery conjunto antes de definir la secuencia de DSH-001..004.
 
 Validación de cambios backend:
 - Backend CI en estado `SUCCESS` es obligatorio.
@@ -53,7 +53,6 @@ Validación de cambios backend:
 
 Pendientes principales posteriores:
 - Platform Administration / Global Authority pendiente de definición
-- PAY-003 — Payment History
 - Dashboard
 
 ## Estado Frontend
@@ -123,6 +122,12 @@ Outstanding Balance (PAY-004):
 - Usa `payment.read`, funciona sin PaymentPlan cuando existe PricingSnapshot y conserva lectura histórica tenant-scoped.
 - Breaking change: no; agrega un endpoint read-only.
 
+Payment History (PAY-003):
+- `GET /api/businesses/:businessId/bookings/:bookingId/payments`
+- Usa `payment.read` y devuelve `items` más `pageInfo` con paginación por cursor opaco, límite máximo 50 y los eventos financieros más recientes primero.
+- Expone únicamente los campos públicos de Payment, permite lectura histórica y no documenta la estructura interna del cursor como contrato para Frontend.
+- Breaking change: no; agrega lectura paginada sobre la colección existente de Payments.
+
 ## Regla de coordinación Backend → Frontend
 
 Cuando Backend modifica un contrato que consume Frontend, actualizar esta sección con:
@@ -136,6 +141,7 @@ Cuando Backend modifica un contrato que consume Frontend, actualizar esta secci�
 
 ## Cambios recientes relevantes para Frontend
 
+- PAY-003 finalizado: nuevo GET paginado de Payment History por Booking con `payment.read`, respuesta `items + pageInfo`, campos públicos únicamente, lectura histórica y sin breaking change.
 - PAY-004 finalizado: nuevo endpoint read-only de Outstanding Balance con `payment.read`; expone total, pagado, pendiente, vencido, estado financiero y próximo vencimiento derivados. Funciona sin PaymentPlan cuando existe PricingSnapshot y no introduce breaking change.
 - PAY-002 finalizado: Payment Plan permite crear, consultar y reemplazar planes antes de la primera aplicación; los Payments se distribuyen automáticamente entre cuotas y los estados se derivan de montos, aplicaciones y vencimientos.
 - IAM-008 finalizado: cambio de comportamiento de autorización, sin breaking change de schema. RECEPTIONIST conserva lecturas de Resources, operación de Booking, cancelación de Booking, Blocks y cálculo estándar de Pricing; no puede mutar Resources, Pricing ni Availability Rules, ni ejecutar Pricing override.
@@ -150,6 +156,8 @@ Cuando Backend modifica un contrato que consume Frontend, actualizar esta secci�
 - API disponible dentro del stack Docker.
 
 ## Decisiones / hallazgos pendientes
+
+- **PAY-001 public response DTO:** `POST /api/businesses/:businessId/bookings/:bookingId/payments` retorna actualmente el tipo interno `Payment` y puede exponer `businessId`, `idempotencyKey` y `requestFingerprint`. Evaluar en una futura clasificación si corresponde introducir un DTO público, considerando alcance, compatibilidad y prioridad. PAY-003 no modificó este contrato y el hallazgo no crea una capacidad nueva.
 
 La revisión Swagger Jeni/Tobera puede generar:
 - bugs;

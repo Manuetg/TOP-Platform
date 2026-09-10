@@ -140,7 +140,7 @@ Los mecanismos concretos de capacidades futuras se definen en Architecture duran
 
 ### Próximas definiciones del MVP
 
-- PAY-003 — Payment History y las capacidades de Dashboard conservan sus contratos pendientes en el Backlog. PAY-004 está en implementación con el contrato definido por BR-082.
+- Las capacidades de Payment están completadas. Dashboard conserva sus contratos pendientes en el Backlog.
 - El tratamiento financiero de cancelaciones y No Show permanece pendiente y no se infiere de Booking ni Payment actuales.
 
 ### No bloqueantes o futuras
