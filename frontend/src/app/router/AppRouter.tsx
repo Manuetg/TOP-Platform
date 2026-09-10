@@ -15,6 +15,8 @@ import { ContactListPage } from "../../features/contacts/pages/ContactListPage";
 import { CreateContactPage } from "../../features/contacts/pages/CreateContactPage";
 import { ContactDetailPage } from "../../features/contacts/pages/ContactDetailPage";
 import { EditContactPage } from "../../features/contacts/pages/EditContactPage";
+import { AvailabilityCheckPage } from "../../features/availability/pages/AvailabilityCheckPage";
+import { AvailabilityRulesPage } from "../../features/availability/pages/AvailabilityRulesPage";
 
 const router = createBrowserRouter([
   {
@@ -43,7 +45,11 @@ const router = createBrowserRouter([
       },
       {
         path: "availability",
-        element: <AppSectionPage title="Disponibilidad" />,
+        element: <AvailabilityCheckPage />,
+      },
+      {
+        path: "availability/rules",
+        element: <AvailabilityRulesPage />,
       },
       {
         path: "resources",

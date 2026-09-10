@@ -1,0 +1,301 @@
+.availability-rules-page {
+  width: min(100%, 880px);
+}
+
+.availability-rules-header {
+  margin-bottom: var(--space-6);
+}
+
+.availability-rules-eyebrow {
+  color: var(--color-brand-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.availability-rules-header h1 {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-primary);
+  font-size: clamp(1.7rem, 2vw, 2.15rem);
+  letter-spacing: -0.035em;
+}
+
+.availability-rules-header p {
+  max-width: 620px;
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.availability-rules-form {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.availability-rules-card {
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.availability-rules-card__heading {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  margin-bottom: var(--space-6);
+}
+
+.availability-rules-card__icon {
+  display: grid;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: var(--color-brand-primary);
+  background: rgb(21 92 76 / 9%);
+  border-radius: var(--radius-md);
+}
+
+.availability-rules-card__heading h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+}
+
+.availability-rules-card__heading p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.availability-rules-switch {
+  position: relative;
+  display: flex;
+  gap: var(--space-5);
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.availability-rules-switch > span:first-child {
+  display: grid;
+  gap: 5px;
+}
+
+.availability-rules-switch strong {
+  color: var(--color-text-primary);
+  font-size: 0.84rem;
+}
+
+.availability-rules-switch small,
+.availability-rules-field small {
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.availability-rules-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.availability-rules-switch__visual {
+  position: relative;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 24px;
+  background: #c9d0d1;
+  border-radius: 999px;
+  transition: background-color 120ms ease;
+}
+
+.availability-rules-switch__visual::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  content: "";
+  background: white;
+  border-radius: 50%;
+  transition: transform 120ms ease;
+}
+
+.availability-rules-switch
+  input:checked
+  + .availability-rules-switch__visual {
+  background: var(--color-brand-primary);
+}
+
+.availability-rules-switch
+  input:checked
+  + .availability-rules-switch__visual::after {
+  transform: translateX(20px);
+}
+
+.availability-rules-switch
+  input:focus-visible
+  + .availability-rules-switch__visual {
+  outline: 3px solid rgb(21 92 76 / 18%);
+  outline-offset: 3px;
+}
+
+.availability-rules-buffer-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.availability-rules-field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.availability-rules-field > span {
+  color: var(--color-text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.availability-rules-number {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.availability-rules-number:focus-within {
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 0 0 3px rgb(21 92 76 / 12%);
+}
+
+.availability-rules-number input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 13px;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 0.86rem;
+  background: transparent;
+  border: 0;
+  outline: 0;
+}
+
+.availability-rules-number > span {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  background: rgb(41 67 74 / 4%);
+  border-left: 1px solid var(--color-border);
+}
+
+.availability-rules-info {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  color: var(--color-text-primary);
+  background: #fff6e8;
+  border-radius: var(--radius-md);
+}
+
+.availability-rules-info svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.availability-rules-info p {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.6;
+}
+
+.availability-rules-message {
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.78rem;
+  border-radius: var(--radius-md);
+}
+
+.availability-rules-message--error {
+  color: #8a3f3f;
+  background: #f9eded;
+  border: 1px solid #eccccc;
+}
+
+.availability-rules-message--success {
+  color: #155c4c;
+  background: #eaf4ee;
+  border: 1px solid #c7dfd5;
+}
+
+.availability-rules-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.availability-rules-actions .top-button {
+  gap: var(--space-2);
+}
+
+.availability-rules-state {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  min-height: 260px;
+  padding: var(--space-6);
+  place-content: center;
+  color: var(--color-text-secondary);
+  text-align: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.availability-rules-state strong {
+  color: var(--color-text-primary);
+}
+
+.availability-rules-state span {
+  max-width: 360px;
+  font-size: 0.78rem;
+}
+
+.availability-rules-state .top-button {
+  margin-top: var(--space-3);
+}
+
+@media (max-width: 600px) {
+  .availability-rules-card {
+    padding: var(--space-4);
+  }
+
+  .availability-rules-buffer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .availability-rules-switch {
+    align-items: flex-start;
+  }
+
+  .availability-rules-actions .top-button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .availability-rules-switch__visual,
+  .availability-rules-switch__visual::after {
+    transition: none;
+  }
+}
