@@ -38,6 +38,7 @@ export enum Capability {
   BOOKING_CANCEL = 'booking.cancel',
   PAYMENT_READ = 'payment.read',
   PAYMENT_RECORD = 'payment.record',
+  DASHBOARD_READ = 'dashboard.read',
 }
 
 const allRoles = [MembershipRole.OWNER, MembershipRole.ADMIN, MembershipRole.RECEPTIONIST, MembershipRole.VIEWER] as const;
@@ -78,6 +79,7 @@ const roleCapabilities: Readonly<Record<Capability, readonly MembershipRole[]>> 
   [Capability.BOOKING_CANCEL]: operational,
   [Capability.PAYMENT_READ]: allRoles,
   [Capability.PAYMENT_RECORD]: operational,
+  [Capability.DASHBOARD_READ]: allRoles,
 });
 
 export class AuthorizationPolicy {
