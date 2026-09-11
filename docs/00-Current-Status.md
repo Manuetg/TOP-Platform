@@ -31,22 +31,22 @@ Alcance:
 ## Estado Backend
 
 Última historia completada:
-- DSH-003 — Revenue KPI — Completed
+- DSH-004 — Reservations KPI — Completed
 
 Estado del backlog backend del MVP:
-- 51 / 53 capacidades completadas
-- 96,2%
+- 52 / 53 capacidades completadas
+- 98,1%
 
 Booking:
 - 6 / 6 completadas
 
 Dashboard:
-- 2 / 4 completadas (50%)
+- 3 / 4 completadas (75%)
 
 Capacidad backend actualmente en desarrollo:
-- DSH-004 — Reservations KPI — In Progress.
+- Ninguna.
 
-Siguiente capacidad backend después del cierre de DSH-004:
+Siguiente capacidad backend:
 - DSH-001 — Business Dashboard, agregador público final.
 
 Validación de cambios backend:
@@ -142,7 +142,7 @@ Revenue KPI (DSH-003 — Completed):
 - No agrega endpoint público ni `dashboard.read`; DSH-001 la expondrá posteriormente.
 - Breaking change: no.
 
-Reservations KPI (DSH-004 — In Progress):
+Reservations KPI (DSH-004 — Completed):
 - Proyección backend interna de Bookings creadas por `createdAt` dentro de un período `[from, to)` de hasta 31 días en la timezone del Business.
 - Devuelve `total` y los siete estados actuales, incluidos los que tengan valor cero; una Booking multi-resource cuenta una sola vez.
 - No usa check-in/check-out, Contact o Timeline para formar la cohorte y no reconstruye estado histórico.
@@ -169,6 +169,7 @@ Cuando Backend modifica un contrato que consume Frontend, actualizar esta secci�
 
 ## Cambios recientes relevantes para Frontend
 
+- DSH-004 finalizado: existe la proyección interna de Reservations por cohorte de `Booking.createdAt` y estado actual; no agrega contrato HTTP ni requiere integración frontend hasta DSH-001.
 - Pricing incorpora lectura de Rate Plans para catálogo y selección contextual de Booking; frontend ya no debe inferir estado, asignación ni vigencia. No se agrega Detail ni se expone PricingSnapshot.
 - DSH-002 finalizado: existe la proyección interna de Occupancy sobre el inventario operacional actual; no agrega contrato HTTP ni requiere integración frontend hasta DSH-001.
 - PAY-003 finalizado: nuevo GET paginado de Payment History por Booking con `payment.read`, respuesta `items + pageInfo`, campos públicos únicamente, lectura histórica y sin breaking change.
