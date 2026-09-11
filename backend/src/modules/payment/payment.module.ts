@@ -15,6 +15,8 @@ import { PAYMENT_REPOSITORY } from './domain/payment';
 import { PrismaPaymentPlanRepository } from './infrastructure/prisma-payment-plan.repository';
 import { PrismaPaymentRepository } from './infrastructure/prisma-payment.repository';
 import { PrismaOutstandingBalanceRepository } from './infrastructure/prisma-outstanding-balance.repository';
+import { PrismaRevenueProjectionReader } from './infrastructure/prisma-revenue-projection.reader';
+import { REVENUE_PROJECTION_READER } from './payment.contract';
 import { OutstandingBalanceController } from './presentation/outstanding-balance.controller';
 import { PaymentPlanController } from './presentation/payment-plan.controller';
 import { PaymentController } from './presentation/payment.controller';
@@ -26,9 +28,11 @@ import { PaymentController } from './presentation/payment.controller';
     PrismaPaymentRepository,
     PrismaPaymentPlanRepository,
     PrismaOutstandingBalanceRepository,
+    PrismaRevenueProjectionReader,
     { provide: PAYMENT_REPOSITORY, useExisting: PrismaPaymentRepository },
     { provide: PAYMENT_PLAN_REPOSITORY, useExisting: PrismaPaymentPlanRepository },
     { provide: OUTSTANDING_BALANCE_REPOSITORY, useExisting: PrismaOutstandingBalanceRepository },
+    { provide: REVENUE_PROJECTION_READER, useExisting: PrismaRevenueProjectionReader },
     { provide: 'PAYMENT_BOOKING_LOOKUP', useExisting: BOOKING_REPOSITORY },
     { provide: 'PAYMENT_SNAPSHOT_LOOKUP', useExisting: PRICING_SNAPSHOT_REPOSITORY },
     { provide: 'PAYMENT_BUSINESS_LOOKUP', useExisting: BUSINESS_REPOSITORY },
@@ -37,6 +41,7 @@ import { PaymentController } from './presentation/payment.controller';
     PaymentPlanUseCases,
     GetOutstandingBalanceUseCase,
   ],
+  exports: [REVENUE_PROJECTION_READER],
 })
 export class PaymentModule {}
 
