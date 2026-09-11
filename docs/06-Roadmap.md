@@ -6,7 +6,7 @@ Este documento registra la secuencia de evolución del MVP y las iniciativas fut
 
 ## Estado actual
 
-Business, Identity & Access, Resource, Pricing, Availability, Contact, Booking, Payment y Block están completados. PAY-003 — Payment History completó Payment con 4 de 4 capacidades. Dashboard tiene 3 de 4 capacidades completadas: DSH-002 — Occupancy KPI, DSH-003 — Revenue KPI y DSH-004 — Reservations KPI están cerradas. DSH-001 — Business Dashboard es la única capacidad backend restante y está en desarrollo como agregador público final. El orden operativo vigente se encuentra en [07-Backlog.md](07-Backlog.md).
+El backlog de implementación del Backend MVP está completado: 53 de 53 capacidades (100%). Dashboard completó sus 4 capacidades: DSH-002 — Occupancy KPI, DSH-003 — Revenue KPI, DSH-004 — Reservations KPI y DSH-001 — Business Dashboard como agregador público final. No quedan capacidades backend planificadas dentro del backlog MVP aprobado. El estado operativo vigente se encuentra en [07-Backlog.md](07-Backlog.md); este cierre no implica que frontend o el quality gate preproducción estén completados.
 
 ## Áreas funcionales del producto
 
