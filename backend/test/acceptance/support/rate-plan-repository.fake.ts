@@ -20,6 +20,11 @@ export const ratePlanRepositoryFake: RatePlanRepository = {
     const plan = RatePlan.create({ id: defaultId, ...data, status: RatePlanStatus.ACTIVE, resources: resourcesFor(data.resourceIds), createdAt: new Date('2026-08-01T00:00:00.000Z'), updatedAt: new Date('2026-08-01T00:00:00.000Z') });
     ratePlans.set(plan.id, plan); return Promise.resolve(plan);
   },
+  listByBusinessId: (businessId): Promise<RatePlan[]> => Promise.resolve(
+    [...ratePlans.values()]
+      .filter((plan) => plan.businessId === businessId)
+      .sort((left, right) => left.name.localeCompare(right.name) || left.id.localeCompare(right.id)),
+  ),
   findByIdAndBusinessId: (id, businessId): Promise<RatePlan | null> => Promise.resolve(ratePlans.get(id)?.businessId === businessId ? ratePlans.get(id) ?? null : null),
   update: (data: UpdateRatePlanData): Promise<RatePlan> => {
     const current = ratePlans.get(data.id); if (!current) return Promise.reject(new Error('RatePlan not found.'));

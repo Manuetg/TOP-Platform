@@ -15,7 +15,7 @@ const season=()=>SeasonalRate.create({id:'44444444-4444-4444-8444-444444444444',
 
 describe('CalculatePriceUseCase',()=>{
   const findBusiness=jest.fn(); const findResource=jest.fn(); const findPlan=jest.fn(); const isAssigned=jest.fn(); const listIntersectingRange=jest.fn();
-  const subject=new CalculatePriceUseCase({findById:findBusiness,create:jest.fn(),list:jest.fn(),update:jest.fn()},{findByIdAndBusinessId:findResource},{create:jest.fn(),findByIdAndBusinessId:findPlan,update:jest.fn()},{isAssigned},{create:jest.fn(),listByRatePlanId:jest.fn(),listIntersectingRange,hasOverlap:jest.fn(),hasOutsideValidity:jest.fn()},new PricingCalculator());
+  const subject=new CalculatePriceUseCase({findById:findBusiness,create:jest.fn(),list:jest.fn(),update:jest.fn()},{findByIdAndBusinessId:findResource},{create:jest.fn(),findByIdAndBusinessId:findPlan,listByBusinessId:jest.fn(),update:jest.fn()},{isAssigned},{create:jest.fn(),listByRatePlanId:jest.fn(),listIntersectingRange,hasOverlap:jest.fn(),hasOutsideValidity:jest.fn()},new PricingCalculator());
   const input={businessId,ratePlanId:planId,resourceId,checkIn:'2026-12-18',checkOut:'2026-12-22'};
   beforeEach(()=>{jest.resetAllMocks();findBusiness.mockResolvedValue(business());findResource.mockResolvedValue({id:resourceId,businessId,status:ResourceStatus.ACTIVE});findPlan.mockResolvedValue(plan());isAssigned.mockResolvedValue(true);listIntersectingRange.mockResolvedValue([season()]);});
   it('calculates an assigned stay using one intersecting seasonal query',async()=>{const result=await subject.execute(input);expect(listIntersectingRange).toHaveBeenCalledWith(planId,'2026-12-18','2026-12-22');expect(result).toMatchObject({nights:4,totalAmountMinor:2200000,currency:'PYG'});});

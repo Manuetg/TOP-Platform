@@ -9,6 +9,7 @@ import { CalculatePriceUseCase } from './application/calculate-price.use-case';
 import { CreateRatePlanUseCase } from './application/create-rate-plan.use-case';
 import { CreateSeasonalRateUseCase } from './application/create-seasonal-rate.use-case';
 import { ListSeasonalRatesUseCase } from './application/list-seasonal-rates.use-case';
+import { ListRatePlansUseCase } from './application/list-rate-plans.use-case';
 import { UpdateRatePlanUseCase } from './application/update-rate-plan.use-case';
 import { PricingCalculator } from './domain/pricing-calculator';
 import {
@@ -76,6 +77,7 @@ import { PricingController } from './presentation/pricing.controller';
     UpdateRatePlanUseCase,
     CreateSeasonalRateUseCase,
     ListSeasonalRatesUseCase,
+    ListRatePlansUseCase,
     CalculatePriceUseCase,
     ApplyManualPriceOverrideUseCase,
   ],

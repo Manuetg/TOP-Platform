@@ -48,6 +48,8 @@ Los módulos dependen de contratos públicos de Application, no de infraestructu
 
 PAY-004 reside en `payment` como Query Use Case read-only. Resuelve Business, Booking y PricingSnapshot mediante contratos públicos y obtiene su proyección financiera desde un repositorio de lectura propio. La infraestructura agrega Payments, installments y PaymentApplications mediante una única sentencia PostgreSQL con agregados independientes, evitando multiplicación de filas y observando un único snapshot MVCC sin bloqueo pesimista. No persiste balances ni estados derivados.
 
+Pricing expone `GET /api/businesses/:businessId/rate-plans` mediante `ListRatePlansUseCase` y `RatePlanRepository`. El modo general devuelve el catálogo tenant-scoped; el modo contextual recibe conjuntamente Resource y estadía y aplica las reglas de seleccionabilidad antes de mapear al `RatePlanResponseDto` público. No accede a Booking ni expone PricingSnapshot, y no requiere cambios de schema.
+
 Dashboard consume contratos públicos de Application de los dominios propietarios. DSH-002 obtiene su proyección desde Availability, que agrega Resource, BookingResource, Booking y Block en PostgreSQL sin exponer su infraestructura a Dashboard. DSH-003 obtiene desde Payment un agregado tenant-scoped de Payments `RECORDED` por `paidAt`; la infraestructura agrupa por moneda mediante una única consulta PostgreSQL parametrizada, sin cargar Payments ni unir Booking, PricingSnapshot, PaymentPlan o PaymentApplications. Estas capacidades no tienen endpoint propio; DSH-001 compondrá las proyecciones internas de Occupancy, Revenue y Reservations bajo el contrato público del Dashboard. Los dominios fuente no dependen de Dashboard y no se persisten ni cachean los agregados.
 
 ## 8. Modelo multi-tenant

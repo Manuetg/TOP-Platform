@@ -1,6 +1,6 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-09-10
+Última actualización: 2026-09-11
 
 ## Responsabilidades
 
@@ -142,6 +142,14 @@ Revenue KPI (DSH-003 — Completed):
 - No agrega endpoint público ni `dashboard.read`; DSH-001 la expondrá posteriormente.
 - Breaking change: no.
 
+Rate Plan Read para integración frontend:
+- `GET /api/businesses/:businessId/rate-plans` usa `pricing.read` y devuelve `RatePlanResponseDto[]`.
+- Sin filtros entrega el catálogo tenant-scoped, incluidos planes activos y archivados, en orden `name ASC, id ASC`.
+- Con `resourceId`, `checkIn` y `checkOut` enviados conjuntamente entrega solo planes activos, asignados y vigentes que backend considera seleccionables para el Resource y la estadía.
+- Business archivado permite catálogo histórico, pero el modo de selección exige Business y Resource activos.
+- Rate Plan Detail queda diferido; PricingSnapshot permanece interno y Booking Detail no cambia en el MVP.
+- Desbloquea FE-PRI-001 y FE-BKG-006. Breaking change: no.
+
 ## Regla de coordinación Backend → Frontend
 
 Cuando Backend modifica un contrato que consume Frontend, actualizar esta sección con:
@@ -155,6 +163,7 @@ Cuando Backend modifica un contrato que consume Frontend, actualizar esta secci�
 
 ## Cambios recientes relevantes para Frontend
 
+- Pricing incorpora lectura de Rate Plans para catálogo y selección contextual de Booking; frontend ya no debe inferir estado, asignación ni vigencia. No se agrega Detail ni se expone PricingSnapshot.
 - DSH-002 finalizado: existe la proyección interna de Occupancy sobre el inventario operacional actual; no agrega contrato HTTP ni requiere integración frontend hasta DSH-001.
 - PAY-003 finalizado: nuevo GET paginado de Payment History por Booking con `payment.read`, respuesta `items + pageInfo`, campos públicos únicamente, lectura histórica y sin breaking change.
 - PAY-004 finalizado: nuevo endpoint read-only de Outstanding Balance con `payment.read`; expone total, pagado, pendiente, vencido, estado financiero y próximo vencimiento derivados. Funciona sin PaymentPlan cuando existe PricingSnapshot y no introduce breaking change.
