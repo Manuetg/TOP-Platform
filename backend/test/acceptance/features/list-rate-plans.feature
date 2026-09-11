@@ -39,10 +39,10 @@ Feature: Descubrir planes de tarifas para el frontend
     Given existe una tarifa base activa
     And un Resource está fuera de servicio
     When listo tarifas para el Resource no disponible
-    Then la respuesta HTTP es 409
+    Then recibo HTTP 409
 
   Scenario: Ocultar un Resource de otro Business
     Given existe una tarifa base activa
     And existe un Resource de otro negocio
     When listo tarifas para el Resource de otro negocio
-    Then la respuesta HTTP es 404
+    Then recibo HTTP 404
