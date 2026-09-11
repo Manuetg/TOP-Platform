@@ -1393,3 +1393,11 @@ El numerador cuenta unidades distintas `resourceId + localDate` cubiertas por Bo
 La proyección interna devuelve `occupiedResourceNights`, `sellableResourceNights` y `occupancyRateBasisPoints`. La tasa es `round(occupiedResourceNights * 10000 / sellableResourceNights)`; 10.000 representa 100% y un denominador cero produce `null`. Valores negativos o una ocupación superior al inventario vendible constituyen una invariante interna y no se corrigen mediante clamp.
 
 Resource no conserva historial de cambios de estado. Por ello, Occupancy del MVP describe el período solicitado sobre el inventario operacional actual y no reconstruye qué Resources estaban `ACTIVE`, `OUT_OF_SERVICE` o `ARCHIVED` en cada fecha histórica. Esta limitación es contractual y no autoriza agregar ResourceStatusHistory dentro de DSH-002.
+
+### Contrato DSH-003 — Revenue KPI
+
+DSH-003 deriva `recorded payments revenue`: los cobros efectivamente registrados como Payments `RECORDED` durante un período obligatorio `[from, to)` de hasta 31 días. Los límites son fechas comerciales interpretadas en la timezone IANA del Business y filtran por `Payment.paidAt`, que representa el momento efectivo declarado del cobro. `Payment.createdAt` no define el período.
+
+La proyección interna devuelve `currency` y `amountMinor`. Suma directamente `Payment.amountMinor` dentro del Business y no filtra por el estado actual de Booking. Un período sin Payments devuelve importe cero en la moneda vigente del Business. El MVP admite `PYG`; más de una moneda o una moneda distinta de la del Business, así como importes negativos o fuera del rango seguro entero, constituyen invariantes internas y no se corrigen ni convierten mediante FX.
+
+Revenue no se calcula desde PricingSnapshot, PaymentPlan, PaymentApplications, Outstanding Balance ni Payment History. No representa contabilidad, revenue recognition, facturación, forecasting o revenue management. DSH-003 no persiste agregados, no usa cache y no expone endpoint propio; DSH-001 compondrá esta proyección en el contrato público del Dashboard.

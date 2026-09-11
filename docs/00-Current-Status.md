@@ -44,10 +44,10 @@ Dashboard:
 - 1 / 4 completada (25%)
 
 Capacidad backend actualmente en desarrollo:
-- Ninguna.
+- DSH-003 — Revenue KPI. Proyección interna read-only de Payments `RECORDED` por `paidAt`, sin endpoint público.
 
 Siguiente capacidad backend:
-- DSH-003 — Revenue KPI. La secuencia aprobada continúa con DSH-004 y finalmente DSH-001 como agregador público.
+- DSH-004 — Reservations KPI, después del cierre verificado de DSH-003. DSH-001 permanece como agregador público final.
 
 Validación de cambios backend:
 - Backend CI en estado `SUCCESS` es obligatorio.
@@ -135,6 +135,11 @@ Payment History (PAY-003):
 Occupancy KPI (DSH-002):
 - La proyección backend interna está completada y será expuesta posteriormente mediante DSH-001 — Business Dashboard.
 - No agrega endpoint público ni `dashboard.read` en esta historia.
+
+Revenue KPI (DSH-003, en implementación):
+- Proyección backend interna de Payments `RECORDED` por `paidAt`, dentro de un período `[from, to)` de hasta 31 días en la timezone del Business.
+- Devuelve moneda e importe cobrado; no filtra por estado de Booking, no usa PricingSnapshot y no realiza FX.
+- No agrega endpoint público ni `dashboard.read`; DSH-001 la expondrá posteriormente.
 
 ## Regla de coordinación Backend → Frontend
 
