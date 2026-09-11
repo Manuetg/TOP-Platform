@@ -1,3 +1,5 @@
+import { BookingStatus } from './domain/booking-status.enum';
+
 export interface BlockingBooking {
   resourceId: string;
   checkInDate: Date;
@@ -27,8 +29,28 @@ export interface BookingAvailabilityLookup {
   ): Promise<BlockingBooking[]>;
 }
 
+export interface ReservationsProjectionInput {
+  businessId: string;
+  from: string;
+  to: string;
+  timeZone: string;
+}
+
+export interface ReservationsProjectionRow {
+  status: BookingStatus;
+  count: number;
+}
+
+export const RESERVATIONS_PROJECTION_READER = Symbol(
+  'RESERVATIONS_PROJECTION_READER',
+);
+
+export interface ReservationsProjectionReader {
+  read(input: ReservationsProjectionInput): Promise<ReservationsProjectionRow[]>;
+}
+
 export { BOOKING_REPOSITORY, type BookingRepository } from './domain/booking.repository';
-export { BookingStatus } from './domain/booking-status.enum';
+export { BookingStatus };
 export type { Booking } from './domain/booking.entity';
 export { requireBookingUuid } from './application/booking.validation';
 export {
