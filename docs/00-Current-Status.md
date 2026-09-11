@@ -31,23 +31,23 @@ Alcance:
 ## Estado Backend
 
 Última historia completada:
-- DSH-004 — Reservations KPI — Completed
+- DSH-001 — Business Dashboard — Completed
 
 Estado del backlog backend del MVP:
-- 52 / 53 capacidades completadas
-- 98,1%
+- 53 / 53 capacidades completadas
+- 100%
 
 Booking:
 - 6 / 6 completadas
 
 Dashboard:
-- 3 / 4 completadas (75%)
+- 4 / 4 completadas (100%)
 
 Capacidad backend actualmente en desarrollo:
-- DSH-001 — Business Dashboard — In Progress.
+- Ninguna.
 
-Siguiente paso backend después de DSH-001:
-- cierre documental del MVP backend después de merge, CI y backend self-review verificados.
+Siguiente capacidad backend:
+- Ninguna dentro del backlog MVP aprobado.
 
 Validación de cambios backend:
 - Backend CI en estado `SUCCESS` es obligatorio.
@@ -57,7 +57,7 @@ Validación de cambios backend:
 
 Pendientes principales posteriores:
 - Platform Administration / Global Authority pendiente de definición
-- Dashboard
+- quality gate preproducción, incluido Mutation Testing según la decisión vigente
 
 ## Estado Frontend
 
@@ -133,22 +133,22 @@ Payment History (PAY-003):
 - Breaking change: no; agrega lectura paginada sobre la colección existente de Payments.
 
 Occupancy KPI (DSH-002):
-- La proyección backend interna está completada y será expuesta posteriormente mediante DSH-001 — Business Dashboard.
+- La proyección backend interna está completada y se expone mediante DSH-001 — Business Dashboard.
 - No agrega endpoint público ni `dashboard.read` en esta historia.
 
 Revenue KPI (DSH-003 — Completed):
 - Proyección backend interna de Payments `RECORDED` por `paidAt`, dentro de un período `[from, to)` de hasta 31 días en la timezone del Business.
 - Devuelve `currency` y `amountMinor`; no filtra por estado de Booking, no usa PricingSnapshot y no realiza FX.
-- No agrega endpoint público ni `dashboard.read`; DSH-001 la expondrá posteriormente.
+- No agrega endpoint público propio; DSH-001 la expone mediante `dashboard.read`.
 - Breaking change: no.
 
 Reservations KPI (DSH-004 — Completed):
 - Proyección backend interna de Bookings creadas por `createdAt` dentro de un período `[from, to)` de hasta 31 días en la timezone del Business.
 - Devuelve `total` y los siete estados actuales, incluidos los que tengan valor cero; una Booking multi-resource cuenta una sola vez.
 - No usa check-in/check-out, Contact o Timeline para formar la cohorte y no reconstruye estado histórico.
-- No agrega endpoint público ni `dashboard.read`; DSH-001 la expondrá posteriormente.
+- No agrega endpoint público propio; DSH-001 la expone mediante `dashboard.read`.
 
-Business Dashboard (DSH-001 — In Progress):
+Business Dashboard (DSH-001 — Completed):
 - `GET /api/businesses/:businessId/dashboard?from=YYYY-MM-DD&to=YYYY-MM-DD`.
 - Compone `occupancy`, `revenue` y `reservations` para el mismo período Business-local `[from, to)` obligatorio de hasta 31 días.
 - Usa `dashboard.read`, con scope BUSINESS para `OWNER`, `ADMIN`, `RECEPTIONIST` y `VIEWER`.
@@ -176,7 +176,7 @@ Cuando Backend modifica un contrato que consume Frontend, actualizar esta secci�
 
 ## Cambios recientes relevantes para Frontend
 
-- DSH-001 incorpora el contrato público del Dashboard con `from` y `to` obligatorios, respuesta `occupancy + revenue + reservations` y capability `dashboard.read`; no requiere cambios de semántica en los KPI internos.
+- DSH-001 completado: el contrato backend del Dashboard está disponible con `from` y `to` obligatorios, respuesta `occupancy + revenue + reservations` y capability `dashboard.read`; no requiere cambios de semántica en los KPI internos ni completa por sí mismo el trabajo frontend.
 - DSH-004 finalizado: existe la proyección interna de Reservations por cohorte de `Booking.createdAt` y estado actual; no agrega contrato HTTP ni requiere integración frontend hasta DSH-001.
 - Pricing incorpora lectura de Rate Plans para catálogo y selección contextual de Booking; frontend ya no debe inferir estado, asignación ni vigencia. No se agrega Detail ni se expone PricingSnapshot.
 - DSH-002 finalizado: existe la proyección interna de Occupancy sobre el inventario operacional actual; no agrega contrato HTTP ni requiere integración frontend hasta DSH-001.

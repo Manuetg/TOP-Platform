@@ -36,7 +36,7 @@ Calendario permanece como área visible del producto. Su contrato backend inicia
 
 Identity & Access, Contact y Block son dominios y capacidades técnicas necesarias para entregar las áreas funcionales aprobadas. Su presencia en el backlog backend no amplía por sí misma el alcance comercial del MVP.
 
-El backlog backend del MVP tiene 52 de 53 capacidades completadas (98,1%). La última historia completada es DSH-004 — Reservations KPI. Dashboard tiene 3 de 4 capacidades completadas (75%): DSH-002 — Occupancy KPI, DSH-003 — Revenue KPI y DSH-004 están completadas. DSH-001 está en desarrollo como última capacidad backend del MVP y agregador final de las tres proyecciones bajo el único endpoint público del bloque.
+El Backend MVP completó las 53 de 53 capacidades aprobadas (100%). La última historia completada es DSH-001 — Business Dashboard. Dashboard tiene sus 4 capacidades completadas (100%): DSH-002 — Occupancy KPI, DSH-003 — Revenue KPI, DSH-004 — Reservations KPI y DSH-001 como agregador público de las tres proyecciones. No quedan capacidades backend planificadas dentro del backlog MVP actual. Este cierre no declara completado el frontend, el quality gate preproducción ni el producto completo.
 
 El estado operativo de cada capacidad se mantiene en el [Backlog](07-Backlog.md). [Estado actual](00-Current-Status.md) ofrece el handoff resumido vigente.
 
@@ -51,7 +51,7 @@ El estado operativo de cada capacidad se mantiene en el [Backlog](07-Backlog.md)
 - Booking: 6 / 6.
 - Payment: 4 / 4.
 - Block: 3 / 3.
-- Dashboard: 3 / 4.
+- Dashboard: 4 / 4.
 
 ## Arquitectura general
 

@@ -141,7 +141,7 @@ Los mecanismos concretos de capacidades futuras se definen en Architecture duran
 
 ### Próximas definiciones del MVP
 
-- Las capacidades de Payment están completadas. Dashboard conserva sus contratos pendientes en el Backlog.
+- Las capacidades backend de Payment y Dashboard están completadas dentro del backlog MVP aprobado.
 - El tratamiento financiero de cancelaciones y No Show permanece pendiente y no se infiere de Booking ni Payment actuales.
 
 ### No bloqueantes o futuras
