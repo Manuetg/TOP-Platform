@@ -1,4 +1,5 @@
 import { BusinessStatus } from '../../business/business.contract';
+import { ResourceStatus } from '../../resource/resource.contract';
 import {
   BookingAvailabilityConflictError,
   BookingBusinessNotFoundError,
@@ -42,6 +43,7 @@ const booking = (
 describe('SubmitBookingUseCase', () => {
   const findBusiness = jest.fn();
   const findContact = jest.fn();
+  const findResource = jest.fn();
   const findBooking = jest.fn();
   const markPending = jest.fn();
   const validate = jest.fn();
@@ -56,6 +58,9 @@ describe('SubmitBookingUseCase', () => {
     {
       findByIdAndBusinessId: findContact,
     },
+    {
+      findByIdAndBusinessId: findResource,
+    } as never,
     {
       create: jest.fn(),
       findByIdAndBusinessId: findBooking,
@@ -80,6 +85,12 @@ describe('SubmitBookingUseCase', () => {
 
     findContact.mockResolvedValue({
       id: contactId,
+    });
+
+    findResource.mockResolvedValue({
+      status: ResourceStatus.ACTIVE,
+      capacityMaximum: 4,
+      capacityMaximumChildren: 2,
     });
 
     findBooking.mockResolvedValue(booking());
@@ -147,7 +158,7 @@ describe('SubmitBookingUseCase', () => {
         resourceIds: [],
       }),
       new BookingResourcesRequiredError(
-        'La reserva requiere al menos un recurso.',
+        'La reserva requiere exactamente un recurso.',
       ),
     ],
     [
@@ -199,6 +210,23 @@ describe('SubmitBookingUseCase', () => {
       expect(markPending).not.toHaveBeenCalled();
     },
   );
+
+  it('requires exactly one Resource and rejects occupancy above its total capacity before Availability', async () => {
+    findBooking.mockResolvedValueOnce(booking({ resourceIds: [resourceId, '55555555-5555-4555-8555-555555555555'] }));
+    await expect(useCase.execute({ businessId, bookingId })).rejects.toEqual(new BookingResourcesRequiredError('La reserva requiere exactamente un recurso.'));
+    expect(validate).not.toHaveBeenCalled();
+
+    findBooking.mockResolvedValueOnce(booking({ adults: 1, children: 3 }));
+    await expect(useCase.execute({ businessId, bookingId })).rejects.toEqual(new InvalidBookingInputError('La cantidad de niños supera la capacidad máxima de niños del recurso.'));
+    expect(findResource).toHaveBeenLastCalledWith(resourceId, businessId);
+    expect(validate).not.toHaveBeenCalled();
+
+    findBooking.mockResolvedValueOnce(booking({ adults: 3, children: 2 }));
+    await expect(useCase.execute({ businessId, bookingId })).rejects.toEqual(new InvalidBookingInputError('La cantidad de huéspedes supera la capacidad máxima del recurso.'));
+    expect(findResource).toHaveBeenLastCalledWith(resourceId, businessId);
+    expect(validate).not.toHaveBeenCalled();
+    expect(markPending).not.toHaveBeenCalled();
+  });
 
   it('rejects an equal check-in and check-out date', async () => {
     findBooking.mockResolvedValueOnce(

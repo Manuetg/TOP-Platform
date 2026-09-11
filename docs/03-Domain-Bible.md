@@ -1,5 +1,4 @@
 # Domain Bible
-
 ## Business
 
 ### 1. Propósito
@@ -820,7 +819,6 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - Alcance del overbooking en el MVP.
 - Orden de alternativas disponibles.
 - Política de buffers entre reservas.
-- Reglas de capacidad para adultos y menores.
 - Rendimiento objetivo y estrategia de caché.
 - Tratamiento de cambios simultáneos por múltiples usuarios.
 
@@ -1038,7 +1036,7 @@ Tampoco elimina historial, modifica automáticamente el Pricing Snapshot de una 
 
 #### Relaciones
 
-- Contact responsable opcional y cero o más Resources en el borrador mediante `BookingResource`.
+- Contact responsable opcional y cero o un Resource en el borrador mediante `BookingResource`; el DTO conserva `resourceIds` por compatibilidad, con longitud máxima de uno.
 - Pricing Snapshot, plan de pagos y pagos relacionados se incorporan fuera de este primer slice.
 - Archivos adjuntos, comentarios, actividad y auditoría.
 
@@ -1056,10 +1054,10 @@ Booking referencia esta información, pero Pricing y Payment conservan sus respo
 ### 6. Reglas de negocio
 
 - Toda Booking pertenece exactamente a un Negocio y debe tener un Contact responsable y al menos un Resource antes de confirmarse.
-- En el MVP, los Resources reservados son unidades indivisibles; una Booking puede contener más de un Resource.
+- En el MVP, los Resources reservados son unidades indivisibles; una Booking puede contener cero o un Resource, nunca más de uno.
 - El primer slice `BKG-001` a `BKG-004` crea y modifica exclusivamente `DRAFT`. Un borrador puede existir con cualquier combinación incompleta de Contact, Resources, fechas y huéspedes, incluido un body vacío al crearse.
 - Si ambas fechas existen en un `DRAFT`, la fecha de salida debe ser posterior a la fecha de entrada. Puede existir solo una fecha. Adultos y menores, cuando existen, son enteros mayores o iguales a cero.
-- En el primer slice, `contactId` debe pertenecer al mismo Negocio; los Resources asociados no pueden repetirse y pertenecen al mismo Negocio. Un Resource `ARCHIVED` no puede asociarse a un nuevo borrador; `OUT_OF_SERVICE` puede quedar asociado, sin que ello lo haga reservable o confirmable.
+- En el primer slice, `contactId` debe pertenecer al mismo Negocio; `resourceIds` mantiene compatibilidad de array pero su longitud máxima es uno y, cuando existe, pertenece al mismo Negocio. Un Resource `ARCHIVED` no puede asociarse a un nuevo borrador; `OUT_OF_SERVICE` puede quedar asociado, sin que ello lo haga reservable o confirmable. Si existe `children` junto con un Resource, no supera `capacityMaximumChildren`; si existen adultos y menores, su total no supera `capacityMaximum`.
 - `notes` es opcional, se normaliza con `trim`, una cadena vacía se guarda como `null` y no supera 1000 caracteres.
 - Un borrador puede existir con información incompleta; una reserva pendiente debe contener la información mínima para ser evaluada.
 - Una reserva confirmada debe tener Contact, fechas válidas, Resource disponible y Pricing Snapshot; Availability debe revalidarse inmediatamente antes de confirmar.
@@ -1103,7 +1101,7 @@ No se asume una implementación técnica basada en mensajería o event bus.
 ### 9. Relaciones
 
 - Booking pertenece a Business y en `DRAFT` puede no tener Contact responsable.
-- Puede asociarse a cero o más Resource en `DRAFT`; depende de Availability y solicita cálculos a Pricing antes de confirmar.
+- Puede asociarse a cero o un Resource en `DRAFT`; depende de Availability y solicita cálculos a Pricing antes de confirmar.
 - Conserva un Pricing Snapshot, puede tener plan de pagos y múltiples Payment, huéspedes adicionales, Activity, Comments, Files y Audit.
 - No comparte información entre Negocios.
 
@@ -1114,14 +1112,14 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - `BKG-001`: crear un `DRAFT` mediante `POST /api/businesses/:businessId/bookings`.
 - `BKG-002`: consultar una Booking del Negocio mediante `GET /api/businesses/:businessId/bookings/:bookingId`.
 - `BKG-003`: listar Bookings del Negocio mediante `GET /api/businesses/:businessId/bookings`, con filtros iniciales opcionales `status`, `contactId` y `resourceId`, y orden `createdAt DESC`, `id ASC`.
-- `BKG-004`: actualizar parcialmente un `DRAFT` mediante `PATCH /api/businesses/:businessId/bookings/:bookingId`; los campos omitidos se preservan, `contactId` y fechas `null` limpian, `resourceIds: []` elimina asociaciones y la presencia de `resourceIds` reemplaza la relación atómicamente.
-- `BKG-005 — Booking Lifecycle`: administra `DRAFT → PENDING`, `PENDING → CONFIRMED` y cancelación de estados permitidos. Submit exige Contact responsable, al menos un Resource y fechas completas válidas; valida Availability antes de crear un estado potencialmente bloqueante. Confirm exige además Pricing Snapshot y revalida AVL-004 inmediatamente antes de persistir `CONFIRMED`. La confirmación debe mantener la garantía de concurrencia definida por BR-062.
+- `BKG-004`: actualizar parcialmente un `DRAFT` mediante `PATCH /api/businesses/:businessId/bookings/:bookingId`; los campos omitidos se preservan, `contactId` y fechas `null` limpian, `resourceIds: []` elimina asociaciones y su presencia reemplaza atómicamente la única asociación permitida.
+- `BKG-005 — Booking Lifecycle`: administra `DRAFT → PENDING`, `PENDING → CONFIRMED` y cancelación de estados permitidos. Submit exige Contact responsable, exactamente un Resource y fechas completas válidas; valida Availability antes de crear un estado potencialmente bloqueante. Confirm exige además Pricing Snapshot y revalida AVL-004 inmediatamente antes de persistir `CONFIRMED`. La confirmación debe mantener la garantía de concurrencia definida por BR-062.
 - Asociar plan de pagos, registrar observaciones, adjuntar archivos, hacer check-in, check-out y finalizar.
 - Consultar historial, duplicar una reserva como base para otra y consultar por fecha, Contact, Resource, estado o número visible.
 
 ### 11. Restricciones
 
-- No confirmar sin revalidar Availability, Contact responsable, al menos un Resource, fechas válidas y Pricing Snapshot.
+- No confirmar sin revalidar Availability, Contact responsable, exactamente un Resource, fechas válidas y Pricing Snapshot.
 - BKG-001 a BKG-004 no implementan transiciones de estado. Availability y la validación de overbooking ya están disponibles mediante AVL-001 a AVL-004. BKG-005 incorpora el lifecycle `DRAFT → PENDING → CONFIRMED` y cancelación; BKG-006 mantiene Timeline. Pricing Snapshot, check-in/check-out, capacidad de huéspedes y Payments conservan sus alcances propios.
 - No modificar silenciosamente el precio confirmado, eliminar físicamente una reserva ni mezclar estado operativo y financiero.
 - No permitir doble reserva salvo política explícita de overbooking, ni usar check-in/check-out como estados persistentes independientes.
@@ -1130,7 +1128,7 @@ No se definen aún las cardinalidades técnicas de base de datos.
 
 ### 12. Pendientes
 
-- La información mínima para pasar de `DRAFT` a `PENDING` queda definida por BKG-005: Contact responsable, al menos un Resource y rango completo `[checkInDate, checkOutDate)` válido.
+- La información mínima para pasar de `DRAFT` a `PENDING` queda definida por BKG-005: Contact responsable, exactamente un Resource y rango completo `[checkInDate, checkOutDate)` válido.
 - Regla definitiva para confirmar automáticamente tras un primer pago.
 - `PENDING` consume la regla efectiva `pendingBlocksAvailability` de Availability; al entrar en `PENDING` se valida disponibilidad con la misma semántica central.
 - Política de cancelación y penalizaciones.
@@ -1390,7 +1388,7 @@ Dashboard es una proyección read-only tenant-scoped y no persiste métricas, sn
 
 DSH-002 calcula la proporción de Resource-nights ocupadas respecto de Resource-nights vendibles durante un período obligatorio `[from, to)` de hasta 31 días, interpretado en la timezone IANA del Business. Usa exclusivamente el inventario operacional actual: solo Resources actualmente `ACTIVE` participan en numerador y denominador, incluso para períodos históricos. Una Resource comienza a aportar desde la fecha local de su `createdAt`; `OUT_OF_SERVICE` y `ARCHIVED` quedan fuera de ambos agregados.
 
-El numerador cuenta unidades distintas `resourceId + localDate` cubiertas por Bookings `CONFIRMED`, `IN_PROGRESS` o `COMPLETED`; excluye `DRAFT`, `PENDING`, `CANCELLED` y `NO_SHOW`. Una Booking con varios Resources aporta una Resource-night por Resource y noche. El denominador contiene las noches potencialmente vendibles del inventario elegible y no se reduce por Bookings. Cada Resource-night intersectada por uno o más Blocks no cancelados se resta una sola vez del denominador y no se convierte en ocupación.
+El numerador cuenta unidades distintas `resourceId + localDate` cubiertas por Bookings `CONFIRMED`, `IN_PROGRESS` o `COMPLETED`; excluye `DRAFT`, `PENDING`, `CANCELLED` y `NO_SHOW`. Una Booking aporta una Resource-night por la única asociación de Resource permitida y por noche. El denominador contiene las noches potencialmente vendibles del inventario elegible y no se reduce por Bookings. Cada Resource-night intersectada por uno o más Blocks no cancelados se resta una sola vez del denominador y no se convierte en ocupación.
 
 La proyección interna devuelve `occupiedResourceNights`, `sellableResourceNights` y `occupancyRateBasisPoints`. La tasa es `round(occupiedResourceNights * 10000 / sellableResourceNights)`; 10.000 representa 100% y un denominador cero produce `null`. Valores negativos o una ocupación superior al inventario vendible constituyen una invariante interna y no se corrigen mediante clamp.
 

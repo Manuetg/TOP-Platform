@@ -30,6 +30,7 @@ describeWithPostgres('SubmitBookingUseCase', () => {
   const useCase = new SubmitBookingUseCase(
     businesses,
     contacts,
+    resources,
     bookings,
     availability,
   );
@@ -48,7 +49,7 @@ describeWithPostgres('SubmitBookingUseCase', () => {
       data: { businessId: business.id, name: `${name} Contact`, email: `${name.toLowerCase()}@test.local` },
     });
     const resource = await prisma.resource.create({
-      data: { businessId: business.id, name: `${name} Room`, internalCode: name.toUpperCase(), capacityMaximum: 2 },
+      data: { businessId: business.id, name: `${name} Room`, internalCode: name.toUpperCase(), capacityMaximum: 4, capacityMaximumChildren: 2 },
     });
     const booking = await bookings.create({
       businessId: business.id,
@@ -68,6 +69,22 @@ describeWithPostgres('SubmitBookingUseCase', () => {
 
     await expect(useCase.execute({ businessId: business.id, bookingId: booking.id })).resolves.toMatchObject({ id: booking.id, status: BookingStatus.PENDING });
     await expect(prisma.booking.findUnique({ where: { id: booking.id } })).resolves.toMatchObject({ status: BookingStatus.PENDING });
+  });
+
+  it('rejects a DRAFT whose total guests exceed the Resource capacity', async () => {
+    const { business, booking } = await fixture('Capacity');
+    await prisma.booking.update({ where: { id: booking.id }, data: { adults: 3, children: 2 } });
+
+    await expect(useCase.execute({ businessId: business.id, bookingId: booking.id })).rejects.toMatchObject({ message: 'La cantidad de huéspedes supera la capacidad máxima del recurso.' });
+    await expect(prisma.booking.findUnique({ where: { id: booking.id } })).resolves.toMatchObject({ status: BookingStatus.DRAFT });
+  });
+
+  it('rejects a DRAFT whose children exceed the Resource child capacity', async () => {
+    const { business, booking } = await fixture('ChildrenCapacity');
+    await prisma.booking.update({ where: { id: booking.id }, data: { adults: 1, children: 3 } });
+
+    await expect(useCase.execute({ businessId: business.id, bookingId: booking.id })).rejects.toMatchObject({ message: 'La cantidad de niños supera la capacidad máxima de niños del recurso.' });
+    await expect(prisma.booking.findUnique({ where: { id: booking.id } })).resolves.toMatchObject({ status: BookingStatus.DRAFT });
   });
 
   it('keeps the DRAFT when an intersecting blocking booking conflicts', async () => {

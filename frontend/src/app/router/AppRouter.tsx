@@ -18,6 +18,10 @@ import { EditContactPage } from "../../features/contacts/pages/EditContactPage";
 import { AvailabilityCheckPage } from "../../features/availability/pages/AvailabilityCheckPage";
 import { AvailabilityRulesPage } from "../../features/availability/pages/AvailabilityRulesPage";
 import { BlockListPage } from "../../features/blocks/pages/BlockListPage";
+import { BookingListPage } from "../../features/bookings/pages/BookingListPage";
+import { BookingDetailPage } from "../../features/bookings/pages/BookingDetailPage";
+import { CreateBookingPage } from "../../features/bookings/pages/CreateBookingPage";
+import { EditBookingPage } from "../../features/bookings/pages/EditBookingPage";
 import { CreateBlockPage } from "../../features/blocks/pages/CreateBlockPage";
 
 const router = createBrowserRouter([
@@ -43,7 +47,19 @@ const router = createBrowserRouter([
       },
       {
         path: "bookings",
-        element: <AppSectionPage title="Reservas" />,
+        element: <BookingListPage />,
+      },
+      {
+        path: "bookings/new",
+        element: <CreateBookingPage />,
+      },
+      {
+        path: "bookings/:bookingId",
+        element: <BookingDetailPage />,
+      },
+      {
+        path: "bookings/:bookingId/edit",
+        element: <EditBookingPage />,
       },
       {
         path: "availability",

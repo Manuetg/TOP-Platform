@@ -23,7 +23,8 @@ export class CreateBookingUseCase extends BookingBase {
     assertDateRange(checkInDate, checkOutDate);
     await this.activeBusiness(businessId);
     await this.validateContact(businessId, contactId);
-    await this.validateResources(businessId, resourceIds);
+    const resources = await this.validateResources(businessId, resourceIds);
+    this.validateCapacity(resources, adults, children);
     const actorUserId = input.actorUserId === undefined ? null : requireBookingUuid(input.actorUserId, 'El identificador del actor no es válido.');
     return this.bookings.create({ businessId, contactId, resourceIds, checkInDate, checkOutDate, adults, children, notes, actorUserId });
   }

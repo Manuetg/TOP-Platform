@@ -1292,17 +1292,31 @@ Criterios de aceptación:
 
 ## FE-BKG-001 — Booking List
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
 Mostrar reservas del Business con filtros y estados.
 
+Implementado:
+
+- listado real por Business;
+- filtros contractuales por estado, contacto y Resource;
+- búsqueda local sobre los datos recuperados;
+- resolución de nombres de Contact y Resource;
+- estados loading, error y empty;
+- tabla desktop y cards mobile;
+- navegación a Detail y Create.
+
+Nota:
+
+- no se agregaron filtros de fechas al request porque el contrato backend de listado no los expone.
+
 ---
 
 ## FE-BKG-002 — Booking Detail
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1312,41 +1326,72 @@ Endpoint relevante:
 
 - `GET /api/businesses/{businessId}/bookings/{bookingId}`
 
+Implementado:
+
+- estado real de Booking;
+- contacto;
+- alojamiento;
+- fechas;
+- ocupación;
+- notas;
+- metadatos;
+- estados incompletos de DRAFT sin inventar datos;
+- acciones de lifecycle condicionadas por estado.
+
 ---
 
 ## FE-BKG-003 — Create Draft Booking
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
 Crear una Booking en estado DRAFT.
 
-Debe permitir:
+Implementado:
 
-- Contact;
-- Resources;
-- check-in;
-- check-out;
-- adultos;
-- niños;
-- notas.
+- Contact opcional;
+- un único Resource opcional;
+- check-in y check-out opcionales;
+- adultos y niños opcionales;
+- notas opcionales;
+- persistencia de DRAFT incompleto;
+- validación de rango de fechas;
+- validación de enteros no negativos;
+- validación de capacidad total;
+- validación de capacidad máxima de niños;
+- Resources ARCHIVED excluidos del selector.
+
+Reglas MVP:
+
+- una Booking admite como máximo un Resource;
+- `adults + children` no puede superar `Resource.capacityMaximum`;
+- `children` no puede superar `Resource.capacityMaximumChildren`;
+- el contrato backend conserva `resourceIds: string[]`, con máximo un elemento.
 
 ---
 
 ## FE-BKG-004 — Edit Draft Booking
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
 Editar una Booking mientras backend permita su modificación.
 
+Implementado:
+
+- edición disponible únicamente para DRAFT;
+- formulario compartido con Create;
+- precarga de valores actuales;
+- mismas reglas de Resource único, fechas y capacidad;
+- acceso directo a `/edit` bloqueado para estados no editables.
+
 ---
 
 ## FE-BKG-005 — Submit Booking
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1356,18 +1401,26 @@ Endpoint:
 
 - `POST /api/businesses/{businessId}/bookings/{bookingId}/submit`
 
-Criterios de aceptación:
+Implementado:
 
-- confirmación visual;
-- manejo de conflictos de disponibilidad;
+- acción disponible sólo en DRAFT;
 - backend decide validez;
-- estado actualizado tras éxito.
+- Submit exige exactamente un Resource;
+- capacidad validada por backend;
+- Availability validada por backend;
+- conflictos conservan la Booking en DRAFT;
+- estado actualizado a PENDING tras éxito;
+- frontend no propone reasignaciones ni fechas alternativas.
 
 ---
 
 ## FE-BKG-006 — Confirm Booking
 
-Estado: Planned
+Estado: Blocked
+
+Bloqueado por:
+
+- recuperación/listado insuficiente de Rate Plans en Pricing.
 
 Objetivo:
 
@@ -1377,19 +1430,24 @@ Endpoint:
 
 - `POST /api/businesses/{businessId}/bookings/{bookingId}/confirm`
 
-Criterios de aceptación:
+Dependencia contractual:
 
-- muestra precio a confirmar;
-- soporta flujo de override cuando backend lo permita;
-- backend recalcula precio;
-- backend persiste PricingSnapshot;
-- frontend no genera PricingSnapshot.
+- Confirm requiere `pricing[]` con `resourceId` y `ratePlanId`;
+- Booking MVP es single-resource;
+- Pricing no expone actualmente un contrato suficiente de GET list/detail para recuperar Rate Plans seleccionables;
+- frontend no debe inventar ni simular un selector de Rate Plans.
+
+Pendiente de backend:
+
+- GET de Rate Plans;
+- reglas de elegibilidad de Rate Plans;
+- decisión explícita sobre lectura del PricingSnapshot desde Booking Detail.
 
 ---
 
 ## FE-BKG-007 — Cancel Booking
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1399,29 +1457,45 @@ Endpoint:
 
 - `POST /api/businesses/{businessId}/bookings/{bookingId}/cancel`
 
-Criterios de aceptación:
+Implementado:
 
-- confirmación previa;
+- disponible para DRAFT, PENDING y CONFIRMED;
+- motivo opcional;
+- cuando se informa, debe tener entre 2 y 500 caracteres;
 - resultado CANCELLED;
-- manejo de 409;
-- historial no desaparece.
+- no existe hard delete;
+- la reserva y su historial permanecen visibles.
 
 ---
 
 ## FE-BKG-008 — Booking Timeline
 
-Estado: Blocked
-
-Bloqueado por:
-
-- Backend BKG-006.
+Estado: Completed
 
 Objetivo:
 
-Mostrar cronología de eventos de la reserva cuando backend exponga el contrato correspondiente.
+Mostrar la cronología contractual real de la reserva.
+
+Endpoint:
+
+- `GET /api/businesses/{businessId}/bookings/{bookingId}/timeline`
+
+Eventos soportados actualmente:
+
+- `BOOKING_CREATED`;
+- `BOOKING_SUBMITTED`;
+- `BOOKING_CONFIRMED`;
+- `BOOKING_CANCELLED`.
+
+Implementado:
+
+- actor opcional;
+- motivo de cancelación cuando existe;
+- paginación por cursor;
+- estados loading, error y empty;
+- no se inventan eventos que backend no expone.
 
 ---
-
 # 12. FE-BLK — Blocks
 
 ## FE-BLK-001 — Block List
@@ -1653,7 +1727,7 @@ Historias:
 - FE-BKG-005
 - FE-BKG-006
 - FE-BKG-007
-- FE-BKG-008 cuando backend esté disponible
+- FE-BKG-008
 
 Milestone:
 

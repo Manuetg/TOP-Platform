@@ -17,7 +17,7 @@ describe('Booking use cases', () => {
   const findBusiness = jest.fn(); const findContact = jest.fn(); const findResource = jest.fn(); const create = jest.fn(); const findBooking = jest.fn(); const list = jest.fn(); const update = jest.fn();
   const businesses = { findById: findBusiness } as never; const contacts = { findByIdAndBusinessId: findContact } as never; const resources = { findByIdAndBusinessId: findResource } as never; const bookings = { create, findByIdAndBusinessId: findBooking, listByBusinessId: list, update } as never;
   const createUseCase = new CreateBookingUseCase(businesses, contacts, resources, bookings); const getUseCase = new GetBookingUseCase(bookings); const listUseCase = new ListBookingsUseCase(bookings); const updateUseCase = new UpdateBookingUseCase(businesses, contacts, resources, bookings);
-  beforeEach(() => { jest.resetAllMocks(); findBusiness.mockResolvedValue({ status: BusinessStatus.ACTIVE }); findContact.mockResolvedValue({}); findResource.mockResolvedValue({ status: ResourceStatus.ACTIVE }); });
+  beforeEach(() => { jest.resetAllMocks(); findBusiness.mockResolvedValue({ status: BusinessStatus.ACTIVE }); findContact.mockResolvedValue({}); findResource.mockResolvedValue({ status: ResourceStatus.ACTIVE, capacityMaximum: 10, capacityMaximumChildren: 4 }); });
   it('creates an empty draft and normalizes optional values', async () => {
     create.mockResolvedValueOnce(booking());
     await expect(createUseCase.execute({ businessId })).resolves.toEqual(booking());
@@ -29,6 +29,16 @@ describe('Booking use cases', () => {
     findResource.mockResolvedValueOnce({ status: ResourceStatus.ARCHIVED });
     await expect(createUseCase.execute({ businessId, resourceIds: [resourceId] })).rejects.toBeInstanceOf(BookingResourceUnavailableError);
     expect(create).not.toHaveBeenCalled();
+  });
+  it('allows zero or one Resource and enforces total and children capacities when evaluable', async () => {
+    findResource.mockResolvedValue({ status: ResourceStatus.ACTIVE, capacityMaximum: 4, capacityMaximumChildren: 2 });
+    create.mockResolvedValueOnce(booking({ resourceIds: [resourceId], adults: 2, children: 2 }));
+    create.mockResolvedValueOnce(booking({ resourceIds: [resourceId], adults: 4, children: 0 }));
+    await expect(createUseCase.execute({ businessId, resourceIds: [resourceId], adults: 2, children: 2 })).resolves.toMatchObject({ resourceIds: [resourceId] });
+    await expect(createUseCase.execute({ businessId, resourceIds: [resourceId], adults: 4, children: 0 })).resolves.toMatchObject({ resourceIds: [resourceId] });
+    await expect(createUseCase.execute({ businessId, resourceIds: [resourceId, '44444444-4444-4444-8444-444444444444'] })).rejects.toEqual(new InvalidBookingInputError('Una reserva puede tener como máximo un recurso.'));
+    await expect(createUseCase.execute({ businessId, resourceIds: [resourceId], adults: 1, children: 3 })).rejects.toEqual(new InvalidBookingInputError('La cantidad de niños supera la capacidad máxima de niños del recurso.'));
+    await expect(createUseCase.execute({ businessId, resourceIds: [resourceId], adults: 3, children: 2 })).rejects.toEqual(new InvalidBookingInputError('La cantidad de huéspedes supera la capacidad máxima del recurso.'));
   });
   it('gets and lists only scoped public booking aggregates', async () => {
     findBooking.mockResolvedValueOnce(booking({ resourceIds: [resourceId] })); list.mockResolvedValueOnce([booking()]);
@@ -84,6 +94,17 @@ describe('Booking use cases', () => {
     }
     findBooking.mockResolvedValueOnce(current); findResource.mockResolvedValueOnce({ status: ResourceStatus.ARCHIVED });
     await expect(updateUseCase.execute({ businessId, bookingId, resourceIds: [resourceId] })).rejects.toBeInstanceOf(BookingResourceUnavailableError); expect(update).toHaveBeenCalledTimes(2);
+  });
+  it('rejects a draft update to two Resources or an occupancy above children or total capacity', async () => {
+    const current = booking({ resourceIds: [resourceId], adults: 1, children: 1 });
+    await expect(updateUseCase.execute({ businessId, bookingId, resourceIds: [resourceId, '44444444-4444-4444-8444-444444444444'] })).rejects.toEqual(new InvalidBookingInputError('Una reserva puede tener como máximo un recurso.'));
+    findBooking.mockResolvedValueOnce(current);
+    findResource.mockResolvedValueOnce({ status: ResourceStatus.ACTIVE, capacityMaximum: 4, capacityMaximumChildren: 2 });
+    await expect(updateUseCase.execute({ businessId, bookingId, children: 3 })).rejects.toEqual(new InvalidBookingInputError('La cantidad de niños supera la capacidad máxima de niños del recurso.'));
+    findBooking.mockResolvedValueOnce(current);
+    findResource.mockResolvedValueOnce({ status: ResourceStatus.ACTIVE, capacityMaximum: 4, capacityMaximumChildren: 2 });
+    await expect(updateUseCase.execute({ businessId, bookingId, adults: 3, children: 2 })).rejects.toEqual(new InvalidBookingInputError('La cantidad de huéspedes supera la capacidad máxima del recurso.'));
+    expect(update).not.toHaveBeenCalled();
   });
   it('reports a missing booking for GET and PATCH without persisting', async () => {
     findBooking.mockResolvedValueOnce(null); await expect(getUseCase.execute(businessId, bookingId)).rejects.toBeInstanceOf(BookingNotFoundError); expect(findBooking).toHaveBeenLastCalledWith(bookingId, businessId);

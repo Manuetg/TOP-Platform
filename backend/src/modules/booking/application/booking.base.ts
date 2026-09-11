@@ -2,6 +2,7 @@ import { Inject } from '@nestjs/common';
 import { BUSINESS_REPOSITORY, BusinessStatus, type BusinessRepository } from '../../business/business.contract';
 import { CONTACT_LOOKUP, type ContactLookup } from '../../contact/contact.contract';
 import { RESOURCE_REPOSITORY, ResourceStatus, type ResourceRepository } from '../../resource/resource.contract';
+import { assertBookingCapacity } from './booking.validation';
 import { BookingBusinessNotFoundError, BookingBusinessUnavailableError, BookingContactNotFoundError, BookingResourceNotFoundError, BookingResourceUnavailableError } from './booking.errors';
 
 export abstract class BookingBase {
@@ -15,12 +16,17 @@ export abstract class BookingBase {
     if (contactId !== null && !(await this.contacts.findByIdAndBusinessId(contactId, businessId))) throw new BookingContactNotFoundError('El contacto no existe.');
   }
   protected async validatePatchedContact(businessId: string, contactId: string | null | undefined): Promise<void> { if (contactId !== undefined) await this.validateContact(businessId, contactId); }
-  protected async validateResources(businessId: string, resourceIds: string[]): Promise<void> {
+  protected async validateResources(businessId: string, resourceIds: string[]): Promise<{ capacityMaximum: number; capacityMaximumChildren: number }[]> {
+    const resources: { capacityMaximum: number; capacityMaximumChildren: number }[] = [];
     for (const resourceId of resourceIds) {
       const resource = await this.resources.findByIdAndBusinessId(resourceId, businessId);
       if (!resource) throw new BookingResourceNotFoundError('El recurso no existe.');
       if (resource.status === ResourceStatus.ARCHIVED) throw new BookingResourceUnavailableError('El recurso está archivado.');
+      resources.push(resource);
     }
+    return resources;
   }
-  protected async validatePatchedResources(businessId: string, resourceIds: string[] | undefined): Promise<void> { if (resourceIds !== undefined) await this.validateResources(businessId, resourceIds); }
+  protected validateCapacity(resources: { capacityMaximum: number; capacityMaximumChildren: number }[], adults: number | null, children: number | null): void {
+    if (resources.length === 1) assertBookingCapacity(adults, children, resources[0].capacityMaximum, resources[0].capacityMaximumChildren);
+  }
 }
