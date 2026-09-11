@@ -158,7 +158,7 @@ Then('Reservations devuelve total {int}', function (this: TopWorld, total: numbe
 });
 
 Then(
-  'Reservations consulta con la timezone America/Asuncion',
+  'Reservations consulta con la timezone America\\/Asuncion',
   function (): void {
     assert.equal(reservationsProjectionLastInput()?.timeZone, 'America/Asuncion');
   },
