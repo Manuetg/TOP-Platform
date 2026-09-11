@@ -31,23 +31,23 @@ Alcance:
 ## Estado Backend
 
 Última historia completada:
-- DSH-002 — Occupancy KPI — Completed
+- DSH-003 — Revenue KPI — Completed
 
 Estado del backlog backend del MVP:
-- 50 / 53 capacidades completadas
-- 94,3%
+- 51 / 53 capacidades completadas
+- 96,2%
 
 Booking:
 - 6 / 6 completadas
 
 Dashboard:
-- 1 / 4 completada (25%)
+- 2 / 4 completadas (50%)
 
 Capacidad backend actualmente en desarrollo:
-- DSH-003 — Revenue KPI. Proyección interna read-only de Payments `RECORDED` por `paidAt`, sin endpoint público.
+- Ninguna.
 
 Siguiente capacidad backend:
-- DSH-004 — Reservations KPI, después del cierre verificado de DSH-003. DSH-001 permanece como agregador público final.
+- DSH-004 — Reservations KPI. DSH-001 permanece como agregador público final.
 
 Validación de cambios backend:
 - Backend CI en estado `SUCCESS` es obligatorio.
@@ -136,10 +136,11 @@ Occupancy KPI (DSH-002):
 - La proyección backend interna está completada y será expuesta posteriormente mediante DSH-001 — Business Dashboard.
 - No agrega endpoint público ni `dashboard.read` en esta historia.
 
-Revenue KPI (DSH-003, en implementación):
+Revenue KPI (DSH-003 — Completed):
 - Proyección backend interna de Payments `RECORDED` por `paidAt`, dentro de un período `[from, to)` de hasta 31 días en la timezone del Business.
-- Devuelve moneda e importe cobrado; no filtra por estado de Booking, no usa PricingSnapshot y no realiza FX.
+- Devuelve `currency` y `amountMinor`; no filtra por estado de Booking, no usa PricingSnapshot y no realiza FX.
 - No agrega endpoint público ni `dashboard.read`; DSH-001 la expondrá posteriormente.
+- Breaking change: no.
 
 ## Regla de coordinación Backend → Frontend
 
