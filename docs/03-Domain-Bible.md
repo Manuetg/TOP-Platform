@@ -1386,7 +1386,13 @@ No se definen aún las cardinalidades técnicas de base de datos.
 
 ### Contrato conjunto del MVP
 
-Dashboard es una proyección read-only tenant-scoped y no persiste métricas, snapshots ni estados propios. DSH-002, DSH-003 y DSH-004 proveen proyecciones internas de Occupancy, Revenue y Reservations; DSH-001 las compondrá posteriormente mediante el único endpoint público `GET /api/businesses/:businessId/dashboard`. La secuencia aprobada es DSH-002, DSH-003, DSH-004 y DSH-001.
+Dashboard es una proyección read-only tenant-scoped y no persiste métricas, snapshots ni estados propios. DSH-002, DSH-003 y DSH-004 proveen proyecciones internas de Occupancy, Revenue y Reservations; DSH-001 las compone mediante el único endpoint público `GET /api/businesses/:businessId/dashboard`. La secuencia aprobada es DSH-002, DSH-003, DSH-004 y DSH-001.
+
+### Contrato DSH-001 — Business Dashboard
+
+DSH-001 recibe `from` y `to` obligatorios en formato de fecha, con período semiabierto `[from, to)` de hasta 31 días interpretado por cada proyección en la timezone IANA del Business. Devuelve exclusivamente `occupancy`, `revenue` y `reservations` con los contratos aprobados de DSH-002, DSH-003 y DSH-004; no recalcula métricas ni consulta directamente sus datos fuente.
+
+La composición es all-or-nothing: una falla de entrada, Business ausente o invariante de cualquier KPI hace fallar el contrato completo. La lectura se permite para Business archivado con Membership válida y `dashboard.read`; esta capability BUSINESS corresponde a `OWNER`, `ADMIN`, `RECEPTIONIST` y `VIEWER`. DSH-001 no agrega persistencia, cache, infraestructura de datos, índices ni cambios Prisma.
 
 ### Contrato DSH-002 — Occupancy KPI
 
