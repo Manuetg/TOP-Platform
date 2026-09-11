@@ -17,6 +17,8 @@ import { ContactDetailPage } from "../../features/contacts/pages/ContactDetailPa
 import { EditContactPage } from "../../features/contacts/pages/EditContactPage";
 import { AvailabilityCheckPage } from "../../features/availability/pages/AvailabilityCheckPage";
 import { AvailabilityRulesPage } from "../../features/availability/pages/AvailabilityRulesPage";
+import { BlockListPage } from "../../features/blocks/pages/BlockListPage";
+import { CreateBlockPage } from "../../features/blocks/pages/CreateBlockPage";
 
 const router = createBrowserRouter([
   {
@@ -93,7 +95,11 @@ const router = createBrowserRouter([
       },
       {
         path: "blocks",
-        element: <AppSectionPage title="Bloqueos" />,
+        element: <BlockListPage />,
+      },
+      {
+        path: "blocks/new",
+        element: <CreateBlockPage />,
       },
       {
         path: "settings",

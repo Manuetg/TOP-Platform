@@ -1426,31 +1426,115 @@ Mostrar cronología de eventos de la reserva cuando backend exponga el contrato 
 
 ## FE-BLK-001 — Block List
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
 Mostrar bloqueos del Business/Resources.
 
+Implementado:
+
+- listado business-scoped contra `GET /businesses/:businessId/blocks`;
+- filtro por Resource usando `resourceId` soportado por backend;
+- filtros por fecha `from` y `to` soportados por backend;
+- conversión de fechas visuales a RFC3339 antes de consultar backend;
+- validación local de rango para evitar requests cuando `Hasta <= Desde`;
+- filtro por `effectiveStatus` en frontend;
+- filtro por `type` en frontend;
+- estados operativos mostrados desde `effectiveStatus`: `SCHEDULED`, `ACTIVE`, `FINISHED`, `CANCELLED`;
+- tipos soportados: `MAINTENANCE`, `OWNER_USE`, `OTHER`;
+- Resource mostrado por nombre;
+- estados loading, error y empty;
+- tabla operativa en desktop;
+- cards responsive en mobile;
+- filtros colapsables en mobile y cerrados por defecto;
+- indicador visual cuando existen filtros activos;
+- frontend no inventa filtros backend de status/type.
+
+Validación:
+
+- probado funcionalmente contra backend real;
+- filtros por Resource y fechas verificados;
+- filtros client-side por estado y tipo verificados;
+- validación de rango inválido verificada sin bloquear el módulo;
+- probado en desktop y mobile;
+- tests API y UI implementados.
+
 ---
 
 ## FE-BLK-002 — Create Block
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
 Crear bloqueo operativo para un Resource y rango temporal.
 
+Implementado:
+
+- creación contra `POST /businesses/:businessId/resources/:resourceId/blocks`;
+- selección de Resource real del Business;
+- Resources `ARCHIVED` excluidos del selector;
+- Resources `OUT_OF_SERVICE` disponibles según contrato backend;
+- tipos `MAINTENANCE`, `OWNER_USE` y `OTHER`;
+- motivo obligatorio validado entre 2 y 120 caracteres;
+- observaciones opcionales hasta 500 caracteres;
+- inputs `datetime-local` para inicio y fin;
+- conversión de fechas a RFC3339 antes de enviar;
+- validación local de `endsAt > startsAt`;
+- errores de validación inline;
+- errores backend preservados;
+- invalidación de query de Blocks después de crear;
+- navegación de retorno al listado después de creación exitosa;
+- responsive desktop/mobile.
+
+Validación:
+
+- probado funcionalmente contra backend real;
+- creación real verificada;
+- validación de Resource obligatorio verificada;
+- validación de rango temporal verificada;
+- exclusión de Resources archivados verificada;
+- tests API y UI implementados.
+
 ---
 
 ## FE-BLK-003 — Cancel Block
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
 Cancelar un bloqueo preservando historial.
+
+Implementado:
+
+- cancelación contra `PATCH /businesses/:businessId/blocks/:blockId/cancel`;
+- no se implementa eliminación física de Block;
+- acción disponible directamente desde Block List;
+- acción visible únicamente para `SCHEDULED` y `ACTIVE`;
+- `FINISHED` y `CANCELLED` no muestran acción de cancelación;
+- diálogo de confirmación con contexto del Resource y período;
+- motivo de cancelación obligatorio entre 2 y 500 caracteres;
+- validación inline antes de llamar al backend;
+- error backend mostrado dentro del diálogo;
+- invalidación automática de query de Blocks después de cancelar;
+- historial preservado mediante estado `CANCELLED`;
+- acción accesible en desktop y mobile;
+- modal adaptado como bottom sheet en mobile.
+
+Validación:
+
+- cancelación real probada contra backend;
+- cancelación de Block programado verificada;
+- comportamiento para Block activo verificado;
+- ausencia de acción para finalizados y cancelados verificada;
+- validación de motivo verificada;
+- tests API y UI implementados;
+- regresión completa de frontend aprobada con 148 tests;
+- build de producción aprobado;
+- lint aprobado con 0 warnings y 0 errors;
+- `git diff --check` aprobado.
 
 ---
 
