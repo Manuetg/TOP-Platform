@@ -2,6 +2,7 @@ import { setDefaultTimeout, setWorldConstructor, World, type IWorldOptions } fro
 import type { INestApplication } from '@nestjs/common';
 import type { Response } from 'supertest';
 import type { OccupancyKpi } from '../../../src/modules/dashboard/application/get-occupancy-kpi.use-case';
+import type { RevenueKpi } from '../../../src/modules/dashboard/application/get-revenue-kpi.use-case';
 
 export class TopWorld extends World {
   app?: INestApplication;
@@ -13,6 +14,8 @@ export class TopWorld extends World {
   accessToken?: string;
   occupancyResult?: OccupancyKpi;
   occupancyError?: Error;
+  revenueResult?: RevenueKpi;
+  revenueError?: Error;
 
   constructor(options: IWorldOptions) {
     super(options);
