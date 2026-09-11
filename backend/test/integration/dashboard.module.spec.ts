@@ -1,4 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { ConfigModule } from '@nestjs/config';
 import { PrismaClient, type BusinessStatus } from '@prisma/client';
 import { GetBusinessDashboardUseCase } from '../../src/modules/dashboard/application/get-business-dashboard.use-case';
 import { DashboardModule } from '../../src/modules/dashboard/dashboard.module';
@@ -11,19 +12,20 @@ const describeWithPostgres = databaseUrl?.includes('test')
 
 describeWithPostgres('DashboardModule', () => {
   const prisma = new PrismaClient();
-  let module: TestingModule;
+  let module: TestingModule | undefined;
   let dashboard: GetBusinessDashboardUseCase;
 
   beforeAll(async () => {
     await prisma.$connect();
-    module = await Test.createTestingModule({ imports: [DashboardModule] })
-      .compile();
+    module = await Test.createTestingModule({
+      imports: [ConfigModule.forRoot({ isGlobal: true }), DashboardModule],
+    }).compile();
     dashboard = module.get(GetBusinessDashboardUseCase);
   });
   beforeEach(async () => cleanTestDatabase(prisma, databaseUrl));
   afterEach(async () => cleanTestDatabase(prisma, databaseUrl));
   afterAll(async () => {
-    await module.close();
+    await module?.close();
     await prisma.$disconnect();
   });
 
