@@ -1237,6 +1237,13 @@ Objetivo:
 
 Mostrar planes tarifarios del Business.
 
+Contrato backend disponible:
+
+- `GET /api/businesses/{businessId}/rate-plans` con `pricing.read`;
+- catálogo completo del Business, incluidos planes `ACTIVE` y `ARCHIVED`;
+- selección para Booking mediante `resourceId + checkIn + checkOut`, que devuelve únicamente planes utilizables según backend;
+- Rate Plan Detail diferido para el MVP.
+
 ---
 
 ## FE-PRI-002 — Create Rate Plan
@@ -1416,11 +1423,7 @@ Implementado:
 
 ## FE-BKG-006 — Confirm Booking
 
-Estado: Blocked
-
-Bloqueado por:
-
-- recuperación/listado insuficiente de Rate Plans en Pricing.
+Estado: Planned
 
 Objetivo:
 
@@ -1434,14 +1437,16 @@ Dependencia contractual:
 
 - Confirm requiere `pricing[]` con `resourceId` y `ratePlanId`;
 - Booking MVP es single-resource;
-- Pricing no expone actualmente un contrato suficiente de GET list/detail para recuperar Rate Plans seleccionables;
-- frontend no debe inventar ni simular un selector de Rate Plans.
+- `GET /api/businesses/{businessId}/rate-plans?resourceId=...&checkIn=...&checkOut=...` devuelve únicamente Rate Plans seleccionables;
+- frontend no decide por su cuenta estado, asignación ni vigencia del Rate Plan;
+- PricingSnapshot permanece interno y no es necesario para completar Confirm.
 
-Pendiente de backend:
+Contrato backend resuelto:
 
-- GET de Rate Plans;
-- reglas de elegibilidad de Rate Plans;
-- decisión explícita sobre lectura del PricingSnapshot desde Booking Detail.
+- GET de Rate Plans general y contextual;
+- reglas de seleccionabilidad autoritativas en backend;
+- Rate Plan Detail diferido;
+- PricingSnapshot no expuesto mediante Booking Detail en el MVP.
 
 ---
 

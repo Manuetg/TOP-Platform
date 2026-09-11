@@ -9,12 +9,13 @@ import { PricingController } from './pricing.controller';
 import { NightlyPriceSource } from '../domain/pricing-calculator';
 import { InvalidCalculatePriceInputError } from '../application/calculate-price.errors';
 import { InvalidManualPriceOverrideInputError } from '../application/manual-price-override.errors';
+import { InvalidListRatePlansInputError, ListRatePlansBusinessArchivedError, ListRatePlansBusinessNotFoundError, ListRatePlansResourceNotFoundError, ListRatePlansResourceUnavailableError } from '../application/list-rate-plans.use-case';
 
 const ratePlan = RatePlan.create({ id: '11111111-1111-4111-8111-111111111111', businessId: '22222222-2222-4222-8222-222222222222', name: 'Plan', description: null, baseNightlyAmountMinor: 1, currency: 'PYG', status: RatePlanStatus.ACTIVE, validFrom: null, validTo: null, resources: [], createdAt: new Date(), updatedAt: new Date() });
 const seasonalRate = SeasonalRate.create({ id: '33333333-3333-4333-8333-333333333333', ratePlanId: ratePlan.id, name: 'Navidad', amountMinor: 650000, currency: 'PYG', startDate: '2026-12-20', endDate: '2027-01-06', createdAt: new Date(), updatedAt: new Date() });
 describe('PricingController', () => {
-  const createExecute = jest.fn(); const updateExecute = jest.fn(); const createSeasonExecute = jest.fn(); const listSeasonExecute = jest.fn(); const calculateExecute = jest.fn(); const overrideExecute = jest.fn();
-  const controller = new PricingController({ execute: createExecute } as never, { execute: updateExecute } as never, { execute: createSeasonExecute } as never, { execute: listSeasonExecute } as never, { execute: calculateExecute } as never, { execute: overrideExecute } as never);
+  const createExecute = jest.fn(); const updateExecute = jest.fn(); const createSeasonExecute = jest.fn(); const listSeasonExecute = jest.fn(); const calculateExecute = jest.fn(); const overrideExecute = jest.fn(); const listExecute = jest.fn();
+  const controller = new PricingController({ execute: createExecute } as never, { execute: updateExecute } as never, { execute: createSeasonExecute } as never, { execute: listSeasonExecute } as never, { execute: calculateExecute } as never, { execute: overrideExecute } as never, { execute: listExecute } as never);
   const body = { name: 'Plan', baseNightlyAmountMinor: 1, resourceIds: [] };
   beforeEach(() => jest.resetAllMocks());
 
@@ -23,6 +24,24 @@ describe('PricingController', () => {
     const result = await controller.create(ratePlan.businessId, body);
     expect(createExecute).toHaveBeenCalledWith({ businessId: ratePlan.businessId, ...body });
     expect(result).toMatchObject({ id: ratePlan.id, currency: 'PYG' }); expect(result).not.toHaveProperty('props');
+  });
+  it('delegates the optional selection query and maps every plan to the public DTO', async () => {
+    const query = { resourceId: '44444444-4444-4444-8444-444444444444', checkIn: '2026-12-18', checkOut: '2026-12-19' };
+    listExecute.mockResolvedValueOnce([ratePlan]);
+    const result = await controller.list(ratePlan.businessId, query);
+    expect(listExecute).toHaveBeenCalledWith({ businessId: ratePlan.businessId, ...query });
+    expect(result).toEqual([expect.objectContaining({ id: ratePlan.id, businessId: ratePlan.businessId, currency: 'PYG' })]);
+    expect(result[0]).not.toHaveProperty('props');
+  });
+  it.each([
+    [new InvalidListRatePlansInputError('invalid'), BadRequestException],
+    [new ListRatePlansBusinessNotFoundError('missing'), NotFoundException],
+    [new ListRatePlansResourceNotFoundError('missing'), NotFoundException],
+    [new ListRatePlansBusinessArchivedError('archived'), ConflictException],
+    [new ListRatePlansResourceUnavailableError('unavailable'), ConflictException],
+  ])('translates expected list errors', async (error, exception) => {
+    listExecute.mockRejectedValueOnce(error);
+    await expect(controller.list(ratePlan.businessId, {})).rejects.toBeInstanceOf(exception);
   });
   it('delegates exact PATCH input once and exposes only public DTO', async () => {
     updateExecute.mockResolvedValue(ratePlan);

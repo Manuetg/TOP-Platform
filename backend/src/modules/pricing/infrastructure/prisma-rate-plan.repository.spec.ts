@@ -14,9 +14,9 @@ const include = { business: { select: { currency: true } }, resources: { include
 const data = { businessId: row.businessId, name: row.name, description: null, baseNightlyAmountMinor: 450000, currency: 'PYG', validFrom: '2026-08-01', validTo: null, resourceIds: [row.resources[0].resource.id] };
 
 describe('PrismaRatePlanRepository', () => {
-  const create = jest.fn(); const update = jest.fn(); const findUniqueOrThrow = jest.fn(); const findFirst = jest.fn(); const assignmentFindUnique = jest.fn();
+  const create = jest.fn(); const update = jest.fn(); const findUniqueOrThrow = jest.fn(); const findFirst = jest.fn(); const findMany = jest.fn(); const assignmentFindUnique = jest.fn();
   const deleteMany = jest.fn(); const createMany = jest.fn(); const transaction = jest.fn();
-  const repository = new PrismaRatePlanRepository({ $transaction: transaction, ratePlan: { findFirst }, ratePlanResource: { findUnique: assignmentFindUnique } } as never);
+  const repository = new PrismaRatePlanRepository({ $transaction: transaction, ratePlan: { findFirst, findMany }, ratePlanResource: { findUnique: assignmentFindUnique } } as never);
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -25,6 +25,7 @@ describe('PrismaRatePlanRepository', () => {
     }));
     create.mockResolvedValue(row); update.mockResolvedValue(row); findUniqueOrThrow.mockResolvedValue(row);
     deleteMany.mockResolvedValue({ count: 1 }); createMany.mockResolvedValue({ count: 1 });
+    findMany.mockResolvedValue([row]);
   });
 
   it('creates atomically with exact data and maps the public entity', async () => {
@@ -57,6 +58,17 @@ describe('PrismaRatePlanRepository', () => {
     expect(assignmentFindUnique).toHaveBeenCalledWith({ where: { ratePlanId_resourceId: { ratePlanId: row.id, resourceId: row.resources[0].resource.id } }, select: { ratePlanId: true } });
     assignmentFindUnique.mockResolvedValueOnce(null);
     await expect(repository.isAssigned(row.id, '44444444-4444-4444-8444-444444444444')).resolves.toBe(false);
+  });
+
+  it('lists the exact Business scope in deterministic name and id order', async () => {
+    await expect(repository.listByBusinessId(row.businessId)).resolves.toEqual([
+      expect.objectContaining({ id: row.id, resources: [{ id: row.resources[0].resource.id, name: 'Cabana', internalCode: 'CAB-1' }] }),
+    ]);
+    expect(findMany).toHaveBeenCalledWith({
+      where: { businessId: row.businessId },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      include,
+    });
   });
 
   it('replaces relations atomically when resourceIds is present', async () => {

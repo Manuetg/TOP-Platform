@@ -25,14 +25,15 @@ const foreignResourceId = '55555555-5555-4555-8555-555555555555';
 const business = (status = BusinessStatus.ACTIVE) => Business.create({ id: businessId, businessNumber: null, name: 'TOP', legalName: null, taxId: null, timezone: 'America/Asuncion', currency: 'PYG', status, createdAt: new Date(), updatedAt: new Date() });
 const resource = (id: string, owner = businessId, status = ResourceStatus.ACTIVE) => Resource.create({ id, businessId: owner, name: 'Cabana', internalCode: `CAB-${id.slice(0, 2)}`, description: null, capacityMinimum: 1, capacityMaximum: 2, capacityMaximumChildren: 0, status, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() });
 const rate = (status = RatePlanStatus.ACTIVE) => RatePlan.create({ id: planId, businessId, name: 'Plan', description: 'Old', baseNightlyAmountMinor: 450000, currency: 'PYG', status, validFrom: '2026-08-01', validTo: '2026-12-01', resources: [], createdAt: new Date(), updatedAt: new Date() });
+const rateWith = (values: Partial<{ id: string; name: string; status: RatePlanStatus; validFrom: string | null; validTo: string | null; resources: Array<{ id: string; name: string; internalCode: string }> }>) => RatePlan.create({ id: values.id ?? planId, businessId, name: values.name ?? 'Plan', description: 'Old', baseNightlyAmountMinor: 450000, currency: 'PYG', status: values.status ?? RatePlanStatus.ACTIVE, validFrom: values.validFrom === undefined ? '2026-08-01' : values.validFrom, validTo: values.validTo === undefined ? '2026-12-01' : values.validTo, resources: values.resources ?? [], createdAt: new Date(), updatedAt: new Date() });
 
 describe('Pricing endpoint', () => {
-  let app: INestApplication; let currentBusiness: Business | null; let currentPlan: RatePlan | null; let resources: Resource[]; let seasons: SeasonalRate[]; let assigned: boolean;
+  let app: INestApplication; let currentBusiness: Business | null; let currentPlan: RatePlan | null; let currentPlans: RatePlan[]; let resources: Resource[]; let seasons: SeasonalRate[]; let assigned: boolean;
   beforeAll(async () => {
     const module = await Test.createTestingModule({ imports: [AppModule] })
-      .overrideProvider(BUSINESS_REPOSITORY).useValue({ findById: () => Promise.resolve(currentBusiness), create: jest.fn(), list: jest.fn(), update: jest.fn() })
+      .overrideProvider(BUSINESS_REPOSITORY).useValue({ findById: (id: string) => Promise.resolve(id === businessId ? currentBusiness : null), create: jest.fn(), list: jest.fn(), update: jest.fn() })
       .overrideProvider(RESOURCE_REPOSITORY).useValue({ findByIdAndBusinessId: (id: string, owner: string) => Promise.resolve(resources.find((item) => item.id === id && item.businessId === owner) ?? null), findByBusinessAndCode: jest.fn(), listByBusinessId: jest.fn(), create: jest.fn(), update: jest.fn() })
-      .overrideProvider(RATE_PLAN_REPOSITORY).useValue({ create: () => Promise.resolve(rate()), findByIdAndBusinessId: (id: string, owner: string) => Promise.resolve(id === planId && owner === businessId ? currentPlan : null), update: (data: UpdateRatePlanData) => Promise.resolve(RatePlan.create({ ...data, status: currentPlan?.status ?? RatePlanStatus.ACTIVE, resources: (data.resourceIds ?? currentPlan?.resources.map((item) => item.id) ?? []).map((id) => ({ id, name: 'Cabana', internalCode: 'CAB-33' })), createdAt: currentPlan?.createdAt ?? new Date(), updatedAt: new Date() })) })
+      .overrideProvider(RATE_PLAN_REPOSITORY).useValue({ create: () => Promise.resolve(rate()), listByBusinessId: (owner: string) => Promise.resolve(currentPlans.filter((plan) => plan.businessId === owner).sort((left, right) => left.name.localeCompare(right.name) || left.id.localeCompare(right.id))), findByIdAndBusinessId: (id: string, owner: string) => Promise.resolve(id === planId && owner === businessId ? currentPlan : null), update: (data: UpdateRatePlanData) => Promise.resolve(RatePlan.create({ ...data, status: currentPlan?.status ?? RatePlanStatus.ACTIVE, resources: (data.resourceIds ?? currentPlan?.resources.map((item) => item.id) ?? []).map((id) => ({ id, name: 'Cabana', internalCode: 'CAB-33' })), createdAt: currentPlan?.createdAt ?? new Date(), updatedAt: new Date() })) })
       .overrideProvider(SEASONAL_RATE_REPOSITORY).useValue({
         create: (data: CreateSeasonalRateData) => {
           const created = SeasonalRate.create({ id: `66666666-6666-4666-8666-${String(seasons.length + 1).padStart(12, '0')}`, ...data, createdAt: new Date(), updatedAt: new Date() });
@@ -48,7 +49,46 @@ describe('Pricing endpoint', () => {
     app = module.createNestApplication(); configureApplication(app, { security: false }); await app.init();
   });
   afterAll(async () => app.close());
-  beforeEach(() => { currentBusiness = business(); currentPlan = rate(); resources = [resource(resourceId), resource(archivedResourceId, businessId, ResourceStatus.ARCHIVED), resource(foreignResourceId, otherBusinessId)]; seasons = []; assigned = true; });
+  beforeEach(() => { currentBusiness = business(); currentPlan = rate(); currentPlans = [currentPlan]; resources = [resource(resourceId), resource(archivedResourceId, businessId, ResourceStatus.ARCHIVED), resource(foreignResourceId, otherBusinessId)]; seasons = []; assigned = true; });
+  it('lists the complete tenant catalog in deterministic order through public DTOs', async () => {
+    currentPlans = [
+      rateWith({ id: '77777777-7777-4777-8777-777777777777', name: 'Zulu', status: RatePlanStatus.ARCHIVED }),
+      rateWith({ name: 'Alfa', resources: [{ id: resourceId, name: 'Cabana', internalCode: 'CAB-33' }] }),
+    ];
+    await request(app.getHttpServer()).get(`/api/businesses/${businessId}/rate-plans`).expect(200).expect(({ body }: { body: Array<Record<string, unknown>> }) => {
+      expect(body.map((plan) => plan.name)).toEqual(['Alfa', 'Zulu']);
+      expect(body.map((plan) => plan.status)).toEqual(['ACTIVE', 'ARCHIVED']);
+      expect(body[0]).toMatchObject({ businessId, resources: [expect.objectContaining({ id: resourceId })] });
+      expect(body[0]).not.toHaveProperty('props');
+    });
+    currentPlans = [];
+    await request(app.getHttpServer()).get(`/api/businesses/${businessId}/rate-plans`).expect(200, []);
+  });
+  it('lists only plans selectable for the tenant Resource and complete stay', async () => {
+    currentPlans = [
+      rateWith({ name: 'Selectable', resources: [{ id: resourceId, name: 'Cabana', internalCode: 'CAB-33' }] }),
+      rateWith({ id: '77777777-7777-4777-8777-777777777777', name: 'Archived', status: RatePlanStatus.ARCHIVED, resources: [{ id: resourceId, name: 'Cabana', internalCode: 'CAB-33' }] }),
+      rateWith({ id: '88888888-8888-4888-8888-888888888888', name: 'Unassigned' }),
+      rateWith({ id: '99999999-9999-4999-8999-999999999999', name: 'Outside', validFrom: '2026-09-01', resources: [{ id: resourceId, name: 'Cabana', internalCode: 'CAB-33' }] }),
+    ];
+    const query = `resourceId=${resourceId}&checkIn=2026-08-18&checkOut=2026-08-22`;
+    await request(app.getHttpServer()).get(`/api/businesses/${businessId}/rate-plans?${query}`).expect(200).expect(({ body }: { body: Array<{ name: string }> }) => expect(body.map((plan) => plan.name)).toEqual(['Selectable']));
+  });
+  it.each([
+    [`resourceId=${resourceId}`, 400],
+    [`resourceId=${resourceId}&checkIn=invalid&checkOut=2026-08-22`, 400],
+    [`resourceId=${resourceId}&checkIn=2026-08-22&checkOut=2026-08-22`, 400],
+  ])('rejects invalid selection query combinations', async (query, status) => request(app.getHttpServer()).get(`/api/businesses/${businessId}/rate-plans?${query}`).expect(status));
+  it('preserves selection scope and operational errors', async () => {
+    const stay = '&checkIn=2026-08-18&checkOut=2026-08-22';
+    await request(app.getHttpServer()).get(`/api/businesses/${otherBusinessId}/rate-plans`).expect(404);
+    await request(app.getHttpServer()).get(`/api/businesses/${businessId}/rate-plans?resourceId=${foreignResourceId}${stay}`).expect(404);
+    currentBusiness = business(BusinessStatus.ARCHIVED);
+    await request(app.getHttpServer()).get(`/api/businesses/${businessId}/rate-plans`).expect(200);
+    await request(app.getHttpServer()).get(`/api/businesses/${businessId}/rate-plans?resourceId=${resourceId}${stay}`).expect(409);
+    currentBusiness = business();
+    await request(app.getHttpServer()).get(`/api/businesses/${businessId}/rate-plans?resourceId=${archivedResourceId}${stay}`).expect(409);
+  });
   it('actualiza parcialmente y expone DTO público', async () => {
     await request(app.getHttpServer()).patch(`/api/businesses/${businessId}/rate-plans/${planId}`).send({ baseNightlyAmountMinor: 500000 }).expect(200).expect(({ body }: { body: Record<string, unknown> }) => { expect(body).toMatchObject({ id: planId, baseNightlyAmountMinor: 500000, name: 'Plan', currency: 'PYG' }); expect(body).not.toHaveProperty('props'); });
   });

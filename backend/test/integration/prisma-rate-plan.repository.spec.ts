@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaBusinessRepository } from '../../src/modules/business/infrastructure/prisma-business.repository';
 import { UpdateRatePlanUseCase } from '../../src/modules/pricing/application/update-rate-plan.use-case';
 import { CalculatePriceUseCase } from '../../src/modules/pricing/application/calculate-price.use-case';
+import { ListRatePlansUseCase } from '../../src/modules/pricing/application/list-rate-plans.use-case';
 import { PricingCalculator } from '../../src/modules/pricing/domain/pricing-calculator';
 import { PrismaRatePlanRepository } from '../../src/modules/pricing/infrastructure/prisma-rate-plan.repository';
 import { PrismaSeasonalRateRepository } from '../../src/modules/pricing/infrastructure/prisma-seasonal-rate.repository';
@@ -15,6 +16,7 @@ describeWithPostgres('PrismaRatePlanRepository', () => {
   const prisma = new PrismaClient(); const repository = new PrismaRatePlanRepository(prisma); const seasons = new PrismaSeasonalRateRepository(prisma);
   const update = new UpdateRatePlanUseCase(new PrismaBusinessRepository(prisma), new PrismaResourceRepository(prisma), repository, seasons);
   const calculate = new CalculatePriceUseCase(new PrismaBusinessRepository(prisma), new PrismaResourceRepository(prisma), repository, repository, seasons, new PricingCalculator());
+  const list = new ListRatePlansUseCase(new PrismaBusinessRepository(prisma), new PrismaResourceRepository(prisma), repository);
   beforeAll(async () => prisma.$connect()); beforeEach(async () => cleanTestDatabase(prisma, databaseUrl)); afterEach(async () => cleanTestDatabase(prisma, databaseUrl)); afterAll(async () => { await cleanTestDatabase(prisma, databaseUrl); await prisma.$disconnect(); });
   async function fixture() {
     const business = await prisma.business.create({ data: { name: 'Pricing' } });
@@ -24,6 +26,39 @@ describeWithPostgres('PrismaRatePlanRepository', () => {
   }
   async function persisted(id: string) { return prisma.ratePlan.findUniqueOrThrow({ where: { id }, include: { resources: true } }); }
   it('crea atómicamente un plan con Resources y tarifa base', async () => { const { business, resources, plan } = await fixture(); const saved = await persisted(plan.id); expect(plan).toMatchObject({ businessId: business.id, currency: 'PYG', baseNightlyAmountMinor: 450000 }); expect(saved.resources.map((item) => item.resourceId).sort()).toEqual([resources[0].id, resources[1].id].sort()); });
+  it('lists only the tenant catalog with ACTIVE and ARCHIVED plans, assigned Resources, and deterministic ordering', async () => {
+    const { business, resources, plan } = await fixture();
+    await prisma.ratePlan.update({ where: { id: plan.id }, data: { name: 'Zulu', status: 'ARCHIVED' } });
+    await repository.create({ businessId: business.id, name: 'Alfa', description: null, baseNightlyAmountMinor: 300000, currency: 'PYG', validFrom: null, validTo: null, resourceIds: [resources[1].id] });
+    const other = await prisma.business.create({ data: { name: 'Other' } });
+    await repository.create({ businessId: other.id, name: 'Foreign', description: null, baseNightlyAmountMinor: 1, currency: 'PYG', validFrom: null, validTo: null, resourceIds: [] });
+    const result = await list.execute({ businessId: business.id });
+    expect(result.map((item) => item.name)).toEqual(['Alfa', 'Zulu']);
+    expect(result.map((item) => item.status)).toEqual(['ACTIVE', 'ARCHIVED']);
+    expect(result[0].resources).toEqual([expect.objectContaining({ id: resources[1].id, internalCode: 'TWO' })]);
+    expect(result.every((item) => item.businessId === business.id)).toBe(true);
+  });
+  it('returns an empty tenant catalog without treating absence of plans as an error', async () => {
+    const business = await prisma.business.create({ data: { name: 'Empty pricing catalog' } });
+    await expect(list.execute({ businessId: business.id })).resolves.toEqual([]);
+  });
+  it('selects only ACTIVE assigned plans whose validity fully covers the stay', async () => {
+    const { business, resources, plan } = await fixture();
+    await repository.create({ businessId: business.id, name: 'Unassigned', description: null, baseNightlyAmountMinor: 1, currency: 'PYG', validFrom: null, validTo: null, resourceIds: [resources[1].id] });
+    const archived = await repository.create({ businessId: business.id, name: 'Archived', description: null, baseNightlyAmountMinor: 1, currency: 'PYG', validFrom: null, validTo: null, resourceIds: [resources[0].id] });
+    await prisma.ratePlan.update({ where: { id: archived.id }, data: { status: 'ARCHIVED' } });
+    const outside = await repository.create({ businessId: business.id, name: 'Outside', description: null, baseNightlyAmountMinor: 1, currency: 'PYG', validFrom: '2026-12-25', validTo: null, resourceIds: [resources[0].id] });
+    const result = await list.execute({ businessId: business.id, resourceId: resources[0].id, checkIn: '2026-12-20', checkOut: '2026-12-24' });
+    expect(result.map((item) => item.id)).toEqual([plan.id]);
+    expect(result.map((item) => item.id)).not.toContain(outside.id);
+  });
+  it('enforces Resource status and tenant isolation in contextual selection', async () => {
+    const { business, resources } = await fixture();
+    await expect(list.execute({ businessId: business.id, resourceId: resources[2].id, checkIn: '2026-12-20', checkOut: '2026-12-24' })).rejects.toThrow('no está disponible');
+    const other = await prisma.business.create({ data: { name: 'Other Resource tenant' } });
+    const foreign = await prisma.resource.create({ data: { businessId: other.id, name: 'Foreign', internalCode: 'FOREIGN', capacityMaximum: 2 } });
+    await expect(list.execute({ businessId: business.id, resourceId: foreign.id, checkIn: '2026-12-20', checkOut: '2026-12-24' })).rejects.toThrow('El recurso no existe.');
+  });
   it('preserva relaciones si resourceIds es undefined y las reemplaza o vacía cuando está presente', async () => { const { resources, plan } = await fixture(); await repository.update({ id: plan.id, businessId: plan.businessId, name: 'Updated', description: null, baseNightlyAmountMinor: 500000, currency: 'PYG', validFrom: null, validTo: plan.validTo, resourceIds: undefined }); let saved = await persisted(plan.id); expect(saved.resources.map((item) => item.resourceId).sort()).toEqual([resources[0].id, resources[1].id].sort()); await repository.update({ id: plan.id, businessId: plan.businessId, name: 'Updated', description: null, baseNightlyAmountMinor: 500000, currency: 'PYG', validFrom: null, validTo: null, resourceIds: [resources[1].id, resources[2].id] }); saved = await persisted(plan.id); expect(saved.resources.map((item) => item.resourceId).sort()).toEqual([resources[1].id, resources[2].id].sort()); await repository.update({ id: plan.id, businessId: plan.businessId, name: 'Updated', description: null, baseNightlyAmountMinor: 500000, currency: 'PYG', validFrom: null, validTo: null, resourceIds: [] }); expect((await persisted(plan.id)).resources).toHaveLength(0); });
   it('permite Resource OUT_OF_SERVICE y oculta Resources de otro Business', async () => { const { business, resources, plan } = await fixture(); await expect(update.execute({ businessId: business.id, ratePlanId: plan.id, resourceIds: [resources[2].id] })).resolves.toMatchObject({ resources: [{ id: resources[2].id }] }); const other = await prisma.business.create({ data: { name: 'Other' } }); const foreign = await prisma.resource.create({ data: { businessId: other.id, name: 'Foreign', internalCode: 'FOREIGN', capacityMaximum: 2 } }); await expect(update.execute({ businessId: business.id, ratePlanId: plan.id, resourceIds: [foreign.id] })).rejects.toThrow('El recurso no existe.'); expect((await persisted(plan.id)).resources.map((item) => item.resourceId)).toEqual([resources[2].id]); });
   it('rejects archived Resources without partial updates or relations', async () => { const { business, resources, plan } = await fixture(); const archived = await prisma.resource.create({ data: { businessId: business.id, name: 'Archived', internalCode: 'ARCHIVED', capacityMaximum: 2, status: ResourceStatus.ARCHIVED } }); await expect(update.execute({ businessId: business.id, ratePlanId: plan.id, baseNightlyAmountMinor: 500000, resourceIds: [resources[1].id, archived.id] })).rejects.toThrow('El recurso está archivado.'); const saved = await persisted(plan.id); expect(saved.baseNightlyAmountMinor).toBe(450000); expect(saved.resources.map((item) => item.resourceId).sort()).toEqual([resources[0].id, resources[1].id].sort()); expect(saved.resources.some((item) => item.resourceId === archived.id)).toBe(false); });

@@ -100,6 +100,7 @@ describe('CreateSeasonalRateUseCase date validation', () => {
   };
   const plans: RatePlanRepository = {
     create: jest.fn(),
+    listByBusinessId: jest.fn(),
     findByIdAndBusinessId: findRatePlan,
     update: jest.fn(),
   };

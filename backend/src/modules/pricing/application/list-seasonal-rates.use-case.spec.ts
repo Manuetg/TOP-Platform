@@ -26,7 +26,7 @@ describe('ListSeasonalRatesUseCase', () => {
   const listByRatePlanId: jest.MockedFunction<SeasonalRateRepository['listByRatePlanId']> = jest.fn();
   const subject = new ListSeasonalRatesUseCase(
     { findById: findBusiness, create: jest.fn(), list: jest.fn(), update: jest.fn() },
-    { create: jest.fn(), findByIdAndBusinessId: findRatePlan, update: jest.fn() },
+    { create: jest.fn(), findByIdAndBusinessId: findRatePlan, listByBusinessId: jest.fn(), update: jest.fn() },
     { create: jest.fn(), listByRatePlanId, listIntersectingRange: jest.fn(), hasOverlap: jest.fn(), hasOutsideValidity: jest.fn() },
   );
 

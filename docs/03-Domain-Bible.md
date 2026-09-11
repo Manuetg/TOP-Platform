@@ -478,6 +478,7 @@ Pricing no:
 - Una lista de precios puede asignarse a uno o varios Resources.
 - Un Resource puede tener varias opciones tarifarias aplicables.
 - El sistema debe sugerir una tarifa aplicable, pero el usuario puede seleccionar otra opción válida.
+- El catálogo tarifario del Negocio incluye planes activos y archivados para lectura administrativa e histórica. Para seleccionar una tarifa de Booking, Pricing filtra únicamente planes activos, asignados al Resource activo solicitado y cuya vigencia cubre completamente la estadía; las tarifas estacionales afectan el cálculo posterior, no la seleccionabilidad.
 - Siempre debe existir una opción de precio personalizado cuando el Negocio la tenga habilitada.
 - Todo precio personalizado requiere motivo.
 - El precio acordado debe congelarse al confirmar la reserva.
@@ -546,6 +547,7 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - Crear y actualizar reglas.
 - Activar o desactivar reglas.
 - Consultar opciones tarifarias aplicables.
+- Listar el catálogo tarifario tenant-scoped mediante `GET /api/businesses/:businessId/rate-plans`; con `resourceId`, `checkIn` y `checkOut` informados conjuntamente, devolver solo opciones seleccionables según las reglas de Pricing.
 - Calcular precio sugerido.
 - Aplicar precio personalizado.
 - Generar Pricing Snapshot.
@@ -562,6 +564,8 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - No incluir IA, análisis de competidores ni revenue management automático en el MVP.
 - No mezclar Pricing con planes de pago o transacciones.
 - No permitir un Pricing Snapshot mutable después de confirmar la reserva.
+- El detalle individual de Rate Plan queda diferido en el MVP porque el listado devuelve el contrato público completo requerido por catálogo, selección, cálculo y Confirm Booking.
+- PricingSnapshot permanece interno en el MVP y no se expone mediante Booking Detail; una futura necesidad de lectura requiere un contrato público explícito.
 
 ### 12. Pendientes
 
