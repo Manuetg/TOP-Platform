@@ -44,10 +44,10 @@ Dashboard:
 - 3 / 4 completadas (75%)
 
 Capacidad backend actualmente en desarrollo:
-- Ninguna.
+- DSH-001 — Business Dashboard — In Progress.
 
-Siguiente capacidad backend:
-- DSH-001 — Business Dashboard, agregador público final.
+Siguiente paso backend después de DSH-001:
+- cierre documental del MVP backend después de merge, CI y backend self-review verificados.
 
 Validación de cambios backend:
 - Backend CI en estado `SUCCESS` es obligatorio.
@@ -148,6 +148,13 @@ Reservations KPI (DSH-004 — Completed):
 - No usa check-in/check-out, Contact o Timeline para formar la cohorte y no reconstruye estado histórico.
 - No agrega endpoint público ni `dashboard.read`; DSH-001 la expondrá posteriormente.
 
+Business Dashboard (DSH-001 — In Progress):
+- `GET /api/businesses/:businessId/dashboard?from=YYYY-MM-DD&to=YYYY-MM-DD`.
+- Compone `occupancy`, `revenue` y `reservations` para el mismo período Business-local `[from, to)` obligatorio de hasta 31 días.
+- Usa `dashboard.read`, con scope BUSINESS para `OWNER`, `ADMIN`, `RECEPTIONIST` y `VIEWER`.
+- La respuesta es all-or-nothing, permite lectura de Business archivado y no recalcula ni persiste métricas.
+- Breaking change: no; agrega el único contrato HTTP público del bloque Dashboard.
+
 Rate Plan Read para integración frontend:
 - `GET /api/businesses/:businessId/rate-plans` usa `pricing.read` y devuelve `RatePlanResponseDto[]`.
 - Sin filtros entrega el catálogo tenant-scoped, incluidos planes activos y archivados, en orden `name ASC, id ASC`.
@@ -169,6 +176,7 @@ Cuando Backend modifica un contrato que consume Frontend, actualizar esta secci�
 
 ## Cambios recientes relevantes para Frontend
 
+- DSH-001 incorpora el contrato público del Dashboard con `from` y `to` obligatorios, respuesta `occupancy + revenue + reservations` y capability `dashboard.read`; no requiere cambios de semántica en los KPI internos.
 - DSH-004 finalizado: existe la proyección interna de Reservations por cohorte de `Booking.createdAt` y estado actual; no agrega contrato HTTP ni requiere integración frontend hasta DSH-001.
 - Pricing incorpora lectura de Rate Plans para catálogo y selección contextual de Booking; frontend ya no debe inferir estado, asignación ni vigencia. No se agrega Detail ni se expone PricingSnapshot.
 - DSH-002 finalizado: existe la proyección interna de Occupancy sobre el inventario operacional actual; no agrega contrato HTTP ni requiere integración frontend hasta DSH-001.
