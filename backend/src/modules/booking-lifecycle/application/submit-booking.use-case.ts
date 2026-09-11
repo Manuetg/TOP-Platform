@@ -9,6 +9,7 @@ import {
   type BusinessRepository,
 } from '../../business/business.contract';
 import { CONTACT_LOOKUP, type ContactLookup } from '../../contact/contact.contract';
+import { RESOURCE_REPOSITORY, ResourceStatus, type ResourceRepository } from '../../resource/resource.contract';
 import {
   BOOKING_REPOSITORY,
   BookingAvailabilityConflictError,
@@ -22,10 +23,13 @@ import {
   BookingResourcesRequiredError,
   BookingStatus,
   InvalidBookingInputError,
+  BookingResourceNotFoundError,
+  BookingResourceUnavailableError,
   requireBookingUuid,
   type Booking,
   type BookingRepository,
 } from '../../booking/booking.contract';
+import { assertBookingCapacity } from '../../booking/application/booking.validation';
 
 export interface SubmitBookingInput {
   businessId: unknown;
@@ -38,6 +42,7 @@ export class SubmitBookingUseCase {
   constructor(
     @Inject(BUSINESS_REPOSITORY) private readonly businesses: BusinessRepository,
     @Inject(CONTACT_LOOKUP) private readonly contacts: ContactLookup,
+    @Inject(RESOURCE_REPOSITORY) private readonly resources: ResourceRepository,
     @Inject(BOOKING_REPOSITORY) private readonly bookings: BookingRepository,
     @Inject(AVAILABILITY_OVERBOOKING_VALIDATOR)
     private readonly availability: AvailabilityOverbookingValidator,
@@ -74,11 +79,20 @@ export class SubmitBookingUseCase {
   private async validateSubmission(booking: Booking, businessId: string): Promise<{ checkInDate: Date; checkOutDate: Date }> {
     if (!booking.contactId) throw new BookingContactRequiredError('La reserva requiere un contacto responsable.');
     if (!(await this.contacts.findByIdAndBusinessId(booking.contactId, businessId))) throw new BookingContactNotFoundError('El contacto no existe.');
-    if (booking.resourceIds.length === 0) throw new BookingResourcesRequiredError('La reserva requiere al menos un recurso.');
+    if (booking.resourceIds.length !== 1) throw new BookingResourcesRequiredError('La reserva requiere exactamente un recurso.');
+    await this.validateCapacity(booking, businessId);
     if (!booking.checkInDate || !booking.checkOutDate) throw new BookingDatesRequiredError('La reserva requiere fechas completas.');
     if (booking.checkOutDate <= booking.checkInDate) throw new InvalidBookingInputError('La fecha de salida debe ser posterior a la fecha de entrada.');
     return { checkInDate: booking.checkInDate, checkOutDate: booking.checkOutDate };
   }
 
   private date(value: Date): string { return value.toISOString().slice(0, 10); }
+
+  private async validateCapacity(booking: Booking, businessId: string): Promise<void> {
+    if (booking.children === null) return;
+    const resource = await this.resources.findByIdAndBusinessId(booking.resourceIds[0], businessId);
+    if (!resource) throw new BookingResourceNotFoundError('El recurso no existe.');
+    if (resource.status === ResourceStatus.ARCHIVED) throw new BookingResourceUnavailableError('El recurso está archivado.');
+    assertBookingCapacity(booking.adults, booking.children, resource.capacityMaximum, resource.capacityMaximumChildren);
+  }
 }

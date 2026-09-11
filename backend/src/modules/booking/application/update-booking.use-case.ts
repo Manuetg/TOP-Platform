@@ -37,7 +37,21 @@ export class UpdateBookingUseCase extends BookingBase {
     const finalResourceIds = resourceIds === undefined ? current.resourceIds : resourceIds;
     assertDateRange(checkInDate, checkOutDate);
     await this.validatePatchedContact(businessId, contactPatch);
-    await this.validatePatchedResources(businessId, resourceIds);
+    await this.validateFinalResourcesAndCapacity(businessId, finalResourceIds, resourceIds, adultsPatch, childrenPatch, adults, children);
     return this.bookings.update(Booking.create({ id: current.id, businessId: current.businessId, status: current.status, contactId, resourceIds: finalResourceIds, checkInDate, checkOutDate, adults, children, notes, createdAt: current.createdAt, updatedAt: current.updatedAt }), resourceIds !== undefined);
+  }
+
+  private async validateFinalResourcesAndCapacity(
+    businessId: string,
+    finalResourceIds: string[],
+    resourceIds: string[] | undefined,
+    adultsPatch: number | null | undefined,
+    childrenPatch: number | null | undefined,
+    adults: number | null,
+    children: number | null,
+  ): Promise<void> {
+    if (resourceIds === undefined && adultsPatch === undefined && childrenPatch === undefined) return;
+    const resources = await this.validateResources(businessId, finalResourceIds);
+    this.validateCapacity(resources, adults, children);
   }
 }

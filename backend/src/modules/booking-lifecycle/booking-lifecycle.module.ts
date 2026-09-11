@@ -4,6 +4,7 @@ import { BookingModule } from '../booking/booking.module';
 import { BusinessModule } from '../business/business.module';
 import { ContactModule } from '../contact/contact.module';
 import { PricingModule } from '../pricing/pricing.module';
+import { ResourceModule } from '../resource/resource.module';
 import { ConfirmBookingUseCase } from './application/confirm-booking.use-case';
 import { CancelBookingUseCase } from './application/cancel-booking.use-case';
 import { SubmitBookingUseCase } from './application/submit-booking.use-case';
@@ -20,6 +21,7 @@ import { BookingLifecycleController } from './presentation/booking-lifecycle.con
     BusinessModule,
     ContactModule,
     PricingModule,
+    ResourceModule,
   ],
   controllers: [
     BookingLifecycleController,

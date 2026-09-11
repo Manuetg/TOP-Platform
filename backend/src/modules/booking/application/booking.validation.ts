@@ -28,9 +28,14 @@ export function bookingResourceIds(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) throw new InvalidBookingInputError('Los recursos son inválidos.');
   const ids = value.map((id) => requireBookingUuid(id, 'El identificador del recurso no es válido.'));
   if (new Set(ids).size !== ids.length) throw new InvalidBookingInputError('Los recursos no pueden repetirse.');
+  if (ids.length > 1) throw new InvalidBookingInputError('Una reserva puede tener como máximo un recurso.');
   return ids;
 }
 export function bookingContactId(value: unknown): string | null | undefined { if (value === undefined || value === null) return value; return requireBookingUuid(value, 'El identificador del contacto no es válido.'); }
 export function requireBookingPatch(input: object): void { if (!['contactId', 'resourceIds', 'checkInDate', 'checkOutDate', 'adults', 'children', 'notes'].some((key) => Object.prototype.hasOwnProperty.call(input, key))) throw new InvalidBookingInputError('Se requiere al menos un campo para actualizar.'); }
 export function bookingStatus(value: unknown): BookingStatus | null { if (value === undefined) return null; if (typeof value !== 'string' || !Object.values(BookingStatus).includes(value as BookingStatus)) throw new InvalidBookingInputError('El estado de la reserva no es válido.'); return value as BookingStatus; }
 export function assertDateRange(checkInDate: Date | null, checkOutDate: Date | null): void { if (checkInDate && checkOutDate && checkOutDate <= checkInDate) throw new InvalidBookingInputError('La fecha de salida debe ser posterior a la fecha de entrada.'); }
+export function assertBookingCapacity(adults: number | null, children: number | null, capacityMaximum: number, capacityMaximumChildren: number): void {
+  if (children !== null && children > capacityMaximumChildren) throw new InvalidBookingInputError('La cantidad de niños supera la capacidad máxima de niños del recurso.');
+  if (adults !== null && children !== null && adults + children > capacityMaximum) throw new InvalidBookingInputError('La cantidad de huéspedes supera la capacidad máxima del recurso.');
+}
