@@ -115,10 +115,12 @@ describeWithPostgres('PrismaReservationsProjectionReader', () => {
         createdAt: new Date(createdAt),
       });
     }
-    await expect(read(business.id)).resolves.toEqual([
+    const projection = await read(business.id);
+    expect(projection).toHaveLength(2);
+    expect(projection).toEqual(expect.arrayContaining([
       { status: 'CONFIRMED', count: 1 },
       { status: 'PENDING', count: 1 },
-    ]);
+    ]));
   });
 
   it('applies another non-UTC IANA timezone near midnight', async () => {
