@@ -1,0 +1,253 @@
+.create-block-page {
+  width: min(100%, 920px);
+  margin: 0 auto;
+}
+
+.create-block-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #155c4c;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.create-block-back:focus-visible {
+  outline: 3px solid rgba(21, 92, 76, 0.18);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.create-block-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.create-block-header__icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 14px;
+  background: #edf4f2;
+  color: #155c4c;
+}
+
+.create-block-header h1 {
+  margin: 0;
+  color: #29434a;
+  font-size: clamp(1.75rem, 3vw, 2.2rem);
+  line-height: 1.15;
+}
+
+.create-block-header p {
+  margin: 7px 0 0;
+  color: #617177;
+  line-height: 1.55;
+}
+
+.create-block-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.create-block-section {
+  padding: 22px;
+  border: 1px solid #dce4e1;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.create-block-section__heading {
+  margin-bottom: 20px;
+}
+
+.create-block-section__heading h2 {
+  margin: 0;
+  color: #29434a;
+  font-size: 1.05rem;
+}
+
+.create-block-section__heading p {
+  margin: 5px 0 0;
+  color: #718086;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.create-block-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.create-block-field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.create-block-field--wide {
+  grid-column: 1 / -1;
+}
+
+.create-block-field label {
+  color: #40565d;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.create-block-field label span {
+  color: #b85c38;
+}
+
+.create-block-field input,
+.create-block-field select,
+.create-block-field textarea {
+  width: 100%;
+  border: 1px solid #cbd7d3;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #29434a;
+  font: inherit;
+}
+
+.create-block-field input,
+.create-block-field select {
+  min-height: 46px;
+  padding: 0 12px;
+}
+
+.create-block-field textarea {
+  resize: vertical;
+  min-height: 116px;
+  padding: 12px;
+  line-height: 1.5;
+}
+
+.create-block-field input:focus,
+.create-block-field select:focus,
+.create-block-field textarea:focus {
+  border-color: #155c4c;
+  outline: 3px solid rgba(21, 92, 76, 0.14);
+  outline-offset: 1px;
+}
+
+.create-block-field__counter {
+  align-self: flex-end;
+  color: #829096;
+  font-size: 0.76rem;
+}
+
+.create-block-error {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f8ece8;
+  color: #9a472e;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.create-block-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 4px 0 8px;
+}
+
+.create-block-actions button {
+  min-height: 46px;
+}
+
+.create-block-state {
+  display: flex;
+  min-height: 360px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  border: 1px solid #dce4e1;
+  border-radius: 16px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.create-block-state__icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border-radius: 14px;
+  background: #edf4f2;
+  color: #155c4c;
+}
+
+.create-block-state h1 {
+  margin: 0;
+  color: #29434a;
+}
+
+.create-block-state p {
+  margin: 0;
+  max-width: 480px;
+  color: #617177;
+  line-height: 1.55;
+}
+
+@media (max-width: 640px) {
+  .create-block-page {
+    width: 100%;
+  }
+
+  .create-block-header {
+    margin-bottom: 20px;
+  }
+
+  .create-block-section {
+    padding: 17px;
+  }
+
+  .create-block-grid,
+  .create-block-grid--dates {
+    grid-template-columns: 1fr;
+  }
+
+  .create-block-field--wide {
+    grid-column: auto;
+  }
+
+  .create-block-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .create-block-actions button {
+    width: 100%;
+  }
+
+  .create-block-actions button[type="submit"] {
+    grid-row: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .create-block-page *,
+  .create-block-page *::before,
+  .create-block-page *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
