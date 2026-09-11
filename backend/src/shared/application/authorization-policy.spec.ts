@@ -11,6 +11,7 @@ const expected: Readonly<Record<Capability, readonly MembershipRole[]>> = {
   [Capability.PRICING_READ]: allRoles, [Capability.PRICING_WRITE]: [MembershipRole.OWNER, MembershipRole.ADMIN], [Capability.PRICING_CALCULATE]: allRoles, [Capability.PRICING_OVERRIDE_CALCULATE]: [MembershipRole.OWNER, MembershipRole.ADMIN],
   [Capability.BOOKING_READ]: allRoles, [Capability.BOOKING_WRITE]: [MembershipRole.OWNER, MembershipRole.ADMIN, MembershipRole.RECEPTIONIST], [Capability.BOOKING_CANCEL]: [MembershipRole.OWNER, MembershipRole.ADMIN, MembershipRole.RECEPTIONIST],
   [Capability.PAYMENT_READ]: allRoles, [Capability.PAYMENT_RECORD]: [MembershipRole.OWNER, MembershipRole.ADMIN, MembershipRole.RECEPTIONIST],
+  [Capability.DASHBOARD_READ]: allRoles,
 };
 
 describe('AuthorizationPolicy', () => {
