@@ -39,7 +39,7 @@ import { bookingRepositoryFake, bookingTimelineRepositoryFake, resetBookingRepos
 import { contactRepositoryFake, resetContactRepositoryFake } from './contact-repository.fake';
 import { BLOCK_REPOSITORY } from '../../../src/modules/block/domain/block.repository';
 import { blockRepositoryFake, resetBlockRepositoryFake } from './block-repository.fake';
-import { BOOKING_AVAILABILITY_LOOKUP, BOOKING_TIMELINE_REPOSITORY } from '../../../src/modules/booking/booking.contract';
+import { BOOKING_AVAILABILITY_LOOKUP, BOOKING_TIMELINE_REPOSITORY, RESERVATIONS_PROJECTION_READER } from '../../../src/modules/booking/booking.contract';
 import { BLOCK_AVAILABILITY_LOOKUP } from '../../../src/modules/block/block.contract';
 import { AVAILABILITY_RULES_REPOSITORY } from '../../../src/modules/availability/domain/availability-rules.repository';
 import { availabilityRulesRepositoryFake, resetAvailabilityRulesRepositoryFake } from './availability-rules.repository.fake';
@@ -54,6 +54,7 @@ import { OCCUPANCY_PROJECTION_READER } from '../../../src/modules/availability/a
 import { occupancyProjectionReaderFake, resetOccupancyProjectionReaderFake } from './occupancy-projection-reader.fake';
 import { REVENUE_PROJECTION_READER } from '../../../src/modules/payment/payment.contract';
 import { resetRevenueProjectionReaderFake, revenueProjectionReaderFake } from './revenue-projection-reader.fake';
+import { resetReservationsProjectionReaderFake, reservationsProjectionReaderFake } from './reservations-projection-reader.fake';
 
 export const acceptanceFileStorage = new InMemoryFileStorage();
 
@@ -73,6 +74,7 @@ Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
   resetPaymentFakes();
   resetOccupancyProjectionReaderFake();
   resetRevenueProjectionReaderFake();
+  resetReservationsProjectionReaderFake();
   const refreshSessions = new Map<string, RefreshSession>();
   const accessTokens = {
     issue: (payload: { sub: string }) => Promise.resolve({ token: `token:${payload.sub}`, expiresIn: 900 }),
@@ -101,6 +103,7 @@ Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
     .overrideProvider(PRICING_SNAPSHOT_REPOSITORY).useValue(pricingSnapshotRepositoryFake)
     .overrideProvider(OCCUPANCY_PROJECTION_READER).useValue(occupancyProjectionReaderFake)
     .overrideProvider(REVENUE_PROJECTION_READER).useValue(revenueProjectionReaderFake)
+    .overrideProvider(RESERVATIONS_PROJECTION_READER).useValue(reservationsProjectionReaderFake)
     .overrideProvider(FILE_STORAGE).useValue(acceptanceFileStorage)
     .overrideProvider(USER_REPOSITORY).useValue(userRepositoryFake)
     .overrideProvider(AUTHENTICATION_REPOSITORY).useValue(authenticationRepositoryFake)

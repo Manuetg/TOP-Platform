@@ -1405,3 +1405,11 @@ DSH-003 deriva `recorded payments revenue`: los cobros efectivamente registrados
 La proyección interna devuelve `currency` y `amountMinor`. Suma directamente `Payment.amountMinor` dentro del Business y no filtra por el estado actual de Booking. Un período sin Payments devuelve importe cero en la moneda vigente del Business. El MVP admite `PYG`; más de una moneda o una moneda distinta de la del Business, así como importes negativos o fuera del rango seguro entero, constituyen invariantes internas y no se corrigen ni convierten mediante FX.
 
 Revenue no se calcula desde PricingSnapshot, PaymentPlan, PaymentApplications, Outstanding Balance ni Payment History. No representa contabilidad, revenue recognition, facturación, forecasting o revenue management. DSH-003 no persiste agregados, no usa cache y no expone endpoint propio; DSH-001 compondrá esta proyección en el contrato público del Dashboard.
+
+### Contrato DSH-004 — Reservations KPI
+
+DSH-004 cuenta las Bookings creadas dentro de un período obligatorio `[from, to)` de hasta 31 días, cuyos límites se interpretan en la timezone IANA del Business. La cohorte se determina exclusivamente por `Booking.createdAt`; `checkInDate`, `checkOutDate`, `updatedAt`, Timeline y las fechas de transición no alteran su pertenencia.
+
+La proyección interna devuelve `total` y `byStatus`, incluyendo siempre `DRAFT`, `PENDING`, `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED` y `NO_SHOW`, aunque su valor sea cero. Cada Booking cuenta una vez según su estado actual al consultar: no se reconstruye el estado histórico. Una Booking multi-resource sigue contando una sola reserva y Contact no afecta el agregado.
+
+La consulta es tenant-scoped, permite lectura histórica de Business archivado y no expone endpoint propio ni `dashboard.read`. Counts negativos, decimales, fuera del entero seguro, estados desconocidos, filas duplicadas o una suma inconsistente constituyen invariantes internas. DSH-004 no persiste agregados ni usa cache; DSH-001 compondrá esta proyección en el contrato público del Dashboard.

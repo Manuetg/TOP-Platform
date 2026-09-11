@@ -6,7 +6,7 @@ Este documento registra la secuencia de evolución del MVP y las iniciativas fut
 
 ## Estado actual
 
-Business, Identity & Access, Resource, Pricing, Availability, Contact, Booking, Payment y Block están completados. PAY-003 — Payment History completó Payment con 4 de 4 capacidades. Dashboard tiene 2 de 4 capacidades completadas: DSH-002 — Occupancy KPI y DSH-003 — Revenue KPI están cerradas. La secuencia restante aprobada es DSH-004 Reservations y DSH-001 Business Dashboard como agregador público. El orden operativo vigente se encuentra en [07-Backlog.md](07-Backlog.md).
+Business, Identity & Access, Resource, Pricing, Availability, Contact, Booking, Payment y Block están completados. PAY-003 — Payment History completó Payment con 4 de 4 capacidades. Dashboard tiene 2 de 4 capacidades completadas: DSH-002 — Occupancy KPI y DSH-003 — Revenue KPI están cerradas; DSH-004 Reservations está en desarrollo y DSH-001 Business Dashboard permanece como agregador público final. El orden operativo vigente se encuentra en [07-Backlog.md](07-Backlog.md).
 
 ## Áreas funcionales del producto
 
