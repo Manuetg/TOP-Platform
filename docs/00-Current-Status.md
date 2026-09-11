@@ -44,10 +44,10 @@ Dashboard:
 - 2 / 4 completadas (50%)
 
 Capacidad backend actualmente en desarrollo:
-- Ninguna.
+- DSH-004 — Reservations KPI — In Progress.
 
-Siguiente capacidad backend:
-- DSH-004 — Reservations KPI. DSH-001 permanece como agregador público final.
+Siguiente capacidad backend después del cierre de DSH-004:
+- DSH-001 — Business Dashboard, agregador público final.
 
 Validación de cambios backend:
 - Backend CI en estado `SUCCESS` es obligatorio.
@@ -141,6 +141,12 @@ Revenue KPI (DSH-003 — Completed):
 - Devuelve `currency` y `amountMinor`; no filtra por estado de Booking, no usa PricingSnapshot y no realiza FX.
 - No agrega endpoint público ni `dashboard.read`; DSH-001 la expondrá posteriormente.
 - Breaking change: no.
+
+Reservations KPI (DSH-004 — In Progress):
+- Proyección backend interna de Bookings creadas por `createdAt` dentro de un período `[from, to)` de hasta 31 días en la timezone del Business.
+- Devuelve `total` y los siete estados actuales, incluidos los que tengan valor cero; una Booking multi-resource cuenta una sola vez.
+- No usa check-in/check-out, Contact o Timeline para formar la cohorte y no reconstruye estado histórico.
+- No agrega endpoint público ni `dashboard.read`; DSH-001 la expondrá posteriormente.
 
 Rate Plan Read para integración frontend:
 - `GET /api/businesses/:businessId/rate-plans` usa `pricing.read` y devuelve `RatePlanResponseDto[]`.
