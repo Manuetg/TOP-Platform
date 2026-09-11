@@ -102,7 +102,7 @@ Availability ya considera conjuntamente Booking, Block y el estado operativo del
 
 - **DSH-001 — Business Dashboard.** Estado: Planned. Dominio: Dashboard. Prioridad: Media. Endpoint futuro: `GET /api/businesses/:businessId/dashboard`. Alcance aprobado: contrato público que compondrá las proyecciones internas DSH-002, DSH-003 y DSH-004; incorporará `dashboard.read` para `OWNER`, `ADMIN`, `RECEPTIONIST` y `VIEWER`. Pruebas obligatorias: según convención. Definition of Done: según convención.
 - **DSH-002 — Occupancy KPI.** Estado: Completed. Dominio: Dashboard. Prioridad: Media. Endpoint: ninguno; proyección interna para DSH-001. Alcance: ocupación por Resource-night sobre el inventario operacional actual, con Resources actualmente `ACTIVE`, alta efectiva desde la fecha local de `Resource.createdAt`, Blocks no cancelados fuera del denominador y Bookings `CONFIRMED`, `IN_PROGRESS` o `COMPLETED` en el numerador. Período obligatorio `[from, to)` de hasta 31 días en timezone IANA del Business. Expone internamente noches ocupadas, noches vendibles y tasa entera en basis points; denominador cero produce `null` y una ocupación superior al inventario es una invariante interna, sin clamp. La métrica no reconstruye estados históricos de Resource, no persiste resultados y no expone HTTP propio. Pruebas obligatorias: unitarias, integración PostgreSQL, aceptación, tenant isolation y regresión contra multiplicación de filas. Definition of Done: aplicada. Evidencia técnica: PR `#54`; feature HEAD `2b27bf8d9ed38cadb6ee0c0617edb08ea70397e3`; merge `4bf25044d09013073fdee33b8e8c0fd3925bd87e`; Backend CI `34536932372` en `SUCCESS`; backend self-review documentada por `rolandobarros27`; 0 review threads; mutation `NOT RUN`, diferido al quality gate preproducción. La implementación usa una consulta PostgreSQL parametrizada y tenant-scoped, evita multiplicación de filas y N+1, y no agregó endpoint, capability, persistencia, cache, cambio Prisma, migración ni índice.
-- **DSH-003 — Revenue KPI.** Estado: Planned. Dominio: Dashboard. Prioridad: Media. Endpoint: ninguno; proyección interna futura para DSH-001. Pruebas obligatorias: según convención. Definition of Done: según convención.
+- **DSH-003 — Revenue KPI.** Estado: In Progress. Dominio: Dashboard. Prioridad: Media. Endpoint: ninguno; proyección interna para DSH-001. Alcance: `recorded payments revenue` derivado de Payments `RECORDED` del Business por `paidAt`, dentro de un período obligatorio `[from, to)` de hasta 31 días interpretado en la timezone IANA del Business. Devuelve internamente moneda e importe en unidades menores; un período vacío produce cero en la moneda del Business y monedas inconsistentes o importes no seguros son invariantes internas. No filtra por estado de Booking, no realiza FX, no usa PricingSnapshot, PaymentPlan, PaymentApplications, Outstanding Balance ni Payment History, y no incorpora endpoint, capability, persistencia o cache. Pruebas obligatorias: unitarias, integración PostgreSQL, aceptación, timezone, tenant isolation, independencia del estado de Booking e invariantes financieras. Definition of Done: no aplicada; requiere PR funcional, GitHub CI y cierre documental posteriores.
 - **DSH-004 — Reservations KPI.** Estado: Planned. Dominio: Dashboard. Prioridad: Media. Endpoint: ninguno; proyección interna futura para DSH-001. Pruebas obligatorias: según convención. Definition of Done: según convención.
 
 ## Progreso por épica
@@ -118,8 +118,8 @@ Availability ya considera conjuntamente Booking, Block y el estado operativo del
 | Booking | 6 | 6 | 0 | 0 | 0 |
 | Payment | 4 | 4 | 0 | 0 | 0 |
 | Block | 3 | 3 | 0 | 0 | 0 |
-| Dashboard | 4 | 1 | 0 | 3 | 0 |
-| **Total** | **53** | **50** | **0** | **3** | **0** |
+| Dashboard | 4 | 1 | 1 | 2 | 0 |
+| **Total** | **53** | **50** | **1** | **2** | **0** |
 
 Progreso de Identity & Access: 9 de 9 capacidades completadas (100%).
 
