@@ -1231,7 +1231,7 @@ Validación:
 
 ## FE-PRI-001 — Rate Plan List
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1248,7 +1248,7 @@ Contrato backend disponible:
 
 ## FE-PRI-002 — Create Rate Plan
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1258,7 +1258,7 @@ Crear un Rate Plan y asignarlo a Resources.
 
 ## FE-PRI-003 — Edit Rate Plan
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1268,7 +1268,7 @@ Editar información y asignaciones de Rate Plan.
 
 ## FE-PRI-004 — Seasonal Rates
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1278,7 +1278,7 @@ Gestionar tarifas estacionales.
 
 ## FE-PRI-005 — Price Preview
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1292,6 +1292,28 @@ Criterios de aceptación:
 - muestra moneda;
 - muestra breakdown si está disponible;
 - frontend nunca calcula el precio definitivo.
+
+
+### Cierre Pricing MVP
+
+Estado: Completed
+
+Pricing MVP cerrado en frontend con:
+
+- catálogo de Rate Plans por Business;
+- búsqueda y filtro por estado;
+- creación y edición de Rate Plans;
+- asignación múltiple de alojamientos sin exponer códigos internos;
+- Seasonal Rates con validación de vigencia y solapamiento;
+- cálculo de precio por alojamiento y estadía;
+- desglose nocturno BASE / SEASONAL;
+- selección contextual de Rate Plans para Booking;
+- responsive desktop/mobile;
+- Story Deck mobile consistente con Resources;
+- cards de tamaño uniforme en desktop y mobile;
+- estados loading, error y empty;
+- copy de UI sin referencias técnicas innecesarias al backend;
+- build, lint y pruebas del frontend validados.
 
 ---
 
@@ -1423,7 +1445,7 @@ Implementado:
 
 ## FE-BKG-006 — Confirm Booking
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1804,7 +1826,7 @@ Si frontend necesita un cambio backend:
 | Contact | 0 | 0 | 4 | 0 |
 | Availability | 0 | 0 | 3 | 0 |
 | Pricing | 0 | 0 | 5 | 0 |
-| Booking | 0 | 0 | 7 | 1 |
+| Booking | 0 | 0 | 8 | 0 |
 | Block | 0 | 0 | 3 | 0 |
 | Payment | 0 | 0 | 0 | 1 |
 | Dashboard | 0 | 0 | 0 | 1 |
