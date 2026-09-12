@@ -30,6 +30,7 @@ import { CreateRatePlanPage } from "../../features/pricing/pages/CreateRatePlanP
 import { EditRatePlanPage } from "../../features/pricing/pages/EditRatePlanPage";
 import { SeasonalRatesPage } from "../../features/pricing/pages/SeasonalRatesPage";
 import { PricePreviewPage } from "../../features/pricing/pages/PricePreviewPage";
+import { ProtectedRoute, PublicRoute } from "./ProtectedRoute";
 
 const router = createBrowserRouter([
   {
@@ -38,11 +39,12 @@ const router = createBrowserRouter([
   },
   {
     path: "/login",
-    element: <LoginPage />,
+    element: <PublicRoute />,
+    children: [{ index: true, element: <LoginPage /> }],
   },
   {
     path: "/app",
-    element: <AppLayout />,
+    element: <ProtectedRoute><AppLayout /></ProtectedRoute>,
     children: [
       {
         index: true,
