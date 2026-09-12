@@ -13,6 +13,7 @@ import {
   Gauge,
   Hotel,
   LayoutDashboard,
+  LogOut,
   Menu,
   Settings,
   Search,
@@ -46,6 +47,8 @@ interface AppShellProps extends PropsWithChildren {
   onGlobalSearchChange?: (value: string) => void;
   onNotificationsOpen?: () => void;
   onProfileOpen?: () => void;
+  onLogout?: () => void;
+  isLoggingOut?: boolean;
 }
 
 const operationItems = [
@@ -107,6 +110,8 @@ export function AppShell({
   onGlobalSearchChange,
   onNotificationsOpen,
   onProfileOpen,
+  onLogout,
+  isLoggingOut = false,
   children,
 }: AppShellProps) {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
@@ -535,6 +540,10 @@ export function AppShell({
                   >
                     <Settings size={18} aria-hidden="true" />
                     <span>Configuración</span>
+                  </button>
+                  <button type="button" className="top-header-popover__item top-header-popover__item--danger" onClick={onLogout} disabled={isLoggingOut}>
+                    <LogOut size={18} aria-hidden="true" />
+                    <span>{isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}</span>
                   </button>
                 </div>
               </>

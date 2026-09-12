@@ -4,6 +4,7 @@ import {
   type AppNavigationTarget,
   type AppSection,
 } from "./AppShell";
+import { useAuth } from "../../features/auth/context/AuthContext";
 
 const sectionPaths: Record<AppSection, string> = {
   home: "/app",
@@ -38,6 +39,7 @@ function getActiveSection(pathname: string): AppSection {
 export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout, isLoggingOut } = useAuth();
 
   const activeSection = getActiveSection(location.pathname);
 
@@ -56,6 +58,8 @@ export function AppLayout() {
       userName="Usuario"
       userRole="Rol"
       onNavigate={handleNavigate}
+      onLogout={() => { void logout().finally(() => navigate("/login", { replace: true })); }}
+      isLoggingOut={isLoggingOut}
     >
       <Outlet />
     </AppShell>
