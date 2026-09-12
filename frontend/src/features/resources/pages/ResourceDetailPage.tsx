@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { deleteResourceImage } from "../api/delete-resource-image";
 import { disableResource } from "../api/disable-resource";
 import { reactivateResource } from "../api/reactivate-resource";
@@ -23,8 +24,6 @@ import { useResource } from "../queries/use-resource";
 import type { ResourceStatus } from "../types/resource.types";
 import "./ResourceDetailPage.css";
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 const MAX_RESOURCE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const MAX_RESOURCE_IMAGES = 10;
@@ -51,6 +50,7 @@ export function ResourceDetailPage() {
   const queryClient = useQueryClient();
   const { resourceId = "" } = useParams();
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
 
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [statusActionError, setStatusActionError] = useState<string | null>(
@@ -77,7 +77,7 @@ export function ResourceDetailPage() {
     error,
     refetch,
   } = useResource({
-    businessId: TEMP_BUSINESS_ID,
+    businessId: activeBusinessId,
     resourceId,
     accessToken: session?.accessToken,
   });
@@ -86,7 +86,7 @@ export function ResourceDetailPage() {
     data: resourceImages = [],
     isLoading: areImagesLoading,
   } = useResourceImages({
-    businessId: TEMP_BUSINESS_ID,
+    businessId: activeBusinessId,
     resourceId,
     accessToken: session?.accessToken,
   });
@@ -164,7 +164,7 @@ export function ResourceDetailPage() {
 
     try {
       const uploadedImage = await uploadResourceImage({
-        businessId: TEMP_BUSINESS_ID,
+        businessId: activeBusinessId,
         resourceId: resource.id,
         file,
         accessToken: session?.accessToken,
@@ -172,7 +172,7 @@ export function ResourceDetailPage() {
 
       const imageQueryKey = [
         "resources",
-        TEMP_BUSINESS_ID,
+        activeBusinessId,
         resource.id,
         "images",
       ];
@@ -224,7 +224,7 @@ export function ResourceDetailPage() {
 
     const imageQueryKey = [
       "resources",
-      TEMP_BUSINESS_ID,
+      activeBusinessId,
       resource.id,
       "images",
     ];
@@ -234,7 +234,7 @@ export function ResourceDetailPage() {
 
     try {
       await deleteResourceImage({
-        businessId: TEMP_BUSINESS_ID,
+        businessId: activeBusinessId,
         resourceId: resource.id,
         imageId: currentImage.id,
         accessToken: session?.accessToken,
@@ -284,18 +284,18 @@ export function ResourceDetailPage() {
 
     try {
       const updatedResource = await disableResource({
-        businessId: TEMP_BUSINESS_ID,
+        businessId: activeBusinessId,
         resourceId: resource.id,
         accessToken: session?.accessToken,
       });
 
       queryClient.setQueryData(
-        ["resources", TEMP_BUSINESS_ID, resource.id],
+        ["resources", activeBusinessId, resource.id],
         updatedResource,
       );
 
       await queryClient.invalidateQueries({
-        queryKey: ["resources", TEMP_BUSINESS_ID],
+        queryKey: ["resources", activeBusinessId],
         exact: true,
       });
     } catch (disableResourceError) {
@@ -319,18 +319,18 @@ export function ResourceDetailPage() {
 
     try {
       const updatedResource = await reactivateResource({
-        businessId: TEMP_BUSINESS_ID,
+        businessId: activeBusinessId,
         resourceId: resource.id,
         accessToken: session?.accessToken,
       });
 
       queryClient.setQueryData(
-        ["resources", TEMP_BUSINESS_ID, resource.id],
+        ["resources", activeBusinessId, resource.id],
         updatedResource,
       );
 
       await queryClient.invalidateQueries({
-        queryKey: ["resources", TEMP_BUSINESS_ID],
+        queryKey: ["resources", activeBusinessId],
         exact: true,
       });
     } catch (reactivateResourceError) {
@@ -344,7 +344,7 @@ export function ResourceDetailPage() {
     }
   }
 
-  if (!TEMP_BUSINESS_ID || !resourceId) {
+  if (!activeBusinessId || !resourceId) {
     return (
       <section className="resource-detail-page">
         <h1>Recurso</h1>
@@ -660,7 +660,7 @@ export function ResourceDetailPage() {
           <h2>Amenities</h2>
 
           <ResourceAmenitiesEditor
-            businessId={TEMP_BUSINESS_ID}
+            businessId={activeBusinessId}
             resource={resource}
             accessToken={session?.accessToken}
           />

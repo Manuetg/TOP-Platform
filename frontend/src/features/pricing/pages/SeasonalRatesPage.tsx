@@ -13,13 +13,12 @@ import {
   useParams,
 } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useCreateSeasonalRate } from "../queries/use-create-seasonal-rate";
 import { useRatePlans } from "../queries/use-rate-plans";
 import { useSeasonalRates } from "../queries/use-seasonal-rates";
 import "./SeasonalRatesPage.css";
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 function currencyToMinor(value: string) {
   const normalized = value
@@ -67,7 +66,7 @@ export function SeasonalRatesPage() {
   const { session } = useAuth();
   const { ratePlanId = "" } = useParams();
 
-  const businessId = TEMP_BUSINESS_ID;
+  const { activeBusinessId: businessId } = useBusinessContext();
 
   const {
     data: ratePlans,

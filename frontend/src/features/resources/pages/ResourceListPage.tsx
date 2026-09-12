@@ -10,6 +10,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useResourceImageCovers } from "../queries/use-resource-image-covers";
 import { useResources } from "../queries/use-resources";
 import type {
@@ -23,8 +24,6 @@ interface ResourceListPageProps {
   businessId?: string;
 }
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 type ResourceStatusFilter = "ALL" | ResourceStatus;
 
@@ -149,10 +148,12 @@ function ResourceCard({
 }
 
 export function ResourceListPage({
-  businessId = TEMP_BUSINESS_ID,
+  businessId: suppliedBusinessId,
 }: ResourceListPageProps) {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
+  const businessId = suppliedBusinessId ?? activeBusinessId;
 
   const {
     data: resources,
@@ -311,7 +312,7 @@ export function ResourceListPage({
         <h1 id="resources-title">Recursos</h1>
 
         <p>
-          Configurá VITE_DEV_BUSINESS_ID para cargar los
+          No hay un negocio activo para cargar los
           recursos durante el desarrollo.
         </p>
       </section>

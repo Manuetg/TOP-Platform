@@ -14,13 +14,12 @@ import {
   useParams,
 } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useResources } from "../../resources/queries/use-resources";
 import { useRatePlans } from "../queries/use-rate-plans";
 import { useUpdateRatePlan } from "../queries/use-update-rate-plan";
 import "./CreateRatePlanPage.css";
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 function minorToCurrency(value: number) {
   return String(value / 100);
@@ -48,7 +47,7 @@ export function EditRatePlanPage() {
   const navigate = useNavigate();
   const { ratePlanId = "" } = useParams();
 
-  const businessId = TEMP_BUSINESS_ID;
+  const { activeBusinessId: businessId } = useBusinessContext();
 
   const {
     data: ratePlans,

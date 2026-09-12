@@ -105,7 +105,7 @@ export function DashboardPage({
       </section>
       {!businessId ? (
         <div className="dashboard-card dashboard-message" role="status">
-          Configura VITE_DEV_BUSINESS_ID para consultar el resumen del negocio
+          No hay un negocio activo para consultar el resumen.
           durante el desarrollo.
         </div>
       ) : !session ? (

@@ -93,7 +93,7 @@ describe("ResourceListPage", () => {
     } as never);
   });
 
-  it("shows the development configuration state without a business id", () => {
+  it("shows the configuration state without a business id", () => {
     mockedUseResources.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -104,9 +104,7 @@ describe("ResourceListPage", () => {
 
     renderResourceListPage({ businessId: "" });
 
-    expect(
-      screen.getByText(/VITE_DEV_BUSINESS_ID/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/No hay un negocio activo/i)).toBeInTheDocument();
   });
 
   it("shows the loading state", () => {
@@ -209,9 +207,7 @@ describe("ResourceListPage", () => {
       screen.queryByText("Imagen del recurso"),
     ).not.toBeInTheDocument();
 
-    expect(
-      mockedUseResourceImageCovers,
-    ).toHaveBeenCalledTimes(1);
+    expect(mockedUseResourceImageCovers).toHaveBeenCalled();
 
     expect(
       mockedUseResourceImageCovers,

@@ -12,12 +12,11 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useResources } from "../../resources/queries/use-resources";
 import { useCreateRatePlan } from "../queries/use-create-rate-plan";
 import "./CreateRatePlanPage.css";
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 function currencyToMinor(value: string) {
   const normalized = value
@@ -40,7 +39,7 @@ export function CreateRatePlanPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
 
-  const businessId = TEMP_BUSINESS_ID;
+  const { activeBusinessId: businessId } = useBusinessContext();
 
   const [name, setName] =
     useState("");

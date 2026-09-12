@@ -14,6 +14,7 @@ import {
 } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useResources } from "../../resources/queries/use-resources";
 import { useCalculatePrice } from "../../pricing/queries/use-calculate-price";
 import { useSelectableRatePlans } from "../../pricing/queries/use-selectable-rate-plans";
@@ -22,8 +23,6 @@ import { useConfirmBooking } from "../queries/use-confirm-booking";
 import type { CalculatePriceResult } from "../../pricing/types/pricing.types";
 import "./ConfirmBookingPage.css";
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 function formatMoney(
   amountMinor: number,
@@ -55,7 +54,7 @@ export function ConfirmBookingPage() {
   const { bookingId = "" } = useParams();
   const { session } = useAuth();
 
-  const businessId = TEMP_BUSINESS_ID;
+  const { activeBusinessId: businessId } = useBusinessContext();
 
   const {
     data: booking,

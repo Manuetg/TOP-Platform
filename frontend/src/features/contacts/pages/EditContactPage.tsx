@@ -15,6 +15,7 @@ import {
 } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { COUNTRIES } from "../constants/countries";
 import { useContact } from "../queries/use-contact";
 import {
@@ -25,8 +26,6 @@ import { updateContact } from "../api/update-contact";
 import "./CreateContactPage.css";
 import "./EditContactPage.css";
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 function optionalValue(value?: string) {
   const normalized = value?.trim() ?? "";
@@ -57,6 +56,7 @@ export function EditContactPage() {
   const navigate = useNavigate();
   const { contactId = "" } = useParams();
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
 
   const [submitError, setSubmitError] =
     useState<string | null>(null);
@@ -68,7 +68,7 @@ export function EditContactPage() {
     error,
     refetch,
   } = useContact({
-    businessId: TEMP_BUSINESS_ID,
+    businessId: activeBusinessId,
     contactId,
     accessToken: session?.accessToken,
   });
@@ -120,7 +120,7 @@ export function EditContactPage() {
   }, [contact, reset]);
 
   const onSubmit = handleSubmit(async (values) => {
-    if (!TEMP_BUSINESS_ID || !contactId) {
+    if (!activeBusinessId || !contactId) {
       setSubmitError(
         "No se pudo determinar el contacto activo.",
       );
@@ -134,7 +134,7 @@ export function EditContactPage() {
 
     try {
       await updateContact({
-        businessId: TEMP_BUSINESS_ID,
+        businessId: activeBusinessId,
         contactId,
         accessToken: session?.accessToken,
         input: {

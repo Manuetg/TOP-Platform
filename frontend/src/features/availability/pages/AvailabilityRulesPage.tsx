@@ -12,6 +12,7 @@ import {
 } from "react";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { AvailabilityNav } from "../components/AvailabilityNav";
 import {
   useAvailabilityRules,
@@ -19,11 +20,10 @@ import {
 } from "../queries/use-availability-rules";
 import "./AvailabilityRulesPage.css";
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 export function AvailabilityRulesPage() {
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
 
   const {
     data: rules,
@@ -32,13 +32,13 @@ export function AvailabilityRulesPage() {
     error,
     refetch,
   } = useAvailabilityRules({
-    businessId: TEMP_BUSINESS_ID,
+    businessId: activeBusinessId,
     accessToken: session?.accessToken,
   });
 
   const updateRules =
     useUpdateAvailabilityRules({
-      businessId: TEMP_BUSINESS_ID,
+      businessId: activeBusinessId,
       accessToken: session?.accessToken,
     });
 

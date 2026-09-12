@@ -47,10 +47,12 @@ Total historias frontend activas: 51
 
 Estado actual:
 
-- Completed: 39`r`n- In Progress: 4`r`n- Planned: 7
+- Completed: 36
+- In Progress: 5
+- Planned: 9
 - Blocked: 1
 
-Recuento por estados reales: 36 + 4 + 10 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye de este total para no duplicar trabajo; existen 52 encabezados de historia incluyendo ese registro.
+Recuento por estados reales: 36 + 5 + 9 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye de este total para no duplicar trabajo; existen 52 encabezados de historia incluyendo ese registro.
 
 ---
 
@@ -536,7 +538,7 @@ Criterios de aceptación:
 
 ## FE-IAM-006 — Protected Routes
 
-Estado: Planned
+Estado: In Progress
 
 Objetivo:
 

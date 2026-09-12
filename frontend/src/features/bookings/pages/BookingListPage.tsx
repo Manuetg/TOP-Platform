@@ -15,6 +15,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useContacts } from "../../contacts/queries/use-contacts";
 import { useResources } from "../../resources/queries/use-resources";
 import { useBookings } from "../queries/use-bookings";
@@ -28,8 +29,6 @@ interface BookingListPageProps {
   businessId?: string;
 }
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 const ALL = "ALL";
 
@@ -266,10 +265,12 @@ function BookingCard({
 }
 
 export function BookingListPage({
-  businessId = TEMP_BUSINESS_ID,
+  businessId: suppliedBusinessId,
 }: BookingListPageProps) {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
+  const businessId = suppliedBusinessId ?? activeBusinessId;
 
   const [status, setStatus] =
     useState<StatusFilter>(ALL);

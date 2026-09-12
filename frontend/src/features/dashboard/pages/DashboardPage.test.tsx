@@ -248,7 +248,7 @@ describe("DashboardPage", () => {
   it("explains missing business configuration", () => {
     show("");
     expect(screen.getByRole("status")).toHaveTextContent(
-      "VITE_DEV_BUSINESS_ID",
+      "No hay un negocio activo",
     );
   });
   it("offers login with no session and never manually refetches without authorization", async () => {

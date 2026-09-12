@@ -13,6 +13,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useContacts } from "../queries/use-contacts";
 import type {
   Contact,
@@ -24,8 +25,6 @@ interface ContactListPageProps {
   businessId?: string;
 }
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 function getStatusLabel(status: ContactStatus) {
   switch (status) {
@@ -180,10 +179,12 @@ function ContactCard({
 }
 
 export function ContactListPage({
-  businessId = TEMP_BUSINESS_ID,
+  businessId: suppliedBusinessId,
 }: ContactListPageProps) {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
+  const businessId = suppliedBusinessId ?? activeBusinessId;
 
   const [searchTerm, setSearchTerm] =
     useState("");

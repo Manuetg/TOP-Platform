@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { BookingDraftForm } from "../components/BookingDraftForm";
 import { useCreateBooking } from "../queries/use-create-booking";
 import type { CreateBookingInput } from "../types/booking.types";
@@ -10,14 +11,14 @@ interface CreateBookingPageProps {
   businessId?: string;
 }
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 export function CreateBookingPage({
-  businessId = TEMP_BUSINESS_ID,
+  businessId: suppliedBusinessId,
 }: CreateBookingPageProps) {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
+  const businessId = suppliedBusinessId ?? activeBusinessId;
 
   const createMutation = useCreateBooking({
     businessId,

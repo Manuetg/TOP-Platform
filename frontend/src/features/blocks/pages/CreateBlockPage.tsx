@@ -11,6 +11,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useResources } from "../../resources/queries/use-resources";
 import { useCreateBlock } from "../queries/use-create-block";
 import type { BlockType } from "../types/block.types";
@@ -20,8 +21,6 @@ interface CreateBlockPageProps {
   businessId?: string;
 }
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 function toIsoDateTime(value: string) {
   if (!value) {
@@ -32,10 +31,12 @@ function toIsoDateTime(value: string) {
 }
 
 export function CreateBlockPage({
-  businessId = TEMP_BUSINESS_ID,
+  businessId: suppliedBusinessId,
 }: CreateBlockPageProps) {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
+  const businessId = suppliedBusinessId ?? activeBusinessId;
 
   const [resourceId, setResourceId] =
     useState("");

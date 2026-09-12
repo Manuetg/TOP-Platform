@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { createContact } from "../api/create-contact";
 import { COUNTRIES } from "../constants/countries";
 import {
@@ -16,8 +17,6 @@ import {
 } from "../schemas/create-contact.schema";
 import "./CreateContactPage.css";
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 function optionalValue(value?: string) {
   const normalized = value?.trim() ?? "";
@@ -30,6 +29,7 @@ function optionalValue(value?: string) {
 export function CreateContactPage() {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
 
   const [submitError, setSubmitError] =
     useState<string | null>(null);
@@ -56,7 +56,7 @@ export function CreateContactPage() {
   });
 
   const onSubmit = handleSubmit(async (values) => {
-    if (!TEMP_BUSINESS_ID) {
+    if (!activeBusinessId) {
       setSubmitError(
         "No se pudo determinar el Business activo.",
       );
@@ -70,7 +70,7 @@ export function CreateContactPage() {
 
     try {
       const contact = await createContact({
-        businessId: TEMP_BUSINESS_ID,
+        businessId: activeBusinessId,
         accessToken: session?.accessToken,
         input: {
           name: values.name.trim(),

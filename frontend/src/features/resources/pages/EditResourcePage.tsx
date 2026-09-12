@@ -9,6 +9,7 @@ import {
 } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { updateResource } from "../api/update-resource";
 import { useResource } from "../queries/use-resource";
 import {
@@ -18,14 +19,13 @@ import {
 } from "../schemas/edit-resource.schema";
 import "./EditResourcePage.css";
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 export function EditResourcePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { resourceId = "" } = useParams();
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
 
   const [submitError, setSubmitError] =
     useState<string | null>(null);
@@ -37,7 +37,7 @@ export function EditResourcePage() {
     error,
     refetch,
   } = useResource({
-    businessId: TEMP_BUSINESS_ID,
+    businessId: activeBusinessId,
     resourceId,
     accessToken: session?.accessToken,
   });
@@ -73,7 +73,7 @@ export function EditResourcePage() {
   }, [resource, reset]);
 
   const onSubmit = handleSubmit(async (values) => {
-    if (!TEMP_BUSINESS_ID || !resourceId) {
+    if (!activeBusinessId || !resourceId) {
       setSubmitError(
         "No se pudo determinar el recurso activo.",
       );
@@ -84,7 +84,7 @@ export function EditResourcePage() {
 
     try {
       const updatedResource = await updateResource({
-        businessId: TEMP_BUSINESS_ID,
+        businessId: activeBusinessId,
         resourceId,
         accessToken: session?.accessToken,
         input: {
@@ -104,12 +104,12 @@ export function EditResourcePage() {
       });
 
       queryClient.setQueryData(
-        ["resources", TEMP_BUSINESS_ID, resourceId],
+        ["resources", activeBusinessId, resourceId],
         updatedResource,
       );
 
       await queryClient.invalidateQueries({
-        queryKey: ["resources", TEMP_BUSINESS_ID],
+        queryKey: ["resources", activeBusinessId],
         exact: true,
       });
 

@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { createResource } from "../api/create-resource";
 import {
   createResourceSchema,
@@ -13,8 +14,6 @@ import {
 } from "../schemas/create-resource.schema";
 import "./CreateResourcePage.css";
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 function createInternalCode(name: string): string {
   return name
@@ -29,6 +28,7 @@ function createInternalCode(name: string): string {
 export function CreateResourcePage() {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
@@ -64,7 +64,7 @@ export function CreateResourcePage() {
     );
   }, [resourceName, setValue]);
 const onSubmit = handleSubmit(async (values) => {
-    if (!TEMP_BUSINESS_ID) {
+    if (!activeBusinessId) {
       setSubmitError(
         "No se pudo determinar el Business activo.",
       );
@@ -75,7 +75,7 @@ const onSubmit = handleSubmit(async (values) => {
 
     try {
       const resource = await createResource({
-        businessId: TEMP_BUSINESS_ID,
+        businessId: activeBusinessId,
         accessToken: session?.accessToken,
         input: {
           name: values.name.trim(),
