@@ -1149,6 +1149,9 @@
   outline-offset: 2px;
 }
 
+.top-header-popover__item--danger { color: var(--color-error, #b42318); }
+.top-header-popover__item--danger:hover { background: color-mix(in srgb, var(--color-error, #b42318) 8%, transparent); }
+
 .top-header-popover__empty {
   display: grid;
   justify-items: center;

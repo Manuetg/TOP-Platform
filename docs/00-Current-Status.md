@@ -64,10 +64,10 @@ Pendientes principales posteriores:
 Estado:
 - Dashboard Business implementado y mergeado en `/app`.
 - FE-DSH-001 — Completed.
-- 36/51 historias frontend activas Completed; 4 In Progress, 10 Planned y 1 Blocked.
+- 37/51 historias frontend activas Completed; 4 In Progress, 9 Planned y 1 Blocked.
 - Resources y Rate Plans usan contratos reales; Revenue, Occupancy y Reservations usan el Dashboard backend real.
 - Los widgets Dashboard sin contrato backend aprobado fueron retirados del MVP; no se muestran datos ficticios.
-- FE-BUS Active Business Context continúa pendiente; FE-IAM-003 — Session Persistence está Completed y FE-IAM-004 — Refresh Token Rotation está In Progress.
+- FE-BUS Active Business Context continúa pendiente; FE-IAM-003 — Session Persistence y FE-IAM-004 — Refresh Token Rotation están Completed; FE-IAM-005 — Logout está In Progress.
 - FE-IAM-003 fue validada con F5, `sessionStorage`, refresh rotatorio y reanudación del Dashboard.
 - Los widgets Dashboard sin contrato backend fueron retirados del MVP; no hay mocks operativos visibles.
 
