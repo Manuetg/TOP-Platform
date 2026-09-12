@@ -515,7 +515,7 @@ Criterios de aceptación:
 
 ## FE-IAM-005 — Logout
 
-Estado: Completed
+Estado: In Progress
 
 Objetivo:
 
