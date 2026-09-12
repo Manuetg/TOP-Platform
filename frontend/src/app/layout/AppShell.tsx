@@ -203,6 +203,13 @@ export function AppShell({
           </ShellNavGroup>
         </nav>
 
+        {activeSection === "home" && (
+          <div className="top-sidebar-hospitality">
+            <div className="top-sidebar-hospitality__art" aria-hidden="true"><Hotel size={42} strokeWidth={1.3} /></div>
+            <strong>Haz crecer tu alojamiento con TOP</strong>
+            <p>Más claridad para tu operación. Más tiempo para tus huéspedes.</p>
+          </div>
+        )}
         <div className="top-sidebar__footer">
           <ShellNavItem
             id="settings"

@@ -1,6 +1,6 @@
 # TOP — Frontend Backlog
 
-Última actualización: 2026-09-03
+Última actualización: 2026-09-12
 
 ## Objetivo
 
@@ -43,14 +43,16 @@ Las reglas de negocio continúan siendo responsabilidad del backend y de la docu
 
 # 3. Estado general
 
-Total historias frontend: 52
+Total historias frontend activas: 55
 
 Estado actual:
 
-- Completed: 11
-- In Progress: 3
-- Planned: 35
-- Blocked: 3
+- Completed: 34
+- In Progress: 4
+- Planned: 16
+- Blocked: 1
+
+Recuento por estados reales: 34 + 4 + 16 + 1 = 55. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye de este total para no duplicar trabajo; existen 56 encabezados de historia incluyendo ese registro. Antes de agregar FE-DSH-002..005 había 51 historias activas (34 Completed, 4 In Progress, 12 Planned, 1 Blocked); los resúmenes anteriores estaban desactualizados. Se preservan los seis cierres de Pricing/Confirm Booking mergeados en PR #67; no se cambia ningún estado ajeno a Dashboard ni el total backend 53/53.
 
 ---
 
@@ -249,6 +251,8 @@ Criterios de aceptación:
 - desaparece o se recompone en tablet/mobile;
 - contenido contextual reutilizable;
 - no mezcla responsabilidades con la navegación principal.
+
+FE-DSH-001 implementa una primera composición local del rail en Dashboard basada en la referencia visual. Esta historia conserva el alcance transversal de Foundation y no se duplica. FE-DSH-004 y FE-DSH-005 cubren únicamente la conexión de su contenido con fuentes reales.
 
 ---
 
@@ -1666,19 +1670,62 @@ Cuando backend quede definido, reemplazar esta historia por historias reales de:
 
 # 14. FE-DSH — Dashboard
 
-## FE-DSH-000 — Dashboard UI Discovery
+## FE-DSH-001 — Business Dashboard
 
-Estado: Blocked
+Estado: In Progress
 
-Bloqueado por:
+Contrato backend disponible:
 
-- Backend Dashboard pendiente.
+- `GET /api/businesses/:businessId/dashboard?from=YYYY-MM-DD&to=YYYY-MM-DD`.
+- `dashboard.read`; autorización y aislamiento por Business a cargo del backend.
+- Respuesta: `occupancy`, `revenue`, `reservations`; backend MVP conserva 53/53 — 100%.
 
 Objetivo:
 
-No inventar contratos ni KPIs desde frontend.
+- Reemplazar el placeholder de `/app` por cuatro tarjetas compactas, tablas reales de Recursos/Precios y rail con previews operacionales. Preservar ocupación radial y distribución de los siete estados de reservas debajo de las tablas.
+- Fechas obligatorias, `[from,to)`, máximo 31 días; editar no dispara requests hasta Aplicar. Ventana inicial de siete días basada en fechas locales del navegador, interpretadas por backend en la timezone del Business.
+- Estados de carga, error con reintento, vacío, ocupación nula y validación; diseño responsive con tokens y App Shell existentes.
+- `apiRequest`, sesión vigente y query cache por Business/período; Business temporal vía `VITE_DEV_BUSINESS_ID`, sin implementar FE-BUS-001.
+- Referencia visual única: imagen adjunta. Figma queda descartado por decisión explícita del usuario.
+- Fuentes REAL: Recursos activos y tabla mediante `GET /businesses/:businessId/resources`; portadas mediante `GET /businesses/:businessId/resources/images/covers`; Tarifas activas y tabla mediante `GET /businesses/:businessId/rate-plans`; Ingresos, Ocupación y Reservas mediante Dashboard. No se agregan requests por fila ni se infiere la tarifa o el tipo de Resource.
+- Fuentes MOCK: próximos check-ins (FE-DSH-002), Hoy (FE-DSH-003), actividad reciente (FE-DSH-004) y próximos pasos (FE-DSH-005). Aislados en `dashboard/mocks/dashboard-preview.mock.ts`, con `source: MOCK`, historia asociada y etiqueta visible «Vista previa». No reemplazan respuestas reales vacías ni se usan para decisiones de negocio.
+- Cada fuente real tiene loading, vacío y error/reintento independiente. No se incorporan comparaciones históricas, nuevos endpoints ni nuevos permisos. La card informativa de hospitalidad es contenido estático, sin upselling.
 
-Cuando backend exponga DSH-001..DSH-004, reemplazar por historias reales.
+No modifica backend ni completa automáticamente historias frontend relacionadas. Mutation diferida al quality gate preproducción.
+
+---
+
+## FE-DSH-002 — Upcoming Check-ins
+
+Estado: Planned
+
+Objetivo: reemplazar el mock de próximos check-ins del Dashboard por una proyección backend tenant-scoped. Actualmente MOCK en Dashboard.
+
+Dependencias: definición de ventana temporal, estados válidos de Booking y timezone del Business. El listado actual de Bookings no expone filtros de fechas adecuados para este agregado; no se descargará para reconstruirlo desde frontend. El contrato final requiere discovery backend.
+
+## FE-DSH-003 — Today Operations Summary
+
+Estado: Planned
+
+Objetivo: reemplazar el panel Hoy (llegadas, salidas y reservas relevantes) por datos reales. Actualmente MOCK en Dashboard.
+
+Dependencias: nuevo contrato backend agregado y definición comercial de «hoy» y «reservas relevantes» según timezone del Business. No se simula con consultas por día/entidad ni se define aquí el endpoint definitivo.
+
+## FE-DSH-004 — Recent Activity Feed
+
+Estado: Planned
+
+Objetivo: reemplazar el feed ilustrativo por actividad unificada del Business. Actualmente MOCK en Dashboard.
+
+Dependencia: backend agregado que defina eventos, orden, autorización y paginación. Booking Timeline es por Booking y no sustituye este contrato. Frontend no combina Payments, Resources y Bookings para fabricarlo. Reutiliza el rail contemplado en FE-FND-006.
+
+## FE-DSH-005 — Business Next Steps
+
+Estado: Planned
+
+Objetivo: reemplazar el checklist ilustrativo por próximos pasos contextuales del Business. Actualmente MOCK en Dashboard.
+
+Dependencias: definición de producto, fuente de estado y criterios backend. No inferir onboarding leyendo múltiples entidades desde frontend. Esta historia es únicamente la fuente real del contenido; no duplica FE-FND-006 — Desktop Context Rail.
 
 ---
 
@@ -1815,20 +1862,21 @@ Si frontend necesita un cambio backend:
 
 ---
 
-# 18. Estado inicial resumido
+# 18. Estado vigente resumido
 
 | Épica | Completed | In Progress | Planned | Blocked |
 |---|---:|---:|---:|---:|
-| Foundation | 1 | 3 | 0 | 0 |
-| IAM | 0 | 1 | 5 | 0 |
+| Foundation | 4 | 2 | 4 | 0 |
+| IAM | 1 | 1 | 4 | 0 |
 | Business | 0 | 0 | 3 | 0 |
-| Resource | 0 | 0 | 7 | 0 |
-| Contact | 0 | 0 | 4 | 0 |
-| Availability | 0 | 0 | 3 | 0 |
-| Pricing | 0 | 0 | 5 | 0 |
-| Booking | 0 | 0 | 8 | 0 |
-| Block | 0 | 0 | 3 | 0 |
+| Resource | 7 | 0 | 0 | 0 |
+| Subscription | 0 | 0 | 1 | 0 |
+| Contact | 4 | 0 | 0 | 0 |
+| Availability | 2 | 0 | 0 | 0 |
+| Pricing | 5 | 0 | 0 | 0 |
+| Booking | 8 | 0 | 0 | 0 |
+| Block | 3 | 0 | 0 | 0 |
 | Payment | 0 | 0 | 0 | 1 |
-| Dashboard | 0 | 0 | 0 | 1 |
-| **TOTAL** | **1** | **4** | **37** | **3** |
+| Dashboard | 0 | 1 | 4 | 0 |
+| **TOTAL** | **34** | **4** | **16** | **1** |
 

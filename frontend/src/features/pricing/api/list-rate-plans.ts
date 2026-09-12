@@ -1,7 +1,7 @@
 import { apiRequest } from "../../../shared/api/api-client";
 import type { RatePlan } from "../types/pricing.types";
 
-interface ListRatePlansOptions {
+export interface ListRatePlansOptions {
   businessId: string;
   accessToken?: string | null;
 }
@@ -9,10 +9,11 @@ interface ListRatePlansOptions {
 export function listRatePlans({
   businessId,
   accessToken,
-}: ListRatePlansOptions): Promise<RatePlan[]> {
+}: ListRatePlansOptions) {
   return apiRequest<RatePlan[]>(
-    `/businesses/${businessId}/rate-plans`,
+    `/businesses/${encodeURIComponent(businessId)}/rate-plans`,
     {
+      method: "GET",
       accessToken,
     },
   );

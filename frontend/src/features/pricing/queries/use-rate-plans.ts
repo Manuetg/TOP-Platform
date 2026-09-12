@@ -1,25 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { listRatePlans } from "../api/list-rate-plans";
+import {
+  listRatePlans,
+  type ListRatePlansOptions,
+} from "../api/list-rate-plans";
 
-interface UseRatePlansOptions {
-  businessId: string;
-  accessToken?: string | null;
-}
-
-export function useRatePlans({
-  businessId,
-  accessToken,
-}: UseRatePlansOptions) {
+export function useRatePlans(input: ListRatePlansOptions) {
   return useQuery({
-    queryKey: [
-      "rate-plans",
-      businessId,
-    ],
-    queryFn: () =>
-      listRatePlans({
-        businessId,
-        accessToken,
-      }),
-    enabled: businessId.length > 0,
+    queryKey: ["rate-plans", input.businessId],
+    queryFn: () => listRatePlans(input),
+    enabled: Boolean(input.businessId && input.accessToken),
   });
 }

@@ -4,6 +4,7 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import { LoginPage } from "../../features/auth/pages/LoginPage";
+import { DashboardPage } from "../../features/dashboard/pages/DashboardPage";
 import { AppLayout } from "../layout/AppLayout";
 import { AppSectionPage } from "../pages/AppSectionPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
@@ -45,7 +46,7 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <AppSectionPage title="Inicio" />,
+        element: <DashboardPage />,
       },
       {
         path: "calendar",

@@ -2,6 +2,25 @@
   display: contents;
 }
 
+.top-sidebar-hospitality {
+  margin: var(--space-5) 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-background);
+}
+.top-sidebar-hospitality__art {
+  display: grid;
+  place-items: center;
+  height: 72px;
+  margin-bottom: var(--space-3);
+  color: var(--color-brand-primary);
+  background: color-mix(in srgb, var(--color-brand-primary) 6%, var(--color-background));
+  border-radius: var(--radius-lg);
+}
+.top-sidebar-hospitality strong { font-size: 13px; line-height: 20px; }
+.top-sidebar-hospitality p { margin: var(--space-2) 0 0; color: var(--color-text-secondary); font-size: 12px; line-height: 20px; }
+
 .top-mobile-more-backdrop {
   position: fixed;
   inset: 0;

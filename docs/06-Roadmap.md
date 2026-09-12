@@ -30,3 +30,9 @@ La siguiente secuencia conserva la referencia usada para estructurar el backlog 
 10. Dashboard.
 
 No se establecen fechas ni alcance adicional en este documento. Las ideas futuras deben registrarse aquí solo cuando cuenten con aprobación explícita.
+
+## Propuestas para evaluar después de FE-DSH-001
+
+Por solicitud del usuario, se conservan como propuestas pendientes de discovery los contratos reales de próximos check-ins, resumen de llegadas/salidas del día, actividad reciente y próximos pasos. FE-DSH-001 incorpora sus componentes visuales con mocks explícitos aislados y etiqueta «Vista previa»; FE-DSH-002..005 registran el reemplazo por datos reales. No implican una nueva capacidad backend aprobada. Antes de conectar los datos se deben definir semántica, fuente, endpoint, autorización y alcance; no se presupone que otros listados resuelvan esos agregados. Las comparaciones con períodos anteriores permanecen fuera del Dashboard actual, incluso como mock.
+
+Los previews de Recursos y Precios se incorporan a FE-DSH-001 por la nueva decisión visual, consumiendo sus contratos existentes y mostrando hasta cuatro recursos y tres tarifas; no completan FE-PRI-001. La composición local del rail no completa su generalización en FE-FND-006. Estas decisiones no alteran el total backend de 53.
