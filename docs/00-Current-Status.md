@@ -62,19 +62,14 @@ Pendientes principales posteriores:
 ## Estado Frontend
 
 Estado:
-- Foundation existente localmente
-- Login iniciado
-- Integración backend iniciada
-- Pendiente formalizar frontend dentro del flujo Git oficial
+- Dashboard Business implementado y mergeado en `/app`.
+- FE-DSH-001 — Completed.
+- 35/55 historias frontend activas Completed; 3 In Progress, 16 Planned y 1 Blocked.
+- Resources y Rate Plans usan contratos reales; Revenue, Occupancy y Reservations usan el Dashboard backend real.
+- FE-DSH-002..005 permanecen Planned y sus widgets usan mocks de preview aislados; ningún mock sustituye datos reales.
+- FE-IAM Session Persistence y FE-BUS Active Business Context continúan pendientes.
 
-Siguiente objetivo:
-1. revisar frontend existente;
-2. estabilizar Foundation;
-3. Authentication;
-4. Business Context;
-5. App Shell;
-6. Resources;
-7. Booking.
+Siguiente objetivo: continuar con las historias frontend Planned restantes. El frontend MVP no se declara completo.
 
 ## Contratos que impactan Frontend
 

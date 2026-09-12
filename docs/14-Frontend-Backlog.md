@@ -47,12 +47,12 @@ Total historias frontend activas: 55
 
 Estado actual:
 
-- Completed: 34
-- In Progress: 4
+- Completed: 35
+- In Progress: 3
 - Planned: 16
 - Blocked: 1
 
-Recuento por estados reales: 34 + 4 + 16 + 1 = 55. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye de este total para no duplicar trabajo; existen 56 encabezados de historia incluyendo ese registro. Antes de agregar FE-DSH-002..005 había 51 historias activas (34 Completed, 4 In Progress, 12 Planned, 1 Blocked); los resúmenes anteriores estaban desactualizados. Se preservan los seis cierres de Pricing/Confirm Booking mergeados en PR #67; no se cambia ningún estado ajeno a Dashboard ni el total backend 53/53.
+Recuento por estados reales: 35 + 3 + 16 + 1 = 55. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye de este total para no duplicar trabajo; existen 56 encabezados de historia incluyendo ese registro. Se preservan los cierres funcionales mergeados; no se cambia el total backend 53/53.
 
 ---
 
@@ -1672,7 +1672,15 @@ Cuando backend quede definido, reemplazar esta historia por historias reales de:
 
 ## FE-DSH-001 — Business Dashboard
 
-Estado: In Progress
+Estado: Completed
+
+Definition of Done y evidencia:
+
+- PR #68; feature HEAD `17739d13b98d3b4b2adef8ec7f97f9c2289ff161`; merge `a220af5c2d02964f5e9ec9347f633ea7da21a3c9`.
+- Backend CI `34708288026` — SUCCESS; 191 tests frontend PASS, lint PASS y build PASS.
+- Self-review frontend documentada por `rolandobarros27`; 0 threads conocidos.
+- Verificación visual en Desktop 1440/1280/1024 y Mobile 390; Docker frontend validado.
+- Datos reales y mocks separados explícitamente; sin cambios backend ni nuevas dependencias productivas.
 
 Contrato backend disponible:
 
