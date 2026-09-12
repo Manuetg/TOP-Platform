@@ -398,6 +398,20 @@ export function BookingDetailPage({
               </Button>
             </>
           )}
+          {booking.status === "PENDING" && (
+            <Button
+              type="button"
+              disabled={cancelMutation.isPending}
+              onClick={() =>
+                navigate(
+                  `/app/bookings/${booking.id}/confirm`,
+                )
+              }
+            >
+              Confirmar reserva
+            </Button>
+          )}
+
 
           {(
             booking.status === "DRAFT" ||

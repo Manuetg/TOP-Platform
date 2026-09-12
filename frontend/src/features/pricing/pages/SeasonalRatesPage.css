@@ -1,0 +1,316 @@
+.seasonal-rates-page {
+  display: flex;
+  width: min(900px, 100%);
+  flex-direction: column;
+  gap: 18px;
+}
+
+.seasonal-rates-back {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 44px;
+  align-items: center;
+  gap: 7px;
+  color: #52676d;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.seasonal-rates-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.seasonal-rates-eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  color: #7a898d;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.seasonal-rates-header h1 {
+  margin: 0;
+  color: #29434a;
+  font-size: clamp(1.55rem, 2.4vw, 2rem);
+}
+
+.seasonal-rates-header p {
+  margin: 6px 0 0;
+  color: #718087;
+  font-size: 0.82rem;
+}
+
+.seasonal-rates-create,
+.seasonal-rates-primary,
+.seasonal-rates-secondary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 15px;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.seasonal-rates-create,
+.seasonal-rates-primary {
+  border: 0;
+  background: #155c4c;
+  color: #ffffff;
+}
+
+.seasonal-rates-secondary {
+  border: 1px solid #d5dfdc;
+  background: #ffffff;
+  color: #53686e;
+}
+
+.seasonal-rates-plan {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.seasonal-rates-plan div {
+  display: flex;
+  min-height: 76px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid #e0e7e5;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.seasonal-rates-plan span {
+  color: #849196;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.seasonal-rates-plan strong {
+  color: #29434a;
+  font-size: 0.84rem;
+}
+
+.seasonal-rates-form {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid #dbe5e2;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.seasonal-rates-form__heading h2 {
+  margin: 0;
+  color: #29434a;
+  font-size: 0.95rem;
+}
+
+.seasonal-rates-form__heading p {
+  margin: 5px 0 0;
+  color: #819095;
+  font-size: 0.74rem;
+}
+
+.seasonal-rates-fields {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.seasonal-rates-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.seasonal-rates-field--wide {
+  grid-column: 1 / -1;
+}
+
+.seasonal-rates-field > span {
+  color: #52666c;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.seasonal-rates-field small {
+  color: #8a979b;
+  font-size: 0.66rem;
+}
+
+.seasonal-rates-field input {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 9px 10px;
+  border: 1px solid #d5dfdc;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #29434a;
+  font: inherit;
+}
+
+.seasonal-rates-field input:focus {
+  border-color: #155c4c;
+  outline: 3px solid rgba(21, 92, 76, 0.1);
+}
+
+.seasonal-rates-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.seasonal-rates-error {
+  padding: 12px 14px;
+  border: 1px solid #e8c6bb;
+  border-radius: 10px;
+  background: #fff5f1;
+  color: #93462f;
+  font-size: 0.77rem;
+}
+
+.seasonal-rates-muted {
+  color: #7d8c90;
+  font-size: 0.78rem;
+}
+
+.seasonal-rates-list {
+  display: grid;
+  gap: 9px;
+}
+
+.seasonal-rate-card {
+  display: grid;
+  grid-template-columns:
+    38px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e0e7e5;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.seasonal-rate-card__icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 10px;
+  background: #edf4f2;
+  color: #155c4c;
+}
+
+.seasonal-rate-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.seasonal-rate-card__header span {
+  color: #8a979b;
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.seasonal-rate-card__header h2 {
+  margin: 3px 0 0;
+  color: #29434a;
+  font-size: 0.88rem;
+}
+
+.seasonal-rate-card__header strong {
+  color: #155c4c;
+  font-size: 0.9rem;
+}
+
+.seasonal-rate-card__body p {
+  margin: 7px 0 0;
+  color: #718087;
+  font-size: 0.72rem;
+}
+
+.seasonal-rates-state {
+  display: flex;
+  min-height: 180px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 7px;
+  padding: 24px;
+  border: 1px solid #e0e7e5;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #718087;
+  text-align: center;
+}
+
+.seasonal-rates-state h2 {
+  margin: 0;
+  color: #29434a;
+  font-size: 0.92rem;
+}
+
+.seasonal-rates-state p {
+  margin: 0;
+  font-size: 0.76rem;
+}
+
+.seasonal-rates-create:focus-visible,
+.seasonal-rates-primary:focus-visible,
+.seasonal-rates-secondary:focus-visible,
+.seasonal-rates-back:focus-visible {
+  outline: 3px solid rgba(21, 92, 76, 0.16);
+  outline-offset: 3px;
+}
+
+@media (max-width: 680px) {
+  .seasonal-rates-header {
+    flex-direction: column;
+  }
+
+  .seasonal-rates-create {
+    width: 100%;
+  }
+
+  .seasonal-rates-plan,
+  .seasonal-rates-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .seasonal-rates-field--wide {
+    grid-column: auto;
+  }
+
+  .seasonal-rates-form__actions {
+    flex-direction: column-reverse;
+  }
+
+  .seasonal-rates-primary,
+  .seasonal-rates-secondary {
+    width: 100%;
+  }
+
+  .seasonal-rate-card__header {
+    flex-direction: column;
+    gap: 5px;
+  }
+}

@@ -43,7 +43,7 @@ export function LoginPage() {
   const loginErrorMessage = loginMutation.error
     ? loginMutation.error instanceof ApiError
       ? getLoginErrorMessage(loginMutation.error)
-      : "No pudimos conectarnos con el servidor."
+      : "No pudimos iniciar sesión. Intentá nuevamente."
     : null;
 
   return (

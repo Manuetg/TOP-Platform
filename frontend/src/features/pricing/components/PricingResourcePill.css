@@ -1,0 +1,22 @@
+.pricing-resource-pill {
+  display: inline-flex;
+  min-height: 30px;
+  max-width: 100%;
+  align-items: center;
+  padding: 5px 10px;
+  border: 1px solid #dfe8e5;
+  border-radius: 999px;
+  background: #f2f6f5;
+  color: #49635b;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+@media (max-width: 680px) {
+  .pricing-resource-pill {
+    min-height: 32px;
+    padding: 6px 10px;
+    font-size: 0.72rem;
+  }
+}
