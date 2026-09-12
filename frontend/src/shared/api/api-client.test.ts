@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { apiRequest } from "./api-client";
+import { apiRequest, configureUnauthorizedRecovery } from "./api-client";
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  configureUnauthorizedRecovery(null);
 });
 
 describe("apiRequest", () => {
@@ -127,6 +128,42 @@ describe("apiRequest", () => {
       status: 400,
       message: "Invalid request",
     });
+  });
+
+  it("recovers an authenticated 401 once and retries with the new token", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response("", { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const recover = vi.fn().mockResolvedValue("new-token");
+    configureUnauthorizedRecovery({ recover });
+    await expect(apiRequest("/private", { accessToken: "old-token" })).resolves.toEqual({ ok: true });
+    expect(recover).toHaveBeenCalledWith("old-token");
+    expect(new Headers(fetchMock.mock.calls[1][1].headers).get("Authorization")).toBe("Bearer new-token");
+  });
+
+  it("does not recover public 401 or 403 and never retries twice", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: "no" }), { status: 401 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const recover = vi.fn().mockResolvedValue("new-token");
+    configureUnauthorizedRecovery({ recover });
+    await expect(apiRequest("/auth/refresh", { accessToken: "old" })).rejects.toMatchObject({ status: 401 });
+    expect(recover).not.toHaveBeenCalled();
+    await expect(apiRequest("/private", { accessToken: "old" })).rejects.toMatchObject({ status: 401 });
+    expect(recover).toHaveBeenCalledTimes(1);
+  });
+
+  it("shares recovery for concurrent authenticated requests", async () => {
+    let resolveRecovery!: (token: string) => void;
+    const recovery = new Promise<string>((resolve) => { resolveRecovery = resolve; });
+    const fetchMock = vi.fn().mockImplementation((_url: string, init: RequestInit) => init.headers && new Headers(init.headers).get("Authorization") === "Bearer new" ? Promise.resolve(new Response("{}", { status: 200 })) : Promise.resolve(new Response("", { status: 401 })));
+    vi.stubGlobal("fetch", fetchMock);
+    const recover = vi.fn().mockReturnValue(recovery);
+    configureUnauthorizedRecovery({ recover });
+    const requests = [1, 2, 3].map(() => apiRequest("/private", { accessToken: "old" }));
+    await Promise.resolve(); resolveRecovery("new");
+    await expect(Promise.all(requests)).resolves.toEqual([{}, {}, {}]);
+    expect(recover).toHaveBeenCalledTimes(3);
   });
 });
 

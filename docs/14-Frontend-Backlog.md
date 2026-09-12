@@ -43,16 +43,16 @@ Las reglas de negocio continúan siendo responsabilidad del backend y de la docu
 
 # 3. Estado general
 
-Total historias frontend activas: 55
+Total historias frontend activas: 51
 
 Estado actual:
 
-- Completed: 35
+- Completed: 36
 - In Progress: 4
-- Planned: 11
+- Planned: 10
 - Blocked: 1
 
-Recuento por estados reales: 35 + 4 + 11 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye de este total para no duplicar trabajo; existen 52 encabezados de historia incluyendo ese registro.
+Recuento por estados reales: 36 + 4 + 10 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye de este total para no duplicar trabajo; existen 52 encabezados de historia incluyendo ese registro.
 
 ---
 
@@ -480,7 +480,7 @@ Criterios de aceptación:
 
 ## FE-IAM-003 — Session Persistence
 
-Estado: In Progress
+Estado: Completed
 
 Objetivo:
 
@@ -496,7 +496,7 @@ Criterios de aceptación:
 
 ## FE-IAM-004 — Refresh Token Rotation
 
-Estado: Planned
+Estado: In Progress
 
 Objetivo:
 
