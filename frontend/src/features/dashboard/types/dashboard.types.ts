@@ -1,5 +1,11 @@
 export const reservationStatuses = [
-  "DRAFT", "PENDING", "CONFIRMED", "IN_PROGRESS", "COMPLETED", "CANCELLED", "NO_SHOW",
+  "DRAFT",
+  "PENDING",
+  "CONFIRMED",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "CANCELLED",
+  "NO_SHOW",
 ] as const;
 
 export interface DashboardResponse {
@@ -15,7 +21,10 @@ export interface DashboardResponse {
   };
 }
 
-export interface DashboardPeriod { from: string; to: string }
+export interface DashboardPeriod {
+  from: string;
+  to: string;
+}
 export interface DashboardRequest extends DashboardPeriod {
   businessId: string;
   accessToken?: string | null;
