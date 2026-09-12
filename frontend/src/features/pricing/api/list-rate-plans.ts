@@ -1,5 +1,5 @@
 import { apiRequest } from "../../../shared/api/api-client";
-import type { RatePlan } from "../types/rate-plan.types";
+import type { RatePlan } from "../types/pricing.types";
 
 export interface ListRatePlansOptions {
   businessId: string;

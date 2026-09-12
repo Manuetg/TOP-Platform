@@ -6,7 +6,7 @@ import type {
   Resource,
   ResourceImageCover,
 } from "../../resources/types/resource.types";
-import type { RatePlan } from "../../pricing/types/rate-plan.types";
+import type { RatePlan } from "../../pricing/types/pricing.types";
 import { revenueLabel } from "./DashboardMetrics";
 
 export function PanelError({

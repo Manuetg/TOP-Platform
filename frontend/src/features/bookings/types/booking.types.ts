@@ -61,3 +61,13 @@ export interface BookingTimelineResponse {
     hasNextPage: boolean;
   };
 }
+export interface ConfirmBookingPricingItem {
+  resourceId: string;
+  ratePlanId: string;
+  agreedAmountMinor?: number;
+  overrideReason?: string;
+}
+
+export interface ConfirmBookingInput {
+  pricing: ConfirmBookingPricingItem[];
+}

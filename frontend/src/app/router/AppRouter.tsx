@@ -23,7 +23,13 @@ import { BookingListPage } from "../../features/bookings/pages/BookingListPage";
 import { BookingDetailPage } from "../../features/bookings/pages/BookingDetailPage";
 import { CreateBookingPage } from "../../features/bookings/pages/CreateBookingPage";
 import { EditBookingPage } from "../../features/bookings/pages/EditBookingPage";
+import { ConfirmBookingPage } from "../../features/bookings/pages/ConfirmBookingPage";
 import { CreateBlockPage } from "../../features/blocks/pages/CreateBlockPage";
+import { RatePlanListPage } from "../../features/pricing/pages/RatePlanListPage";
+import { CreateRatePlanPage } from "../../features/pricing/pages/CreateRatePlanPage";
+import { EditRatePlanPage } from "../../features/pricing/pages/EditRatePlanPage";
+import { SeasonalRatesPage } from "../../features/pricing/pages/SeasonalRatesPage";
+import { PricePreviewPage } from "../../features/pricing/pages/PricePreviewPage";
 
 const router = createBrowserRouter([
   {
@@ -61,6 +67,10 @@ const router = createBrowserRouter([
       {
         path: "bookings/:bookingId/edit",
         element: <EditBookingPage />,
+      },
+      {
+        path: "bookings/:bookingId/confirm",
+        element: <ConfirmBookingPage />,
       },
       {
         path: "availability",
@@ -104,7 +114,23 @@ const router = createBrowserRouter([
       },
       {
         path: "pricing",
-        element: <AppSectionPage title="Precios" />,
+        element: <RatePlanListPage />,
+      },
+      {
+        path: "pricing/new",
+        element: <CreateRatePlanPage />,
+      },
+      {
+        path: "pricing/:ratePlanId/edit",
+        element: <EditRatePlanPage />,
+      },
+      {
+        path: "pricing/:ratePlanId/seasons",
+        element: <SeasonalRatesPage />,
+      },
+      {
+        path: "pricing/:ratePlanId/preview",
+        element: <PricePreviewPage />,
       },
       {
         path: "payments",

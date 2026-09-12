@@ -47,12 +47,12 @@ Total historias frontend activas: 55
 
 Estado actual:
 
-- Completed: 28
+- Completed: 34
 - In Progress: 4
-- Planned: 22
+- Planned: 16
 - Blocked: 1
 
-Recuento por estados reales: 28 + 4 + 22 + 1 = 55. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye de este total para no duplicar trabajo; existen 56 encabezados de historia incluyendo ese registro. Antes de agregar FE-DSH-002..005 había 51 historias activas (28 Completed, 4 In Progress, 18 Planned, 1 Blocked); los resúmenes anteriores estaban desactualizados. No se cambia ningún estado ajeno a Dashboard ni el total backend 53/53.
+Recuento por estados reales: 34 + 4 + 16 + 1 = 55. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye de este total para no duplicar trabajo; existen 56 encabezados de historia incluyendo ese registro. Antes de agregar FE-DSH-002..005 había 51 historias activas (34 Completed, 4 In Progress, 12 Planned, 1 Blocked); los resúmenes anteriores estaban desactualizados. Se preservan los seis cierres de Pricing/Confirm Booking mergeados en PR #67; no se cambia ningún estado ajeno a Dashboard ni el total backend 53/53.
 
 ---
 
@@ -1235,7 +1235,7 @@ Validación:
 
 ## FE-PRI-001 — Rate Plan List
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1252,7 +1252,7 @@ Contrato backend disponible:
 
 ## FE-PRI-002 — Create Rate Plan
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1262,7 +1262,7 @@ Crear un Rate Plan y asignarlo a Resources.
 
 ## FE-PRI-003 — Edit Rate Plan
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1272,7 +1272,7 @@ Editar información y asignaciones de Rate Plan.
 
 ## FE-PRI-004 — Seasonal Rates
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1282,7 +1282,7 @@ Gestionar tarifas estacionales.
 
 ## FE-PRI-005 — Price Preview
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1296,6 +1296,28 @@ Criterios de aceptación:
 - muestra moneda;
 - muestra breakdown si está disponible;
 - frontend nunca calcula el precio definitivo.
+
+
+### Cierre Pricing MVP
+
+Estado: Completed
+
+Pricing MVP cerrado en frontend con:
+
+- catálogo de Rate Plans por Business;
+- búsqueda y filtro por estado;
+- creación y edición de Rate Plans;
+- asignación múltiple de alojamientos sin exponer códigos internos;
+- Seasonal Rates con validación de vigencia y solapamiento;
+- cálculo de precio por alojamiento y estadía;
+- desglose nocturno BASE / SEASONAL;
+- selección contextual de Rate Plans para Booking;
+- responsive desktop/mobile;
+- Story Deck mobile consistente con Resources;
+- cards de tamaño uniforme en desktop y mobile;
+- estados loading, error y empty;
+- copy de UI sin referencias técnicas innecesarias al backend;
+- build, lint y pruebas del frontend validados.
 
 ---
 
@@ -1427,7 +1449,7 @@ Implementado:
 
 ## FE-BKG-006 — Confirm Booking
 
-Estado: Planned
+Estado: Completed
 
 Objetivo:
 
@@ -1851,10 +1873,10 @@ Si frontend necesita un cambio backend:
 | Subscription | 0 | 0 | 1 | 0 |
 | Contact | 4 | 0 | 0 | 0 |
 | Availability | 2 | 0 | 0 | 0 |
-| Pricing | 0 | 0 | 5 | 0 |
-| Booking | 7 | 0 | 1 | 0 |
+| Pricing | 5 | 0 | 0 | 0 |
+| Booking | 8 | 0 | 0 | 0 |
 | Block | 3 | 0 | 0 | 0 |
 | Payment | 0 | 0 | 0 | 1 |
 | Dashboard | 0 | 1 | 4 | 0 |
-| **TOTAL** | **28** | **4** | **22** | **1** |
+| **TOTAL** | **34** | **4** | **16** | **1** |
 

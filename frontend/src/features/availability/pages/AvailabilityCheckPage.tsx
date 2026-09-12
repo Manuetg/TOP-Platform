@@ -180,10 +180,6 @@ export function AvailabilityCheckPage() {
 
             <div>
               <h2>Nueva consulta</h2>
-              <p>
-                El backend determina el estado final de
-                disponibilidad.
-              </p>
             </div>
           </div>
 

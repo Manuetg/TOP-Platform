@@ -6,7 +6,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { Resource } from "../../resources/types/resource.types";
-import type { RatePlan } from "../../pricing/types/rate-plan.types";
+import type { RatePlan } from "../../pricing/types/pricing.types";
 import type { DashboardResponse } from "../types/dashboard.types";
 import { revenueLabel } from "./DashboardMetrics";
 import { PreviewLabel } from "./DashboardPreviewPanels";
