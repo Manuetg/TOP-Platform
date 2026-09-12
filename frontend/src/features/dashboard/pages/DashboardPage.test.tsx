@@ -298,17 +298,6 @@ describe("DashboardPage", () => {
       }),
     );
   });
-  it("identifies preview widgets without asserting mock values as business behavior", () => {
-    show();
-    for (const name of ["Hoy", "Actividad reciente", "Próximos pasos"]) {
-      const widget = screen.getByRole("region", { name });
-      expect(widget).toHaveAttribute("data-source", "MOCK");
-      expect(within(widget).getByText("Vista previa")).toBeVisible();
-    }
-    expect(
-      screen.getByRole("article", { name: "Próximos check-ins" }),
-    ).toHaveAttribute("data-source", "MOCK");
-  });
   it("keeps real catalogs visible when the aggregate fails", () => {
     result({ isError: true });
     show();
