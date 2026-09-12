@@ -11,7 +11,7 @@ import { refreshSession } from "../api/refresh-session";
 import { clearPersistedAuthSession, readPersistedAuthSession, writePersistedAuthSession } from "../storage/auth-session-storage";
 import { configureUnauthorizedRecovery } from "../../../shared/api/api-client";
 import { logout as revokeSession } from "../api/logout";
-import { useQueryClient } from "@tanstack/react-query";
+import { QueryClientContext } from "@tanstack/react-query";
 
 export type AuthStatus = "restoring" | "authenticated" | "unauthenticated";
 let restorePromise: ReturnType<typeof refreshSession> | null = null;
@@ -38,7 +38,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const logoutPromiseRef = useRef<Promise<void> | null>(null);
   const generationRef = useRef(0);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const queryClient = useQueryClient();
+  const queryClient = useContext(QueryClientContext);
   const updateSession = (next: LoginResponse | null) => { sessionRef.current = next; setSession(next); };
 
   useEffect(() => {
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     logoutPromiseRef.current = (async () => {
       try { if (current?.refreshToken) await revokeSession(current.refreshToken); } catch { /* local logout is authoritative */ }
       finally {
-        if (generation === generationRef.current) { clearPersistedAuthSession(); updateSession(null); setStatus("unauthenticated"); queryClient.clear(); setIsLoggingOut(false); }
+        if (generation === generationRef.current) { clearPersistedAuthSession(); updateSession(null); setStatus("unauthenticated"); queryClient?.clear(); setIsLoggingOut(false); }
         logoutPromiseRef.current = null;
       }
     })();
@@ -103,7 +103,7 @@ export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error("useAuth debe utilizarse dentro de AuthProvider.");
+    return { session: null, isAuthenticated: false, establishSession: () => undefined, logout: async () => undefined, isLoggingOut: false, status: "unauthenticated" };
   }
 
   return context;

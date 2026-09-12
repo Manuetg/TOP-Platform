@@ -12,6 +12,7 @@ import {
 } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { PricingResourcePill } from "../components/PricingResourcePill";
 import { useRatePlans } from "../queries/use-rate-plans";
 import type {
@@ -24,8 +25,6 @@ interface RatePlanListPageProps {
   businessId?: string;
 }
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 const STATUS_LABELS: Record<
   RatePlanStatus,
@@ -91,9 +90,11 @@ function matchesSearch(
 }
 
 export function RatePlanListPage({
-  businessId = TEMP_BUSINESS_ID,
+  businessId: suppliedBusinessId,
 }: RatePlanListPageProps) {
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
+  const businessId = suppliedBusinessId ?? activeBusinessId;
 
   const [search, setSearch] =
     useState("");

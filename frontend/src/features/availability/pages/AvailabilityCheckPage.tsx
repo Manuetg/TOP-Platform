@@ -11,14 +11,13 @@ import {
 } from "react";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useResources } from "../../resources/queries/use-resources";
 import { AvailabilityNav } from "../components/AvailabilityNav";
 import { useAvailabilityCheck } from "../queries/use-availability-check";
 import type { AvailabilityReason } from "../types/availability.types";
 import "./AvailabilityCheckPage.css";
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 const REASON_LABELS: Record<
   AvailabilityReason,
@@ -61,6 +60,7 @@ function addDays(date: string, days: number) {
 
 export function AvailabilityCheckPage() {
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
 
   const [resourceId, setResourceId] =
     useState("");
@@ -82,7 +82,7 @@ export function AvailabilityCheckPage() {
     isLoading: resourcesLoading,
     isError: resourcesError,
   } = useResources({
-    businessId: TEMP_BUSINESS_ID,
+    businessId: activeBusinessId,
     accessToken: session?.accessToken,
   });
 
@@ -102,7 +102,7 @@ export function AvailabilityCheckPage() {
     isError,
     error,
   } = useAvailabilityCheck({
-    businessId: TEMP_BUSINESS_ID,
+    businessId: activeBusinessId,
     resourceId,
     from,
     to,

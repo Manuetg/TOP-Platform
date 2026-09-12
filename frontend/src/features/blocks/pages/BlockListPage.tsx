@@ -15,6 +15,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useResources } from "../../resources/queries/use-resources";
 import { useBlocks } from "../queries/use-blocks";
 import { useCancelBlock } from "../queries/use-cancel-block";
@@ -29,8 +30,6 @@ interface BlockListPageProps {
   businessId?: string;
 }
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 const ALL = "ALL";
 
@@ -234,10 +233,12 @@ function BlockCard({
 }
 
 export function BlockListPage({
-  businessId = TEMP_BUSINESS_ID,
+  businessId: suppliedBusinessId,
 }: BlockListPageProps) {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
+  const businessId = suppliedBusinessId ?? activeBusinessId;
 
   const [resourceId, setResourceId] = useState("");
   const [from, setFrom] = useState("");

@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import {
   BookingDraftForm,
   type BookingDraftFormInitialValues,
@@ -21,15 +22,15 @@ interface EditBookingPageProps {
   businessId?: string;
 }
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 export function EditBookingPage({
-  businessId = TEMP_BUSINESS_ID,
+  businessId: suppliedBusinessId,
 }: EditBookingPageProps) {
   const navigate = useNavigate();
   const { bookingId = "" } = useParams();
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
+  const businessId = suppliedBusinessId ?? activeBusinessId;
 
   const {
     data: booking,

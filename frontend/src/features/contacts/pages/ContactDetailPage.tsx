@@ -9,12 +9,11 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useContact } from "../queries/use-contact";
 import type { ContactStatus } from "../types/contact.types";
 import "./ContactDetailPage.css";
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 function getStatusLabel(status: ContactStatus) {
   switch (status) {
@@ -62,6 +61,7 @@ export function ContactDetailPage() {
   const navigate = useNavigate();
   const { contactId = "" } = useParams();
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
 
   const {
     data: contact,
@@ -70,7 +70,7 @@ export function ContactDetailPage() {
     error,
     refetch,
   } = useContact({
-    businessId: TEMP_BUSINESS_ID,
+    businessId: activeBusinessId,
     contactId,
     accessToken: session?.accessToken,
   });

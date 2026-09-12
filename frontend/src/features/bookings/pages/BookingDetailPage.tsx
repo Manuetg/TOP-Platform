@@ -20,6 +20,7 @@ import {
 } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useContacts } from "../../contacts/queries/use-contacts";
 import { useResources } from "../../resources/queries/use-resources";
 import { useBooking } from "../queries/use-booking";
@@ -33,8 +34,6 @@ interface BookingDetailPageProps {
   businessId?: string;
 }
 
-const TEMP_BUSINESS_ID =
-  import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 const STATUS_LABELS: Record<
   BookingStatus,
@@ -107,11 +106,13 @@ function formatGuestCount(
 }
 
 export function BookingDetailPage({
-  businessId = TEMP_BUSINESS_ID,
+  businessId: suppliedBusinessId,
 }: BookingDetailPageProps) {
   const navigate = useNavigate();
   const { bookingId = "" } = useParams();
   const { session } = useAuth();
+  const { activeBusinessId } = useBusinessContext();
+  const businessId = suppliedBusinessId ?? activeBusinessId;
 
   const {
     data: booking,
