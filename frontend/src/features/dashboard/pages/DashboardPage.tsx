@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AlertCircle, CalendarDays, Plus, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useBusinessContext } from "../../business/context/BusinessContext";
 import { Button } from "../../../shared/ui/Button";
 import { ApiError } from "../../../shared/api/api-client";
 import { useResources } from "../../resources/queries/use-resources";
@@ -21,14 +22,15 @@ import {
 } from "../components/DashboardCatalogs";
 import "./DashboardPage.css";
 
-const TEMP_BUSINESS_ID = import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
 
 export function DashboardPage({
-  businessId = TEMP_BUSINESS_ID,
+  businessId,
 }: {
   businessId?: string;
 }) {
   const { session } = useAuth();
+  const businessContext = useBusinessContext();
+  businessId = businessId ?? businessContext.activeBusinessId;
   const [period, setPeriod] = useState(initialDashboardPeriod);
   // Reutilizar las queries de catálogo sin requests anónimos cuando falta sesión.
   const catalogInput = {

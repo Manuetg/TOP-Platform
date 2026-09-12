@@ -5,6 +5,7 @@ import {
   type AppSection,
 } from "./AppShell";
 import { useAuth } from "../../features/auth/context/AuthContext";
+import { useBusinessContext } from "../../features/business/context/BusinessContext";
 
 const sectionPaths: Record<AppSection, string> = {
   home: "/app",
@@ -40,6 +41,7 @@ export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, isLoggingOut } = useAuth();
+  const { activeBusiness, activeRole } = useBusinessContext();
 
   const activeSection = getActiveSection(location.pathname);
 
@@ -54,9 +56,9 @@ export function AppLayout() {
   return (
     <AppShell
       activeSection={activeSection}
-      businessName="Negocio"
-      userName="Usuario"
-      userRole="Rol"
+      businessName={activeBusiness?.name ?? (activeBusiness ? activeBusiness.name : "Seleccioná un negocio")}
+      userName={useAuth().session?.user.email ?? "Usuario"}
+      userRole={activeRole ?? "Rol"}
       onNavigate={handleNavigate}
       onLogout={() => { void logout().finally(() => navigate("/login", { replace: true })); }}
       isLoggingOut={isLoggingOut}

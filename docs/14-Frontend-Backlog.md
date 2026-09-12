@@ -47,9 +47,7 @@ Total historias frontend activas: 51
 
 Estado actual:
 
-- Completed: 37
-- In Progress: 4
-- Planned: 9
+- Completed: 39`r`n- In Progress: 4`r`n- Planned: 7
 - Blocked: 1
 
 Recuento por estados reales: 36 + 4 + 10 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye de este total para no duplicar trabajo; existen 52 encabezados de historia incluyendo ese registro.
@@ -556,7 +554,7 @@ Criterios de aceptación:
 
 ## FE-BUS-001 — Active Business Context
 
-Estado: Planned
+Estado: In Progress
 
 Objetivo:
 
@@ -1855,5 +1853,6 @@ Si frontend necesita un cambio backend:
 | Payment | 0 | 0 | 0 | 1 |
 | Dashboard | 1 | 0 | 0 | 0 |
 | **TOTAL** | **35** | **4** | **11** | **1** |
+
 
 
