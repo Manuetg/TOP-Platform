@@ -1644,19 +1644,26 @@ Cuando backend quede definido, reemplazar esta historia por historias reales de:
 
 # 14. FE-DSH — Dashboard
 
-## FE-DSH-000 — Dashboard UI Discovery
+## FE-DSH-001 — Business Dashboard
 
-Estado: Blocked
+Estado: In Progress
 
-Bloqueado por:
+Contrato backend disponible:
 
-- Backend Dashboard pendiente.
+- `GET /api/businesses/:businessId/dashboard?from=YYYY-MM-DD&to=YYYY-MM-DD`.
+- `dashboard.read`; autorización y aislamiento por Business a cargo del backend.
+- Respuesta: `occupancy`, `revenue`, `reservations`; backend MVP conserva 53/53 — 100%.
 
 Objetivo:
 
-No inventar contratos ni KPIs desde frontend.
+- Reemplazar el placeholder de `/app` por un resumen con datos reales, tres KPI, ocupación radial y distribución de los siete estados de reservas.
+- Fechas obligatorias, `[from,to)`, máximo 31 días; editar no dispara requests hasta Aplicar. Ventana inicial de siete días basada en fechas locales del navegador, interpretadas por backend en la timezone del Business.
+- Estados de carga, error con reintento, vacío, ocupación nula y validación; diseño responsive con tokens y App Shell existentes.
+- `apiRequest`, sesión vigente y query cache por Business/período; Business temporal vía `VITE_DEV_BUSINESS_ID`, sin implementar FE-BUS-001.
+- Referencia visual: imagen adjunta aprobada como alternativa por el usuario ante el límite de acceso de Figma. No se afirma fidelidad verificada al archivo Figma.
+- No agrega datos ficticios, tendencias, tablas de recursos/precios ni módulos laterales no aprobados. Las propuestas futuras quedan registradas en el Roadmap.
 
-Cuando backend exponga DSH-001..DSH-004, reemplazar por historias reales.
+No modifica backend ni completa automáticamente historias frontend relacionadas. Mutation diferida al quality gate preproducción.
 
 ---
 
@@ -1807,6 +1814,6 @@ Si frontend necesita un cambio backend:
 | Booking | 0 | 0 | 7 | 1 |
 | Block | 0 | 0 | 3 | 0 |
 | Payment | 0 | 0 | 0 | 1 |
-| Dashboard | 0 | 0 | 0 | 1 |
-| **TOTAL** | **1** | **4** | **37** | **3** |
+| Dashboard | 0 | 1 | 0 | 0 |
+| **TOTAL** | **1** | **5** | **37** | **2** |
 

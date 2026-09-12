@@ -30,3 +30,9 @@ La siguiente secuencia conserva la referencia usada para estructurar el backlog 
 10. Dashboard.
 
 No se establecen fechas ni alcance adicional en este documento. Las ideas futuras deben registrarse aquí solo cuando cuenten con aprobación explícita.
+
+## Propuestas para evaluar después de FE-DSH-001
+
+Por solicitud del usuario, se conservan como propuestas pendientes de discovery los módulos de la referencia visual que no forman parte del contrato Dashboard actual: próximos check-ins, resumen de llegadas/salidas del día, actividad reciente, próximos pasos y comparaciones con períodos anteriores. No se implementan con datos ficticios ni implican una nueva capacidad backend aprobada. Antes de implementarlos se deben definir semántica, fuente, endpoint, autorización y alcance; no se presupone que otros listados resuelvan esos agregados.
+
+Los previews de Recursos y Precios también quedan fuera de este slice: existen contratos de listado, pero su incorporación al Home requiere definir qué resumen aporta valor y cuánto dato cargar. FE-DSH-001 consume únicamente el Dashboard agregado. Estas propuestas no alteran el total backend de 53 ni el estado de FE-FND-006.
