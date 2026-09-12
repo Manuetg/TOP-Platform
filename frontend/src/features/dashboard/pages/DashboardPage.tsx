@@ -19,11 +19,6 @@ import {
   PricingPreview,
   ResourcesPreview,
 } from "../components/DashboardCatalogs";
-import {
-  ActivityPreview,
-  NextStepsPreview,
-  TodayPreview,
-} from "../components/DashboardPreviewPanels";
 import "./DashboardPage.css";
 
 const TEMP_BUSINESS_ID = import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
@@ -126,7 +121,6 @@ export function DashboardPage({
             planState={planState}
             dashboardState={dashboardState}
           />
-          <TodayPreview />
           <ResourcesPreview
             resources={resources.data}
             covers={covers.data}
@@ -140,8 +134,6 @@ export function DashboardPage({
             error={planState.error}
             onRetry={() => void plans.refetch()}
           />
-          <ActivityPreview />
-          <NextStepsPreview />
           <section
             className="dashboard-secondary"
             aria-label="Ocupación y reservas del período"

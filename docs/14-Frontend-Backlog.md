@@ -48,11 +48,11 @@ Total historias frontend activas: 55
 Estado actual:
 
 - Completed: 35
-- In Progress: 3
-- Planned: 16
+- In Progress: 4
+- Planned: 11
 - Blocked: 1
 
-Recuento por estados reales: 35 + 3 + 16 + 1 = 55. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye de este total para no duplicar trabajo; existen 56 encabezados de historia incluyendo ese registro. Se preservan los cierres funcionales mergeados; no se cambia el total backend 53/53.
+Recuento por estados reales: 35 + 4 + 11 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye de este total para no duplicar trabajo; existen 52 encabezados de historia incluyendo ese registro.
 
 ---
 
@@ -252,7 +252,7 @@ Criterios de aceptación:
 - contenido contextual reutilizable;
 - no mezcla responsabilidades con la navegación principal.
 
-FE-DSH-001 implementa una primera composición local del rail en Dashboard basada en la referencia visual. Esta historia conserva el alcance transversal de Foundation y no se duplica. FE-DSH-004 y FE-DSH-005 cubren únicamente la conexión de su contenido con fuentes reales.
+FE-DSH-001 implementa la composición visual del Dashboard; el alcance transversal del rail permanece en Foundation.
 
 ---
 
@@ -480,7 +480,7 @@ Criterios de aceptación:
 
 ## FE-IAM-003 — Session Persistence
 
-Estado: Planned
+Estado: In Progress
 
 Objetivo:
 
@@ -1690,50 +1690,18 @@ Contrato backend disponible:
 
 Objetivo:
 
-- Reemplazar el placeholder de `/app` por cuatro tarjetas compactas, tablas reales de Recursos/Precios y rail con previews operacionales. Preservar ocupación radial y distribución de los siete estados de reservas debajo de las tablas.
+- Reemplazar el placeholder de `/app` por tres tarjetas con datos reales, tablas reales de Recursos/Precios y ocupación radial con distribución de los siete estados de reservas. Los previews sin contrato backend fueron retirados del MVP.
 - Fechas obligatorias, `[from,to)`, máximo 31 días; editar no dispara requests hasta Aplicar. Ventana inicial de siete días basada en fechas locales del navegador, interpretadas por backend en la timezone del Business.
 - Estados de carga, error con reintento, vacío, ocupación nula y validación; diseño responsive con tokens y App Shell existentes.
 - `apiRequest`, sesión vigente y query cache por Business/período; Business temporal vía `VITE_DEV_BUSINESS_ID`, sin implementar FE-BUS-001.
 - Referencia visual única: imagen adjunta. Figma queda descartado por decisión explícita del usuario.
 - Fuentes REAL: Recursos activos y tabla mediante `GET /businesses/:businessId/resources`; portadas mediante `GET /businesses/:businessId/resources/images/covers`; Tarifas activas y tabla mediante `GET /businesses/:businessId/rate-plans`; Ingresos, Ocupación y Reservas mediante Dashboard. No se agregan requests por fila ni se infiere la tarifa o el tipo de Resource.
-- Fuentes MOCK: próximos check-ins (FE-DSH-002), Hoy (FE-DSH-003), actividad reciente (FE-DSH-004) y próximos pasos (FE-DSH-005). Aislados en `dashboard/mocks/dashboard-preview.mock.ts`, con `source: MOCK`, historia asociada y etiqueta visible «Vista previa». No reemplazan respuestas reales vacías ni se usan para decisiones de negocio.
+- Los widgets sin contrato backend aprobado fueron retirados del MVP; el Dashboard muestra únicamente datos reales.
 - Cada fuente real tiene loading, vacío y error/reintento independiente. No se incorporan comparaciones históricas, nuevos endpoints ni nuevos permisos. La card informativa de hospitalidad es contenido estático, sin upselling.
 
 No modifica backend ni completa automáticamente historias frontend relacionadas. Mutation diferida al quality gate preproducción.
 
 ---
-
-## FE-DSH-002 — Upcoming Check-ins
-
-Estado: Planned
-
-Objetivo: reemplazar el mock de próximos check-ins del Dashboard por una proyección backend tenant-scoped. Actualmente MOCK en Dashboard.
-
-Dependencias: definición de ventana temporal, estados válidos de Booking y timezone del Business. El listado actual de Bookings no expone filtros de fechas adecuados para este agregado; no se descargará para reconstruirlo desde frontend. El contrato final requiere discovery backend.
-
-## FE-DSH-003 — Today Operations Summary
-
-Estado: Planned
-
-Objetivo: reemplazar el panel Hoy (llegadas, salidas y reservas relevantes) por datos reales. Actualmente MOCK en Dashboard.
-
-Dependencias: nuevo contrato backend agregado y definición comercial de «hoy» y «reservas relevantes» según timezone del Business. No se simula con consultas por día/entidad ni se define aquí el endpoint definitivo.
-
-## FE-DSH-004 — Recent Activity Feed
-
-Estado: Planned
-
-Objetivo: reemplazar el feed ilustrativo por actividad unificada del Business. Actualmente MOCK en Dashboard.
-
-Dependencia: backend agregado que defina eventos, orden, autorización y paginación. Booking Timeline es por Booking y no sustituye este contrato. Frontend no combina Payments, Resources y Bookings para fabricarlo. Reutiliza el rail contemplado en FE-FND-006.
-
-## FE-DSH-005 — Business Next Steps
-
-Estado: Planned
-
-Objetivo: reemplazar el checklist ilustrativo por próximos pasos contextuales del Business. Actualmente MOCK en Dashboard.
-
-Dependencias: definición de producto, fuente de estado y criterios backend. No inferir onboarding leyendo múltiples entidades desde frontend. Esta historia es únicamente la fuente real del contenido; no duplica FE-FND-006 — Desktop Context Rail.
 
 ---
 
@@ -1875,7 +1843,7 @@ Si frontend necesita un cambio backend:
 | Épica | Completed | In Progress | Planned | Blocked |
 |---|---:|---:|---:|---:|
 | Foundation | 4 | 2 | 4 | 0 |
-| IAM | 1 | 1 | 4 | 0 |
+| IAM | 1 | 2 | 3 | 0 |
 | Business | 0 | 0 | 3 | 0 |
 | Resource | 7 | 0 | 0 | 0 |
 | Subscription | 0 | 0 | 1 | 0 |
@@ -1885,6 +1853,6 @@ Si frontend necesita un cambio backend:
 | Booking | 8 | 0 | 0 | 0 |
 | Block | 3 | 0 | 0 | 0 |
 | Payment | 0 | 0 | 0 | 1 |
-| Dashboard | 0 | 1 | 4 | 0 |
-| **TOTAL** | **34** | **4** | **16** | **1** |
+| Dashboard | 1 | 0 | 0 | 0 |
+| **TOTAL** | **35** | **4** | **11** | **1** |
 

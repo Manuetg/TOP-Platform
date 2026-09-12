@@ -1,5 +1,4 @@
 import {
-  CalendarDays,
   House,
   Tags,
   WalletCards,
@@ -9,8 +8,6 @@ import type { Resource } from "../../resources/types/resource.types";
 import type { RatePlan } from "../../pricing/types/pricing.types";
 import type { DashboardResponse } from "../types/dashboard.types";
 import { revenueLabel } from "./DashboardMetrics";
-import { PreviewLabel } from "./DashboardPreviewPanels";
-import { dashboardPreviewMock } from "../mocks/dashboard-preview.mock";
 
 interface MetricState {
   loading: boolean;
@@ -24,20 +21,18 @@ function OverviewCard({
   tone,
   loading,
   error,
-  preview = false,
 }: {
   title: string;
   value: string;
   detail: string;
   icon: LucideIcon;
   tone: string;
-  preview?: boolean;
 } & MetricState) {
   return (
     <article
       className={`dashboard-card dashboard-overview-card dashboard-overview-card--${tone}`}
       aria-label={title}
-      data-source={preview ? "MOCK" : "REAL"}
+      data-source="REAL"
     >
       <span className="dashboard-overview-card__icon">
         <Icon size={23} strokeWidth={1.65} aria-hidden="true" />
@@ -56,7 +51,6 @@ function OverviewCard({
           <strong>{value}</strong>
         )}
         {!error && !loading && <p>{detail}</p>}
-        {preview && <PreviewLabel />}
       </div>
     </article>
   );
@@ -77,7 +71,6 @@ export function DashboardOverviewCards({
   planState: MetricState;
   dashboardState: MetricState;
 }) {
-  const mockUpcoming = dashboardPreviewMock.upcomingCheckIns;
   return (
     <div className="dashboard-overview">
       <OverviewCard
@@ -100,16 +93,6 @@ export function DashboardOverviewCards({
         icon={Tags}
         tone="pricing"
         {...planState}
-      />
-      <OverviewCard
-        title="Próximos check-ins"
-        value={String(mockUpcoming.count)}
-        detail={mockUpcoming.period}
-        icon={CalendarDays}
-        tone="arrivals"
-        preview
-        loading={false}
-        error={false}
       />
       <OverviewCard
         title="Ingresos del período"
