@@ -271,4 +271,22 @@ describe("AppShell", () => {
 
     expect(onNavigate).toHaveBeenCalledWith("settings");
   });
+
+  it("runs logout from the accessible profile action", async () => {
+    const user = userEvent.setup();
+    const onLogout = vi.fn();
+
+    render(<AppShell activeSection="home" businessName="Tobera" userName="Jeni" userRole="Propietaria" onLogout={onLogout}><div /></AppShell>);
+    await user.click(screen.getAllByRole("button", { name: "Abrir perfil" })[0]);
+    await user.click(screen.getByRole("button", { name: "Cerrar sesión" }));
+
+    expect(onLogout).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables logout while it is running", async () => {
+    const user = userEvent.setup();
+    render(<AppShell activeSection="home" businessName="Tobera" userName="Jeni" userRole="Propietaria" isLoggingOut><div /></AppShell>);
+    await user.click(screen.getAllByRole("button", { name: "Abrir perfil" })[0]);
+    expect(screen.getByRole("button", { name: "Cerrando sesión..." })).toBeDisabled();
+  });
 });
