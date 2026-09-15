@@ -65,12 +65,12 @@ Estado:
 - Dashboard Business implementado y mergeado en `/app`.
 - FE-DSH-001 — Completed.
 - FE-BUS-001 — In Review; las siete features tenant-scoped consumen Active Business Context y el ciclo de vida está cubierto por tests.
-- 36/51 historias frontend activas Completed; 5 In Progress, 9 Planned y 1 Blocked.
+- 38/51 historias frontend activas Completed; 5 In Progress, 7 Planned y 1 Blocked.
 - Resources y Rate Plans usan contratos reales; Revenue, Occupancy y Reservations usan el Dashboard backend real.
 - Los widgets Dashboard sin contrato backend aprobado fueron retirados del MVP; no se muestran datos ficticios.
 - FE-IAM-003 — Session Persistence y FE-IAM-004 — Refresh Token Rotation están Completed; FE-IAM-005 y FE-IAM-006 mantienen validación manual pendiente.
 - FE-IAM-003 fue validada con F5, `sessionStorage`, refresh rotatorio y reanudación del Dashboard.
-- La quality gate frontend usa Node 22: 58 archivos y 217 tests PASS; build PASS. `oxlint src` PASS; el escaneo amplio de `npm run lint` reporta errores en dependencias generadas.
+- La quality gate frontend usa Node 22: 58 archivos y 217 tests PASS; `npm run lint` PASS con alcance explícito a `src`, `tests` y `vite.config.ts`; build PASS.
 - Los widgets Dashboard sin contrato backend fueron retirados del MVP; no hay mocks operativos visibles.
 
 Siguiente objetivo: continuar con las historias frontend Planned restantes. El frontend MVP no se declara completo.
