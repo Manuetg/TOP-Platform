@@ -273,7 +273,7 @@ model RatePlan {
   businessId             String
   name                   String
   description            String?
-  baseNightlyAmountMinor Int
+  baseNightlyAmountMinor BigInt
   status                 RatePlanStatus     @default(ACTIVE)
   validFrom              DateTime?          @db.Date
   validTo                DateTime?          @db.Date
@@ -291,7 +291,7 @@ model SeasonalRate {
   id          String   @id @default(uuid())
   ratePlanId  String
   name        String
-  amountMinor Int
+  amountMinor BigInt
   startDate   DateTime @db.Date
   endDate     DateTime @db.Date
   createdAt   DateTime @default(now())
@@ -364,7 +364,7 @@ model Payment {
   id String @id @default(uuid())
   businessId String
   bookingId String
-  amountMinor Int
+  amountMinor BigInt
   currency String
   method PaymentMethod
   reference String?
@@ -387,7 +387,7 @@ model PaymentPlan {
   businessId         String
   bookingId          String                   @unique
   currency           String
-  totalAmountMinor   Int
+  totalAmountMinor   BigInt
   createdByUserId    String
   updatedByUserId    String
   createdAt          DateTime                 @default(now())
@@ -403,7 +403,7 @@ model PaymentPlan {
 model PaymentPlanInstallment {
   id            String               @id @default(uuid())
   paymentPlanId String
-  amountMinor   Int
+  amountMinor   BigInt
   dueDate       DateTime?             @db.Date
   sortOrder     Int
   paymentPlan   PaymentPlan           @relation(fields: [paymentPlanId], references: [id], onDelete: Cascade)
@@ -416,7 +416,7 @@ model PaymentPlanInstallment {
 model PaymentApplication {
   paymentId    String
   installmentId String
-  amountMinor  Int
+  amountMinor  BigInt
   createdAt    DateTime               @default(now())
   payment      Payment                @relation(fields: [paymentId], references: [id], onDelete: Restrict)
   installment  PaymentPlanInstallment @relation(fields: [installmentId], references: [id], onDelete: Restrict)
@@ -455,7 +455,7 @@ model PricingSnapshot {
   businessId       String
   bookingId        String   @unique
   currency         String
-  totalAmountMinor Int
+  totalAmountMinor BigInt
   items            Json
   createdAt        DateTime @default(now())
 

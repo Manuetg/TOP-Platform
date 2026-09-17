@@ -84,7 +84,7 @@ describe('PrismaBookingConfirmationTransaction', () => {
         businessId,
         bookingId,
         currency: 'PYG',
-        totalAmountMinor: 300000,
+        totalAmountMinor: 300000n,
         items: [{ resourceId: firstResourceId }],
       },
     });
@@ -125,7 +125,7 @@ describe('PrismaBookingConfirmationTransaction', () => {
     updateMany.mockResolvedValueOnce({ count: 0 });
 
     await expect(repository.confirm(input())).rejects.toThrow(
-      'La reserva cambió de estado durante la confirmación.',
+      'La reserva cambi\u00f3 de estado durante la confirmaci\u00f3n.',
     );
   });
 });

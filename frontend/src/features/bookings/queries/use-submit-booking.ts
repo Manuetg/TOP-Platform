@@ -39,6 +39,13 @@ export function useSubmitBooking({
             bookingId,
           ],
         }),
+        queryClient.invalidateQueries({
+          queryKey: [
+            "booking-timeline",
+            businessId,
+            bookingId,
+          ],
+        }),
       ]);
     },
   });

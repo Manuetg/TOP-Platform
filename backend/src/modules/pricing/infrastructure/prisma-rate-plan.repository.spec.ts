@@ -31,14 +31,14 @@ describe('PrismaRatePlanRepository', () => {
   it('creates atomically with exact data and maps the public entity', async () => {
     const result = await repository.create(data);
     expect(create).toHaveBeenCalledWith({
-      data: { businessId: data.businessId, name: data.name, description: null, baseNightlyAmountMinor: data.baseNightlyAmountMinor, validFrom: new Date('2026-08-01T00:00:00.000Z'), validTo: null, resources: { createMany: { data: [{ resourceId: row.resources[0].resource.id }] } } }, include,
+      data: { businessId: data.businessId, name: data.name, description: null, baseNightlyAmountMinor: BigInt(data.baseNightlyAmountMinor), validFrom: new Date('2026-08-01T00:00:00.000Z'), validTo: null, resources: { createMany: { data: [{ resourceId: row.resources[0].resource.id }] } } }, include,
     });
     expect(result).toMatchObject({ id: row.id, currency: 'PYG', status: RatePlanStatus.ACTIVE, validFrom: '2026-08-01', resources: [{ id: row.resources[0].resource.id, internalCode: 'CAB-1' }] });
   });
 
   it('updates without replacing relations when resourceIds is undefined', async () => {
     await repository.update({ id: row.id, ...data, resourceIds: undefined });
-    expect(update).toHaveBeenCalledWith({ where: { id: row.id }, data: { name: data.name, description: null, baseNightlyAmountMinor: 450000, validFrom: new Date('2026-08-01T00:00:00.000Z'), validTo: null } });
+    expect(update).toHaveBeenCalledWith({ where: { id: row.id }, data: { name: data.name, description: null, baseNightlyAmountMinor: 450000n, validFrom: new Date('2026-08-01T00:00:00.000Z'), validTo: null } });
     expect(deleteMany).not.toHaveBeenCalled(); expect(createMany).not.toHaveBeenCalled();
     expect(findUniqueOrThrow).toHaveBeenCalledWith({ where: { id: row.id }, include });
   });

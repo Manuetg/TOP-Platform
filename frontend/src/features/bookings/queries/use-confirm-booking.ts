@@ -32,7 +32,7 @@ export function useConfirmBooking({
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: [
-            "booking",
+            "bookings",
             businessId,
             bookingId,
           ],

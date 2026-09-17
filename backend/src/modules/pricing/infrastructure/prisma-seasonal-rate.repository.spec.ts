@@ -32,7 +32,7 @@ describe('PrismaSeasonalRateRepository', () => {
   it('creates with exact data and maps all public fields', async () => {
     const result = await repository.create(input);
     expect(create).toHaveBeenCalledWith({
-      data: { ratePlanId: input.ratePlanId, name: input.name, amountMinor: input.amountMinor, startDate: new Date('2026-12-20T00:00:00.000Z'), endDate: new Date('2027-01-06T00:00:00.000Z') },
+      data: { ratePlanId: input.ratePlanId, name: input.name, amountMinor: BigInt(input.amountMinor), startDate: new Date('2026-12-20T00:00:00.000Z'), endDate: new Date('2027-01-06T00:00:00.000Z') },
       include,
     });
     expect(result).toMatchObject({ id: row.id, ratePlanId: row.ratePlanId, name: row.name, amountMinor: row.amountMinor, currency: 'PYG', startDate: '2026-12-20', endDate: '2027-01-06', createdAt: row.createdAt, updatedAt: row.updatedAt });

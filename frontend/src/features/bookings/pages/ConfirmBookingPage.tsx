@@ -70,6 +70,8 @@ export function ConfirmBookingPage() {
   const {
     data: resources,
     isLoading: isLoadingResources,
+    isError: isResourcesError,
+    error: resourcesError,
   } = useResources({
     businessId,
     accessToken: session?.accessToken,
@@ -216,10 +218,7 @@ export function ConfirmBookingPage() {
     );
   }
 
-  if (
-    isBookingError ||
-    !booking
-  ) {
+  if (isBookingError || isResourcesError || !booking) {
     return (
       <section className="confirm-booking-page">
         <div
@@ -228,6 +227,8 @@ export function ConfirmBookingPage() {
         >
           {bookingError instanceof Error
             ? bookingError.message
+            : resourcesError instanceof Error
+              ? resourcesError.message
             : "No pudimos cargar la reserva."}
         </div>
       </section>
@@ -270,7 +271,7 @@ export function ConfirmBookingPage() {
           className="confirm-booking-error"
           role="alert"
         >
-          La reserva no tiene Resource y fechas completas para poder confirmarse.
+          La reserva no tiene alojamiento y fechas completas para poder confirmarse.
         </div>
       </section>
     );
@@ -295,7 +296,7 @@ export function ConfirmBookingPage() {
       </button>
 
       <header className="confirm-booking-header">
-        <span>Booking</span>
+        <span>Reserva pendiente</span>
         <h1>Confirmar reserva</h1>
         <p>
           Seleccioná la tarifa aplicable y revisá el precio antes de confirmar.
@@ -313,7 +314,7 @@ export function ConfirmBookingPage() {
 
           <strong>
             {resource?.name ??
-              "Resource"}
+              "Alojamiento no disponible"}
           </strong>
         </div>
 

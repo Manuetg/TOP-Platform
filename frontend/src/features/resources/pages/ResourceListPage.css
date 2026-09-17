@@ -1,4 +1,4 @@
-.resource-list-page {
+﻿.resource-list-page {
   width: min(100%, 1220px);
   margin: 0;
 }
@@ -375,6 +375,39 @@
   color: var(--color-text-secondary);
 }
 
+/* Desktop resource amenities */
+.resource-list-card__amenities {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  min-height: 28px;
+}
+
+.resource-list-card__amenity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 5px 10px;
+  color: var(--color-brand-primary);
+  background: rgb(21 92 76 / 7%);
+  border: 1px solid rgb(21 92 76 / 12%);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.resource-list-card__amenities-empty {
+  display: inline-block;
+  margin-top: 2px;
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
 @media (max-width: 1050px) {
   .resource-list-items {
     grid-template-columns:

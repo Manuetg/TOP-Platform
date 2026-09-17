@@ -108,7 +108,7 @@ function TimelineItem({
 
         {item.actor?.userId && (
           <span className="booking-timeline-item__actor">
-            Usuario: {item.actor.userId}
+            Acción realizada por un usuario
           </span>
         )}
       </div>

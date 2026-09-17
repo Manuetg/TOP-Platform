@@ -103,6 +103,9 @@ export function BookingDraftForm({
   const {
     data: contacts,
     isLoading: contactsLoading,
+    isError: contactsError,
+    error: contactsQueryError,
+    refetch: refetchContacts,
   } = useContacts({
     businessId,
     accessToken: session?.accessToken,
@@ -111,6 +114,9 @@ export function BookingDraftForm({
   const {
     data: resources,
     isLoading: resourcesLoading,
+    isError: resourcesError,
+    error: resourcesQueryError,
+    refetch: refetchResources,
   } = useResources({
     businessId,
     accessToken: session?.accessToken,
@@ -279,6 +285,38 @@ export function BookingDraftForm({
     );
   }
 
+  if (contactsError || resourcesError) {
+    const queryError = contactsQueryError ?? resourcesQueryError;
+
+    return (
+      <div className="create-booking-state" role="alert">
+        <div
+          className="create-booking-state__icon"
+          aria-hidden="true"
+        >
+          <ClipboardList size={28} />
+        </div>
+
+        <h1>No pudimos preparar la reserva</h1>
+        <p>
+          {queryError instanceof Error
+            ? queryError.message
+            : "No pudimos cargar los contactos y alojamientos."}
+        </p>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => {
+            void refetchContacts();
+            void refetchResources();
+          }}
+        >
+          Reintentar
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <form
       className="create-booking-form"
@@ -396,8 +434,6 @@ export function BookingDraftForm({
                     value={resource.id}
                   >
                     {resource.name}
-                    {" · "}
-                    {resource.internalCode}
                     {" · Máx. "}
                     {resource.capacityMaximum}
                     {resource.status ===

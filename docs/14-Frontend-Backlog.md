@@ -1164,32 +1164,92 @@ Validación:
 
 ## FE-AVL-002 — Availability Calendar
 
-Estado: Reubicado a Calendar
+Estado: Completed — implementado en Calendar
 
-Objetivo original:
+Objetivo:
 
-Mostrar disponibilidad de Resources en vista calendario.
+Ofrecer una vista operativa de Calendario que componga Availability, Resources, Bookings y Blocks sin duplicar reglas de dominio en frontend.
 
-Decisión de producto:
+Ruta:
 
-La vista calendario no se implementa como una pantalla interna de Availability para evitar duplicar el módulo principal `Calendar`.
+`/app/calendar`
 
-El endpoint backend existente:
+Contrato backend principal:
 
 `GET /businesses/:businessId/availability/calendar`
 
-se conserva como contrato válido y podrá ser reutilizado por el módulo principal Calendar como una de sus fuentes de datos.
+Implementado:
 
-Alcance esperado en Calendar:
+- Calendar como área operativa visible, separado conceptualmente de la pantalla de consulta puntual de Availability;
+- consumo business-scoped del endpoint `availability/calendar`;
+- backend permanece como fuente de verdad para disponibilidad;
+- integración contextual con catálogo real de Resources;
+- integración visual con Bookings reales;
+- integración visual con Blocks reales;
+- rango mensual obtenido sin recalcular Availability en frontend;
+- navegación mediante selectores independientes de mes y año;
+- acción `Hoy`;
+- vista desktop/tablet mediante matriz `Resource × día`;
+- estado visual de reservas confirmadas, pendientes, en estadía, finalizadas y bloqueos;
+- celdas libres permiten iniciar una nueva reserva;
+- vista mobile específica de calendario mensual de 7 columnas, sin reutilizar la matriz horizontal desktop;
+- indicadores compactos de reservas y bloqueos en mobile;
+- agenda del día seleccionado debajo del calendario mobile;
+- navegación desde una reserva de la agenda hacia Booking Detail;
+- wizard contextual de nueva reserva en 5 pasos;
+- fecha de entrada con salida automática inicial de `+1 día`;
+- presentación de fechas operativas en formato `dd-mm-yyyy`;
+- selección de Resource limitada por Availability real para la estadía;
+- selección o creación inline de Contact;
+- creación rápida de Contact con nombre, apellido, teléfono, tipo de documento y número de documento;
+- tipos de documento reutilizan el contrato existente `CI` / `Pasaporte`;
+- contacto recién creado queda seleccionado sin contaminar el término de búsqueda;
+- contacto seleccionado no se duplica en los resultados;
+- resumen consistente de documento y teléfono;
+- Rate Plans obtenidos mediante selección contextual por Resource y estadía;
+- único Rate Plan válido se selecciona automáticamente;
+- pricing configurado mediante cálculo real del backend;
+- pricing manual conserva la obligación contractual de informar un `ratePlanId`, monto acordado y motivo;
+- confirmación reutiliza el flujo contractual `create → submit → confirm`;
+- después de confirmar, navegación a Booking Detail;
+- Blocks reciben rango RFC3339 compatible con su contrato mientras Availability Calendar conserva fechas `YYYY-MM-DD`;
+- estados loading y error;
+- responsive mobile/tablet/desktop;
+- foco visible y controles accesibles;
+- no se modificó `AppShell` como parte de esta historia;
+- no se introdujeron reglas de Availability, Pricing, Booking o Block propias del frontend.
 
-- vista temporal operativa por Resource y fecha;
-- representación de disponibilidad derivada;
-- integración visual futura con Bookings y Blocks;
-- backend como fuente de verdad;
-- sin inventar navegación desde celdas cuando el contrato no expone Booking ID o Block ID.
+Decisiones UX aprobadas:
 
-No implementado como ruta/pantalla dentro de Availability.
+- desktop prioriza densidad operacional mediante matriz por alojamiento y fecha;
+- mobile usa una representación mensual nativa y agenda diaria, en lugar de comprimir la matriz desktop;
+- navegación temporal directa mediante Mes + Año reemplaza navegación secuencial por flechas;
+- el wizard evita una acción `Atrás` inutilizable en el primer paso;
+- Calendar compone módulos existentes sin convertirlos en un único dominio técnico.
 
+Validación funcional:
+
+- carga real del Calendar contra backend y entorno Docker;
+- visualización de Resources, Bookings y Blocks verificada;
+- creación completa de una Booking desde Calendar verificada end-to-end;
+- pricing configurado verificado;
+- pricing manual verificado;
+- creación inline y selección de Contact verificada;
+- comportamiento desktop validado;
+- comportamiento mobile validado.
+
+Validación técnica:
+
+- suite específica `AvailabilityCalendarPage` aprobada;
+- regresión completa de frontend aprobada;
+- build productivo aprobado;
+- lint aprobado sin warnings ni errores;
+- `git diff --check` aprobado;
+- frontend no replica el algoritmo de Availability ni las reglas autoritativas de Pricing/Booking.
+
+Estado funcional del módulo:
+
+**Calendar se considera completo para este alcance del MVP a nivel funcional y UX/UI.**
 ---
 
 ## FE-AVL-003 — Availability Rules

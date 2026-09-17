@@ -3,13 +3,14 @@ import type { Prisma } from '@prisma/client';
 import { BookingStatus } from '../../booking/booking.contract';
 import { PrismaService } from '../../business/business.contract';
 import type { CreatePaymentPlanData, PaymentPlan, PaymentPlanRepository } from '../domain/payment-plan';
+import { fromPrismaMoney, toPrismaMoney } from '../../../shared/infrastructure/prisma-money';
 
 interface InstallmentRow {
   id: string;
-  amountMinor: number;
+  amountMinor: bigint;
   dueDate: Date | null;
   sortOrder: number;
-  applications: { amountMinor: number }[];
+  applications: { amountMinor: bigint }[];
 }
 
 interface PlanRow {
@@ -17,7 +18,7 @@ interface PlanRow {
   businessId: string;
   bookingId: string;
   currency: string;
-  totalAmountMinor: number;
+  totalAmountMinor: bigint;
   createdByUserId: string;
   updatedByUserId: string;
   createdAt: Date;
@@ -34,7 +35,7 @@ export class PrismaPaymentPlanRepository implements PaymentPlanRepository {
       await this.lockWritableBooking(transaction, data.businessId, data.bookingId);
       const existing = await transaction.paymentPlan.findUnique({ where: { bookingId: data.bookingId }, select: { id: true } });
       if (existing) throw new Error('PAYMENT_PLAN_EXISTS');
-      const plan = await transaction.paymentPlan.create({ data: { businessId: data.businessId, bookingId: data.bookingId, currency: data.currency, totalAmountMinor: data.totalAmountMinor, createdByUserId: data.actorUserId, updatedByUserId: data.actorUserId, installments: { create: data.installments } }, select: { id: true } });
+      const plan = await transaction.paymentPlan.create({ data: { businessId: data.businessId, bookingId: data.bookingId, currency: data.currency, totalAmountMinor: toPrismaMoney(data.totalAmountMinor), createdByUserId: data.actorUserId, updatedByUserId: data.actorUserId, installments: { create: data.installments.map((installment) => ({ ...installment, amountMinor: toPrismaMoney(installment.amountMinor) })) } }, select: { id: true } });
       const payments = await transaction.payment.findMany({ where: { businessId: data.businessId, bookingId: data.bookingId, status: 'RECORDED' }, orderBy: [{ paidAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }] });
       for (const payment of payments) await applyPaymentToPlan(transaction, plan.id, payment.id, payment.amountMinor);
       return this.requirePlan(transaction, data.businessId, data.bookingId);
@@ -54,7 +55,7 @@ export class PrismaPaymentPlanRepository implements PaymentPlanRepository {
       const applications = await transaction.paymentApplication.count({ where: { installment: { paymentPlanId: plan.id } } });
       if (applications > 0) throw new Error('PAYMENT_PLAN_HAS_APPLICATIONS');
       await transaction.paymentPlanInstallment.deleteMany({ where: { paymentPlanId: plan.id } });
-      await transaction.paymentPlan.update({ where: { id: plan.id }, data: { currency: data.currency, totalAmountMinor: data.totalAmountMinor, updatedByUserId: data.actorUserId, installments: { create: data.installments } } });
+      await transaction.paymentPlan.update({ where: { id: plan.id }, data: { currency: data.currency, totalAmountMinor: toPrismaMoney(data.totalAmountMinor), updatedByUserId: data.actorUserId, installments: { create: data.installments.map((installment) => ({ ...installment, amountMinor: toPrismaMoney(installment.amountMinor) })) } } });
       return this.requirePlan(transaction, data.businessId, data.bookingId);
     });
   }
@@ -81,26 +82,26 @@ export class PrismaPaymentPlanRepository implements PaymentPlanRepository {
 const planInclude = { installments: { include: { applications: { select: { amountMinor: true } } }, orderBy: [{ sortOrder: 'asc' as const }, { id: 'asc' as const }] } };
 
 function mapPlan(row: PlanRow): PaymentPlan {
-  return { ...row, installments: row.installments.map((installment) => ({ id: installment.id, amountMinor: installment.amountMinor, dueDate: installment.dueDate, sortOrder: installment.sortOrder, appliedAmountMinor: installment.applications.reduce((sum, application) => sum + application.amountMinor, 0) })) };
+  return { ...row, totalAmountMinor: fromPrismaMoney(row.totalAmountMinor), installments: row.installments.map((installment) => ({ id: installment.id, amountMinor: fromPrismaMoney(installment.amountMinor), dueDate: installment.dueDate, sortOrder: installment.sortOrder, appliedAmountMinor: fromPrismaMoney(installment.applications.reduce((sum, application) => sum + application.amountMinor, 0n)) })) };
 }
 
-export async function applyPaymentToPlan(transaction: Prisma.TransactionClient, paymentPlanId: string, paymentId: string, paymentAmountMinor: number): Promise<void> {
+export async function applyPaymentToPlan(transaction: Prisma.TransactionClient, paymentPlanId: string, paymentId: string, paymentAmountMinor: bigint): Promise<void> {
   const existing = await transaction.paymentApplication.aggregate({ where: { paymentId }, _sum: { amountMinor: true } });
-  let remaining = paymentAmountMinor - (existing._sum.amountMinor ?? 0);
-  if (remaining <= 0) return;
+  let remaining = paymentAmountMinor - (existing._sum.amountMinor ?? 0n);
+  if (remaining <= 0n) return;
   const installments = await transaction.paymentPlanInstallment.findMany({ where: { paymentPlanId }, include: { applications: { select: { amountMinor: true } } } });
   installments.sort((left, right) => compareInstallments(left, right));
-  const applications: { paymentId: string; installmentId: string; amountMinor: number }[] = [];
+  const applications: { paymentId: string; installmentId: string; amountMinor: bigint }[] = [];
   for (const installment of installments) {
-    const applied = installment.applications.reduce((sum, application) => sum + application.amountMinor, 0);
+    const applied = installment.applications.reduce((sum, application) => sum + application.amountMinor, 0n);
     const available = installment.amountMinor - applied;
-    if (available <= 0) continue;
-    const amountMinor = Math.min(remaining, available);
+    if (available <= 0n) continue;
+    const amountMinor = remaining < available ? remaining : available;
     applications.push({ paymentId, installmentId: installment.id, amountMinor });
     remaining -= amountMinor;
-    if (remaining === 0) break;
+    if (remaining === 0n) break;
   }
-  if (remaining !== 0) throw new Error('PAYMENT_APPLICATION_OVERFLOW');
+  if (remaining !== 0n) throw new Error('PAYMENT_APPLICATION_OVERFLOW');
   if (applications.length > 0) await transaction.paymentApplication.createMany({ data: applications });
 }
 
