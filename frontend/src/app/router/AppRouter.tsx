@@ -17,6 +17,7 @@ import { ContactDetailPage } from "../../features/contacts/pages/ContactDetailPa
 import { EditContactPage } from "../../features/contacts/pages/EditContactPage";
 import { AvailabilityCheckPage } from "../../features/availability/pages/AvailabilityCheckPage";
 import { AvailabilityRulesPage } from "../../features/availability/pages/AvailabilityRulesPage";
+import { AvailabilityCalendarPage } from "../../features/availability/pages/AvailabilityCalendarPage";
 import { BlockListPage } from "../../features/blocks/pages/BlockListPage";
 import { BookingListPage } from "../../features/bookings/pages/BookingListPage";
 import { BookingDetailPage } from "../../features/bookings/pages/BookingDetailPage";
@@ -49,7 +50,7 @@ const router = createBrowserRouter([
       },
       {
         path: "calendar",
-        element: <AppSectionPage title="Calendario" />,
+        element: <AvailabilityCalendarPage />,
       },
       {
         path: "bookings",

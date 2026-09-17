@@ -12,7 +12,7 @@ El backlog de implementación del Backend MVP está completado: 53 de 53 capacid
 
 El MVP mantiene las ocho áreas aprobadas en Vision y Product Strategy: Negocio, Recursos, Precios, Disponibilidad, Reservas, Pagos, Calendario y Dashboard. Identity & Access, Contact y Block son dominios backend de soporte y no representan áreas comerciales adicionales.
 
-Calendario es un área funcional visible. Su capacidad backend inicial está cubierta por AVL-002 — Availability Calendar y no requiere una épica backend `Calendar` separada. Cualquier ampliación futura deberá incorporarse al Backlog mediante aprobación explícita.
+Calendario es un área funcional visible. Su capacidad backend inicial está cubierta por AVL-002 — Availability Calendar y no requiere una épica backend `Calendar` separada. En frontend, el alcance MVP vigente dispone de `/app/calendar` como centro operativo que compone Availability, Resources, Bookings y Blocks, con matriz desktop, calendario mensual mobile y creación contextual de reservas reutilizando los contratos existentes. Esta composición no crea un nuevo dominio backend ni replica reglas autoritativas. Cualquier ampliación futura deberá incorporarse al Backlog mediante aprobación explícita.
 
 ## Secuencia histórica de dominios y capacidades backend
 
