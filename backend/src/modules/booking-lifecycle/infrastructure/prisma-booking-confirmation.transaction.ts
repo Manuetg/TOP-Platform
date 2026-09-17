@@ -9,6 +9,7 @@ import type {
   BookingConfirmationTransactionInput,
   BookingConfirmationTransactionResult,
 } from '../booking-confirmation.contract';
+import { toPrismaMoney } from '../../../shared/infrastructure/prisma-money';
 
 type TransactionClient = Parameters<
   Parameters<PrismaClient['$transaction']>[0]
@@ -91,7 +92,7 @@ export class PrismaBookingConfirmationTransaction
         bookingId: input.bookingId,
         currency: snapshot.currency,
         totalAmountMinor:
-          snapshot.totalAmountMinor,
+          toPrismaMoney(snapshot.totalAmountMinor),
         items:
           snapshot.items as Prisma.InputJsonValue,
       },

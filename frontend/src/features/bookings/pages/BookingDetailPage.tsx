@@ -149,6 +149,9 @@ export function BookingDetailPage({
   const {
     data: contacts,
     isLoading: contactsLoading,
+    isError: contactsError,
+    error: contactsQueryError,
+    refetch: refetchContacts,
   } = useContacts({
     businessId,
     accessToken: session?.accessToken,
@@ -157,6 +160,9 @@ export function BookingDetailPage({
   const {
     data: resources,
     isLoading: resourcesLoading,
+    isError: resourcesError,
+    error: resourcesQueryError,
+    refetch: refetchResources,
   } = useResources({
     businessId,
     accessToken: session?.accessToken,
@@ -268,7 +274,9 @@ export function BookingDetailPage({
     );
   }
 
-  if (isError || !booking) {
+  if (isError || contactsError || resourcesError || !booking) {
+    const queryError = error ?? contactsQueryError ?? resourcesQueryError;
+
     return (
       <section className="booking-detail-page">
         <div
@@ -287,8 +295,8 @@ export function BookingDetailPage({
           </h1>
 
           <p>
-            {error instanceof Error
-              ? error.message
+            {queryError instanceof Error
+              ? queryError.message
               : "La reserva no está disponible."}
           </p>
 
@@ -305,7 +313,11 @@ export function BookingDetailPage({
 
             <Button
               type="button"
-              onClick={() => void refetch()}
+              onClick={() => {
+                void refetch();
+                void refetchContacts();
+                void refetchResources();
+              }}
             >
               Reintentar
             </Button>
@@ -583,7 +595,7 @@ export function BookingDetailPage({
 
             <div className="booking-detail-resources">
               <span className="booking-detail-label">
-                Recursos
+                Alojamiento
               </span>
 
               {booking.resourceIds.length ===
@@ -609,16 +621,9 @@ export function BookingDetailPage({
                         >
                           <strong>
                             {resource?.name ??
-                              "Recurso no disponible"}
+                              "Alojamiento no disponible"}
                           </strong>
 
-                          {resource && (
-                            <span>
-                              {
-                                resource.internalCode
-                              }
-                            </span>
-                          )}
                         </div>
                       );
                     },
@@ -761,11 +766,6 @@ export function BookingDetailPage({
             <h2>Información</h2>
 
             <dl className="booking-detail-meta">
-              <div>
-                <dt>ID</dt>
-                <dd>{booking.id}</dd>
-              </div>
-
               <div>
                 <dt>Creada</dt>
                 <dd>

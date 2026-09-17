@@ -122,6 +122,8 @@ export function EditBookingPage({
     );
   }
 
+  const currentBookingId = booking.id;
+
   if (booking.status !== "DRAFT") {
     return (
       <section className="create-booking-page">
@@ -175,8 +177,6 @@ export function EditBookingPage({
       </section>
     );
   }
-
-  const currentBookingId = booking.id;
 
   const initialValues:
     BookingDraftFormInitialValues = {

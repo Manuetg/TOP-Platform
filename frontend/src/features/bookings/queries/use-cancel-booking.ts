@@ -40,6 +40,13 @@ export function useCancelBooking({
             bookingId,
           ],
         }),
+        queryClient.invalidateQueries({
+          queryKey: [
+            "booking-timeline",
+            businessId,
+            bookingId,
+          ],
+        }),
       ]);
     },
   });

@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../business/business.contract';
-import { Payment, PaymentRepository, PublicPayment, RegisterPaymentData } from '../domain/payment';
+import { Payment, PaymentMethod, PaymentRepository, PaymentStatus, PublicPayment, RegisterPaymentData } from '../domain/payment';
 import { applyPaymentToPlan } from './prisma-payment-plan.repository';
+import { fromPrismaMoney, toPrismaMoney } from '../../../shared/infrastructure/prisma-money';
+import type { Payment as PrismaPayment } from '@prisma/client';
 
 type RegisterPaymentResult = { payment: Payment; duplicate: boolean };
 
@@ -15,20 +17,20 @@ export class PrismaPaymentRepository implements PaymentRepository {
       const prior = await transaction.payment.findUnique({ where: { businessId_idempotencyKey: { businessId: data.businessId, idempotencyKey: data.idempotencyKey } } });
       if (prior) {
         if (prior.requestFingerprint !== data.requestFingerprint) throw new Error('IDEMPOTENCY_CONFLICT');
-        return { payment: prior as Payment, duplicate: true };
+        return { payment: this.map(prior), duplicate: true };
       }
       const registered = await transaction.payment.aggregate({ where: { bookingId: data.bookingId, status: 'RECORDED' }, _sum: { amountMinor: true } });
-      if ((registered._sum.amountMinor ?? 0) + data.amountMinor > totalAmountMinor) throw new Error('OVERPAYMENT');
-      const payment = await transaction.payment.create({ data });
+      if ((registered._sum.amountMinor ?? 0n) + toPrismaMoney(data.amountMinor) > toPrismaMoney(totalAmountMinor)) throw new Error('OVERPAYMENT');
+      const payment = await transaction.payment.create({ data: { ...data, amountMinor: toPrismaMoney(data.amountMinor) } });
       const plan = await transaction.paymentPlan.findUnique({ where: { bookingId: data.bookingId }, select: { id: true, businessId: true } });
       if (plan?.businessId === data.businessId) await applyPaymentToPlan(transaction, plan.id, payment.id, payment.amountMinor);
-      return { payment: payment as Payment, duplicate: false };
+      return { payment: this.map(payment), duplicate: false };
     });
   }
 
   async listByBooking(input: Parameters<PaymentRepository['listByBooking']>[0]): Promise<PublicPayment[]> {
     const before = input.before;
-    return this.prisma.payment.findMany({
+    const rows = await this.prisma.payment.findMany({
       where: {
         businessId: input.businessId,
         bookingId: input.bookingId,
@@ -55,6 +57,21 @@ export class PrismaPaymentRepository implements PaymentRepository {
         recordedByUserId: true,
         status: true,
       },
-    }) as Promise<PublicPayment[]>;
+    });
+    return rows.map((row) => ({
+      ...row,
+      amountMinor: fromPrismaMoney(row.amountMinor),
+      method: row.method as PaymentMethod,
+      status: row.status as PaymentStatus,
+    }));
+  }
+
+  private map(row: PrismaPayment): Payment {
+    return {
+      ...row,
+      amountMinor: fromPrismaMoney(row.amountMinor),
+      method: row.method as PaymentMethod,
+      status: row.status as PaymentStatus,
+    };
   }
 }

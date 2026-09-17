@@ -5,6 +5,7 @@ import type {
   RevenueProjectionInput,
   RevenueProjectionReader,
 } from '../payment.contract';
+import { fromPrismaMoney } from '../../../shared/infrastructure/prisma-money';
 
 interface RevenueRow {
   currency: string;
@@ -39,16 +40,8 @@ implements RevenueProjectionReader {
     return {
       amounts: rows.map((row) => ({
         currency: row.currency,
-        amountMinor: safeAmount(row.amountMinor),
+        amountMinor: fromPrismaMoney(row.amountMinor),
       })),
     };
   }
-}
-
-function safeAmount(value: bigint): number {
-  const result = Number(value);
-  if (!Number.isSafeInteger(result) || result < 0) {
-    throw new Error('REVENUE_PROJECTION_INVALID_AMOUNT');
-  }
-  return result;
 }

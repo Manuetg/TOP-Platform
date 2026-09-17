@@ -162,10 +162,9 @@ function BookingRow({
           {shortBookingId(booking.id)}
         </strong>
         <span>
-          {booking.resourceIds.length}{" "}
           {booking.resourceIds.length === 1
-            ? "alojamiento"
-            : "alojamientos"}
+            ? "Con alojamiento"
+            : "Sin alojamiento"}
         </span>
       </div>
 
@@ -300,6 +299,9 @@ export function BookingListPage({
   const {
     data: contacts,
     isLoading: contactsLoading,
+    isError: contactsError,
+    error: contactsQueryError,
+    refetch: refetchContacts,
   } = useContacts({
     businessId,
     accessToken: session?.accessToken,
@@ -308,6 +310,9 @@ export function BookingListPage({
   const {
     data: resources,
     isLoading: resourcesLoading,
+    isError: resourcesError,
+    error: resourcesQueryError,
+    refetch: refetchResources,
   } = useResources({
     businessId,
     accessToken: session?.accessToken,
@@ -419,14 +424,16 @@ export function BookingListPage({
           <h1>Cargando reservas</h1>
           <p>
             Estamos preparando las reservas del
-            Business.
+            establecimiento.
           </p>
         </div>
       </section>
     );
   }
 
-  if (isError) {
+  if (isError || contactsError || resourcesError) {
+    const queryError = error ?? contactsQueryError ?? resourcesQueryError;
+
     return (
       <section className="booking-list-page">
         <div
@@ -445,15 +452,19 @@ export function BookingListPage({
           </h1>
 
           <p>
-            {error instanceof Error
-              ? error.message
+            {queryError instanceof Error
+              ? queryError.message
               : "Ocurrió un error inesperado."}
           </p>
 
           <Button
             type="button"
             variant="secondary"
-            onClick={() => void refetch()}
+            onClick={() => {
+              void refetch();
+              void refetchContacts();
+              void refetchResources();
+            }}
           >
             Reintentar
           </Button>
@@ -614,7 +625,7 @@ export function BookingListPage({
 
         <div className="booking-list-field">
           <label htmlFor="booking-resource">
-            Recurso
+            Alojamiento
           </label>
 
           <select
@@ -627,7 +638,7 @@ export function BookingListPage({
             }
           >
             <option value="">
-              Todos los recursos
+              Todos los alojamientos
             </option>
 
             {(resources ?? []).map(

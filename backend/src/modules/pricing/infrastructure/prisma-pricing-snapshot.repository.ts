@@ -10,6 +10,7 @@ import type {
   PricingSnapshotItem,
   PricingSnapshotRepository,
 } from '../domain/pricing-snapshot.repository';
+import { fromPrismaMoney, toPrismaMoney } from '../../../shared/infrastructure/prisma-money';
 
 @Injectable()
 export class PrismaPricingSnapshotRepository
@@ -29,7 +30,7 @@ export class PrismaPricingSnapshotRepository
           bookingId: data.bookingId,
           currency: data.currency,
           totalAmountMinor:
-            data.totalAmountMinor,
+            toPrismaMoney(data.totalAmountMinor),
           items:
             data.items as unknown as Prisma.InputJsonValue,
         },
@@ -60,7 +61,7 @@ export class PrismaPricingSnapshotRepository
       bookingId: row.bookingId,
       currency: row.currency,
       totalAmountMinor:
-        row.totalAmountMinor,
+        fromPrismaMoney(row.totalAmountMinor),
       items:
         row.items as unknown as PricingSnapshotItem[],
       createdAt: row.createdAt,

@@ -4,11 +4,12 @@ import type {
   OutstandingBalanceProjection,
   OutstandingBalanceRepository,
 } from '../domain/outstanding-balance';
+import { fromPrismaMoney } from '../../../shared/infrastructure/prisma-money';
 
 interface OutstandingBalanceRow {
   paymentPlanId: string | null;
   paidAmountMinor: bigint;
-  planTotalAmountMinor: number | null;
+  planTotalAmountMinor: bigint | null;
   installmentTotalAmountMinor: bigint;
   appliedAmountMinor: bigint;
   overdueAmountMinor: bigint;
@@ -115,26 +116,21 @@ export class PrismaOutstandingBalanceRepository
     if (!row) throw new Error('OUTSTANDING_BALANCE_QUERY_EMPTY');
     return {
       paymentPlanId: row.paymentPlanId,
-      paidAmountMinor: safeNumber(row.paidAmountMinor),
-      planTotalAmountMinor: row.planTotalAmountMinor,
-      installmentTotalAmountMinor: safeNumber(
+      paidAmountMinor: fromPrismaMoney(row.paidAmountMinor),
+      planTotalAmountMinor:
+        row.planTotalAmountMinor === null
+          ? null
+          : fromPrismaMoney(row.planTotalAmountMinor),
+      installmentTotalAmountMinor: fromPrismaMoney(
         row.installmentTotalAmountMinor,
       ),
-      appliedAmountMinor: safeNumber(row.appliedAmountMinor),
-      overdueAmountMinor: safeNumber(row.overdueAmountMinor),
+      appliedAmountMinor: fromPrismaMoney(row.appliedAmountMinor),
+      overdueAmountMinor: fromPrismaMoney(row.overdueAmountMinor),
       nextDueDate: row.nextDueDate,
       nextDueAmountMinor:
         row.nextDueAmountMinor === null
           ? null
-          : safeNumber(row.nextDueAmountMinor),
+          : fromPrismaMoney(row.nextDueAmountMinor),
     };
   }
-}
-
-function safeNumber(value: bigint): number {
-  const result = Number(value);
-  if (!Number.isSafeInteger(result)) {
-    throw new Error('OUTSTANDING_BALANCE_UNSAFE_INTEGER');
-  }
-  return result;
 }
