@@ -47,12 +47,12 @@ Total historias frontend activas: 51
 
 Estado actual:
 
-- Completed: 38
-- In Progress: 5
+- Completed: 39
+- In Progress: 4
 - Planned: 7
 - Blocked: 1
 
-Recuento por estados reales: 38 + 5 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y FE-PRI-005 duplicada se excluye para no duplicar trabajo.
+Recuento por estados reales: 39 + 4 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y FE-PRI-005 duplicada se excluye para no duplicar trabajo.
 
 ---
 
@@ -517,7 +517,7 @@ Criterios de aceptación:
 
 ## FE-IAM-005 — Logout
 
-Estado: In Progress
+Estado: Completed
 
 Objetivo:
 
@@ -533,6 +533,25 @@ Criterios de aceptación:
 - sesión local se limpia;
 - usuario vuelve a `/login`;
 - logout repetido no rompe UI.
+
+Implementado:
+
+- `POST /api/auth/logout` con el refresh token rotado vigente;
+- revocación remota best effort y cierre local autoritativo;
+- limpieza inmediata de sesión, snapshot `sessionStorage` y QueryClient;
+- navegación a `/login` desde el App Layout;
+- protección ante doble ejecución, refresh concurrente y respuestas `401` tardías;
+- acción accesible en el menú de perfil desktop/mobile;
+- tests de API, sesión, cache, error remoto y carreras asíncronas.
+
+Evidencia:
+
+- implementación inicial: PR #72;
+- cierre funcional, tests y documentación: PR de esta historia;
+- Node 22: 59 archivos y 225 tests PASS;
+- `npm run lint`: PASS;
+- `npm run build`: PASS;
+- backend sin cambios.
 
 ---
 
@@ -1903,8 +1922,8 @@ Si frontend necesita un cambio backend:
 | Épica | Completed | In Progress | Planned | Blocked |
 |---|---:|---:|---:|---:|
 | Foundation | 4 | 2 | 4 | 0 |
-| IAM | 1 | 2 | 3 | 0 |
-| Business | 0 | 0 | 3 | 0 |
+| IAM | 4 | 2 | 0 | 0 |
+| Business | 1 | 0 | 2 | 0 |
 | Resource | 7 | 0 | 0 | 0 |
 | Subscription | 0 | 0 | 1 | 0 |
 | Contact | 4 | 0 | 0 | 0 |
@@ -1914,7 +1933,7 @@ Si frontend necesita un cambio backend:
 | Block | 3 | 0 | 0 | 0 |
 | Payment | 0 | 0 | 0 | 1 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **38** | **5** | **7** | **1** |
+| **TOTAL** | **39** | **4** | **7** | **1** |
 
 
 

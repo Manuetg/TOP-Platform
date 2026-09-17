@@ -74,13 +74,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const establish = (next: LoginResponse) => { updateSession(next); writePersistedAuthSession(next); setStatus("authenticated"); };
   const logout = () => {
     if (logoutPromiseRef.current) return logoutPromiseRef.current;
-    const generation = ++generationRef.current;
+    ++generationRef.current;
     setIsLoggingOut(true);
     const current = sessionRef.current;
+    clearPersistedAuthSession();
+    updateSession(null);
+    setStatus("unauthenticated");
+    queryClient?.clear();
     logoutPromiseRef.current = (async () => {
       try { if (current?.refreshToken) await revokeSession(current.refreshToken); } catch { /* local logout is authoritative */ }
       finally {
-        if (generation === generationRef.current) { clearPersistedAuthSession(); updateSession(null); setStatus("unauthenticated"); queryClient?.clear(); setIsLoggingOut(false); }
+        setIsLoggingOut(false);
         logoutPromiseRef.current = null;
       }
     })();
