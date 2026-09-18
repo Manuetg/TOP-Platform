@@ -52,7 +52,7 @@ Estado actual:
 - Planned: 7
 - Blocked: 1
 
-Recuento por estados reales: 39 + 4 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y FE-PRI-005 duplicada se excluye para no duplicar trabajo.
+Recuento por estados reales: 39 + 4 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
 
 ---
 
@@ -139,15 +139,15 @@ Implementado:
 - soporte opcional de `Authorization: Bearer`;
 - preservación de headers personalizados;
 - soporte de respuestas `204`;
+- recuperación centralizada de requests autenticados que reciben `401`;
+- integración con refresh token rotatorio, single-flight y reutilización del access token vigente ante respuestas tardías;
+- máximo un retry y prevención de loops de refresh;
+- conexión automática con la sesión autenticada;
 - tests unitarios del API client.
 
 Pendiente:
 
-- manejo central de `401`;
-- integración con refresh token;
-- evitar loops de refresh;
 - manejo consistente de errores globales;
-- conexión automática con la sesión autenticada.
 
 Criterios de aceptación:
 
@@ -186,12 +186,15 @@ Implementado:
 - soporte de deep links por sección;
 - sincronización del estado activo con la URL.
 - menú/flujo de `Más` en mobile;
+- `ProtectedRoute` y `PublicRoute` integrados con los estados `restoring`, `authenticated` y `unauthenticated`;
+- redirección anónima al login sin montar contenido privado;
+- redirección de sesiones autenticadas fuera de `/login`;
+- preservación segura de deep links internos bajo `/app`;
+- integración con Active Business Context y Business real visible en el layout;
 
 Pendiente:
 
-- rutas protegidas;
-- integración con sesión y Business activo real;
-- redirecciones según sesión.
+- completar el manejo transversal y consistente de estados de error del shell.
 
 Criterios de aceptación:
 
@@ -568,6 +571,25 @@ Criterios de aceptación:
 - usuario anónimo es redirigido a login;
 - usuario autenticado no vuelve a login salvo logout/expiración;
 - refresh de navegador conserva comportamiento correcto.
+
+Implementado:
+
+- guard central del árbol `/app` basado exclusivamente en AuthContext;
+- estado accesible durante `restoring`, sin montar Login ni páginas privadas;
+- redirección anónima con `replace` y preservación de `pathname`, query y hash;
+- destino post-login validado y normalizado, limitado a `/app` y sus rutas hijas;
+- rechazo de URLs externas, esquemas, prefijos ambiguos, barras invertidas y traversal literal o codificado;
+- una única decisión de navegación post-login en `PublicRoute`, sin navegación competidora desde `LoginPage`;
+- pérdida de sesión retira el contenido privado y mantiene el guard al navegar hacia atrás;
+- estados `empty` y `selection-required` de Business permanecen dentro del flujo autenticado.
+
+Evidencia:
+
+- implementación original: PR #73, merge `d2d2018f255d34a3d25184c8cc2bb4640ff35def`;
+- correcciones y pruebas: PR de esta historia; Frontend CI pendiente de ejecución;
+- pruebas de componentes/integración cubren restoring, anonimato, sesiones autenticadas, deep links, login, pérdida de sesión y BusinessBoundary;
+- QA manual de navegador: `NOT RUN`; permanece visible como validación pendiente y no se sustituye por MemoryRouter;
+- el cierre queda efectivo en `develop` al mergear esta PR.
 
 ---
 

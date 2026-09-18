@@ -1,0 +1,41 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - qa
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Record validated commit
+        run: |
+          echo "Validated SHA: $GITHUB_SHA"
+          git rev-parse HEAD
+
+      - name: Build frontend quality image
+        run: >-
+          docker build --target build -t top-frontend-quality
+          -f frontend/Dockerfile frontend
+
+      - name: Record frontend toolchain
+        run: docker run --rm top-frontend-quality sh -lc 'node --version && npm --version'
+
+      - name: Run frontend tests
+        run: docker run --rm top-frontend-quality npm test
+
+      - name: Run frontend lint
+        run: docker run --rm top-frontend-quality npm run lint

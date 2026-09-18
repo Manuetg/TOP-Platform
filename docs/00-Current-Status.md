@@ -68,8 +68,9 @@ Estado:
 - 39/51 historias frontend activas Completed; 4 In Progress, 7 Planned y 1 Blocked.
 - Resources y Rate Plans usan contratos reales; Revenue, Occupancy y Reservations usan el Dashboard backend real.
 - Los widgets Dashboard sin contrato backend aprobado fueron retirados del MVP; no se muestran datos ficticios.
-- FE-IAM-003 — Session Persistence, FE-IAM-004 — Refresh Token Rotation y FE-IAM-005 — Logout están Completed; FE-IAM-006 mantiene validación manual pendiente.
+- FE-IAM-003 — Session Persistence, FE-IAM-004 — Refresh Token Rotation y FE-IAM-005 — Logout están Completed; FE-IAM-006 permanece In Progress hasta aprobar los CI de esta PR.
 - FE-IAM-005 usa el refresh token vigente, revoca remotamente en best effort, limpia sesión/storage/cache de inmediato y evita que refreshes tardíos restauren la sesión. Validación automatizada Node 22: 59 archivos y 225 tests PASS, lint PASS y build PASS; validación manual de revocación en navegador no ejecutada.
+- FE-IAM-006 protege centralmente `/app`, conserva deep links internos seguros, evita contenido privado durante restauración y retira el árbol privado al perder la sesión. La implementación original corresponde a PR #73; esta PR agrega validación estricta de `next`, elimina la navegación post-login competidora y añade Frontend CI. Su cierre está pendiente de CI; QA manual de navegador permanece `NOT RUN`.
 - FE-IAM-003 fue validada con F5, `sessionStorage`, refresh rotatorio y reanudación del Dashboard.
 - La quality gate frontend usa Node 22: 59 archivos y 225 tests PASS; `npm run lint` PASS con alcance explícito a `src`, `tests` y `vite.config.ts`; build PASS.
 - Los widgets Dashboard sin contrato backend fueron retirados del MVP; no hay mocks operativos visibles.
