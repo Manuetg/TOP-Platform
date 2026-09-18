@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import { useRef } from "react";
 import { useForm } from "react-hook-form";
 import { login } from "../api/login";
 import {
@@ -13,6 +14,7 @@ import { Input } from "../../../shared/ui/Input";
 
 export function LoginPage() {
   const { establishSession } = useAuth();
+  const submissionLock = useRef(false);
 
   const {
     register,
@@ -31,9 +33,14 @@ export function LoginPage() {
     onSuccess: (data) => {
       establishSession(data);
     },
+    onSettled: () => {
+      submissionLock.current = false;
+    },
   });
 
   const onSubmit = handleSubmit((values) => {
+    if (submissionLock.current) return;
+    submissionLock.current = true;
     loginMutation.mutate(values);
   });
 
