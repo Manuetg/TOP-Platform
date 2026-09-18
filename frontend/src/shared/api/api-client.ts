@@ -136,7 +136,9 @@ async function readResponse<T>(response: Response, signal: AbortSignal | null | 
 
   throwIfAborted(signal);
   try {
-    return await response.json() as T;
+    const body: unknown = await response.json();
+    throwIfAborted(signal);
+    return body as T;
   } catch (error) {
     throwIfAborted(signal);
     if (isAbortError(error)) throw error;
