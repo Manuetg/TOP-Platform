@@ -449,7 +449,9 @@ Pruebas:
 Evidencia de cierre:
 
 - el cierre documental se prepara en la rama `feature/fe-iam-001-complete-login` y es efectivo en `develop` al merge de su PR;
-- resultados de Frontend CI y Backend CI se registran con el SHA validado en la PR; no se ejecutaron suites locales;
+- Frontend CI `35382260589` — SUCCESS sobre el feature HEAD `bd6e6b00e0f0160a3c61641ce322d9428201ffb4`: Node `v22.23.2`, npm `11.19.1`, 64 archivos y 273 tests PASS, lint con 0 warnings/0 errores y build PASS;
+- Backend CI `35382260648` — SUCCESS para la PR; mutation `SKIPPED` por política. Backend y contratos permanecen sin cambios;
+- no se ejecutaron suites locales; los workflows de GitHub ejecutaron build, tests y lint;
 - QA manual de navegador: `NOT RUN`; la cobertura automatizada no se presenta como validación contra backend, PostgreSQL o Nginx reales.
 
 Criterios de aceptación:
