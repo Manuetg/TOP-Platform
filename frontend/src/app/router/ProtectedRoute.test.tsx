@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import {
   Outlet,
   RouterProvider,
@@ -67,6 +67,15 @@ function createRouter(initialEntry: string) {
     ],
     { initialEntries: [initialEntry] },
   );
+}
+
+async function refreshCurrentRoute(
+  router: ReturnType<typeof createRouter>,
+) {
+  const { pathname, search, hash } = router.state.location;
+  await act(async () => {
+    await router.navigate(`${pathname}${search}${hash}`, { replace: true });
+  });
 }
 
 describe("protected routing", () => {
@@ -142,10 +151,10 @@ describe("protected routing", () => {
   it("keeps a deep link through restoring to authenticated", async () => {
     state.authStatus = "restoring";
     const router = createRouter("/app/resources/123?tab=images#gallery");
-    const view = render(<RouterProvider router={router} />);
+    render(<RouterProvider router={router} />);
 
     state.authStatus = "authenticated";
-    view.rerender(<RouterProvider router={router} />);
+    await refreshCurrentRoute(router);
 
     expect(
       await screen.findByText(
@@ -157,10 +166,10 @@ describe("protected routing", () => {
   it("moves from restoring to login when restoration fails", async () => {
     state.authStatus = "restoring";
     const router = createRouter("/app/resources");
-    const view = render(<RouterProvider router={router} />);
+    render(<RouterProvider router={router} />);
 
     state.authStatus = "unauthenticated";
-    view.rerender(<RouterProvider router={router} />);
+    await refreshCurrentRoute(router);
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(screen.queryByText(/Private at/)).not.toBeInTheDocument();
@@ -169,11 +178,11 @@ describe("protected routing", () => {
   it("removes private content after session loss and blocks browser back", async () => {
     state.authStatus = "authenticated";
     const router = createRouter("/app/resources");
-    const view = render(<RouterProvider router={router} />);
+    render(<RouterProvider router={router} />);
     expect(screen.getByText("Private at /app/resources")).toBeInTheDocument();
 
     state.authStatus = "unauthenticated";
-    view.rerender(<RouterProvider router={router} />);
+    await refreshCurrentRoute(router);
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(screen.queryByText(/Private at/)).not.toBeInTheDocument();
 
