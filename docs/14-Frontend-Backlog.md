@@ -47,12 +47,12 @@ Total historias frontend activas: 51
 
 Estado actual:
 
-- Completed: 40
-- In Progress: 3
+- Completed: 41
+- In Progress: 2
 - Planned: 7
 - Blocked: 1
 
-Recuento por estados reales: 40 + 3 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
+Recuento por estados reales: 41 + 2 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
 
 ---
 
@@ -413,7 +413,7 @@ Criterios de aceptación:
 
 ## FE-IAM-001 — Login
 
-Estado: In Progress
+Estado: Completed
 
 Objetivo:
 
@@ -421,17 +421,36 @@ Permitir que un usuario inicie sesión con credenciales válidas.
 
 Implementado:
 
-- formulario;
-- React Hook Form;
-- Zod;
-- POST `/api/auth/login`;
-- manejo básico de 400/401/403.
+- formulario con React Hook Form y Zod, campos requeridos y formato de correo validado;
+- `POST /api/auth/login` mediante `apiRequest`, con el body contractual y sin reutilizar credenciales de una sesión previa;
+- sesión autenticada establecida en `AuthProvider` al recibir una respuesta válida;
+- `PublicRoute` realiza la única navegación post-login, usando el resolver seguro compartido para `next` y el fallback `/app`;
+- loading visible como «Ingresando...» y control que deshabilita la acción mientras espera;
+- bloqueo de envíos concurrentes incluso si llega otro evento submit mientras la petición sigue pendiente;
+- mensajes comprensibles para credenciales inválidas (401), usuario deshabilitado (403), solicitud rechazada (400) y fallos de red/servidor;
+- errores no establecen sesión ni navegan al área privada; el usuario puede corregir y volver a intentar;
+- sin logs de credenciales ni tokens.
 
-Pendiente:
+Origen del trabajo:
 
-- crear sesión real;
-- redirigir al área privada;
-- eliminar `console.log` como resultado final.
+- establecimiento de sesión y navegación post-login segura ya estaban implementados y probados en PR #79;
+- esta PR completa validación del formulario, estados de envío, prevención de duplicados, manejo y recuperación de errores y cobertura del cliente API.
+
+Pruebas:
+
+- validación de campos requeridos y correo inválido, incluyendo asociación accesible del error;
+- loading, botón deshabilitado y un solo request ante submits concurrentes;
+- mensajes 400/401/403/5xx y error de red, sin sesión ni navegación tras rechazo;
+- reintento exitoso después de corregir credenciales y limpieza del error anterior;
+- contrato del cliente: endpoint, POST, body, propagación de error y ausencia de Bearer previo;
+- el API client no intenta refresh automático ante 401 de `/auth/login`;
+- se conservan las pruebas de establecimiento de sesión, deep link y fallback seguro de PR #79.
+
+Evidencia de cierre:
+
+- el cierre documental se prepara en la rama `feature/fe-iam-001-complete-login` y es efectivo en `develop` al merge de su PR;
+- resultados de Frontend CI y Backend CI se registran con el SHA validado en la PR; no se ejecutaron suites locales;
+- QA manual de navegador: `NOT RUN`; la cobertura automatizada no se presenta como validación contra backend, PostgreSQL o Nginx reales.
 
 Criterios de aceptación:
 
@@ -1945,7 +1964,7 @@ Si frontend necesita un cambio backend:
 | Épica | Completed | In Progress | Planned | Blocked |
 |---|---:|---:|---:|---:|
 | Foundation | 4 | 2 | 4 | 0 |
-| IAM | 5 | 1 | 0 | 0 |
+| IAM | 6 | 0 | 0 | 0 |
 | Business | 1 | 0 | 2 | 0 |
 | Resource | 7 | 0 | 0 | 0 |
 | Subscription | 0 | 0 | 1 | 0 |
@@ -1956,7 +1975,7 @@ Si frontend necesita un cambio backend:
 | Block | 3 | 0 | 0 | 0 |
 | Payment | 0 | 0 | 0 | 1 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **40** | **3** | **7** | **1** |
+| **TOTAL** | **41** | **2** | **7** | **1** |
 
 
 

@@ -153,6 +153,24 @@ describe("apiRequest", () => {
     expect(recover).toHaveBeenCalledTimes(1);
   });
 
+  it("never refreshes automatically when the login endpoint rejects credentials", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: "Invalid credentials" }), { status: 401 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const recover = vi.fn().mockResolvedValue("new-token");
+    configureUnauthorizedRecovery({ recover });
+
+    await expect(apiRequest("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email: "jeni@example.com", password: "wrong" }),
+      accessToken: "stale-previous-session-token",
+    })).rejects.toMatchObject({ status: 401 });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(recover).not.toHaveBeenCalled();
+  });
+
   it("shares recovery for concurrent authenticated requests", async () => {
     let resolveRecovery!: (token: string) => void;
     const recovery = new Promise<string>((resolve) => { resolveRecovery = resolve; });
