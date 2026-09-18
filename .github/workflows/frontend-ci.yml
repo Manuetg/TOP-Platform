@@ -23,7 +23,8 @@ jobs:
 
       - name: Record validated commit
         run: |
-          echo "Validated SHA: $GITHUB_SHA"
+          echo "PR head SHA: ${{ github.event.pull_request.head.sha }}"
+          echo "Checkout SHA: $GITHUB_SHA"
           git rev-parse HEAD
 
       - name: Build frontend quality image

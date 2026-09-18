@@ -47,12 +47,12 @@ Total historias frontend activas: 51
 
 Estado actual:
 
-- Completed: 39
-- In Progress: 4
+- Completed: 40
+- In Progress: 3
 - Planned: 7
 - Blocked: 1
 
-Recuento por estados reales: 39 + 4 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
+Recuento por estados reales: 40 + 3 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
 
 ---
 
@@ -560,7 +560,7 @@ Evidencia:
 
 ## FE-IAM-006 — Protected Routes
 
-Estado: In Progress
+Estado: Completed
 
 Objetivo:
 
@@ -586,7 +586,8 @@ Implementado:
 Evidencia:
 
 - implementación original: PR #73, merge `d2d2018f255d34a3d25184c8cc2bb4640ff35def`;
-- correcciones y pruebas: PR de esta historia; Frontend CI pendiente de ejecución;
+- correcciones y pruebas: PR #79;
+- Frontend CI `35378595452`: Node `v22.23.2`, build PASS, 63 archivos/261 tests PASS y lint PASS sobre `63307c2190a15b0fc5e9cd79c230294fb5b3261c`;
 - pruebas de componentes/integración cubren restoring, anonimato, sesiones autenticadas, deep links, login, pérdida de sesión y BusinessBoundary;
 - QA manual de navegador: `NOT RUN`; permanece visible como validación pendiente y no se sustituye por MemoryRouter;
 - el cierre queda efectivo en `develop` al mergear esta PR.
@@ -1944,7 +1945,7 @@ Si frontend necesita un cambio backend:
 | Épica | Completed | In Progress | Planned | Blocked |
 |---|---:|---:|---:|---:|
 | Foundation | 4 | 2 | 4 | 0 |
-| IAM | 4 | 2 | 0 | 0 |
+| IAM | 5 | 1 | 0 | 0 |
 | Business | 1 | 0 | 2 | 0 |
 | Resource | 7 | 0 | 0 | 0 |
 | Subscription | 0 | 0 | 1 | 0 |
@@ -1955,7 +1956,7 @@ Si frontend necesita un cambio backend:
 | Block | 3 | 0 | 0 | 0 |
 | Payment | 0 | 0 | 0 | 1 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **39** | **4** | **7** | **1** |
+| **TOTAL** | **40** | **3** | **7** | **1** |
 
 
 

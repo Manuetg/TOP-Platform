@@ -186,7 +186,9 @@ describe("protected routing", () => {
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(screen.queryByText(/Private at/)).not.toBeInTheDocument();
 
-    await router.navigate(-1);
+    await act(async () => {
+      await router.navigate(-1);
+    });
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(screen.queryByText(/Private at/)).not.toBeInTheDocument();
   });
