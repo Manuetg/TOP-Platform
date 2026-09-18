@@ -2,7 +2,13 @@ const DEFAULT_POST_LOGIN_DESTINATION = "/app";
 const INTERNAL_ORIGIN = "https://top.internal";
 const INVALID_PERCENT_ENCODING = /%(?![0-9a-f]{2})/i;
 const AMBIGUOUS_PATH_ENCODING = /%(?:2e|2f|5c)/i;
-const CONTROL_CHARACTER = /[\u0000-\u001f\u007f]/;
+
+function hasControlCharacter(value: string): boolean {
+  return Array.from(value).some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 || codePoint === 127;
+  });
+}
 
 export function resolvePostLoginDestination(
   candidate: string | null | undefined,
@@ -15,7 +21,7 @@ export function resolvePostLoginDestination(
     !candidate.startsWith("/") ||
     candidate.startsWith("//") ||
     candidate.includes("\\") ||
-    CONTROL_CHARACTER.test(candidate)
+    hasControlCharacter(candidate)
   ) {
     return DEFAULT_POST_LOGIN_DESTINATION;
   }
@@ -39,7 +45,7 @@ export function resolvePostLoginDestination(
 
   if (
     decodedPath.includes("\\") ||
-    CONTROL_CHARACTER.test(decodedPath) ||
+    hasControlCharacter(decodedPath) ||
     AMBIGUOUS_PATH_ENCODING.test(decodedPath) ||
     decodedPath.split("/").includes("..")
   ) {
