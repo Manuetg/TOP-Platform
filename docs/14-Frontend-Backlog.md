@@ -148,8 +148,9 @@ Implementado:
 - conexión automática con la sesión autenticada;
 - preservación de `AbortError` y `signal`, incluso durante fetch, lectura de cuerpo y espera de recuperación; una cancelación no reemite el request ni cancela el refresh compartido;
 - tests del cliente para contrato HTTP, retry, errores de transporte y formato, cancelaciones y regresiones de headers, `Idempotency-Key`, `FormData`, 204 y autenticación.
-- Evidencia Frontend CI run `35386101873`: Node `v22.23.2`, build PASS, 64 archivos y 296 tests PASS, lint PASS (207 archivos, 0 warnings/errores).
-- Backend CI run `35386101857` — SUCCESS. QA manual de navegador/backend: NOT RUN.
+- Evidencia del código funcional en HEAD `a39668f38b3ca62c93c2e922f1a083e9e8aa5db7`: Frontend CI run `35386101873` — Node `v22.23.2`, build PASS, 64 archivos y 296 tests PASS, lint PASS (207 archivos, 0 warnings/errores); Backend CI run `35386101857` — SUCCESS.
+- El HEAD documental previo `c79f356bf52855151a1aaae219c3ef3e80455c60` de PR #81 también pasó Frontend CI run `35386641151` y Backend CI run `35386640936`; Mutation `SKIPPED` según el workflow.
+- QA manual de navegador/backend: NOT RUN.
 
 Pendiente:
 

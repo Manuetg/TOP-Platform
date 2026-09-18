@@ -1,6 +1,6 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-09-11
+Última actualización: 2026-09-18
 
 ## Responsabilidades
 
