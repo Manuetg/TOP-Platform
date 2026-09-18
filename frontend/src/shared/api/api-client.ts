@@ -153,7 +153,7 @@ async function createHttpError(
   // Internal server details are not a user-facing contract.
   if (response.status >= 500) return new ApiError(response.status, API_ERROR_MESSAGES.server);
 
-  let message = API_ERROR_MESSAGES.http;
+  let message: string = API_ERROR_MESSAGES.http;
   try {
     const body: unknown = await response.json();
     throwIfAborted(signal);
