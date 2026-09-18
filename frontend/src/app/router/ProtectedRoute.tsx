@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../features/auth/context/AuthContext";
+import { resolvePostLoginDestination } from "../../shared/routing/post-login-destination";
 import type { ReactNode } from "react";
 
 export function ProtectedRoute({ children }: { children?: ReactNode }) {
@@ -19,7 +20,7 @@ export function PublicRoute() {
   if (status === "restoring") return <main aria-live="polite" className="auth-route-loading">Cargando sesión...</main>;
   if (status === "authenticated") {
     const next = new URLSearchParams(location.search).get("next");
-    return <Navigate to={next?.startsWith("/app") ? next : "/app"} replace />;
+    return <Navigate to={resolvePostLoginDestination(next)} replace />;
   }
   return <Outlet />;
 }
