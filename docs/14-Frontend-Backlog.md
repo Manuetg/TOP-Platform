@@ -47,12 +47,12 @@ Total historias frontend activas: 51
 
 Estado actual:
 
-- Completed: 41
-- In Progress: 2
+- Completed: 42
+- In Progress: 1
 - Planned: 7
 - Blocked: 1
 
-Recuento por estados reales: 41 + 2 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
+Recuento por estados reales: 42 + 1 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
 
 ---
 
@@ -124,7 +124,7 @@ Criterios de aceptación:
 
 ## FE-FND-003 — API Client Foundation
 
-Estado: In Progress (DoD técnica implementada; cierre pendiente de Frontend CI y Backend CI de esta PR)
+Estado: Completed (efectivo en `develop` al mergear PR #81)
 
 Objetivo:
 
@@ -148,6 +148,8 @@ Implementado:
 - conexión automática con la sesión autenticada;
 - preservación de `AbortError` y `signal`, incluso durante fetch, lectura de cuerpo y espera de recuperación; una cancelación no reemite el request ni cancela el refresh compartido;
 - tests del cliente para contrato HTTP, retry, errores de transporte y formato, cancelaciones y regresiones de headers, `Idempotency-Key`, `FormData`, 204 y autenticación.
+- Evidencia Frontend CI run `35386101873`: Node `v22.23.2`, build PASS, 64 archivos y 296 tests PASS, lint PASS (207 archivos, 0 warnings/errores).
+- Backend CI run `35386101857` — SUCCESS. QA manual de navegador/backend: NOT RUN.
 
 Pendiente:
 
@@ -1969,7 +1971,7 @@ Si frontend necesita un cambio backend:
 
 | Épica | Completed | In Progress | Planned | Blocked |
 |---|---:|---:|---:|---:|
-| Foundation | 4 | 2 | 4 | 0 |
+| Foundation | 5 | 1 | 4 | 0 |
 | IAM | 6 | 0 | 0 | 0 |
 | Business | 1 | 0 | 2 | 0 |
 | Resource | 7 | 0 | 0 | 0 |
@@ -1981,7 +1983,7 @@ Si frontend necesita un cambio backend:
 | Block | 3 | 0 | 0 | 0 |
 | Payment | 0 | 0 | 0 | 1 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **41** | **2** | **7** | **1** |
+| **TOTAL** | **42** | **1** | **7** | **1** |
 
 
 
