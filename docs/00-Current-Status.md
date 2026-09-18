@@ -65,6 +65,7 @@ Estado:
 - Dashboard Business implementado y mergeado en `/app`.
 - FE-DSH-001 — Completed.
 - FE-BUS-001 — Completed; las siete features tenant-scoped consumen Active Business Context y el ciclo de vida está cubierto por tests.
+- FE-FND-003 — implementación de manejo compartido de errores API en revisión; mantiene In Progress hasta que Frontend CI y Backend CI de esta PR satisfagan los criterios. Se cubren respuestas HTTP, fallos de transporte, JSON inválido y cancelación sin ampliar retries ni alterar el manejo global del shell.
 - 41/51 historias frontend activas Completed; 2 In Progress, 7 Planned y 1 Blocked.
 - Resources y Rate Plans usan contratos reales; Revenue, Occupancy y Reservations usan el Dashboard backend real.
 - Los widgets Dashboard sin contrato backend aprobado fueron retirados del MVP; no se muestran datos ficticios.

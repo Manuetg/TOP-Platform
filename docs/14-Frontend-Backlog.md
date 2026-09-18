@@ -1,6 +1,6 @@
 # TOP — Frontend Backlog
 
-Última actualización: 2026-09-12
+Última actualización: 2026-09-18
 
 ## Objetivo
 
@@ -124,7 +124,7 @@ Criterios de aceptación:
 
 ## FE-FND-003 — API Client Foundation
 
-Estado: In Progress
+Estado: In Progress (DoD técnica implementada; cierre pendiente de Frontend CI y Backend CI de esta PR)
 
 Objetivo:
 
@@ -135,7 +135,10 @@ Implementado:
 - `apiRequest<T>()`;
 - `ApiError`;
 - `VITE_API_URL`;
-- interpretación básica de errores backend;
+- interpretación común de errores HTTP para la respuesta inicial y el retry;
+- validación runtime del mensaje contractual `string | string[]`, conservando `status` y los mensajes funcionales;
+- fallback seguro para cuerpos ausentes, inválidos o no JSON, y respuestas `5xx` sin exponer detalles internos;
+- `ApiTransportError` para fallos de transporte sin respuesta y `ApiResponseError` para JSON inválido en una respuesta exitosa, sin inventar un status HTTP;
 - soporte opcional de `Authorization: Bearer`;
 - preservación de headers personalizados;
 - soporte de respuestas `204`;
@@ -143,11 +146,12 @@ Implementado:
 - integración con refresh token rotatorio, single-flight y reutilización del access token vigente ante respuestas tardías;
 - máximo un retry y prevención de loops de refresh;
 - conexión automática con la sesión autenticada;
-- tests unitarios del API client.
+- preservación de `AbortError` y `signal`, incluso durante fetch, lectura de cuerpo y espera de recuperación; una cancelación no reemite el request ni cancela el refresh compartido;
+- tests del cliente para contrato HTTP, retry, errores de transporte y formato, cancelaciones y regresiones de headers, `Idempotency-Key`, `FormData`, 204 y autenticación.
 
 Pendiente:
 
-- manejo consistente de errores globales;
+- UX global del shell ante fallos de renderizado y errores de aplicación; responsabilidad de FE-FND-004, fuera del alcance de esta historia.
 
 Criterios de aceptación:
 
