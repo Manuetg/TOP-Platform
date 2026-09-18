@@ -223,7 +223,7 @@ describe("LoginPage routing", () => {
     fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "No pudimos iniciar sesión. Intenta nuevamente.",
+      "No pudimos iniciar sesión. Intentá nuevamente.",
     );
     expect(router.state.location.pathname).toBe("/login");
     expect(screen.getByTestId("auth-status")).toHaveTextContent("unauthenticated:none");
