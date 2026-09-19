@@ -47,12 +47,12 @@ Total historias frontend activas: 51
 
 Estado actual:
 
-- Completed: 42
-- In Progress: 1
+- Completed: 43
+- In Progress: 0
 - Planned: 7
 - Blocked: 1
 
-Recuento por estados reales: 42 + 1 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
+Recuento por estados reales: 43 + 0 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
 
 ---
 
@@ -168,7 +168,7 @@ Criterios de aceptación:
 
 ## FE-FND-004 — Application Routing & Layout Foundation
 
-Estado: In Progress
+Estado: Completed (efectivo en `develop` al mergear PR #82)
 
 Objetivo:
 
@@ -199,9 +199,21 @@ Implementado:
 - preservación segura de deep links internos bajo `/app`;
 - integración con Active Business Context y Business real visible en el layout;
 
-Pendiente:
+Validación y alcance de recuperación:
 
-- completar el manejo transversal y consistente de estados de error del shell.
+Arquitectura de captura y recuperación (FE-FND-004):
+
+- `PageErrorBoundary` captura errores inesperados de renderizado del `Outlet`, dentro de `BusinessBoundary`, `AppShell` y `ProtectedRoute`. Conserva navegación, cuenta y providers Query → Auth → Business. Reintentar remonta únicamente el contenido fallido; navegar a `/app` o a otra sección permite continuar.
+- La clave de recuperación cambia con la ubicación, identidad y Business activo; no remonta contenido sano por un cambio de clave. Un fallo persistente conserva el fallback hasta otra acción explícita, sin bucles, logout, limpieza de cache ni reproducción de mutations.
+- El `errorElement` raíz del router de datos cubre fallos del shell y routing. Sustituye el árbol de rutas por un respaldo neutral, sin intentar renderizar AppShell y sin consumir Auth/Business. Los providers siguen por encima del router. Inicio usa navegación de documento a `/app`, que vuelve a pasar por autenticación; Recargar aplicación realiza una recarga explícita.
+- Un `ErrorBoundary` exterior en App cubre fallos de renderizado de los providers/RouterProvider. Su fallback funciona sin router ni providers; la recuperación es de documento, sin reinicios automáticos en memoria.
+- Alcance real: errores del render/árbol React cubierto y errores propagados por el router de datos. No intercepta por sí solo eventos, promesas arbitrarias, código fuera de React ni errores de arranque anteriores al montaje. No usa listeners globales ni telemetry.
+- FE-FND-003 conserva el manejo de validación, 403, 409, recursos ausentes, queries y cancelaciones en cada feature. No cambian retries ni `throwOnError`; Business empty/selection-required siguen siendo estados normales.
+- Fallbacks con mensajes fijos, sin datos del error, anuncio accesible, foco en el encabezado, acciones semánticas y estilos responsive con tokens TOP.
+- Pruebas sobre `appRoutes` compartido con AppRouter: aislamiento de página, shell fallido, navegación/reintento, fallo persistente, no repetición de mutation, sesión anónima/restoring/pérdida, Business, errores locales, cancelación y 404. Pruebas adicionales de cambio de identidad/Business y respaldo sin contextos.
+- Referencias oficiales: [React: Error Boundaries](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary) y [React Router 7.18.2: Data Mode](https://github.com/remix-run/react-router/blob/react-router%407.18.2/docs/how-to/error-boundary.md). Sin nuevas dependencias ni cambio de modo del router.
+- Evidencia: Frontend CI `35473054747` SUCCESS (Node `v22.23.2`, build, 67 archivos/317 tests, lint sin advertencias ni errores); Backend CI `35473054790` SUCCESS. Validaron el feature HEAD `a186027c53331d27987bbcab228070d7a1ef8455`; checkout frontend `1dc6bc075683c3b1f7e274d84a8fa7bf010c53b9`, merge sintético de CI, no merge definitivo. El primer run `35472962069` detectó un error de tipado del helper de rutas de tests, corregido sin relajar configuración. HEAD final documental y checkout final: evidencia en el cuerpo de PR #82, sin commits recursivos por SHA.
+- Self-review documentada: sin hallazgos bloqueantes en alcance, jerarquía de captura, protección privada, aislamiento, mensajes, accesibilidad básica y ausencia de mutaciones en recuperación. `git diff --check` PASS. QA manual móvil/desktop: NOT RUN; no se afirma validación visual ni de navegador. Mutation: NOT RUN, diferida al quality gate preproducción. Sin cambios backend, nuevas dependencias ni modificaciones al trabajo de Manu.
 
 Criterios de aceptación:
 
@@ -1972,7 +1984,7 @@ Si frontend necesita un cambio backend:
 
 | Épica | Completed | In Progress | Planned | Blocked |
 |---|---:|---:|---:|---:|
-| Foundation | 5 | 1 | 4 | 0 |
+| Foundation | 6 | 0 | 4 | 0 |
 | IAM | 6 | 0 | 0 | 0 |
 | Business | 1 | 0 | 2 | 0 |
 | Resource | 7 | 0 | 0 | 0 |
@@ -1984,7 +1996,7 @@ Si frontend necesita un cambio backend:
 | Block | 3 | 0 | 0 | 0 |
 | Payment | 0 | 0 | 0 | 1 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **42** | **1** | **7** | **1** |
+| **TOTAL** | **43** | **0** | **7** | **1** |
 
 
 

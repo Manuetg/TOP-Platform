@@ -1,4 +1,4 @@
-﻿import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   AppShell,
   type AppNavigationTarget,
@@ -7,6 +7,8 @@ import {
 import { useAuth } from "../../features/auth/context/AuthContext";
 import { useBusinessContext } from "../../features/business/context/BusinessContext";
 import { BusinessBoundary } from "../../features/business/components/BusinessBoundary";
+
+import { PageErrorBoundary } from "../errors/PageErrorBoundary";
 
 const sectionPaths: Record<AppSection, string> = {
   home: "/app",
@@ -64,7 +66,7 @@ export function AppLayout() {
       onLogout={() => { void logout().finally(() => navigate("/login", { replace: true })); }}
       isLoggingOut={isLoggingOut}
     >
-      <BusinessBoundary><Outlet /></BusinessBoundary>
+      <BusinessBoundary><PageErrorBoundary /></BusinessBoundary>
     </AppShell>
   );
 }
