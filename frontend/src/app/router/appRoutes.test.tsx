@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { createMemoryRouter, RouterProvider, type RouteObject } from "react-router-dom";
 import { QueryClient, QueryClientProvider, useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -131,6 +131,32 @@ describe("recuperación en las rutas productivas", () => {
     expect(screen.queryByRole("button", { name: "Reservas" })).not.toBeInTheDocument();
   });
 
+  it("cancela una request en vuelo sin convertirla en fallo del shell", async () => {
+    let aborted = false;
+    function PendingQueryPage() {
+      useQuery({ queryKey: ["pending"], queryFn: ({ signal }) => new Promise((_resolve, reject) => {
+        signal.addEventListener("abort", () => { aborted = true; reject(new DOMException("Aborted", "AbortError")); });
+      }) });
+      return <p>Consulta pendiente</p>;
+    }
+    const { client } = mount("/app/resources", structuredCloneRoutes(<PendingQueryPage />));
+    await act(async () => { await client.cancelQueries({ queryKey: ["pending"] }); });
+    expect(aborted).toBe(true);
+    expect(client.getQueryState(["pending"])?.fetchStatus).toBe("idle");
+    expect(screen.getByText("Consulta pendiente")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("cubre errores propagados por el router con un respaldo neutral", async () => {
+    const routes = structuredCloneRoutes(<p>No debe aparecer</p>);
+    const resource = routes[0].children?.find((route) => route.path === "/app")?.children?.find((route) => route.path === "resources");
+    if (!resource) throw new Error("Falta la ruta productiva de recursos");
+    resource.loader = () => { throw new Error("SYNTHETIC_LOADER_SECRET"); };
+    mount("/app/resources", routes);
+    expect(await screen.findByRole("heading", { name: "La aplicación encontró un problema." })).toBeInTheDocument();
+    expect(screen.queryByText("No debe aparecer")).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toContain("SYNTHETIC_LOADER_SECRET");
+  });
   it("mantiene el 404 existente", () => {
     mount("/ruta-inexistente");
     expect(screen.getByRole("heading", { name: "Página no encontrada" })).toBeInTheDocument();
@@ -153,27 +179,32 @@ describe("recuperación en las rutas productivas", () => {
     expect(state.mutation).toHaveBeenCalledTimes(1);
   });
 
-  it("conserva mensaje/retry de una query local y su cancelación", async () => {
+  it("conserva mensaje y retry de una query local", async () => {
     function QueryPage() {
       const query = useQuery({ queryKey: ["operational"], queryFn: async () => { throw new Error("HTTP 503"); } });
       return query.isError ? <><p>Error local manejado</p><button onClick={() => { void query.refetch(); }}>Reintentar consulta</button></> : <p>Cargando consulta</p>;
     }
-    const { client } = mount("/app/resources", structuredCloneRoutes(<QueryPage />));
+    mount("/app/resources", structuredCloneRoutes(<QueryPage />));
     expect(await screen.findByText("Error local manejado")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Reintentar consulta" }));
-    await act(async () => { await client.cancelQueries({ queryKey: ["operational"] }); });
+    await screen.findByText("Error local manejado");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.getAllByText("Error local manejado")).toHaveLength(1);
   });
 });
 
 // Sustituye solamente la hoja; conserva los guards, layout y boundaries productivos.
-function structuredCloneRoutes(element: React.ReactNode) {
-  return appRoutes.map((root) => ({ ...root, children: root.children?.map((route) => route.path === "/app" ? {
-    ...route, children: route.children?.map((child) => child.path === "resources" ? { ...child, element } : child),
-  } : route) }));
+function structuredCloneRoutes(element: React.ReactNode): RouteObject[] {
+  function copy(route: RouteObject): RouteObject {
+    if (route.index) return { ...route };
+    return {
+      ...route,
+      element: route.path === "resources" ? element : route.element,
+      children: route.children?.map(copy),
+    };
+  }
+  return appRoutes.map(copy);
 }
-
 it("el respaldo general funciona sin router ni providers y recarga explícitamente", async () => {
   const reload = vi.fn();
   vi.stubGlobal("location", { reload });

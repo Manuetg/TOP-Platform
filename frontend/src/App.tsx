@@ -8,11 +8,11 @@ import { BusinessProvider } from "./features/business/context/BusinessContext";
 function App() {
   return (
     <ErrorBoundary fallback={() => <ErrorFallback general />}>
-    <QueryProvider>
-      <AuthProvider>
-        <BusinessProvider><AppRouter /></BusinessProvider>
-      </AuthProvider>
-    </QueryProvider>
+      <QueryProvider>
+        <AuthProvider>
+          <BusinessProvider><AppRouter /></BusinessProvider>
+        </AuthProvider>
+      </QueryProvider>
     </ErrorBoundary>
   );
 }
