@@ -1,0 +1,43 @@
+.top-error-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+}
+
+.top-error-fallback {
+  width: 100%;
+  max-width: 720px;
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.top-error-fallback h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 32px;
+}
+
+.top-error-fallback h1:focus-visible {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 4px;
+}
+
+.top-error-fallback p {
+  color: var(--color-text-secondary);
+  line-height: 24px;
+}
+
+.top-error-fallback__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.top-error-fallback__actions .top-button {
+  min-height: 44px;
+  white-space: normal;
+  text-align: center;
+}

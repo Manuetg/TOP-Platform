@@ -201,7 +201,20 @@ Implementado:
 
 Pendiente:
 
-- completar el manejo transversal y consistente de estados de error del shell.
+- validar en GitHub CI el manejo de errores implementado en esta historia; QA manual de navegador: NOT RUN.
+
+Arquitectura de captura y recuperación (FE-FND-004):
+
+- `PageErrorBoundary` captura errores inesperados de renderizado del `Outlet`, dentro de `BusinessBoundary`, `AppShell` y `ProtectedRoute`. Conserva navegación, cuenta y providers Query → Auth → Business. Reintentar remonta únicamente el contenido fallido; navegar a `/app` o a otra sección permite continuar.
+- La clave de recuperación cambia con la ubicación, identidad y Business activo; no remonta contenido sano por un cambio de clave. Un fallo persistente conserva el fallback hasta otra acción explícita, sin bucles, logout, limpieza de cache ni reproducción de mutations.
+- El `errorElement` raíz del router de datos cubre fallos del shell y routing. Sustituye el árbol de rutas por un respaldo neutral, sin intentar renderizar AppShell y sin consumir Auth/Business. Los providers siguen por encima del router. Inicio usa navegación de documento a `/app`, que vuelve a pasar por autenticación; Recargar aplicación realiza una recarga explícita.
+- Un `ErrorBoundary` exterior en App cubre fallos de renderizado de los providers/RouterProvider. Su fallback funciona sin router ni providers; la recuperación es de documento, sin reinicios automáticos en memoria.
+- Alcance real: errores del render/árbol React cubierto y errores propagados por el router de datos. No intercepta por sí solo eventos, promesas arbitrarias, código fuera de React ni errores de arranque anteriores al montaje. No usa listeners globales ni telemetry.
+- FE-FND-003 conserva el manejo de validación, 403, 409, recursos ausentes, queries y cancelaciones en cada feature. No cambian retries ni `throwOnError`; Business empty/selection-required siguen siendo estados normales.
+- Fallbacks con mensajes fijos, sin datos del error, anuncio accesible, foco en el encabezado, acciones semánticas y estilos responsive con tokens TOP.
+- Pruebas sobre `appRoutes` compartido con AppRouter: aislamiento de página, shell fallido, navegación/reintento, fallo persistente, no repetición de mutation, sesión anónima/restoring/pérdida, Business, errores locales, cancelación y 404. Pruebas adicionales de cambio de identidad/Business y respaldo sin contextos.
+- Referencias oficiales: [React: Error Boundaries](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary) y [React Router 7.18.2: Data Mode](https://github.com/remix-run/react-router/blob/react-router%407.18.2/docs/how-to/error-boundary.md). Sin nuevas dependencias ni cambio de modo del router.
+- Evidencia CI y revisión final: pendientes; HEAD final y SHA real del checkout se registran en el cuerpo de esta misma PR. Mutation permanece diferida al quality gate preproducción.
 
 Criterios de aceptación:
 
