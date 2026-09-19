@@ -1,6 +1,6 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-09-11
+Última actualización: 2026-09-18
 
 ## Responsabilidades
 
@@ -65,7 +65,8 @@ Estado:
 - Dashboard Business implementado y mergeado en `/app`.
 - FE-DSH-001 — Completed.
 - FE-BUS-001 — Completed; las siete features tenant-scoped consumen Active Business Context y el ciclo de vida está cubierto por tests.
-- 41/51 historias frontend activas Completed; 2 In Progress, 7 Planned y 1 Blocked.
+- FE-FND-003 — manejo compartido de errores API completo; cierre efectivo al mergear PR #81. Frontend CI `35386101873` aprobó Node `v22.23.2`, build, 64 archivos/296 tests y lint; Backend CI `35386101857` SUCCESS. QA manual: NOT RUN.
+- 42/51 historias frontend activas Completed; 1 In Progress, 7 Planned y 1 Blocked.
 - Resources y Rate Plans usan contratos reales; Revenue, Occupancy y Reservations usan el Dashboard backend real.
 - Los widgets Dashboard sin contrato backend aprobado fueron retirados del MVP; no se muestran datos ficticios.
 - FE-IAM-003 — Session Persistence, FE-IAM-004 — Refresh Token Rotation, FE-IAM-005 — Logout y FE-IAM-006 — Protected Routes están Completed.

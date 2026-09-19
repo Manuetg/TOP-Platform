@@ -1,6 +1,6 @@
 # TOP — Frontend Backlog
 
-Última actualización: 2026-09-12
+Última actualización: 2026-09-18
 
 ## Objetivo
 
@@ -47,12 +47,12 @@ Total historias frontend activas: 51
 
 Estado actual:
 
-- Completed: 41
-- In Progress: 2
+- Completed: 42
+- In Progress: 1
 - Planned: 7
 - Blocked: 1
 
-Recuento por estados reales: 41 + 2 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
+Recuento por estados reales: 42 + 1 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
 
 ---
 
@@ -124,7 +124,7 @@ Criterios de aceptación:
 
 ## FE-FND-003 — API Client Foundation
 
-Estado: In Progress
+Estado: Completed (efectivo en `develop` al mergear PR #81)
 
 Objetivo:
 
@@ -135,7 +135,10 @@ Implementado:
 - `apiRequest<T>()`;
 - `ApiError`;
 - `VITE_API_URL`;
-- interpretación básica de errores backend;
+- interpretación común de errores HTTP para la respuesta inicial y el retry;
+- validación runtime del mensaje contractual `string | string[]`, conservando `status` y los mensajes funcionales;
+- fallback seguro para cuerpos ausentes, inválidos o no JSON, y respuestas `5xx` sin exponer detalles internos;
+- `ApiTransportError` para fallos de transporte sin respuesta y `ApiResponseError` para JSON inválido en una respuesta exitosa, sin inventar un status HTTP;
 - soporte opcional de `Authorization: Bearer`;
 - preservación de headers personalizados;
 - soporte de respuestas `204`;
@@ -143,11 +146,15 @@ Implementado:
 - integración con refresh token rotatorio, single-flight y reutilización del access token vigente ante respuestas tardías;
 - máximo un retry y prevención de loops de refresh;
 - conexión automática con la sesión autenticada;
-- tests unitarios del API client.
+- preservación de `AbortError` y `signal`, incluso durante fetch, lectura de cuerpo y espera de recuperación; una cancelación no reemite el request ni cancela el refresh compartido;
+- tests del cliente para contrato HTTP, retry, errores de transporte y formato, cancelaciones y regresiones de headers, `Idempotency-Key`, `FormData`, 204 y autenticación.
+- Evidencia del código funcional en HEAD `a39668f38b3ca62c93c2e922f1a083e9e8aa5db7`: Frontend CI run `35386101873` — Node `v22.23.2`, build PASS, 64 archivos y 296 tests PASS, lint PASS (207 archivos, 0 warnings/errores); Backend CI run `35386101857` — SUCCESS.
+- El HEAD documental previo `c79f356bf52855151a1aaae219c3ef3e80455c60` de PR #81 también pasó Frontend CI run `35386641151` y Backend CI run `35386640936`; Mutation `SKIPPED` según el workflow.
+- QA manual de navegador/backend: NOT RUN.
 
 Pendiente:
 
-- manejo consistente de errores globales;
+- UX global del shell ante fallos de renderizado y errores de aplicación; responsabilidad de FE-FND-004, fuera del alcance de esta historia.
 
 Criterios de aceptación:
 
@@ -1965,7 +1972,7 @@ Si frontend necesita un cambio backend:
 
 | Épica | Completed | In Progress | Planned | Blocked |
 |---|---:|---:|---:|---:|
-| Foundation | 4 | 2 | 4 | 0 |
+| Foundation | 5 | 1 | 4 | 0 |
 | IAM | 6 | 0 | 0 | 0 |
 | Business | 1 | 0 | 2 | 0 |
 | Resource | 7 | 0 | 0 | 0 |
@@ -1977,7 +1984,7 @@ Si frontend necesita un cambio backend:
 | Block | 3 | 0 | 0 | 0 |
 | Payment | 0 | 0 | 0 | 1 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **41** | **2** | **7** | **1** |
+| **TOTAL** | **42** | **1** | **7** | **1** |
 
 
 
