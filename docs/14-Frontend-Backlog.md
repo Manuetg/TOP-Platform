@@ -47,12 +47,12 @@ Total historias frontend activas: 51
 
 Estado actual:
 
-- Completed: 42
-- In Progress: 1
+- Completed: 43
+- In Progress: 0
 - Planned: 7
 - Blocked: 1
 
-Recuento por estados reales: 42 + 1 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
+Recuento por estados reales: 43 + 0 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
 
 ---
 
@@ -168,7 +168,7 @@ Criterios de aceptación:
 
 ## FE-FND-004 — Application Routing & Layout Foundation
 
-Estado: In Progress
+Estado: Completed (efectivo en `develop` al mergear PR #82)
 
 Objetivo:
 
@@ -199,9 +199,7 @@ Implementado:
 - preservación segura de deep links internos bajo `/app`;
 - integración con Active Business Context y Business real visible en el layout;
 
-Pendiente:
-
-- validar en GitHub CI el manejo de errores implementado en esta historia; QA manual de navegador: NOT RUN.
+Validación y alcance de recuperación:
 
 Arquitectura de captura y recuperación (FE-FND-004):
 
@@ -214,7 +212,8 @@ Arquitectura de captura y recuperación (FE-FND-004):
 - Fallbacks con mensajes fijos, sin datos del error, anuncio accesible, foco en el encabezado, acciones semánticas y estilos responsive con tokens TOP.
 - Pruebas sobre `appRoutes` compartido con AppRouter: aislamiento de página, shell fallido, navegación/reintento, fallo persistente, no repetición de mutation, sesión anónima/restoring/pérdida, Business, errores locales, cancelación y 404. Pruebas adicionales de cambio de identidad/Business y respaldo sin contextos.
 - Referencias oficiales: [React: Error Boundaries](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary) y [React Router 7.18.2: Data Mode](https://github.com/remix-run/react-router/blob/react-router%407.18.2/docs/how-to/error-boundary.md). Sin nuevas dependencias ni cambio de modo del router.
-- Evidencia CI y revisión final: pendientes; HEAD final y SHA real del checkout se registran en el cuerpo de esta misma PR. Mutation permanece diferida al quality gate preproducción.
+- Evidencia: Frontend CI `35473054747` SUCCESS (Node `v22.23.2`, build, 67 archivos/317 tests, lint sin advertencias ni errores); Backend CI `35473054790` SUCCESS. Validaron el feature HEAD `a186027c53331d27987bbcab228070d7a1ef8455`; checkout frontend `1dc6bc075683c3b1f7e274d84a8fa7bf010c53b9`, merge sintético de CI, no merge definitivo. El primer run `35472962069` detectó un error de tipado del helper de rutas de tests, corregido sin relajar configuración. HEAD final documental y checkout final: evidencia en el cuerpo de PR #82, sin commits recursivos por SHA.
+- Self-review documentada: sin hallazgos bloqueantes en alcance, jerarquía de captura, protección privada, aislamiento, mensajes, accesibilidad básica y ausencia de mutaciones en recuperación. `git diff --check` PASS. QA manual móvil/desktop: NOT RUN; no se afirma validación visual ni de navegador. Mutation: NOT RUN, diferida al quality gate preproducción. Sin cambios backend, nuevas dependencias ni modificaciones al trabajo de Manu.
 
 Criterios de aceptación:
 
@@ -1985,7 +1984,7 @@ Si frontend necesita un cambio backend:
 
 | Épica | Completed | In Progress | Planned | Blocked |
 |---|---:|---:|---:|---:|
-| Foundation | 5 | 1 | 4 | 0 |
+| Foundation | 6 | 0 | 4 | 0 |
 | IAM | 6 | 0 | 0 | 0 |
 | Business | 1 | 0 | 2 | 0 |
 | Resource | 7 | 0 | 0 | 0 |
@@ -1997,7 +1996,7 @@ Si frontend necesita un cambio backend:
 | Block | 3 | 0 | 0 | 0 |
 | Payment | 0 | 0 | 0 | 1 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **42** | **1** | **7** | **1** |
+| **TOTAL** | **43** | **0** | **7** | **1** |
 
 
 
