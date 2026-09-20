@@ -96,7 +96,7 @@ describe("Payment read queries", () => {
     });
     const { wrapper } = setup();
     const { result, rerender } = renderHook((value) => ({ balance: useOutstandingBalance(value), history: usePaymentHistory(value) }), { initialProps: input, wrapper });
-    await waitFor(() => expect(oldBalanceSignal).toBeInstanceOf(AbortSignal));
+    await waitFor(() => { expect(oldBalanceSignal).toBeInstanceOf(AbortSignal); expect(oldHistorySignal).toBeInstanceOf(AbortSignal); });
     const next = scope === "Business" ? { ...input, businessId: "business-b" } : { ...input, userId: "user-b", businessId: "business-b" };
     rerender(next);
     await waitFor(() => expect(oldBalanceSignal?.aborted && oldHistorySignal?.aborted).toBe(true));
