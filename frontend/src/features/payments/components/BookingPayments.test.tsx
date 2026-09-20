@@ -26,7 +26,7 @@ describe("BookingPayments", () => {
     expect(screen.getByText("₲ 1.000.000")).toBeVisible();
     expect(screen.getByText("₲ 0")).toBeVisible();
     expect(screen.getByText("Pago parcial")).toBeVisible();
-    expect(screen.getByText("Sin próximo vencimiento")).toBeVisible();
+    expect(screen.getByText("Pago parcial").parentElement).toHaveTextContent("Sin próximo vencimiento");
     expect(screen.getByText("Referencia: REC-1")).toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: "Cargar más" }));
     expect(fetchNextPage).toHaveBeenCalledOnce();
@@ -82,6 +82,6 @@ describe("BookingPayments", () => {
   it("does not duplicate repeated item ids from backend pages", () => {
     success({}, { data: { pages: [{ items: [payment], pageInfo: { hasNextPage: true, nextCursor: "one" } }, { items: [payment], pageInfo: { hasNextPage: false, nextCursor: null } }] } });
     show();
-    expect(screen.getAllByText("₲ 300.000")).toHaveLength(1);
+    expect(screen.getByRole("list").querySelectorAll("li")).toHaveLength(1);
   });
 });
