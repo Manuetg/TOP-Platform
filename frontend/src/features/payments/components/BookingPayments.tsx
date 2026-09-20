@@ -52,6 +52,7 @@ export function BookingPayments(props: Props) {
   const balanceRetryButton = useRef<HTMLButtonElement>(null);
   const balanceStatus = useRef<HTMLParagraphElement>(null);
   const historyRetryButton = useRef<HTMLButtonElement>(null);
+  const historyRefreshButton = useRef<HTMLButtonElement>(null);
   const historyStatus = useRef<HTMLParagraphElement>(null);
   const previousHasNext = useRef<boolean | undefined>(undefined);
   const previousHistoryError = useRef<boolean | undefined>(undefined);
@@ -85,6 +86,13 @@ export function BookingPayments(props: Props) {
     void balance.refetch();
   }
 
+  function retryHistoryRefresh() {
+    if (document.activeElement === historyRefreshButton.current) {
+      historyStatus.current?.focus();
+    }
+    void history.refetch();
+  }
+
   return (
     <section className="booking-payments" aria-labelledby="booking-payments-title">
       <div className="booking-payments__heading"><WalletCards size={20} aria-hidden="true" /><div><h2 id="booking-payments-title">Pagos</h2><p>Saldo e historial de cobros registrados.</p></div></div>
@@ -99,7 +107,7 @@ export function BookingPayments(props: Props) {
         <h3 id="payment-history-title">Historial de pagos</h3>
         {historyAccessError ? <div role="alert"><p>{safeMessage(history.error, "No pudimos cargar el historial de pagos.")}</p></div> : history.isLoading && !hasUsableHistory ? <p role="status">Cargando historial de pagos...</p> : history.isError && !hasUsableHistory ? <div role="alert"><p>{safeMessage(history.error, "No pudimos cargar el historial de pagos.")}</p><button ref={historyRetryButton} type="button" className="top-button top-button--secondary" onFocus={() => { wasHistoryRetryFocused.current = true; }} onBlur={() => { wasHistoryRetryFocused.current = false; }} onClick={() => void history.refetch()}>Reintentar historial</button></div> : !hasUsableHistory ? <p className="booking-detail-empty-value">Todavía no hay pagos registrados.</p> : <ol className="booking-payments__list">{items.map((item) => <li key={item.id}><CreditCard size={18} aria-hidden="true" /><div><strong>{formatMoney(item.amountMinor, item.currency)}</strong><span>{methodLabels[item.method]} · {item.status === "RECORDED" ? "Registrado" : item.status}</span><time dateTime={item.paidAt}>{formatInstant(item.paidAt, props.timezone)}</time>{item.reference && <span>Referencia: {item.reference}</span>}{item.note && <span>Nota: {item.note}</span>}</div></li>)}</ol>}
         {historyPageError && <div className="booking-payments__page-error" role="alert"><AlertCircle size={18} aria-hidden="true" /><span>{safeMessage(history.error, "No pudimos cargar más pagos.")}</span></div>}
-        {historyRefreshError && <div className="booking-payments__page-error" role="alert"><AlertCircle size={18} aria-hidden="true" /><span>{safeMessage(history.error, "No pudimos actualizar el historial de pagos.")}</span><button type="button" className="top-button top-button--secondary" onClick={() => void history.refetch()}>Reintentar actualización</button></div>}
+        {historyRefreshError && <div className="booking-payments__page-error" role="alert"><AlertCircle size={18} aria-hidden="true" /><span>{safeMessage(history.error, "No pudimos actualizar el historial de pagos.")}</span><button ref={historyRefreshButton} type="button" className="top-button top-button--secondary" onClick={retryHistoryRefresh}>Reintentar actualización</button></div>}
         <p ref={historyStatus} tabIndex={-1} className="booking-payments__page-status" aria-label="Estado de paginación" aria-live="polite">{history.isFetchingNextPage ? "Cargando más pagos..." : !history.hasNextPage && items.length > 0 ? "No hay más pagos para mostrar." : ""}</p>
         {history.hasNextPage && !historyAccessError && <button ref={moreButton} type="button" className="top-button top-button--secondary" disabled={history.isFetchingNextPage} onFocus={() => { wasMoreFocused.current = true; }} onBlur={() => { wasMoreFocused.current = false; }} onClick={() => { if (!history.isFetchingNextPage) void history.fetchNextPage(); }}>{history.isFetchingNextPage ? "Cargando..." : historyPageError ? "Reintentar cargar más" : "Cargar más"}</button>}
       </section>

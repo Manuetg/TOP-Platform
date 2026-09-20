@@ -45,7 +45,9 @@ describe("BookingPayments pagination integration", () => {
   });
 
   it("keeps a complete history after refetch failure and retries the update without requesting another page", async () => {
-    vi.mocked(listPayments).mockResolvedValueOnce(page("payment-1", false, null)).mockRejectedValueOnce(new Error("transport")).mockResolvedValueOnce(page("payment-1", false, null));
+    let resolveUpdate: (value: PaymentHistoryPage) => void;
+    const pendingUpdate = new Promise<PaymentHistoryPage>((resolve) => { resolveUpdate = resolve; });
+    vi.mocked(listPayments).mockResolvedValueOnce(page("payment-1", false, null)).mockRejectedValueOnce(new Error("transport")).mockReturnValueOnce(pendingUpdate);
     const user = userEvent.setup();
     const { client } = show();
     const region = screen.getByRole("region", { name: "Historial de pagos" });
@@ -54,9 +56,15 @@ describe("BookingPayments pagination integration", () => {
     await waitFor(() => expect(within(region).getByRole("alert")).toHaveTextContent("No pudimos actualizar el historial de pagos."));
     expect(within(region).getByText("Referencia: payment-1")).toBeVisible();
     expect(within(region).queryByRole("button", { name: /cargar más/i })).not.toBeInTheDocument();
-    await user.click(within(region).getByRole("button", { name: "Reintentar actualización" }));
+    const retry = within(region).getByRole("button", { name: "Reintentar actualización" });
+    retry.focus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByLabelText("Estado de paginación")).toHaveFocus();
     await waitFor(() => expect(listPayments).toHaveBeenCalledTimes(3));
     expect(listPayments).toHaveBeenNthCalledWith(2, expect.objectContaining({ cursor: null }));
     expect(listPayments).toHaveBeenNthCalledWith(3, expect.objectContaining({ cursor: null }));
+    resolveUpdate!(page("payment-1", false, null));
+    await waitFor(() => expect(within(region).queryByRole("alert")).not.toBeInTheDocument());
+    expect(within(region).getByText("Referencia: payment-1")).toBeVisible();
   });
 });
