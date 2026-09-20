@@ -12,7 +12,7 @@ vi.mock("../api/get-outstanding-balance", () => ({ getOutstandingBalance: vi.fn(
 vi.mock("../api/list-payments", () => ({ listPayments: vi.fn() }));
 const balance: OutstandingBalance = { bookingId: "booking", currency: "PYG", totalAmountMinor: 1000, paidAmountMinor: 0, outstandingAmountMinor: 1000, overdueAmountMinor: 0, financialStatus: "UNPAID", nextDueDate: null, nextDueAmountMinor: null };
 const page = (id: string, hasNextPage: boolean, nextCursor: string | null): PaymentHistoryPage => ({ items: [{ id, bookingId: "booking", amountMinor: 1000, currency: "PYG", method: "CASH", reference: id, note: null, paidAt: "2026-09-02T12:00:00.000Z", createdAt: "2026-09-02T12:00:00.000Z", recordedByUserId: "user", status: "RECORDED" }], pageInfo: { hasNextPage, nextCursor } });
-function show() { const client = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return render(<QueryClientProvider client={client}><BookingPayments userId="user" businessId="business" bookingId="booking" accessToken="token" timezone="America/Asuncion" enabled /></QueryClientProvider>); }
+function show() { const client = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return { client, ...render(<QueryClientProvider client={client}><BookingPayments userId="user" businessId="business" bookingId="booking" accessToken="token" timezone="America/Asuncion" enabled /></QueryClientProvider>) }; }
 
 beforeEach(() => { vi.mocked(getOutstandingBalance).mockReset(); vi.mocked(listPayments).mockReset(); vi.mocked(getOutstandingBalance).mockResolvedValue(balance); });
 describe("BookingPayments pagination integration", () => {
@@ -42,5 +42,21 @@ describe("BookingPayments pagination integration", () => {
     await waitFor(() => expect(within(region).getByRole("alert")).toHaveTextContent("No tienes permiso"));
     expect(within(region).queryByRole("list")).not.toBeInTheDocument();
     expect(within(region).queryByRole("button", { name: /cargar más/i })).not.toBeInTheDocument();
+  });
+
+  it("keeps a complete history after refetch failure and retries the update without requesting another page", async () => {
+    vi.mocked(listPayments).mockResolvedValueOnce(page("payment-1", false, null)).mockRejectedValueOnce(new Error("transport")).mockResolvedValueOnce(page("payment-1", false, null));
+    const user = userEvent.setup();
+    const { client } = show();
+    const region = screen.getByRole("region", { name: "Historial de pagos" });
+    await waitFor(() => expect(within(region).getByText("Referencia: payment-1")).toBeVisible());
+    await client.refetchQueries({ queryKey: ["payment-history"] });
+    await waitFor(() => expect(within(region).getByRole("alert")).toHaveTextContent("No pudimos actualizar el historial de pagos."));
+    expect(within(region).getByText("Referencia: payment-1")).toBeVisible();
+    expect(within(region).queryByRole("button", { name: /cargar más/i })).not.toBeInTheDocument();
+    await user.click(within(region).getByRole("button", { name: "Reintentar actualización" }));
+    await waitFor(() => expect(listPayments).toHaveBeenCalledTimes(3));
+    expect(listPayments).toHaveBeenNthCalledWith(2, expect.objectContaining({ cursor: null }));
+    expect(listPayments).toHaveBeenNthCalledWith(3, expect.objectContaining({ cursor: null }));
   });
 });
