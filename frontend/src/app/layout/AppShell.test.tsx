@@ -1,4 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { QueryProvider } from "../providers/QueryProvider";
+import type { ReactElement } from "react";
+import { render as rtlRender, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { AppShell } from "./AppShell";
@@ -148,7 +150,7 @@ describe("AppShell", () => {
       </AppShell>,
     );
 
-    const searchboxes = screen.getAllByRole("searchbox", {
+    const searchboxes = screen.getAllByRole("combobox", {
       name: "Buscar en TOP",
     });
 
@@ -159,7 +161,7 @@ describe("AppShell", () => {
     });
 
     await user.click(
-      within(panel).getByRole("button", {
+      within(panel).getByRole("option", {
         name: "Recursos",
       }),
     );
@@ -290,3 +292,5 @@ describe("AppShell", () => {
     expect(screen.getByRole("button", { name: "Cerrando sesión..." })).toBeDisabled();
   });
 });
+
+function render(ui: ReactElement) { return rtlRender(<QueryProvider>{ui}</QueryProvider>); }

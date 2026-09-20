@@ -1,4 +1,6 @@
-﻿import { render, screen } from "@testing-library/react";
+import { QueryProvider } from "../providers/QueryProvider";
+import type { ReactElement } from "react";
+import { render as rtlRender, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   MemoryRouter,
@@ -76,3 +78,5 @@ describe("AppLayout", () => {
     ).toBeInTheDocument();
   });
 });
+
+function render(ui: ReactElement) { return rtlRender(<QueryProvider>{ui}</QueryProvider>); }

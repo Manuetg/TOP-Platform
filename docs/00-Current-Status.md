@@ -1,6 +1,6 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-09-19
+Última actualización: 2026-09-20
 
 ## Responsabilidades
 
@@ -62,12 +62,13 @@ Pendientes principales posteriores:
 ## Estado Frontend
 
 Estado:
+- FE-FND-009 — In Progress. Mínimo C aprobado en [PR draft #83](https://github.com/Manuetg/TOP-Platform/pull/83), rama `feature/fe-fnd-009-global-search`, base `3ebaf021ce25937e111c8d099762aa6e33761a18`; backend expresamente autorizado, histórico 53/53 preservado. Runs/HEAD/checkout sintético finales en PR. Quality gates solo en CI; builds locales únicamente para puesta en marcha de QA autorizada. PM comunica resuelto el hallazgo estático de reintento en `adcf86b` (no aprobación formal GitHub). QA real Edge 153.0.4234.48 con API/frontend Docker: desktop 1440×900 y móvil emulado 390×844; matriz por caso en Backlog. Se detectó foco perdido al sustituir el h1 de carga y se corrigió en `7b0afc7` enfocando MAIN persistente, con regresión/CI y repetición en navegador. Integración, reintento controlado, teclado, scroll, cancelación y logout comprobados; proxy retirado y API directa restaurada. NOT RUN: touch real y cambio real de Business/identidad. Pendientes revisión independiente del nuevo ajuste y DoD; sin merge.
 - Dashboard Business implementado y mergeado en `/app`.
 - FE-DSH-001 — Completed.
 - FE-BUS-001 — Completed; las siete features tenant-scoped consumen Active Business Context y el ciclo de vida está cubierto por tests.
 - FE-FND-004 — Completed preparado, efectivo en `develop` al mergear PR #82. Boundary de contenido bajo ProtectedRoute/BusinessBoundary conserva shell, cuenta, Auth y QueryClient; reintento local y cambio de ruta/identidad/Business recuperan la vista sin reproducir mutations. Respaldo de shell/router y boundary exterior de providers sin dependencias de contexto, con inicio/recarga de documento. FE-FND-003 mantiene errores API locales; no se capturan por sí solos eventos o promesas fuera del árbol React. Frontend CI `35473054747` SUCCESS (Node `v22.23.2`, build, 67 archivos/317 tests, lint); Backend CI `35473054790` SUCCESS. Self-review sin bloqueantes y diff check PASS. HEAD/checkout finales en el cuerpo de la misma PR. QA manual móvil/desktop: NOT RUN; mutation diferida. Backend y trabajo de Manu sin cambios.
 - FE-FND-003 — manejo compartido de errores API completo; cierre efectivo al mergear PR #81. Frontend CI `35386101873` aprobó Node `v22.23.2`, build, 64 archivos/296 tests y lint; Backend CI `35386101857` SUCCESS. QA manual: NOT RUN.
-- 43/51 historias frontend activas Completed; 0 In Progress, 7 Planned y 1 Blocked.
+- 43/51 historias frontend activas Completed; 1 In Progress, 6 Planned y 1 Blocked.
 - Resources y Rate Plans usan contratos reales; Revenue, Occupancy y Reservations usan el Dashboard backend real.
 - Los widgets Dashboard sin contrato backend aprobado fueron retirados del MVP; no se muestran datos ficticios.
 - FE-IAM-003 — Session Persistence, FE-IAM-004 — Refresh Token Rotation, FE-IAM-005 — Logout y FE-IAM-006 — Protected Routes están Completed.

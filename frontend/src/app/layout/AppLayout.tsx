@@ -63,6 +63,7 @@ export function AppLayout() {
       userName={session?.user.email ?? "Usuario"}
       userRole={activeRole ?? "Sin rol"}
       onNavigate={handleNavigate}
+      onSearchNavigate={(path) => { void navigate(path); }}
       onLogout={() => { void logout().finally(() => navigate("/login", { replace: true })); }}
       isLoggingOut={isLoggingOut}
     >

@@ -1,3 +1,4 @@
+import { GlobalSearch } from "../../features/search/components/GlobalSearch";
 import {
   useEffect,
   useState,
@@ -16,7 +17,6 @@ import {
   LogOut,
   Menu,
   Settings,
-  Search,
   Tags,
   WalletCards,
   X,
@@ -44,6 +44,7 @@ interface AppShellProps extends PropsWithChildren {
   userRole: string;
   onNavigate?: (target: AppNavigationTarget) => void;
   onBusinessMenuOpen?: () => void;
+  onSearchNavigate?: (path: string) => void;
   onGlobalSearchChange?: (value: string) => void;
   onNotificationsOpen?: () => void;
   onProfileOpen?: () => void;
@@ -84,22 +85,6 @@ const moreItems = [
 
 const moreSections: AppSection[] = moreItems.map((item) => item.id);
 
-const searchableItems = [
-  { id: "home", label: "Inicio" },
-  { id: "calendar", label: "Calendario" },
-  { id: "bookings", label: "Reservas" },
-  { id: "availability", label: "Disponibilidad" },
-  { id: "resources", label: "Recursos" },
-  { id: "contacts", label: "Contactos" },
-  { id: "pricing", label: "Precios" },
-  { id: "payments", label: "Pagos" },
-  { id: "blocks", label: "Bloqueos" },
-  { id: "settings", label: "Configuración" },
-] satisfies Array<{
-  id: AppSection;
-  label: string;
-}>;
-
 export function AppShell({
   activeSection,
   businessName,
@@ -108,6 +93,7 @@ export function AppShell({
   onNavigate,
   onBusinessMenuOpen,
   onGlobalSearchChange,
+  onSearchNavigate,
   onNotificationsOpen,
   onProfileOpen,
   onLogout,
@@ -115,7 +101,6 @@ export function AppShell({
   children,
 }: AppShellProps) {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [headerMenu, setHeaderMenu] = useState<
     "business" | "notifications" | "profile" | null
   >(null);
@@ -126,14 +111,6 @@ export function AppShell({
     .slice(0, 2)
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
-
-  const normalizedSearch = searchQuery.trim().toLocaleLowerCase("es");
-
-  const searchResults = normalizedSearch
-    ? searchableItems.filter((item) =>
-        item.label.toLocaleLowerCase("es").includes(normalizedSearch),
-      )
-    : [];
 
   useEffect(() => {
     if (!isMoreOpen) {
@@ -258,34 +235,7 @@ export function AppShell({
         </button>
 
         <div className="top-global-header__search-wrap">
-          <label className="top-global-header__search">
-            <Search size={18} aria-hidden="true" />
-
-            <input
-              type="search"
-              aria-label="Buscar en TOP"
-              placeholder="Buscar en TOP..."
-              value={searchQuery}
-              onChange={(event) => {
-                const value = event.target.value;
-                setSearchQuery(value);
-                setHeaderMenu(null);
-                onGlobalSearchChange?.(value);
-              }}
-              onKeyDown={(event) => {
-                if (
-                  event.key === "Enter" &&
-                  searchResults.length > 0
-                ) {
-                  navigate(searchResults[0].id);
-                }
-
-                if (event.key === "Escape") {
-                  setSearchQuery("");
-                }
-              }}
-            />
-          </label>
+          <GlobalSearch onModuleNavigate={navigate} onEntityNavigate={onSearchNavigate} onChange={onGlobalSearchChange} onOpen={() => setHeaderMenu(null)} menuOpen={headerMenu !== null} />
         </div>
 
         <div className="top-global-header__actions">
@@ -403,40 +353,13 @@ export function AppShell({
           <ChevronDown size={17} aria-hidden="true" />
         </button>
 
-        <label className="top-mobile-header__search">
-          <Search size={18} aria-hidden="true" />
-
-          <input
-            type="search"
-            aria-label="Buscar en TOP"
-            placeholder="Buscar en TOP..."
-            value={searchQuery}
-            onChange={(event) => {
-              const value = event.target.value;
-              setSearchQuery(value);
-              setHeaderMenu(null);
-              onGlobalSearchChange?.(value);
-            }}
-            onKeyDown={(event) => {
-              if (
-                event.key === "Enter" &&
-                searchResults.length > 0
-              ) {
-                navigate(searchResults[0].id);
-              }
-
-              if (event.key === "Escape") {
-                setSearchQuery("");
-              }
-            }}
-          />
-        </label>
+        <GlobalSearch variant="mobile" onModuleNavigate={navigate} onEntityNavigate={onSearchNavigate} onChange={onGlobalSearchChange} onOpen={() => setHeaderMenu(null)} menuOpen={headerMenu !== null} />
       </header>
 
 
-      {(headerMenu !== null || searchQuery.trim().length > 0) && (
+      {(headerMenu !== null) && (
         <div
-          className={`top-header-popover-layer${searchQuery.trim().length > 0 ? " top-header-popover-layer--search" : headerMenu === "business" ? " top-header-popover-layer--business" : ""}`}
+          className={`top-header-popover-layer${headerMenu === "business" ? " top-header-popover-layer--business" : ""}`}
         >
           <button
             type="button"
@@ -444,46 +367,14 @@ export function AppShell({
             aria-label="Cerrar panel del encabezado"
             onClick={() => {
               setHeaderMenu(null);
-              setSearchQuery("");
             }}
           />
 
           <section
-            className={`top-header-popover${searchQuery.trim().length > 0 ? " top-header-popover--search" : headerMenu === "business" ? " top-header-popover--business" : ""}`}
+            className={`top-header-popover${headerMenu === "business" ? " top-header-popover--business" : ""}`}
             aria-label="Panel del encabezado"
           >
-            {searchQuery.trim().length > 0 ? (
-              <>
-                <div className="top-header-popover__heading">
-                  <span>Búsqueda</span>
-                  <strong>Resultados</strong>
-                </div>
-
-                {searchResults.length > 0 ? (
-                  <div className="top-header-popover__list">
-                    {searchResults.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className="top-header-popover__item"
-                        onClick={() => navigate(item.id)}
-                      >
-                        <Search size={18} aria-hidden="true" />
-                        <span>{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="top-header-popover__empty">
-                    <Search size={20} aria-hidden="true" />
-                    <strong>Sin resultados</strong>
-                    <span>
-                      No encontramos un módulo con ese nombre.
-                    </span>
-                  </div>
-                )}
-              </>
-            ) : headerMenu === "business" ? (
+            {headerMenu === "business" ? (
               <>
                 <div className="top-header-popover__heading">
                   <span>Establecimiento</span>
