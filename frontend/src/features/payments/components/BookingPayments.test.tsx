@@ -73,6 +73,15 @@ describe("BookingPayments", () => {
     expect(screen.getByText("No hay más pagos para mostrar.")).toHaveFocus();
   });
 
+  it("moves focus from a disappeared history retry button", () => {
+    setHistory({ data: undefined, isError: true, error: new Error("network") });
+    const view = show();
+    screen.getByRole("button", { name: "Reintentar historial" }).focus();
+    setHistory({ data: { pages: [], pageParams: [] }, hasNextPage: false });
+    view.rerender(<BookingPayments {...props} />);
+    expect(screen.getByLabelText("Estado de paginación")).toHaveFocus();
+  });
+
   it("does not duplicate repeated item ids from backend pages", () => {
     const secondPage: PaymentHistoryPage = { items: [payment], pageInfo: { hasNextPage: false, nextCursor: null } };
     success({}, { data: { pages: [firstPage, secondPage], pageParams: [null, "opaque"] }, hasNextPage: false });
