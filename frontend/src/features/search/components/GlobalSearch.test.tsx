@@ -16,10 +16,11 @@ const response = (value = data(), status = 200) => new Response(JSON.stringify(v
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>((done) => { resolve = done; }); return { promise, resolve }; }
 function mount() {
   const client = new QueryClient();
-  const ui = () => <QueryClientProvider client={client}><GlobalSearch onModuleNavigate={moduleNavigate} onEntityNavigate={navigate} /><main className="top-app-shell__content"><h1>Destino</h1></main><button>Después</button></QueryClientProvider>;
+  let heading = "Destino";
+  const ui = () => <QueryClientProvider client={client}><GlobalSearch onModuleNavigate={moduleNavigate} onEntityNavigate={navigate} /><main className="top-app-shell__content"><h1 key={heading}>{heading}</h1></main><button>Después</button></QueryClientProvider>;
   const view = render(ui());
   const input = screen.getByRole("combobox");
-  return { input, client, refresh: () => view.rerender(ui()) };
+  return { input, client, refresh: () => view.rerender(ui()), replaceHeading: () => { heading = "Detalle cargado"; view.rerender(ui()); } };
 }
 const advance = async (ms = 300) => {
   if (!vi.isFakeTimers()) {
@@ -114,7 +115,7 @@ it.each(["resource", "contact", "booking"] as const)("abre el detalle %s, limpia
   const { input } = mount(); type(input, "consulta"); await advance();
   fireEvent.click(screen.getByRole("option", { name: /Hallazgo/ })); await advance(20);
   expect(navigate).toHaveBeenCalledWith(`/app/${{ resource: "resources", contact: "contacts", booking: "bookings" }[kind]}/id-1`);
-  expect(input).toHaveValue(""); expect(screen.getByRole("heading", { name: "Destino" })).toHaveFocus();
+  expect(input).toHaveValue(""); expect(screen.getByRole("main")).toHaveFocus();
 });
 it("mantiene selección por id al llegar resultados y permite flechas/Enter", async () => {
   const old = deferred<Response>(); fetchMock.mockReturnValueOnce(old.promise);
@@ -170,7 +171,7 @@ it.each([200, 500])("recupera foco antes del reintento pendiente y conserva cons
     await user.keyboard("{ArrowDown}{Enter}");
     expect(navigate).toHaveBeenCalledWith("/app/resources/id-1");
     await advance(30);
-    expect(screen.getByRole("heading", { name: "Destino" })).toHaveFocus();
+    expect(screen.getByRole("main")).toHaveFocus();
   } else {
     expect(screen.getByRole("button", { name: "Reintentar búsqueda" })).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("No pudimos buscar entidades");
@@ -209,4 +210,14 @@ it.each(["cerrar", "contexto", "salir"])("no roba foco ni repone resultados tard
   expect(outside).toHaveFocus(); expect(input).toHaveAttribute("aria-expanded", "false");
   expect(screen.queryByText("Tardío")).not.toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledTimes(2); expect(navigate).not.toHaveBeenCalled();
+});
+
+it("conserva foco en el shell cuando el detalle sustituye su título de carga", async () => {
+  const { input, replaceHeading } = mount(); type(input, "consulta"); await advance();
+  fireEvent.click(screen.getByRole("option", { name: /Resultado/ })); await advance(20);
+  expect(screen.getByRole("main")).toHaveFocus();
+  replaceHeading();
+  expect(screen.queryByRole("heading", { name: "Destino" })).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Detalle cargado" })).toBeInTheDocument();
+  expect(screen.getByRole("main")).toHaveFocus();
 });
