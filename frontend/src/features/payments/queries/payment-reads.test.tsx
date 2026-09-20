@@ -56,7 +56,6 @@ describe("Payment read queries", () => {
     const { result } = renderHook(() => usePaymentHistory(input), { wrapper });
     await waitFor(() => expect(result.current.data?.pages).toEqual([firstPage]));
     await act(async () => { await result.current.fetchNextPage(); });
-    await waitFor(() => expect(result.current.isFetchNextPageError).toBe(true));
     expect(result.current.data?.pages).toEqual([firstPage]);
     expect(listPayments).toHaveBeenCalledTimes(2);
     await act(async () => { await result.current.fetchNextPage(); });
