@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import type { InfiniteData } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../shared/api/api-client";
@@ -20,16 +21,16 @@ const firstPage: PaymentHistoryPage = { items: [payment], pageInfo: { hasNextPag
 const props = { userId: "user", businessId: "business", bookingId: "booking", accessToken: "token", timezone: "America/Asuncion", enabled: true };
 type BalanceResult = ReturnType<typeof useOutstandingBalance>;
 type HistoryResult = ReturnType<typeof usePaymentHistory>;
-type BalanceOverrides = Partial<BalanceResult>;
-type HistoryOverrides = Partial<HistoryResult>;
+interface BalanceOverrides { data?: OutstandingBalance; isLoading?: boolean; isFetching?: boolean; isError?: boolean; error?: Error; }
+interface HistoryOverrides { data?: InfiniteData<PaymentHistoryPage>; isLoading?: boolean; isError?: boolean; isFetchingNextPage?: boolean; isFetchNextPageError?: boolean; hasNextPage?: boolean; error?: Error; }
 
 function show() { return render(<BookingPayments {...props} />); }
 function setBalance(overrides: BalanceOverrides = {}) {
-  const result = { data: outstanding, isLoading: false, isFetching: false, isError: false, refetch: refetchBalance, ...overrides } satisfies BalanceOverrides;
+  const result = { data: outstanding, isLoading: false, isFetching: false, isError: false, refetch: refetchBalance, ...overrides } satisfies BalanceOverrides & { refetch: typeof refetchBalance };
   balance.mockReturnValue(result as BalanceResult);
 }
 function setHistory(overrides: HistoryOverrides = {}) {
-  const result = { data: { pages: [firstPage], pageParams: [null] }, isLoading: false, isError: false, hasNextPage: true, isFetchingNextPage: false, isFetchNextPageError: false, fetchNextPage, refetch: refetchHistory, ...overrides } satisfies HistoryOverrides;
+  const result = { data: { pages: [firstPage], pageParams: [null] }, isLoading: false, isError: false, hasNextPage: true, isFetchingNextPage: false, isFetchNextPageError: false, fetchNextPage, refetch: refetchHistory, ...overrides } satisfies HistoryOverrides & { fetchNextPage: typeof fetchNextPage; refetch: typeof refetchHistory };
   history.mockReturnValue(result as HistoryResult);
 }
 function success(balanceOverrides: BalanceOverrides = {}, historyOverrides: HistoryOverrides = {}) { setBalance(balanceOverrides); setHistory(historyOverrides); }
