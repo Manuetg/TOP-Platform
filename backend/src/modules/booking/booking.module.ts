@@ -1,3 +1,5 @@
+import { BOOKING_SEARCH_READER } from './application/booking-search.reader';
+import { PrismaBookingSearchReader } from './infrastructure/prisma-booking-search.reader';
 import { Module } from '@nestjs/common';
 import { BusinessModule } from '../business/business.module';
 import { ContactModule } from '../contact/contact.module';
@@ -18,5 +20,5 @@ import { PrismaBookingTimelineRepository } from './infrastructure/prisma-booking
 import { ListBookingTimelineUseCase } from './application/list-booking-timeline.use-case';
 import { PrismaReservationsProjectionReader } from './infrastructure/prisma-reservations-projection.reader';
 
-@Module({ imports: [BusinessModule, ContactModule, ResourceModule], controllers: [BookingController], providers: [PrismaBookingRepository, PrismaBookingTimelineRepository, PrismaReservationsProjectionReader, { provide: BOOKING_REPOSITORY, useExisting: PrismaBookingRepository }, {provide:BOOKING_AVAILABILITY_LOOKUP,useExisting:PrismaBookingRepository}, {provide:BOOKING_TIMELINE_REPOSITORY,useExisting:PrismaBookingTimelineRepository}, {provide:RESERVATIONS_PROJECTION_READER,useExisting:PrismaReservationsProjectionReader}, CreateBookingUseCase, GetBookingUseCase, ListBookingsUseCase, UpdateBookingUseCase, ListBookingTimelineUseCase], exports: [BOOKING_REPOSITORY,BOOKING_AVAILABILITY_LOOKUP,BOOKING_TIMELINE_REPOSITORY,RESERVATIONS_PROJECTION_READER] })
+@Module({ imports: [BusinessModule, ContactModule, ResourceModule], controllers: [BookingController], providers: [PrismaBookingSearchReader, { provide: BOOKING_SEARCH_READER, useExisting: PrismaBookingSearchReader }, PrismaBookingRepository, PrismaBookingTimelineRepository, PrismaReservationsProjectionReader, { provide: BOOKING_REPOSITORY, useExisting: PrismaBookingRepository }, {provide:BOOKING_AVAILABILITY_LOOKUP,useExisting:PrismaBookingRepository}, {provide:BOOKING_TIMELINE_REPOSITORY,useExisting:PrismaBookingTimelineRepository}, {provide:RESERVATIONS_PROJECTION_READER,useExisting:PrismaReservationsProjectionReader}, CreateBookingUseCase, GetBookingUseCase, ListBookingsUseCase, UpdateBookingUseCase, ListBookingTimelineUseCase], exports: [BOOKING_SEARCH_READER, BOOKING_REPOSITORY,BOOKING_AVAILABILITY_LOOKUP,BOOKING_TIMELINE_REPOSITORY,RESERVATIONS_PROJECTION_READER] })
 export class BookingModule {}

@@ -1,3 +1,5 @@
+import { CONTACT_SEARCH_READER } from './application/contact-search.reader';
+import { PrismaContactSearchReader } from './infrastructure/prisma-contact-search.reader';
 import { Module } from '@nestjs/common';
 import { BusinessModule } from '../business/business.module';
 import { CreateContactUseCase } from './application/create-contact.use-case';
@@ -9,5 +11,5 @@ import { PrismaContactRepository } from './infrastructure/prisma-contact.reposit
 import { ContactController } from './presentation/contact.controller';
 import { CONTACT_LOOKUP } from './contact.contract';
 
-@Module({ imports: [BusinessModule], controllers: [ContactController], providers: [PrismaContactRepository, { provide: CONTACT_REPOSITORY, useExisting: PrismaContactRepository }, { provide: CONTACT_LOOKUP, useExisting: PrismaContactRepository }, CreateContactUseCase, GetContactUseCase, SearchContactsUseCase, UpdateContactUseCase], exports: [CONTACT_REPOSITORY, CONTACT_LOOKUP] })
+@Module({ imports: [BusinessModule], controllers: [ContactController], providers: [PrismaContactSearchReader, { provide: CONTACT_SEARCH_READER, useExisting: PrismaContactSearchReader }, PrismaContactRepository, { provide: CONTACT_REPOSITORY, useExisting: PrismaContactRepository }, { provide: CONTACT_LOOKUP, useExisting: PrismaContactRepository }, CreateContactUseCase, GetContactUseCase, SearchContactsUseCase, UpdateContactUseCase], exports: [CONTACT_SEARCH_READER, CONTACT_REPOSITORY, CONTACT_LOOKUP] })
 export class ContactModule {}

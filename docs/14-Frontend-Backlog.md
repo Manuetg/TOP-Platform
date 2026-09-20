@@ -48,11 +48,11 @@ Total historias frontend activas: 51
 Estado actual:
 
 - Completed: 43
-- In Progress: 0
-- Planned: 7
+- In Progress: 1
+- Planned: 6
 - Blocked: 1
 
-Recuento por estados reales: 43 + 0 + 7 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
+Recuento por estados reales: 43 + 1 + 6 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
 
 ---
 
@@ -338,7 +338,7 @@ Criterios de aceptación:
 
 ## FE-FND-009 — Global Search
 
-Estado: Planned
+Estado: In Progress
 
 Objetivo:
 
@@ -382,6 +382,19 @@ Criterios de aceptación:
 - seleccionar un resultado navega al destino correcto;
 - búsqueda respeta Business y permisos;
 - no se duplican reglas de negocio en frontend.
+
+
+Mínimo C aprobado por Rolo — implementación en esta misma historia:
+
+- Backend expresamente autorizado como dependencia inseparable; extensión FE-FND-009 sobre el baseline histórico backend 53/53, sin nueva épica ni modificación de los contratos de listado/detalle existentes.
+- `GET /api/businesses/:businessId/search?q=...`, autenticado, `Cache-Control: no-store`, Business ACTIVE; `q` string único, trim, 2–120 caracteres. Parámetros inválidos 400; falta de acceso 403; negocio ausente 404 e inactivo 409.
+- `search.read` para los cuatro roles; resolución de membresía vigente y policy existente por cada grupo (`resource.read`, `contact.read`, `booking.read`). Grupos denegados omitidos y no consultados, sin señales de existencia.
+- Resources por name/internalCode y Contacts por name/lastName/phone/whatsapp/email/documentNumber: coincidencia parcial literal e insensible a mayúsculas, sin normalización avanzada. Escape de `%`, `_` y barra inversa; filtros parametrizados, tenant y límite en PostgreSQL. Orden existente, hasta seis filas para entregar cinco y `hasMore`, sin COUNT ni filtro nuevo de estados.
+- Bookings solo por UUID completo exacto dentro del Business, máximo uno y `hasMore: false`; no hay numeración comercial, búsqueda por relaciones ni UUID parcial. Identificador ajeno/inexistente produce grupo vacío. Subtitle usa fechas puras existentes separadas por ` → `; sin fechas es null.
+- DTO mínimo por item: type/id/title/subtitle/status; Contact no expone documento en resultados. Consultas concurrentes autorizadas; un fallo técnico invalida todo el bloque remoto.
+- Frontend: módulos inmediatos, entidades con debounce 250 ms, query key por usuario/Business/consulta y signal hasta `apiRequest`. Sin retries automáticos, sin datos anteriores durante debounce; cierre/cambio de contexto cancela solo Search. Se conserva recovery 401 y refresh compartido.
+- Combobox/listbox con grupos, opciones estables por ID, flechas/Enter/Escape, Tab sin trampa, anuncios y foco tras navegación. Las reservas indican UUID completo. Truncamiento ofrece abrir módulo sin prometer filtros.
+- Tests escritos: HTTP y policy reales con lectores controlados; lectores sobre PostgreSQL; aceptación de composición; frontend con QueryClient y fetch controlado. No equivalen a QA de navegador. CI pendiente; QA manual móvil/desktop NOT RUN; mutation diferida.
 
 ---
 
@@ -1984,7 +1997,7 @@ Si frontend necesita un cambio backend:
 
 | Épica | Completed | In Progress | Planned | Blocked |
 |---|---:|---:|---:|---:|
-| Foundation | 6 | 0 | 4 | 0 |
+| Foundation | 6 | 1 | 3 | 0 |
 | IAM | 6 | 0 | 0 | 0 |
 | Business | 1 | 0 | 2 | 0 |
 | Resource | 7 | 0 | 0 | 0 |
@@ -1996,7 +2009,7 @@ Si frontend necesita un cambio backend:
 | Block | 3 | 0 | 0 | 0 |
 | Payment | 0 | 0 | 0 | 1 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **43** | **0** | **7** | **1** |
+| **TOTAL** | **43** | **1** | **6** | **1** |
 
 
 

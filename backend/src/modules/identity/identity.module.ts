@@ -1,3 +1,5 @@
+import { GetBusinessCapabilitiesUseCase } from './application/get-business-capabilities.use-case';
+import { AuthorizationPolicy } from '../../shared/application/authorization-policy';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -31,7 +33,7 @@ import { UserController } from './presentation/user.controller';
 @Module({
   imports: [ConfigModule, JwtModule.register({})],
   controllers: [UserController, MembershipController, AuthController],
-  providers: [
+  providers: [GetBusinessCapabilitiesUseCase, AuthorizationPolicy,
     PrismaIdentityService,
     PrismaMembershipRepository,
     PrismaUserRepository,
@@ -60,6 +62,6 @@ import { UserController } from './presentation/user.controller';
     DisableUserUseCase,
     UpdateUserUseCase,
   ],
-  exports: [ACCESS_TOKEN_VERIFIER, MEMBERSHIP_REPOSITORY, USER_BY_ID_LOOKUP],
+  exports: [GetBusinessCapabilitiesUseCase,ACCESS_TOKEN_VERIFIER, MEMBERSHIP_REPOSITORY, USER_BY_ID_LOOKUP],
 })
 export class IdentityModule {}

@@ -9,6 +9,7 @@ export enum AuthorizationScope {
 }
 
 export enum Capability {
+  SEARCH_READ = 'search.read',
   BUSINESS_READ = 'business.read',
   BUSINESS_UPDATE = 'business.update',
   BUSINESS_ARCHIVE = 'business.archive',
@@ -50,6 +51,7 @@ export const capabilityScopes: Readonly<Record<Capability, AuthorizationScope>> 
 );
 
 const roleCapabilities: Readonly<Record<Capability, readonly MembershipRole[]>> = Object.freeze({
+  [Capability.SEARCH_READ]: allRoles,
   [Capability.BUSINESS_READ]: allRoles,
   [Capability.BUSINESS_UPDATE]: ownerAdmin,
   [Capability.BUSINESS_ARCHIVE]: [MembershipRole.OWNER],

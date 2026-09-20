@@ -32,6 +32,7 @@ Un único despliegue contiene módulos con límites explícitos. Cada módulo ex
 - `payment`: planes, pagos, aplicaciones y saldo derivado.
 - `block`: indisponibilidades operativas.
 - `dashboard`: composición read-only de KPI derivados, sin persistencia propia.
+- `search`: composición read-only de resultados limitados por Business; extensión expresamente aprobada bajo FE-FND-009, sin tablas ni repositorio propio.
 - `audit`: historial y trazabilidad.
 - `files`: adjuntos y comprobantes.
 
@@ -51,6 +52,8 @@ PAY-004 reside en `payment` como Query Use Case read-only. Resuelve Business, Bo
 Pricing expone `GET /api/businesses/:businessId/rate-plans` mediante `ListRatePlansUseCase` y `RatePlanRepository`. El modo general devuelve el catálogo tenant-scoped; el modo contextual recibe conjuntamente Resource y estadía y aplica las reglas de seleccionabilidad antes de mapear al `RatePlanResponseDto` público. No accede a Booking ni expone PricingSnapshot, y no requiere cambios de schema.
 
 Dashboard consume contratos públicos de Application de los dominios propietarios. DSH-002 obtiene su proyección desde Availability, que agrega Resource, BookingResource, Booking y Block en PostgreSQL sin exponer su infraestructura a Dashboard. DSH-003 obtiene desde Payment un agregado tenant-scoped de Payments `RECORDED` por `paidAt`; la infraestructura agrupa por moneda mediante una única consulta PostgreSQL parametrizada, sin cargar Payments ni unir Booking, PricingSnapshot, PaymentPlan o PaymentApplications. DSH-004 obtiene desde Booking un agregado tenant-scoped por `createdAt` y estado actual mediante una única consulta PostgreSQL, sin cargar Bookings ni unir Resources, Contact o Timeline. Estas capacidades no tienen endpoint propio; DSH-001 las ejecuta concurrentemente desde Application y expone su composición all-or-nothing bajo `GET /api/businesses/:businessId/dashboard`, sin infraestructura de Dashboard. Los dominios fuente no dependen de Dashboard y no se persisten ni cachean los agregados.
+
+FE-FND-009 incorpora `GET /api/businesses/:businessId/search?q=...` como extensión aprobada del baseline backend 53/53. Search consume lectores públicos de Application de Resource, Contact y Booking; cada módulo propietario filtra y limita en PostgreSQL. No importa infraestructura ajena, no modifica los contratos HTTP existentes, no hay dependencias inversas ni N+1. Identity expone la resolución de capabilities basada en membresía vigente y la AuthorizationPolicy existente. `search.read` permite entrada a los cuatro roles, pero cada lector requiere su capability de lectura; los grupos denegados no se ejecutan ni se serializan. Se exige Business ACTIVE, se ejecutan consultas autorizadas concurrentemente y se falla todo el bloque ante un error técnico. Respuesta mínima no-store; sin índices, migraciones, caché persistente ni servicios externos.
 
 ## 8. Modelo multi-tenant
 

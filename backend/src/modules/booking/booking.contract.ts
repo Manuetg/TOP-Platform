@@ -68,3 +68,5 @@ export {
   BookingResourcesRequiredError,
   InvalidBookingInputError,
 } from './application/booking.errors';
+
+export { BOOKING_SEARCH_READER, type BookingSearchReader, type BookingSearchMatch } from './application/booking-search.reader';

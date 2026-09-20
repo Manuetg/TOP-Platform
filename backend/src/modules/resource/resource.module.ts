@@ -1,3 +1,5 @@
+import { RESOURCE_SEARCH_READER } from './application/resource-search.reader';
+import { PrismaResourceSearchReader } from './infrastructure/prisma-resource-search.reader';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BusinessModule } from '../business/business.module';
@@ -32,12 +34,12 @@ import { AmenityController } from './presentation/amenity.controller';
 import { BusinessAmenityController } from './presentation/business-amenity.controller';
 import { ResourceController } from './presentation/resource.controller';
 
-@Module({ imports: [BusinessModule], controllers: [ResourceController, AmenityController, BusinessAmenityController], providers: [
+@Module({ imports: [BusinessModule], controllers: [ResourceController, AmenityController, BusinessAmenityController], providers: [PrismaResourceSearchReader, { provide: RESOURCE_SEARCH_READER, useExisting: PrismaResourceSearchReader },
   PrismaResourceRepository, PrismaResourceImageRepository, PrismaAmenityRepository, PrismaResourceAmenityRepository, InMemoryFileStorage,
   { provide: RESOURCE_REPOSITORY, useExisting: PrismaResourceRepository }, { provide: RESOURCE_IMAGE_REPOSITORY, useExisting: PrismaResourceImageRepository },
   { provide: AMENITY_REPOSITORY, useExisting: PrismaAmenityRepository }, { provide: BUSINESS_AMENITY_REPOSITORY, useExisting: PrismaAmenityRepository }, { provide: RESOURCE_AMENITY_REPOSITORY, useExisting: PrismaResourceAmenityRepository },
   { provide: FILE_STORAGE, inject: [ConfigService, InMemoryFileStorage], useFactory: (config: ConfigService, memory: InMemoryFileStorage) => config.get<string>('S3_BUCKET') ? new S3FileStorage(config) : memory },
   CreateResourceUseCase, GetResourceUseCase, ListResourcesUseCase, ListAmenitiesUseCase, ListBusinessAmenitiesUseCase, CreateBusinessAmenityUseCase,
   SetResourceAmenitiesUseCase, UpdateResourceUseCase, DisableResourceUseCase, ReactivateResourceUseCase, UploadResourceImageUseCase, ListResourceImageCoversUseCase, ListResourceImagesUseCase, DeleteResourceImageUseCase, ReorderResourceImagesUseCase,
-], exports: [RESOURCE_REPOSITORY] })
+], exports: [RESOURCE_SEARCH_READER, RESOURCE_REPOSITORY] })
 export class ResourceModule {}
