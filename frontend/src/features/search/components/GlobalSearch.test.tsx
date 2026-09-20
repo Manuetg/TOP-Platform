@@ -20,7 +20,12 @@ function mount() {
   const input = screen.getByRole("combobox");
   return { input, client, refresh: () => view.rerender(ui()) };
 }
-const advance = async (ms = 300) => { await act(async () => { await vi.advanceTimersByTimeAsync(ms); }); };
+const advance = async (ms = 300) => {
+  await act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+  // La actualización del debounce monta la query al cerrar el primer act.
+  // Procesar su notificación sin adelantar el reloj de la prueba.
+  await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+};
 function type(input: HTMLElement, value: string) { fireEvent.change(input, { target: { value } }); }
 beforeEach(() => {
   vi.useFakeTimers(); vi.stubGlobal("fetch", fetchMock); fetchMock.mockReset().mockImplementation(() => Promise.resolve(response()));

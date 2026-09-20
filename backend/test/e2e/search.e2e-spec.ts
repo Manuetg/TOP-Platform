@@ -69,7 +69,7 @@ it('rechaza anónimo, otro tenant y membresía revocada sin ejecutar lectores', 
 });
 it('omite el grupo denegado sin invocar su reader ni exponer señales', async () => {
   const original = policy.isAllowed.bind(policy);
-  jest.spyOn(policy, 'isAllowed').mockImplementation((value, capability) => capability !== Capability.CONTACT_READ && original(value, capability));
+  jest.spyOn(policy, 'isAllowed').mockImplementation((value, capability) => capability !== String(Capability.CONTACT_READ) && original(value, capability));
   const response = await get().expect(200);
   expect((response.body as SearchResponse).groups.map((group) => group.type)).toEqual(['resource', 'booking']);
   expect(contacts.read).not.toHaveBeenCalled();

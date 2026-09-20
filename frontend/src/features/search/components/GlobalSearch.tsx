@@ -5,6 +5,12 @@ import { entityPaths, groupNames, moduleOptions, type ModuleTarget } from "../na
 import type { SearchType } from "../types";
 import "./GlobalSearch.css";
 
+const statusLabels: Record<string, string> = {
+  ACTIVE: "Activo", INACTIVE: "Inactivo", ARCHIVED: "Archivado", OUT_OF_SERVICE: "Fuera de servicio",
+  DRAFT: "Borrador", PENDING: "Pendiente", CONFIRMED: "Confirmada", IN_PROGRESS: "En curso",
+  COMPLETED: "Completada", CANCELLED: "Cancelada", NO_SHOW: "No show",
+};
+
 type Option = { key: string; label: string; subtitle?: string | null; status?: string; group: string; activate: () => void };
 type Props = {
   onModuleNavigate: (target: ModuleTarget) => void;
@@ -19,7 +25,6 @@ export function GlobalSearch({ onModuleNavigate, onEntityNavigate, onOpen, onCha
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
   const [selection, setSelection] = useState<{ scope: string; key: string } | null>(null);
-  const input = useRef<HTMLInputElement>(null);
   const root = useRef<HTMLDivElement>(null);
   const id = useId();
   const visible = open && !menuOpen;
@@ -62,6 +67,10 @@ export function GlobalSearch({ onModuleNavigate, onEntityNavigate, onOpen, onCha
   const options = [...modules, ...entities];
   const active = selection?.scope === scope ? options.find((option) => option.key === selection.key) : undefined;
   const optionId = (key: string) => `${id}-${key}`;
+  const activeId = visible && active ? optionId(active.key) : undefined;
+  useEffect(() => {
+    if (activeId) document.getElementById(activeId)?.scrollIntoView?.({ block: "nearest" });
+  }, [activeId]);
   const groups = ["Módulos", ...Object.values(groupNames)];
   const select = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.nativeEvent.isComposing) return;
@@ -79,9 +88,9 @@ export function GlobalSearch({ onModuleNavigate, onEntityNavigate, onOpen, onCha
     <div className="top-global-search" ref={root} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) close(); }}>
       <label className={`top-global-search__input ${variant === "mobile" ? "top-mobile-header__search" : "top-global-header__search"}`}>
         <Search size={18} aria-hidden="true" />
-        <input ref={input} type="search" role="combobox" aria-label="Buscar en TOP" placeholder="Buscar en TOP..."
+        <input type="search" role="combobox" aria-label="Buscar en TOP" placeholder="Buscar en TOP..."
           aria-expanded={visible} aria-controls={visible ? `${id}-list` : undefined} aria-autocomplete="list"
-          aria-activedescendant={visible && active ? optionId(active.key) : undefined} aria-describedby={visible ? `${id}-status` : undefined}
+          aria-activedescendant={activeId} aria-describedby={visible ? `${id}-status` : undefined}
           value={text} onFocus={() => { setOpen(true); onOpen?.(); }} onKeyDown={select}
           onChange={(event) => { setText(event.target.value); setOpen(true); setSelection(null); onOpen?.(); onChange?.(event.target.value); }} />
       </label>
@@ -99,7 +108,7 @@ export function GlobalSearch({ onModuleNavigate, onEntityNavigate, onOpen, onCha
               {entries.map((option) => <div role="option" id={optionId(option.key)} aria-selected={active?.key === option.key} key={option.key}
                 className="top-global-search__option" onMouseDown={(event) => event.preventDefault()}
                 onClick={option.activate}>
-                <span>{option.label}</span>{option.subtitle && <small>{option.subtitle}</small>}{option.status && <small>{option.status}</small>}
+                <span>{option.label}</span>{option.subtitle && <small>{option.subtitle}</small>}{option.status && <small>{statusLabels[option.status] ?? option.status}</small>}
               </div>)}
             </div>;
           })}
