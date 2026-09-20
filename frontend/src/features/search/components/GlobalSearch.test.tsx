@@ -148,8 +148,8 @@ async function focusedRetry() {
   fetchMock.mockResolvedValueOnce(response(data(), 500));
   const view = mount();
   act(() => view.input.focus()); type(view.input, "consulta"); await advance();
+  const button = await screen.findByRole("button", { name: "Reintentar búsqueda" });
   await user.tab();
-  const button = screen.getByRole("button", { name: "Reintentar búsqueda" });
   expect(button).toHaveFocus();
   return { ...view, user, button };
 }
