@@ -1,0 +1,20 @@
+.booking-payments { display: grid; gap: 16px; padding: 20px; border: 1px solid #e0e7e5; border-radius: 14px; background: #fff; }
+.booking-payments__heading { display: flex; gap: 12px; align-items: flex-start; color: #155c4c; }
+.booking-payments__heading h2, .booking-payments h3 { margin: 0; color: #29434a; }
+.booking-payments__heading h2 { font-size: 1rem; }
+.booking-payments__heading p, .booking-payments p { margin: 4px 0 0; color: #65767c; font-size: .84rem; line-height: 1.5; }
+.booking-payments__balance, .booking-payments__history { display: grid; gap: 12px; }
+.booking-payments__metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.booking-payments__metrics div { padding: 10px; border: 1px solid #e5ebe9; border-radius: 10px; background: #fafcfb; }
+.booking-payments__metrics dt { color: #7a898d; font-size: .72rem; font-weight: 700; text-transform: uppercase; }
+.booking-payments__metrics dd { margin: 4px 0 0; color: #29434a; font-size: .92rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.booking-payments__status { color: #425b58 !important; }
+.booking-payments__unavailable, .booking-payments__page-error { padding: 10px 12px; border: 1px solid #ead8b1; border-radius: 10px; background: #fff9e9; color: #805d10 !important; }
+.booking-payments__list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; border-top: 1px solid #edf1f0; }
+.booking-payments__list li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; padding: 13px 0; border-bottom: 1px solid #edf1f0; color: #155c4c; }
+.booking-payments__list li > div { display: grid; gap: 3px; color: #65767c; font-size: .8rem; }
+.booking-payments__list strong { color: #29434a; font-size: .9rem; font-variant-numeric: tabular-nums; }
+.booking-payments__list time { color: #839095; }
+.booking-payments__page-error { display: flex; gap: 8px; align-items: center; }
+.booking-payments__page-status { min-height: 20px; }
+@media (max-width: 600px) { .booking-payments { padding: 16px; } }
