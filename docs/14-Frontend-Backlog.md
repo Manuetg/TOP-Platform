@@ -394,7 +394,8 @@ Mínimo C aprobado por Rolo — implementación en esta misma historia:
 - DTO mínimo por item: type/id/title/subtitle/status; Contact no expone documento en resultados. Consultas concurrentes autorizadas; un fallo técnico invalida todo el bloque remoto.
 - Frontend: módulos inmediatos, entidades con debounce 250 ms, query key por usuario/Business/consulta y signal hasta `apiRequest`. Sin retries automáticos, sin datos anteriores durante debounce; cierre/cambio de contexto cancela solo Search. Se conserva recovery 401 y refresh compartido.
 - Combobox/listbox con grupos, opciones estables por ID, flechas/Enter/Escape, Tab sin trampa, anuncios y foco tras navegación. Las reservas indican UUID completo. Truncamiento ofrece abrir módulo sin prometer filtros.
-- Tests escritos: HTTP y policy reales con lectores controlados; lectores sobre PostgreSQL; aceptación de composición; frontend con QueryClient y fetch controlado. No equivalen a QA de navegador. CI pendiente; QA manual móvil/desktop NOT RUN; mutation diferida.
+- Tests escritos: HTTP y policy reales con lectores controlados; lectores sobre PostgreSQL; aceptación de composición; frontend con QueryClient y fetch controlado. No equivalen a QA de navegador. La ejecución de build/lint/tests corresponde exclusivamente a GitHub CI. Runs, feature HEAD y checkout sintético comprobados se registran en la [PR #83](https://github.com/Manuetg/TOP-Platform/pull/83), que permanece en borrador; no existe merge definitivo. QA manual móvil/desktop NOT RUN; mutation diferida.
+- Self-review del implementador: alcance, contrato, aislamiento, cancelación, teclado y diff revisados; no equivale a revisión independiente. Se mantiene In Progress: falta QA de navegador y revisión para cierre por DoD. No se declara Completed ni se inicia otra historia.
 
 ---
 

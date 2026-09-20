@@ -49,7 +49,7 @@ export function GlobalSearch({ onModuleNavigate, onEntityNavigate, onOpen, onCha
     action();
     // El shell persiste: enfocar el contenido después de la navegación.
     window.requestAnimationFrame(() => {
-      const target = document.querySelector<HTMLElement>(".top-app-shell__content h1, .top-app-shell__content");
+      const target = document.querySelector<HTMLElement>(".top-app-shell__content h1") ?? document.querySelector<HTMLElement>(".top-app-shell__content");
       if (target) { target.setAttribute("tabindex", "-1"); target.focus(); }
     });
   };

@@ -62,7 +62,7 @@ Pendientes principales posteriores:
 ## Estado Frontend
 
 Estado:
-- FE-FND-009 — In Progress. Mínimo C aprobado: backend Search limitado y tenant-scoped más integración frontend. Contrato y pruebas en la misma PR; CI pendiente. QA manual móvil/desktop NOT RUN. Extensión expresamente autorizada, sin alterar el baseline histórico backend 53/53.
+- FE-FND-009 — In Progress. Mínimo C aprobado: backend Search limitado y tenant-scoped más integración frontend. Contrato y pruebas en la [PR draft #83](https://github.com/Manuetg/TOP-Platform/pull/83), rama `feature/fe-fnd-009-global-search`, base `3ebaf021ce25937e111c8d099762aa6e33761a18`. Runs y SHA final comprobado en el cuerpo de la PR; tests/lint/build ejecutados solo por CI. Self-review, sin revisión independiente. QA manual móvil/desktop NOT RUN; cierre por DoD pendiente, sin merge. Extensión expresamente autorizada, sin alterar el baseline histórico backend 53/53.
 - Dashboard Business implementado y mergeado en `/app`.
 - FE-DSH-001 — Completed.
 - FE-BUS-001 — Completed; las siete features tenant-scoped consumen Active Business Context y el ciclo de vida está cubierto por tests.
