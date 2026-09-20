@@ -47,8 +47,8 @@ Total historias frontend activas: 51
 
 Estado actual:
 
-- Completed: 43
-- In Progress: 1
+- Completed: 44
+- In Progress: 0
 - Planned: 6
 - Blocked: 1
 
@@ -338,7 +338,7 @@ Criterios de aceptación:
 
 ## FE-FND-009 — Global Search
 
-Estado: In Progress
+Estado: Completed por merge de PR #83, commit `38b8ac0`
 
 Objetivo:
 
@@ -394,10 +394,10 @@ Mínimo C aprobado por Rolo — implementación en esta misma historia:
 - DTO mínimo por item: type/id/title/subtitle/status; Contact no expone documento en resultados. Consultas concurrentes autorizadas; un fallo técnico invalida todo el bloque remoto.
 - Frontend: módulos inmediatos, entidades con debounce 250 ms, query key por usuario/Business/consulta y signal hasta `apiRequest`. Sin retries automáticos, sin datos anteriores durante debounce; cierre/cambio de contexto cancela solo Search. Se conserva recovery 401 y refresh compartido.
 - Combobox/listbox con grupos, opciones estables por ID, flechas/Enter/Escape, Tab sin trampa, anuncios y foco tras navegación. Las reservas indican UUID completo. Truncamiento ofrece abrir módulo sin prometer filtros.
-- Tests escritos: HTTP y policy reales con lectores controlados; lectores sobre PostgreSQL; aceptación de composición; frontend con QueryClient y fetch controlado. No equivalen a QA de navegador. La ejecución de build/lint/tests corresponde exclusivamente a GitHub CI. Runs, feature HEAD y checkout sintético comprobados se registran en la [PR #83](https://github.com/Manuetg/TOP-Platform/pull/83), que permanece en borrador; no existe merge definitivo. QA manual móvil/desktop NOT RUN; mutation diferida.
+- Tests escritos: HTTP y policy reales con lectores controlados; lectores sobre PostgreSQL; aceptación de composición; frontend con QueryClient y fetch controlado. No equivalen a QA de navegador. La ejecución de build/lint/tests corresponde exclusivamente a GitHub CI. Runs, feature HEAD y checkout sintético comprobados constan en la [PR #83](https://github.com/Manuetg/TOP-Platform/pull/83), mergeada en `develop` como `38b8ac0`. Mutation diferida.
 - Corrección de foco del reintento: devuelve el foco al input antes de iniciar la petición y conserva consulta/panel; Escape desde el botón cierra sin reapertura por onFocus. Sin efectos al finalizar peticiones. Pruebas con foco real mediante user-event, respuestas diferidas, éxito/error, flechas/Enter, Tab/Shift+Tab y cierre/contexto/salida sin recuperación tardía ni peticiones duplicadas.
 - QA inicial del reintento: NOT RUN por entorno detenido. Ese impedimento se resolvió al autorizar la puesta en marcha; la matriz siguiente registra los casos ejecutados y los pendientes actuales.
-- Self-review del implementador: alcance, contrato, aislamiento, cancelación, teclado y diff revisados; no equivale a revisión independiente. Se mantiene In Progress: falta QA de navegador y revisión para cierre por DoD. No se declara Completed ni se inicia otra historia.
+- Self-review del implementador: alcance, contrato, aislamiento, cancelación, teclado y diff revisados; no equivale a revisión independiente. Merge confirmado en `develop` por PR #83, commit `38b8ac0`; se conserva la evidencia histórica. Touch real y cambio real de Business/identidad permanecen NOT RUN, con riesgo residual aceptado por Rolo para el merge.
 
 ---
 
@@ -426,7 +426,7 @@ Inyección: proxy temporal en loopback, API real detrás en 3002. Solo GET Searc
 | Cambio real de Business/identidad | D2/M2 | NOT RUN | Menú informativo sin cambio y sin segunda sesión autorizada disponible. Operador: aportar mecanismo/contexto de prueba existente; no implementar Business Selector aquí. |
 | Consola y transporte HTTP | D1/D2/M2 | PASS acotado | Consola expuesta por herramienta sin errores/warnings de aplicación; transporte real inspeccionado con proxy, 503 provocados separados de respuestas normales. Sin HAR ni tokens en evidencia. |
 
-Revisión estática del PM: el usuario comunica resuelto el hallazgo de reintento en `adcf86b`; se registra separada de self-review y QA, **no** como aprobación formal de GitHub. El defecto nuevo de foco de destino se corrigió en esta QA y requiere revisión independiente. Se conserva **In Progress** por los casos NOT RUN y DoD pendiente. Esta matriz reemplaza el impedimento previo de entorno detenido. Sin auto-merge.
+Revisión estática del PM: el usuario comunica resuelto el hallazgo de reintento en `adcf86b`; se registra separada de self-review y QA, **no** como aprobación formal de GitHub. El defecto nuevo de foco de destino se corrigió en esta QA y requiere revisión independiente. PR #83 fue mergeada en `develop` como `38b8ac0`; touch real y cambio real de Business/identidad permanecen NOT RUN, con riesgo residual aceptado por Rolo. Esta matriz reemplaza el impedimento previo de entorno detenido.
 
 ---
 
