@@ -48,11 +48,11 @@ Total historias frontend activas: 51
 Estado actual:
 
 - Completed: 44
-- In Progress: 0
+- In Progress: 1
 - Planned: 6
-- Blocked: 1
+- Blocked: 0
 
-Recuento por estados reales: 43 + 1 + 6 + 1 = 51. FE-AVL-002 permanece como un registro histórico «Reubicado a Calendar» y se excluye del total activo para no duplicar trabajo.
+Recuento por estados reales: 44 + 1 + 6 + 0 = 51. FE-AVL-002 y FE-PAY-000 permanecen como registros históricos y se excluyen del total activo para no duplicar trabajo.
 
 ---
 
@@ -1834,24 +1834,30 @@ Validación:
 
 ## FE-PAY-000 — Payment UI Discovery
 
-Estado: Blocked
+Estado: Completed (discovery histórico)
 
-Bloqueado por:
+Resultado:
 
-- Backend Payment pendiente.
+- PAY-001..004 y el DTO público de PAY-001 están disponibles en `develop`.
+- La primera entrega implementable es FE-PAY-001 dentro del detalle de Booking; no existe contrato para una pantalla global de Payments, detalle individual, comprobantes, void o refund.
+- La discrepancia de fecha UTC/local de Payment Plan queda como hallazgo separado y no forma parte de esta UI read-only.
+
+## FE-PAY-001 — Historial y saldo de la reserva
+
+Estado: In Progress
 
 Objetivo:
 
-No diseñar contratos definitivos frontend hasta que backend implemente PAY-001..PAY-004.
+Mostrar dentro del detalle de Booking el saldo financiero derivado y el historial paginado de Payments mediante los contratos read-only existentes.
 
-Cuando backend quede definido, reemplazar esta historia por historias reales de:
+Alcance:
 
-- registro de pago;
-- detalle;
-- historial;
-- saldo;
-- comprobantes;
-- estados.
+- `GET /api/businesses/:businessId/bookings/:bookingId/outstanding-balance`;
+- `GET /api/businesses/:businessId/bookings/:bookingId/payments` con cursor opaco y límite 20;
+- estados independientes de saldo e historial, sin recalcular importes, saldos, vencimientos ni permisos;
+- queries aisladas por usuario, Business y Booking, con cancelación de solicitudes propias al cambiar contexto.
+
+Fuera de alcance: mutations, planes de cuotas, pantalla global, comprobantes, detalle individual de Payment, void, refund y cambios backend.
 
 ---
 
@@ -1976,7 +1982,7 @@ Milestone:
 
 Historias:
 
-- FE-PAY-* cuando backend esté disponible
+- FE-PAY-001 — Historial y saldo de la reserva
 - FE-DSH-* cuando backend esté disponible
 
 ---

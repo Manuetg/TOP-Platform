@@ -27,6 +27,7 @@ import { useBooking } from "../queries/use-booking";
 import { useSubmitBooking } from "../queries/use-submit-booking";
 import { useCancelBooking } from "../queries/use-cancel-booking";
 import { BookingTimeline } from "../components/BookingTimeline";
+import { BookingPayments } from "../../payments/components/BookingPayments";
 import type { BookingStatus } from "../types/booking.types";
 import "./BookingDetailPage.css";
 
@@ -110,8 +111,8 @@ export function BookingDetailPage({
 }: BookingDetailPageProps) {
   const navigate = useNavigate();
   const { bookingId = "" } = useParams();
-  const { session } = useAuth();
-  const { activeBusinessId } = useBusinessContext();
+  const { session, status: authStatus } = useAuth();
+  const { activeBusinessId, activeBusiness, status: businessStatus } = useBusinessContext();
   const businessId = suppliedBusinessId ?? activeBusinessId;
 
   const {
@@ -788,6 +789,15 @@ export function BookingDetailPage({
           </section>
         </aside>
       </div>
+
+      <BookingPayments
+        userId={session?.user.id}
+        businessId={businessId}
+        bookingId={booking.id}
+        accessToken={session?.accessToken}
+        timezone={activeBusiness?.timezone ?? "America/Asuncion"}
+        enabled={authStatus === "authenticated" && businessStatus === "ready"}
+      />
 
       <BookingTimeline
         businessId={businessId}
