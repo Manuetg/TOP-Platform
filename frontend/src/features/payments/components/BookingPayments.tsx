@@ -1,7 +1,6 @@
 import { AlertCircle, CreditCard, WalletCards } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import { ApiError } from "../../../shared/api/api-client";
-import { Button } from "../../../shared/ui/Button";
 import { useOutstandingBalance } from "../queries/use-outstanding-balance";
 import { usePaymentHistory } from "../queries/use-payment-history";
 import type { FinancialStatus, PaymentHistoryItem } from "../types/payment.types";
@@ -42,16 +41,23 @@ function safeMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function isAccessError(error: unknown) {
+  return error instanceof ApiError && (error.status === 403 || error.status === 404);
+}
+
 export function BookingPayments(props: Props) {
   const balance = useOutstandingBalance(props);
   const history = usePaymentHistory(props);
   const moreButton = useRef<HTMLButtonElement>(null);
+  const balanceRetryButton = useRef<HTMLButtonElement>(null);
+  const balanceStatus = useRef<HTMLParagraphElement>(null);
   const historyRetryButton = useRef<HTMLButtonElement>(null);
   const historyStatus = useRef<HTMLParagraphElement>(null);
   const previousHasNext = useRef<boolean | undefined>(undefined);
   const previousHistoryError = useRef<boolean | undefined>(undefined);
   const wasMoreFocused = useRef(false);
   const wasHistoryRetryFocused = useRef(false);
+  const historyAccessError = isAccessError(history.error) && (history.isError || history.isFetchNextPageError);
   const items = useMemo(() => {
     const seen = new Set<string>();
     return (history.data?.pages.flatMap((page) => page.items) ?? []).filter((item) => !seen.has(item.id) && (seen.add(item.id), true));
@@ -69,21 +75,29 @@ export function BookingPayments(props: Props) {
     previousHistoryError.current = history.isError;
   }, [history.isError]);
 
+  function retryBalance() {
+    if (document.activeElement === balanceRetryButton.current) {
+      balanceStatus.current?.focus();
+    }
+    void balance.refetch();
+  }
+
   return (
     <section className="booking-payments" aria-labelledby="booking-payments-title">
       <div className="booking-payments__heading"><WalletCards size={20} aria-hidden="true" /><div><h2 id="booking-payments-title">Pagos</h2><p>Saldo e historial de cobros registrados.</p></div></div>
       <section className="booking-payments__balance" aria-labelledby="booking-balance-title">
         <h3 id="booking-balance-title">Resumen financiero</h3>
         {balance.isLoading ? <p role="status">Cargando saldo...</p> : balance.isError ? (
-          balance.error instanceof ApiError && balance.error.status === 409 ? <p className="booking-payments__unavailable" role="status">Saldo no disponible</p> : <div role="alert"><p>{safeMessage(balance.error, "No pudimos cargar el saldo.")}</p><Button type="button" variant="secondary" onClick={() => void balance.refetch()}>Reintentar saldo</Button></div>
+          balance.error instanceof ApiError && balance.error.status === 409 ? <p className="booking-payments__unavailable" role="status">Saldo no disponible</p> : <div role="alert"><p>{safeMessage(balance.error, "No pudimos cargar el saldo.")}</p><button ref={balanceRetryButton} type="button" className="top-button top-button--secondary" onClick={retryBalance}>Reintentar saldo</button></div>
         ) : balance.data ? <><dl className="booking-payments__metrics"><div><dt>Total</dt><dd>{formatMoney(balance.data.totalAmountMinor, balance.data.currency)}</dd></div><div><dt>Pagado</dt><dd>{formatMoney(balance.data.paidAmountMinor, balance.data.currency)}</dd></div><div><dt>Pendiente</dt><dd>{formatMoney(balance.data.outstandingAmountMinor, balance.data.currency)}</dd></div><div><dt>Vencido</dt><dd>{formatMoney(balance.data.overdueAmountMinor, balance.data.currency)}</dd></div></dl><p className="booking-payments__status"><strong>{financialLabels[balance.data.financialStatus]}</strong>{balance.data.nextDueDate === null ? " · Sin próximo vencimiento" : ` · Próximo vencimiento: ${formatPureDate(balance.data.nextDueDate)}${balance.data.nextDueAmountMinor === null ? "" : ` (${formatMoney(balance.data.nextDueAmountMinor, balance.data.currency)})`}`}</p></> : null}
+        <p ref={balanceStatus} tabIndex={-1} className="booking-payments__page-status" aria-label="Estado del saldo" aria-live="polite">{balance.isFetching ? "Actualizando saldo..." : ""}</p>
       </section>
       <section className="booking-payments__history" aria-labelledby="payment-history-title">
         <h3 id="payment-history-title">Historial de pagos</h3>
-        {history.isLoading ? <p role="status">Cargando historial de pagos...</p> : history.isError ? <div role="alert"><p>{safeMessage(history.error, "No pudimos cargar el historial de pagos.")}</p><button ref={historyRetryButton} type="button" className="top-button top-button--secondary" onFocus={() => { wasHistoryRetryFocused.current = true; }} onBlur={() => { wasHistoryRetryFocused.current = false; }} onClick={() => void history.refetch()}>Reintentar historial</button></div> : items.length === 0 ? <p className="booking-detail-empty-value">Todavía no hay pagos registrados.</p> : <ol className="booking-payments__list">{items.map((item) => <li key={item.id}><CreditCard size={18} aria-hidden="true" /><div><strong>{formatMoney(item.amountMinor, item.currency)}</strong><span>{methodLabels[item.method]} · {item.status === "RECORDED" ? "Registrado" : item.status}</span><time dateTime={item.paidAt}>{formatInstant(item.paidAt, props.timezone)}</time>{item.reference && <span>Referencia: {item.reference}</span>}{item.note && <span>Nota: {item.note}</span>}</div></li>)}</ol>}
-        {history.isFetchNextPageError && <div className="booking-payments__page-error" role="alert"><AlertCircle size={18} aria-hidden="true" /><span>{safeMessage(history.error, "No pudimos cargar más pagos.")}</span></div>}
+        {historyAccessError ? <div role="alert"><p>{safeMessage(history.error, "No pudimos cargar el historial de pagos.")}</p></div> : history.isLoading ? <p role="status">Cargando historial de pagos...</p> : history.isError ? <div role="alert"><p>{safeMessage(history.error, "No pudimos cargar el historial de pagos.")}</p><button ref={historyRetryButton} type="button" className="top-button top-button--secondary" onFocus={() => { wasHistoryRetryFocused.current = true; }} onBlur={() => { wasHistoryRetryFocused.current = false; }} onClick={() => void history.refetch()}>Reintentar historial</button></div> : items.length === 0 ? <p className="booking-detail-empty-value">Todavía no hay pagos registrados.</p> : <ol className="booking-payments__list">{items.map((item) => <li key={item.id}><CreditCard size={18} aria-hidden="true" /><div><strong>{formatMoney(item.amountMinor, item.currency)}</strong><span>{methodLabels[item.method]} · {item.status === "RECORDED" ? "Registrado" : item.status}</span><time dateTime={item.paidAt}>{formatInstant(item.paidAt, props.timezone)}</time>{item.reference && <span>Referencia: {item.reference}</span>}{item.note && <span>Nota: {item.note}</span>}</div></li>)}</ol>}
+        {history.isFetchNextPageError && !historyAccessError && <div className="booking-payments__page-error" role="alert"><AlertCircle size={18} aria-hidden="true" /><span>{safeMessage(history.error, "No pudimos cargar más pagos.")}</span></div>}
         <p ref={historyStatus} tabIndex={-1} className="booking-payments__page-status" aria-label="Estado de paginación" aria-live="polite">{history.isFetchingNextPage ? "Cargando más pagos..." : !history.hasNextPage && items.length > 0 ? "No hay más pagos para mostrar." : ""}</p>
-        {history.hasNextPage && <button ref={moreButton} type="button" className="top-button top-button--secondary" disabled={history.isFetchingNextPage} onFocus={() => { wasMoreFocused.current = true; }} onBlur={() => { wasMoreFocused.current = false; }} onClick={() => void history.fetchNextPage()}>{history.isFetchingNextPage ? "Cargando..." : history.isFetchNextPageError ? "Reintentar cargar más" : "Cargar más"}</button>}
+        {history.hasNextPage && !historyAccessError && <button ref={moreButton} type="button" className="top-button top-button--secondary" disabled={history.isFetchingNextPage} onFocus={() => { wasMoreFocused.current = true; }} onBlur={() => { wasMoreFocused.current = false; }} onClick={() => { if (!history.isFetchingNextPage) void history.fetchNextPage(); }}>{history.isFetchingNextPage ? "Cargando..." : history.isFetchNextPageError ? "Reintentar cargar más" : "Cargar más"}</button>}
       </section>
     </section>
   );
