@@ -27,11 +27,11 @@ interface HistoryOverrides { data?: InfiniteData<PaymentHistoryPage>; isLoading?
 function show() { return render(<BookingPayments {...props} />); }
 function setBalance(overrides: BalanceOverrides = {}) {
   const result = { data: outstanding, isLoading: false, isFetching: false, isError: false, refetch: refetchBalance, ...overrides } satisfies BalanceOverrides & { refetch: typeof refetchBalance };
-  balance.mockReturnValue(result as BalanceResult);
+  balance.mockReturnValue(result as unknown as BalanceResult);
 }
 function setHistory(overrides: HistoryOverrides = {}) {
   const result = { data: { pages: [firstPage], pageParams: [null] }, isLoading: false, isError: false, hasNextPage: true, isFetchingNextPage: false, isFetchNextPageError: false, fetchNextPage, refetch: refetchHistory, ...overrides } satisfies HistoryOverrides & { fetchNextPage: typeof fetchNextPage; refetch: typeof refetchHistory };
-  history.mockReturnValue(result as HistoryResult);
+  history.mockReturnValue(result as unknown as HistoryResult);
 }
 function success(balanceOverrides: BalanceOverrides = {}, historyOverrides: HistoryOverrides = {}) { setBalance(balanceOverrides); setHistory(historyOverrides); }
 
