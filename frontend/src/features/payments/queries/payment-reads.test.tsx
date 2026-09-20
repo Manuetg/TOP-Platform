@@ -86,18 +86,18 @@ describe("Payment read queries", () => {
     const oldBalance = deferred<OutstandingBalance>(); const nextBalance = deferred<OutstandingBalance>();
     const oldHistory = deferred<PaymentHistoryPage>(); const nextHistory = deferred<PaymentHistoryPage>();
     let oldBalanceSignal: AbortSignal | undefined; let oldHistorySignal: AbortSignal | undefined;
-    vi.mocked(getOutstandingBalance).mockImplementation(({ businessId, signal }) => {
-      if (businessId === "business-a") { oldBalanceSignal = signal; return oldBalance.promise; }
+    vi.mocked(getOutstandingBalance).mockImplementation(({ accessToken, signal }) => {
+      if (accessToken === "token") { oldBalanceSignal = signal; return oldBalance.promise; }
       return nextBalance.promise;
     });
-    vi.mocked(listPayments).mockImplementation(({ businessId, signal }) => {
-      if (businessId === "business-a") { oldHistorySignal = signal; return oldHistory.promise; }
+    vi.mocked(listPayments).mockImplementation(({ accessToken, signal }) => {
+      if (accessToken === "token") { oldHistorySignal = signal; return oldHistory.promise; }
       return nextHistory.promise;
     });
     const { wrapper } = setup();
     const { result, rerender } = renderHook((value) => ({ balance: useOutstandingBalance(value), history: usePaymentHistory(value) }), { initialProps: input, wrapper });
     await waitFor(() => { expect(oldBalanceSignal).toBeInstanceOf(AbortSignal); expect(oldHistorySignal).toBeInstanceOf(AbortSignal); });
-    const next = scope === "Business" ? { ...input, businessId: "business-b" } : { ...input, userId: "user-b", businessId: "business-b" };
+    const next = scope === "Business" ? { ...input, businessId: "business-b", accessToken: "token-b" } : { ...input, userId: "user-b", accessToken: "token-b" };
     rerender(next);
     await waitFor(() => expect(oldBalanceSignal?.aborted && oldHistorySignal?.aborted).toBe(true));
     nextBalance.resolve({ ...balance, bookingId: "booking-b", totalAmountMinor: 2000 });
