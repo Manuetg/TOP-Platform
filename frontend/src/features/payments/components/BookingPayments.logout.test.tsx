@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { useRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProtectedRoute } from "../../../app/router/ProtectedRoute";
 import { AuthProvider, useAuth } from "../../auth/context/AuthContext";
@@ -21,7 +22,8 @@ function deferred<T>() { let resolve!: (value: T) => void; const promise = new P
 function Controls() { const auth = useAuth(); return <><button onClick={() => auth.establishSession(session)}>Establecer</button><button onClick={() => void auth.logout()}>Salir</button><output>{auth.status}</output></>; }
 function Payments() { const auth = useAuth(); return <BookingPayments userId={auth.session?.user.id} businessId="business-a" bookingId="booking-a" accessToken={auth.session?.accessToken} timezone="America/Asuncion" enabled={auth.status === "authenticated"} />; }
 function Login() { return <p>Login {useLocation().pathname}</p>; }
-function show(client: QueryClient) { return render(<QueryClientProvider client={client}><AuthProvider><Controls /><MemoryRouter initialEntries={["/app/payments"]}><Routes><Route path="/login" element={<Login />} /><Route path="/app/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} /></Routes></MemoryRouter></AuthProvider></QueryClientProvider>); }
+function RoutedPayments() { const auth = useAuth(); const hadSession = useRef(false); if (auth.status === "authenticated") hadSession.current = true; if (!hadSession.current) return null; return <MemoryRouter initialEntries={["/app/payments"]}><Routes><Route path="/login" element={<Login />} /><Route path="/app/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} /></Routes></MemoryRouter>; }
+function show(client: QueryClient) { return render(<QueryClientProvider client={client}><AuthProvider><Controls /><RoutedPayments /></AuthProvider></QueryClientProvider>); }
 
 beforeEach(() => { sessionStorage.clear(); vi.mocked(getOutstandingBalance).mockReset(); vi.mocked(listPayments).mockReset(); });
 describe("Payments logout integration", () => {
