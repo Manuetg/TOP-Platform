@@ -1,6 +1,6 @@
 # TOP — Frontend Backlog
 
-Última actualización: 2026-09-18
+Última actualización: 2026-09-20
 
 ## Objetivo
 
@@ -47,12 +47,12 @@ Total historias frontend activas: 51
 
 Estado actual:
 
-- Completed: 44
-- In Progress: 1
+- Completed: 45
+- In Progress: 0
 - Planned: 6
 - Blocked: 0
 
-Recuento por estados reales: 44 + 1 + 6 + 0 = 51. FE-AVL-002 y FE-PAY-000 permanecen como registros históricos y se excluyen del total activo para no duplicar trabajo.
+Recuento por estados reales: 45 + 0 + 6 + 0 = 51. FE-AVL-002 y FE-PAY-000 permanecen como registros históricos y se excluyen del total activo para no duplicar trabajo.
 
 ---
 
@@ -1844,7 +1844,7 @@ Resultado:
 
 ## FE-PAY-001 — Historial y saldo de la reserva
 
-Estado: In Progress
+Estado: Completed
 
 Objetivo:
 
@@ -1858,6 +1858,8 @@ Alcance:
 - queries aisladas por usuario, Business y Booking, con cancelación de solicitudes propias al cambiar contexto.
 
 Fuera de alcance: mutations, planes de cuotas, pantalla global, comprobantes, detalle individual de Payment, void, refund y cambios backend.
+
+Evidencia: [PR #85](https://github.com/Manuetg/TOP-Platform/pull/85), merge `05e6bd64957af847b2c1843e0f876832b6d54c5d`. Frontend CI y Backend CI del HEAD final `c766fbc6fba48c4129e22cba77d804c84b5bf216` aprobados; mutation omitida por la política del workflow. QA interactiva: NOT RUN por decisión expresa de Rolo.
 
 ---
 
@@ -2045,9 +2047,9 @@ Si frontend necesita un cambio backend:
 | Pricing | 5 | 0 | 0 | 0 |
 | Booking | 8 | 0 | 0 | 0 |
 | Block | 3 | 0 | 0 | 0 |
-| Payment | 0 | 0 | 0 | 1 |
+| Payment | 1 | 0 | 0 | 0 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **43** | **1** | **6** | **1** |
+| **TOTAL** | **45** | **0** | **6** | **0** |
 
 
 
