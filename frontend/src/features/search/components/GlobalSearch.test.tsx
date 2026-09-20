@@ -22,6 +22,11 @@ function mount() {
   return { input, client, refresh: () => view.rerender(ui()) };
 }
 const advance = async (ms = 300) => {
+  if (!vi.isFakeTimers()) {
+    await act(async () => { await new Promise((resolve) => window.setTimeout(resolve, ms)); });
+    await act(async () => { await new Promise((resolve) => window.setTimeout(resolve, 0)); });
+    return;
+  }
   await act(async () => { await vi.advanceTimersByTimeAsync(ms); });
   // La actualización del debounce monta la query al cerrar el primer act.
   // Procesar su notificación sin adelantar el reloj de la prueba.
@@ -100,7 +105,8 @@ it("presenta error local sin retries automáticos y preserva módulos", async ()
   fetchMock.mockImplementation(() => Promise.resolve(response()));
   const retry = screen.getByRole("button", { name: "Reintentar búsqueda" });
   act(() => retry.focus()); expect(retry).toHaveFocus();
-  await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).keyboard("{Enter}"); await advance();
+  vi.useRealTimers();
+  await userEvent.setup().keyboard("{Enter}"); await advance();
   expect(fetchMock).toHaveBeenCalledTimes(2); expect(screen.getByText("Resultado")).toBeInTheDocument();
 });
 it.each(["resource", "contact", "booking"] as const)("abre el detalle %s, limpia y enfoca contenido", async (kind) => {
@@ -135,7 +141,10 @@ it("Tab no se atrapa; el blur y el clic exterior cierran", async () => {
 });
 
 async function focusedRetry() {
-  const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+  // user-event recorre el foco nativo; el estado remoto se controla con promesas diferidas.
+  // El reloj simulado queda reservado a las pruebas de debounce.
+  vi.useRealTimers();
+  const user = userEvent.setup();
   fetchMock.mockResolvedValueOnce(response(data(), 500));
   const view = mount();
   act(() => view.input.focus()); type(view.input, "consulta"); await advance();
@@ -148,7 +157,7 @@ async function focusedRetry() {
 it.each([200, 500])("recupera foco antes del reintento pendiente y conserva consulta al terminar %s", async (status) => {
   const { input, user } = await focusedRetry();
   const pending = deferred<Response>(); fetchMock.mockReturnValueOnce(pending.promise);
-  await user.keyboard("{Enter}"); await advance(0);
+  await user.keyboard("{Enter}"); await advance(10);
   expect(input).toHaveFocus(); expect(input).toHaveValue("consulta");
   expect(input).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByRole("status")).toHaveTextContent("Buscando entidades");
@@ -186,7 +195,7 @@ it("Tab y Shift+Tab recorren input, reintento y control exterior normalmente", a
 it.each(["cerrar", "contexto", "salir"])("no roba foco ni repone resultados tardíos tras %s durante reintento", async (action) => {
   const { input, user, refresh } = await focusedRetry();
   const pending = deferred<Response>(); fetchMock.mockReturnValueOnce(pending.promise);
-  await user.keyboard("{Enter}"); await advance(0);
+  await user.keyboard("{Enter}"); await advance(10);
   expect(input).toHaveFocus(); expect(fetchMock).toHaveBeenCalledTimes(2);
   const signal = fetchMock.mock.calls[1][1]?.signal;
   if (action === "cerrar") await user.keyboard("{Escape}");
