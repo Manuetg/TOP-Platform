@@ -169,6 +169,8 @@ it.each([200, 500])("recupera foco antes del reintento pendiente y conserva cons
   if (status === 200) {
     await user.keyboard("{ArrowDown}{Enter}");
     expect(navigate).toHaveBeenCalledWith("/app/resources/id-1");
+    await advance(30);
+    expect(screen.getByRole("heading", { name: "Destino" })).toHaveFocus();
   } else {
     expect(screen.getByRole("button", { name: "Reintentar búsqueda" })).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("No pudimos buscar entidades");
