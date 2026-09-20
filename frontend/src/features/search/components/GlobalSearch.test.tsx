@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { GlobalSearch } from "./GlobalSearch";
@@ -96,7 +97,10 @@ it("presenta error local sin retries automáticos y preserva módulos", async ()
   expect(screen.getByRole("option", { name: "Recursos" })).toBeInTheDocument();
   expect(screen.getByRole("status")).toHaveTextContent("No pudimos buscar entidades");
   expect(fetchMock).toHaveBeenCalledOnce();
-  fetchMock.mockImplementation(() => Promise.resolve(response())); fireEvent.click(screen.getByRole("button", { name: "Reintentar búsqueda" })); await advance();
+  fetchMock.mockImplementation(() => Promise.resolve(response()));
+  const retry = screen.getByRole("button", { name: "Reintentar búsqueda" });
+  act(() => retry.focus()); expect(retry).toHaveFocus();
+  await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).keyboard("{Enter}"); await advance();
   expect(fetchMock).toHaveBeenCalledTimes(2); expect(screen.getByText("Resultado")).toBeInTheDocument();
 });
 it.each(["resource", "contact", "booking"] as const)("abre el detalle %s, limpia y enfoca contenido", async (kind) => {
@@ -128,4 +132,70 @@ it("Tab no se atrapa; el blur y el clic exterior cierran", async () => {
   expect(input).toHaveAttribute("aria-expanded", "false");
   act(() => input.focus()); fireEvent.pointerDown(document.body); expect(input).toHaveAttribute("aria-expanded", "false");
   await advance(); expect(fetchMock).not.toHaveBeenCalled();
+});
+
+async function focusedRetry() {
+  const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+  fetchMock.mockResolvedValueOnce(response(data(), 500));
+  const view = mount();
+  act(() => view.input.focus()); type(view.input, "consulta"); await advance();
+  await user.tab();
+  const button = screen.getByRole("button", { name: "Reintentar búsqueda" });
+  expect(button).toHaveFocus();
+  return { ...view, user, button };
+}
+
+it.each([200, 500])("recupera foco antes del reintento pendiente y conserva consulta al terminar %s", async (status) => {
+  const { input, user } = await focusedRetry();
+  const pending = deferred<Response>(); fetchMock.mockReturnValueOnce(pending.promise);
+  await user.keyboard("{Enter}"); await advance(0);
+  expect(input).toHaveFocus(); expect(input).toHaveValue("consulta");
+  expect(input).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("status")).toHaveTextContent("Buscando entidades");
+  expect(screen.queryByRole("button", { name: "Reintentar búsqueda" })).not.toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  await act(async () => pending.resolve(response(data(), status))); await advance();
+  expect(input).toHaveFocus(); expect(input).toHaveValue("consulta");
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  if (status === 200) {
+    await user.keyboard("{ArrowDown}{Enter}");
+    expect(navigate).toHaveBeenCalledWith("/app/resources/id-1");
+  } else {
+    expect(screen.getByRole("button", { name: "Reintentar búsqueda" })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("No pudimos buscar entidades");
+  }
+});
+
+it("Escape desde reintentar devuelve foco sin reabrir ni consultar", async () => {
+  const { input, user } = await focusedRetry();
+  await user.keyboard("{Escape}"); await advance();
+  expect(input).toHaveFocus(); expect(input).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledOnce();
+});
+
+it("Tab y Shift+Tab recorren input, reintento y control exterior normalmente", async () => {
+  const { input, user, button } = await focusedRetry();
+  await user.tab({ shift: true }); expect(input).toHaveFocus();
+  await user.tab(); expect(button).toHaveFocus();
+  await user.tab(); expect(screen.getByRole("button", { name: "Después" })).toHaveFocus();
+  expect(input).toHaveAttribute("aria-expanded", "false");
+  expect(fetchMock).toHaveBeenCalledOnce();
+});
+
+it.each(["cerrar", "contexto", "salir"])("no roba foco ni repone resultados tardíos tras %s durante reintento", async (action) => {
+  const { input, user, refresh } = await focusedRetry();
+  const pending = deferred<Response>(); fetchMock.mockReturnValueOnce(pending.promise);
+  await user.keyboard("{Enter}"); await advance(0);
+  expect(input).toHaveFocus(); expect(fetchMock).toHaveBeenCalledTimes(2);
+  const signal = fetchMock.mock.calls[1][1]?.signal;
+  if (action === "cerrar") await user.keyboard("{Escape}");
+  if (action === "contexto") { context.businessId = "otro"; refresh(); }
+  await user.tab();
+  const outside = screen.getByRole("button", { name: "Después" });
+  expect(outside).toHaveFocus(); expect(signal?.aborted).toBe(true);
+  await act(async () => pending.resolve(response(data("Tardío")))); await advance(1000);
+  expect(outside).toHaveFocus(); expect(input).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByText("Tardío")).not.toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledTimes(2); expect(navigate).not.toHaveBeenCalled();
 });

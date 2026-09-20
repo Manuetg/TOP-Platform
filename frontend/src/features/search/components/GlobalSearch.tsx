@@ -25,6 +25,8 @@ export function GlobalSearch({ onModuleNavigate, onEntityNavigate, onOpen, onCha
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
   const [selection, setSelection] = useState<{ scope: string; key: string } | null>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const restoringFocus = useRef(false);
   const root = useRef<HTMLDivElement>(null);
   const id = useId();
   const visible = open && !menuOpen;
@@ -32,6 +34,18 @@ export function GlobalSearch({ onModuleNavigate, onEntityNavigate, onOpen, onCha
   const scope = JSON.stringify([remote.scope, text]);
   const normalized = text.trim().toLocaleLowerCase("es");
 
+  const focusInput = () => {
+    restoringFocus.current = true;
+    try { input.current?.focus({ preventScroll: true }); }
+    finally { restoringFocus.current = false; }
+  };
+  const retry = () => { focusInput(); remote.retry(); };
+  const dismissWithKeyboard = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Escape" || event.nativeEvent.isComposing || !visible) return;
+    event.preventDefault();
+    focusInput();
+    close();
+  };
   const close = () => { setOpen(false); setText(""); setSelection(null); };
   useEffect(() => { if (menuOpen) { setOpen(false); setText(""); setSelection(null); } }, [menuOpen]);
   useEffect(() => { setOpen(false); setText(""); setSelection(null); }, [remote.scope]);
@@ -74,7 +88,6 @@ export function GlobalSearch({ onModuleNavigate, onEntityNavigate, onOpen, onCha
   const groups = ["Módulos", ...Object.values(groupNames)];
   const select = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.nativeEvent.isComposing) return;
-    if (event.key === "Escape") { event.preventDefault(); close(); return; }
     if (event.key === "Enter" && visible && options.length) { event.preventDefault(); (active ?? options[0]).activate(); return; }
     if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
     event.preventDefault(); setOpen(true); onOpen?.();
@@ -85,18 +98,18 @@ export function GlobalSearch({ onModuleNavigate, onEntityNavigate, onOpen, onCha
   const message = !normalized ? "Busca módulos o entidades. Las reservas se buscan por UUID completo." : text.trim().length > 120 ? "Ingresa hasta 120 caracteres." : text.trim().length < 2 ? "Escribe al menos 2 caracteres para buscar entidades." : remote.loading ? "Buscando entidades…" : remote.error ? "No pudimos buscar entidades. Puedes seguir usando los módulos." : `${options.length} opciones disponibles. Las reservas se buscan por UUID completo.`;
 
   return (
-    <div className="top-global-search" ref={root} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) close(); }}>
+    <div className="top-global-search" ref={root} onKeyDown={dismissWithKeyboard} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) close(); }}>
       <label className={`top-global-search__input ${variant === "mobile" ? "top-mobile-header__search" : "top-global-header__search"}`}>
         <Search size={18} aria-hidden="true" />
-        <input type="search" role="combobox" aria-label="Buscar en TOP" placeholder="Buscar en TOP..."
+        <input ref={input} type="search" role="combobox" aria-label="Buscar en TOP" placeholder="Buscar en TOP..."
           aria-expanded={visible} aria-controls={visible ? `${id}-list` : undefined} aria-autocomplete="list"
           aria-activedescendant={activeId} aria-describedby={visible ? `${id}-status` : undefined}
-          value={text} onFocus={() => { setOpen(true); onOpen?.(); }} onKeyDown={select}
+          value={text} onFocus={() => { if (!restoringFocus.current) { setOpen(true); onOpen?.(); } }} onKeyDown={select}
           onChange={(event) => { setText(event.target.value); setOpen(true); setSelection(null); onOpen?.(); onChange?.(event.target.value); }} />
       </label>
       {visible && <section className="top-global-search__panel" aria-label="Panel del encabezado">
         <p id={`${id}-status`} role="status" aria-live="polite">{message}</p>
-        {remote.error && <button type="button" className="top-button top-button--secondary" onClick={remote.retry}>Reintentar búsqueda</button>}
+        {remote.error && <button type="button" className="top-button top-button--secondary" onClick={retry}>Reintentar búsqueda</button>}
         <div role="listbox" id={`${id}-list`} aria-label="Resultados de búsqueda">
           {groups.map((group) => {
             const entries = options.filter((option) => option.group === group);
