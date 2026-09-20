@@ -396,8 +396,37 @@ Mínimo C aprobado por Rolo — implementación en esta misma historia:
 - Combobox/listbox con grupos, opciones estables por ID, flechas/Enter/Escape, Tab sin trampa, anuncios y foco tras navegación. Las reservas indican UUID completo. Truncamiento ofrece abrir módulo sin prometer filtros.
 - Tests escritos: HTTP y policy reales con lectores controlados; lectores sobre PostgreSQL; aceptación de composición; frontend con QueryClient y fetch controlado. No equivalen a QA de navegador. La ejecución de build/lint/tests corresponde exclusivamente a GitHub CI. Runs, feature HEAD y checkout sintético comprobados se registran en la [PR #83](https://github.com/Manuetg/TOP-Platform/pull/83), que permanece en borrador; no existe merge definitivo. QA manual móvil/desktop NOT RUN; mutation diferida.
 - Corrección de foco del reintento: devuelve el foco al input antes de iniciar la petición y conserva consulta/panel; Escape desde el botón cierra sin reapertura por onFocus. Sin efectos al finalizar peticiones. Pruebas con foco real mediante user-event, respuestas diferidas, éxito/error, flechas/Enter, Tab/Shift+Tab y cierre/contexto/salida sin recuperación tardía ni peticiones duplicadas.
-- QA de esta corrección: móvil/desktop NOT RUN; inspección de puertos sin frontend/API escuchando en localhost:3001/3000. Navegador y viewport: no ejecutados. No se levantan servicios ni builds locales; pendiente reintento, teclado/foco, selección, tacto y desplazamiento en navegador real.
+- QA inicial del reintento: NOT RUN por entorno detenido. Ese impedimento se resolvió al autorizar la puesta en marcha; la matriz siguiente registra los casos ejecutados y los pendientes actuales.
 - Self-review del implementador: alcance, contrato, aislamiento, cancelación, teclado y diff revisados; no equivale a revisión independiente. Se mantiene In Progress: falta QA de navegador y revisión para cierre por DoD. No se declara Completed ni se inicia otra historia.
+
+---
+
+### QA de navegador FE-FND-009 — 2026-09-20
+
+Agente en host Windows 10.0.26200, Docker Desktop 29.7.2 / motor Linux / Compose 5.5.1. El motor estaba detenido (pipe dockerDesktopLinuxEngine ausente); `docker desktop start --timeout 45` lo recuperó. Se reutilizó el proyecto Compose `backend` y sus volúmenes, usando el archivo del worktree de esta PR. Builds únicamente para servir API/frontend; sin seeds, reset, borrado de volúmenes ni quality gates locales. Cambios locales de demo preservados.
+
+Edge 153.0.4234.48, `http://localhost:3001`, API real en `http://localhost:3000/api`. Usuario de prueba ingresado manualmente por el operador. Desktop 1440×900; móvil **viewport emulado** 390×844 (ancho útil 375 px por scrollbar), no dispositivo físico. D1 = desktop en `adcf86b`; D2/M2 = desktop/móvil en `7b0afc778c81197f3dc608be480319335b43c95e`. Bundle observado en navegador: `index-FVsbLXXQ.js`; imagen frontend `45d321fa8773`. API `d758443d1144`, fuente Search verificada por SHA-256 `83fc1b8da2b79e68ec6940e5115fdb9f42fb5f38ac9b2f89bac4b780a832c44e`. Los commits documentales posteriores no alteran esos artefactos; HEAD y checkout sintético finales constan en PR #83.
+
+Inyección: proxy temporal en loopback, API real detrás en 3002. Solo GET Search recibió 503 sintético o demora de 6/8/10/30 s; el resto se reenvió sin sustituir API, datos ni autorización. Registro de transporte limitado a categoría, status, demora y cierre del cliente, sin query, cuerpos, cookies ni tokens. Los 503 son **provocados**, no fallos del backend. Proxy y override fuera del repositorio; al terminar se detuvo el proxy y se restauró Compose/API directa en 3000.
+
+| Caso | Entorno | Resultado | Evidencia / defecto o impedimento |
+|---|---|---|---|
+| Módulos inmediatos | D1/M2 | PASS | Un carácter muestra módulos; flechas/Enter abre `/app/calendar`. |
+| Resource por nombre/código | D1/D2/M2 | PASS | Datos demo reales; selección abre `/app/resources/:id` correspondiente. |
+| Contact y Booking | D1/M2 | PASS | Contact por nombre/documento y Booking por UUID completo abren el detalle correspondiente; fechas puras conservadas. |
+| Reintento pendiente → éxito | D1/M2 | PASS | Tab enfoca botón; Enter devuelve foco a combobox durante demora y después; consulta/panel persisten; un retry HTTP. |
+| Reintento pendiente → nuevo error | D1/M2 | PASS | Nuevo 503 provocado conserva input enfocado y consulta; módulos operativos. |
+| Escape y Tab/Shift+Tab | D1/M2 | PASS | Escape desde input/botón cierra sin reapertura; recorrido normal con Tab/Shift+Tab. |
+| Foco después de navegar | D1 → D2/M2 | FAIL → PASS | H1 de carga reemplazado dejaba foco en BODY (Resource/Contact). Corrección acotada: enfocar MAIN persistente. Repetido con detalle frío, foco MAIN tras cargar. Regresión añadida; pruebas en CI. |
+| Panel móvil y selección por puntero | M2 | PASS | Scroll interno 0→27 px (clientHeight 547/scrollHeight 574); resultado inferior abre detalle. Ancho útil/scrollWidth 375/375; panel termina a 720,6 px antes de navegación inferior. |
+| Touch real / gestos táctiles | M2 | NOT RUN | Herramienta emula viewport/puntero, sin entrada touch. Operador: repetir tap/scroll en emulación touch de DevTools o dispositivo; no se presenta clic como touch físico. |
+| Cambio rápido / respuesta fuera de orden | M2 | PASS | Nueva respuesta 200 en t=1789920460,88; antigua termina t=1789920477,18 con client_closed; consulta nueva permanece y cero opciones antiguas. |
+| Cerrar pendiente / abandonar control | M2 | PASS | Escape durante demora 30 s y Tab a otro control; panel permanece cerrado tras respuesta, conexión antigua client_closed. |
+| Logout durante Search | D2 | PASS | Petición demorada iniciada; perfil cancela Search y logout lleva a login. Tras respuesta tardía: login visible, cero inputs Search. |
+| Cambio real de Business/identidad | D2/M2 | NOT RUN | Menú informativo sin cambio y sin segunda sesión autorizada disponible. Operador: aportar mecanismo/contexto de prueba existente; no implementar Business Selector aquí. |
+| Consola y transporte HTTP | D1/D2/M2 | PASS acotado | Consola expuesta por herramienta sin errores/warnings de aplicación; transporte real inspeccionado con proxy, 503 provocados separados de respuestas normales. Sin HAR ni tokens en evidencia. |
+
+Revisión estática del PM: el usuario comunica resuelto el hallazgo de reintento en `adcf86b`; se registra separada de self-review y QA, **no** como aprobación formal de GitHub. El defecto nuevo de foco de destino se corrigió en esta QA y requiere revisión independiente. Se conserva **In Progress** por los casos NOT RUN y DoD pendiente. Esta matriz reemplaza el impedimento previo de entorno detenido. Sin auto-merge.
 
 ---
 
