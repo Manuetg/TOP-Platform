@@ -14,6 +14,7 @@ const input = { userId: "user-a", businessId: "business-a", bookingId: "booking-
 const balance: OutstandingBalance = { bookingId: "booking-a", currency: "PYG", totalAmountMinor: 1000, paidAmountMinor: 0, outstandingAmountMinor: 1000, overdueAmountMinor: 0, financialStatus: "UNPAID", nextDueDate: null, nextDueAmountMinor: null };
 const paymentPage = (id: string, hasNextPage: boolean, nextCursor: string | null): PaymentHistoryPage => ({ items: [{ id, bookingId: "booking-a", amountMinor: 1000, currency: "PYG", method: "CASH", reference: null, note: null, paidAt: "2026-09-02T12:00:00.000Z", createdAt: "2026-09-02T12:00:00.000Z", recordedByUserId: "user-a", status: "RECORDED" }], pageInfo: { hasNextPage, nextCursor } });
 function setup() { const client = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return { client, wrapper: ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider> }; }
+function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>((done) => { resolve = done; }); return { promise, resolve }; }
 
 beforeEach(() => { vi.mocked(getOutstandingBalance).mockReset(); vi.mocked(listPayments).mockReset(); });
 describe("Payment read queries", () => {
@@ -79,5 +80,50 @@ describe("Payment read queries", () => {
     rerender({ ...input, bookingId: "booking-b" });
     await waitFor(() => expect(listPayments).toHaveBeenCalledTimes(2));
     expect(firstSignal?.aborted).toBe(true);
+  });
+
+  it.each(["Business", "identidad"])("cancela saldo e historial y descarta respuestas tardías al cambiar %s", async (scope) => {
+    const oldBalance = deferred<OutstandingBalance>(); const nextBalance = deferred<OutstandingBalance>();
+    const oldHistory = deferred<PaymentHistoryPage>(); const nextHistory = deferred<PaymentHistoryPage>();
+    let oldBalanceSignal: AbortSignal | undefined; let oldHistorySignal: AbortSignal | undefined;
+    vi.mocked(getOutstandingBalance).mockImplementation(({ businessId, signal }) => {
+      if (businessId === "business-a") { oldBalanceSignal = signal; return oldBalance.promise; }
+      return nextBalance.promise;
+    });
+    vi.mocked(listPayments).mockImplementation(({ businessId, signal }) => {
+      if (businessId === "business-a") { oldHistorySignal = signal; return oldHistory.promise; }
+      return nextHistory.promise;
+    });
+    const { wrapper } = setup();
+    const { result, rerender } = renderHook((value) => ({ balance: useOutstandingBalance(value), history: usePaymentHistory(value) }), { initialProps: input, wrapper });
+    await waitFor(() => expect(oldBalanceSignal).toBeInstanceOf(AbortSignal));
+    const next = scope === "Business" ? { ...input, businessId: "business-b" } : { ...input, userId: "user-b", businessId: "business-b" };
+    rerender(next);
+    await waitFor(() => expect(oldBalanceSignal?.aborted && oldHistorySignal?.aborted).toBe(true));
+    nextBalance.resolve({ ...balance, bookingId: "booking-b", totalAmountMinor: 2000 });
+    nextHistory.resolve(paymentPage("payment-b", false, null));
+    await waitFor(() => expect(result.current.balance.data?.totalAmountMinor).toBe(2000));
+    expect(result.current.history.data?.pages[0].items[0].id).toBe("payment-b");
+    oldBalance.resolve({ ...balance, totalAmountMinor: 9999 });
+    oldHistory.resolve(paymentPage("payment-a-late", false, null));
+    await act(async () => {});
+    expect(result.current.balance.data?.totalAmountMinor).toBe(2000);
+    expect(result.current.history.data?.pages[0].items[0].id).toBe("payment-b");
+  });
+
+  it("cancela ambos reads al desmontar sin resucitar datos al resolverlos", async () => {
+    const pendingBalance = deferred<OutstandingBalance>(); const pendingHistory = deferred<PaymentHistoryPage>();
+    let balanceSignal: AbortSignal | undefined; let historySignal: AbortSignal | undefined;
+    vi.mocked(getOutstandingBalance).mockImplementation(({ signal }) => { balanceSignal = signal; return pendingBalance.promise; });
+    vi.mocked(listPayments).mockImplementation(({ signal }) => { historySignal = signal; return pendingHistory.promise; });
+    const { client, wrapper } = setup();
+    const { unmount } = renderHook(() => ({ balance: useOutstandingBalance(input), history: usePaymentHistory(input) }), { wrapper });
+    await waitFor(() => expect(balanceSignal).toBeInstanceOf(AbortSignal));
+    unmount();
+    expect(balanceSignal?.aborted).toBe(true); expect(historySignal?.aborted).toBe(true);
+    pendingBalance.resolve(balance); pendingHistory.resolve(paymentPage("late", false, null));
+    await act(async () => {});
+    expect(client.getQueryData(["outstanding-balance", "user-a", "business-a", "booking-a"])).toBeUndefined();
+    expect(client.getQueryData(["payment-history", "user-a", "business-a", "booking-a"])).toBeUndefined();
   });
 });
