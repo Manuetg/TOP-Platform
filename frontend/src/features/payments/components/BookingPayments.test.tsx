@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../shared/api/api-client";
@@ -17,7 +17,7 @@ const payment = { id: "payment-1", bookingId: "booking", amountMinor: 300000, cu
 const outstanding = { bookingId: "booking", currency: "PYG", totalAmountMinor: 1000000, paidAmountMinor: 300000, outstandingAmountMinor: 700000, overdueAmountMinor: 0, financialStatus: "PARTIALLY_PAID" as const, nextDueDate: null, nextDueAmountMinor: null };
 const props = { userId: "user", businessId: "business", bookingId: "booking", accessToken: "token", timezone: "America/Asuncion", enabled: true };
 function show() { return render(<BookingPayments {...props} />); }
-function success(overrides: Record<string, unknown> = {}) { balance.mockReturnValue({ data: outstanding, isLoading: false, isError: false, refetch: refetchBalance, ...overrides } as never); history.mockReturnValue({ data: { pages: [{ items: [payment], pageInfo: { hasNextPage: true, nextCursor: "opaque" } }] }, isLoading: false, isError: false, hasNextPage: true, isFetchingNextPage: false, isFetchNextPageError: false, fetchNextPage, refetch: refetchHistory, ...overrides } as never); }
+function success(balanceOverrides: Record<string, unknown> = {}, historyOverrides: Record<string, unknown> = {}) { balance.mockReturnValue({ data: outstanding, isLoading: false, isError: false, refetch: refetchBalance, ...balanceOverrides } as never); history.mockReturnValue({ data: { pages: [{ items: [payment], pageInfo: { hasNextPage: true, nextCursor: "opaque" } }] }, isLoading: false, isError: false, hasNextPage: true, isFetchingNextPage: false, isFetchNextPageError: false, fetchNextPage, refetch: refetchHistory, ...historyOverrides } as never); }
 
 beforeEach(() => { vi.clearAllMocks(); success(); });
 describe("BookingPayments", () => {
@@ -36,7 +36,7 @@ describe("BookingPayments", () => {
     success({ isError: true, error: new ApiError(409, "snapshot") });
     show();
     expect(screen.getByRole("status")).toHaveTextContent("Saldo no disponible");
-    expect(screen.getByText("₲ 300.000")).toBeVisible();
+    expect(screen.getByText("Referencia: REC-1")).toBeVisible();
     expect(screen.queryByText("₲ 1.000.000")).not.toBeInTheDocument();
   });
 
@@ -53,9 +53,9 @@ describe("BookingPayments", () => {
   });
 
   it("keeps loaded pages after a next-page error and retries the same action", async () => {
-    success({ isFetchNextPageError: true, error: new Error("transport") });
+    success({}, { isFetchNextPageError: true, error: new Error("transport") });
     show();
-    expect(screen.getByText("₲ 300.000")).toBeVisible();
+    expect(screen.getAllByText("₲ 300.000")).toHaveLength(2);
     expect(screen.getByRole("alert")).toHaveTextContent("No pudimos cargar más pagos.");
     await userEvent.click(screen.getByRole("button", { name: "Reintentar cargar más" }));
     expect(fetchNextPage).toHaveBeenCalledOnce();
@@ -80,7 +80,7 @@ describe("BookingPayments", () => {
   });
 
   it("does not duplicate repeated item ids from backend pages", () => {
-    success({ data: { pages: [{ items: [payment], pageInfo: { hasNextPage: true, nextCursor: "one" } }, { items: [payment], pageInfo: { hasNextPage: false, nextCursor: null } }] } });
+    success({}, { data: { pages: [{ items: [payment], pageInfo: { hasNextPage: true, nextCursor: "one" } }, { items: [payment], pageInfo: { hasNextPage: false, nextCursor: null } }] } });
     show();
     expect(screen.getAllByText("₲ 300.000")).toHaveLength(1);
   });
