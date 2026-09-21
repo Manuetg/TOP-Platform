@@ -797,6 +797,8 @@ export function BookingDetailPage({
         accessToken={session?.accessToken}
         timezone={activeBusiness?.timezone ?? "America/Asuncion"}
         enabled={authStatus === "authenticated" && businessStatus === "ready"}
+        bookingStatus={booking.status}
+        canRecord={session?.memberships.some((membership) => membership.businessId === businessId && ["OWNER", "ADMIN", "RECEPTIONIST"].includes(membership.role)) ?? false}
       />
 
       <BookingTimeline

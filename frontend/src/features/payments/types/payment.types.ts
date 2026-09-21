@@ -30,3 +30,6 @@ export interface PaymentHistoryPage {
   items: PaymentHistoryItem[];
   pageInfo: { nextCursor: string | null; hasNextPage: boolean };
 }
+
+export type PaymentMethod = PaymentHistoryItem["method"];
+export interface RegisterPaymentPayload { amountMinor: number; method: PaymentMethod; paidAt: string; reference?: string; note?: string; }

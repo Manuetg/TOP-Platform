@@ -1,0 +1,7 @@
+import type { RegisterPaymentPayload } from "../types/payment.types";
+const VERSION = 1; const prefix = "top.payment-attempt.v1";
+export interface PaymentAttempt { version: 1; idempotencyKey: string; userId: string; businessId: string; bookingId: string; payload: RegisterPaymentPayload; }
+function key(userId: string, businessId: string, bookingId: string) { return `${prefix}:${encodeURIComponent(userId)}:${encodeURIComponent(businessId)}:${encodeURIComponent(bookingId)}`; }
+export function readPaymentAttempt(userId: string, businessId: string, bookingId: string): PaymentAttempt | null { try { const value: unknown = JSON.parse(sessionStorage.getItem(key(userId, businessId, bookingId)) ?? "null"); if (!value || typeof value !== "object") return null; const attempt = value as PaymentAttempt; return attempt.version === VERSION && attempt.userId === userId && attempt.businessId === businessId && attempt.bookingId === bookingId && typeof attempt.idempotencyKey === "string" && !!attempt.idempotencyKey && typeof attempt.payload?.amountMinor === "number" ? attempt : null; } catch { return null; } }
+export function writePaymentAttempt(attempt: PaymentAttempt): boolean { try { sessionStorage.setItem(key(attempt.userId, attempt.businessId, attempt.bookingId), JSON.stringify(attempt)); return true; } catch { return false; } }
+export function clearPaymentAttempt(userId: string, businessId: string, bookingId: string) { try { sessionStorage.removeItem(key(userId, businessId, bookingId)); } catch { /* storage is best effort */ } }

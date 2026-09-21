@@ -4,6 +4,7 @@ import { ApiError } from "../../../shared/api/api-client";
 import { useOutstandingBalance } from "../queries/use-outstanding-balance";
 import { usePaymentHistory } from "../queries/use-payment-history";
 import type { FinancialStatus, PaymentHistoryItem } from "../types/payment.types";
+import { RegisterPaymentForm } from "./RegisterPaymentForm";
 import "./BookingPayments.css";
 
 interface Props {
@@ -13,6 +14,8 @@ interface Props {
   accessToken?: string | null;
   timezone: string;
   enabled: boolean;
+  bookingStatus?: string;
+  canRecord?: boolean;
 }
 
 const financialLabels: Record<FinancialStatus, string> = { UNPAID: "Sin pagos", PARTIALLY_PAID: "Pago parcial", PAID: "Pagada", OVERDUE: "Con vencimiento pendiente" };
@@ -111,6 +114,7 @@ export function BookingPayments(props: Props) {
         <p ref={historyStatus} tabIndex={-1} className="booking-payments__page-status" aria-label="Estado de paginación" aria-live="polite">{history.isFetchingNextPage ? "Cargando más pagos..." : !history.hasNextPage && items.length > 0 ? "No hay más pagos para mostrar." : ""}</p>
         {history.hasNextPage && !historyAccessError && <button ref={moreButton} type="button" className="top-button top-button--secondary" disabled={history.isFetchingNextPage} onFocus={() => { wasMoreFocused.current = true; }} onBlur={() => { wasMoreFocused.current = false; }} onClick={() => { if (!history.isFetchingNextPage) void history.fetchNextPage(); }}>{history.isFetchingNextPage ? "Cargando..." : historyPageError ? "Reintentar cargar más" : "Cargar más"}</button>}
       </section>
+      <RegisterPaymentForm {...props} currency={balance.data?.currency} canRecord={props.canRecord ?? false} />
     </section>
   );
 }

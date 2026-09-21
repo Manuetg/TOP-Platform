@@ -17,4 +17,9 @@
 .booking-payments__list time { color: var(--color-text-secondary); }
 .booking-payments__page-error { display: flex; gap: var(--space-2); align-items: center; }
 .booking-payments__page-status { min-height: 20px; }
+.booking-payments__register { display: grid; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
+.booking-payments__register form { display: grid; gap: var(--space-3); }
+.booking-payments__register label { display: grid; gap: var(--space-1); color: var(--color-text-primary); font-size: .84rem; font-weight: 700; }
+.booking-payments__register input, .booking-payments__register select, .booking-payments__register textarea { width: 100%; box-sizing: border-box; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-primary); font: inherit; }
+.booking-payments__attempt-note { font-size: .78rem !important; }
 @media (max-width: 600px) { .booking-payments { padding: var(--space-4); } }

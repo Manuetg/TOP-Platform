@@ -43,12 +43,12 @@ Las reglas de negocio continúan siendo responsabilidad del backend y de la docu
 
 # 3. Estado general
 
-Total historias frontend activas: 51
+Total historias frontend activas: 52
 
 Estado actual:
 
 - Completed: 45
-- In Progress: 0
+- In Progress: 1
 - Planned: 6
 - Blocked: 0
 
@@ -1861,6 +1861,16 @@ Fuera de alcance: mutations, planes de cuotas, pantalla global, comprobantes, de
 
 Evidencia: [PR #85](https://github.com/Manuetg/TOP-Platform/pull/85), merge `05e6bd64957af847b2c1843e0f876832b6d54c5d`. Frontend CI y Backend CI del HEAD final `c766fbc6fba48c4129e22cba77d804c84b5bf216` aprobados; mutation omitida por la política del workflow. QA interactiva: NOT RUN por decisión expresa de Rolo.
 
+## FE-PAY-002 — Registro manual de pagos desde la reserva
+
+Estado: In Progress
+
+Objetivo: registrar un pago externo desde el bloque Payments del detalle de Booking mediante el POST contractual.
+
+Alcance: formulario inline; monto en unidades menores, método, fecha/hora, referencia y nota; `Idempotency-Key` y payload normalizado persistidos antes del POST, separados por usuario, Business y Booking; recuperación manual del mismo intento ante resultado incierto; invalidación de saldo, historial y consultas existentes relacionadas tras un `201`.
+
+Límites reales: el frontend no puede consultar una clave de idempotencia ni deducir un resultado incierto. La continuidad vive solo en `sessionStorage` de la pestaña y puede perderse al cerrar sesión o la pestaña; antes de registrar nuevamente se debe verificar el pago. Backend mantiene permisos, estados, PricingSnapshot, moneda y sobrepago como autoridad.
+
 ---
 
 # 14. FE-DSH — Dashboard
@@ -1985,6 +1995,7 @@ Milestone:
 Historias:
 
 - FE-PAY-001 — Historial y saldo de la reserva
+- FE-PAY-002 — Registro manual de pagos desde la reserva
 - FE-DSH-* cuando backend esté disponible
 
 ---
