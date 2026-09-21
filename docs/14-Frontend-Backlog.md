@@ -1,6 +1,6 @@
 # TOP — Frontend Backlog
 
-Última actualización: 2026-09-20
+Última actualización: 2026-09-21
 
 ## Objetivo
 
@@ -43,16 +43,16 @@ Las reglas de negocio continúan siendo responsabilidad del backend y de la docu
 
 # 3. Estado general
 
-Total historias frontend activas: 51
+Total historias frontend activas: 52
 
 Estado actual:
 
-- Completed: 45
+- Completed: 46
 - In Progress: 0
 - Planned: 6
 - Blocked: 0
 
-Recuento por estados reales: 45 + 0 + 6 + 0 = 51. FE-AVL-002 y FE-PAY-000 permanecen como registros históricos y se excluyen del total activo para no duplicar trabajo.
+Recuento por estados reales: 46 + 0 + 6 + 0 = 52. FE-AVL-002 y FE-PAY-000 permanecen como registros históricos y se excluyen del total activo para no duplicar trabajo.
 
 ---
 
@@ -1863,6 +1863,83 @@ Evidencia: [PR #85](https://github.com/Manuetg/TOP-Platform/pull/85), merge `05e
 
 ---
 
+## FE-PAY-002 — Gestión completa de pagos y plan de cobro
+
+Estado: Completed
+
+Objetivo:
+
+Convertir Payments en un workspace financiero operativo para reservas, reutilizando exclusivamente los contratos backend PAY-001..004 disponibles y manteniendo al backend como fuente de verdad para importes, aplicaciones, saldos y vencimientos.
+
+Contratos consumidos:
+
+- `GET /api/businesses/:businessId/bookings/:bookingId/outstanding-balance`;
+- `GET /api/businesses/:businessId/bookings/:bookingId/payments`;
+- `POST /api/businesses/:businessId/bookings/:bookingId/payments`;
+- `GET /api/businesses/:businessId/bookings/:bookingId/payment-plan`;
+- `POST /api/businesses/:businessId/bookings/:bookingId/payment-plan`;
+- `PUT /api/businesses/:businessId/bookings/:bookingId/payment-plan`.
+
+Implementado:
+
+- Hub real en `/app/payments`, reemplazando el placeholder anterior;
+- workspace financiero por Booking en `/app/bookings/:bookingId/payments`;
+- acceso desde Booking Detail mediante `Gestionar pagos`;
+- navegación activa de Payments también dentro del workspace financiero de una Booking;
+- presentación tipo cuenta/invoice con total acordado, saldo por cobrar, importe pagado, vencido y progreso porcentual;
+- historial paginado de Payments registrados;
+- registro manual de pagos con métodos `CASH`, `BANK_TRANSFER`, `CARD` y `OTHER`;
+- `Idempotency-Key` generado por frontend para cada registro;
+- validación local de formato y monto sin duplicar las reglas financieras autoritativas del backend;
+- acción `Pagar` directamente sobre una cuota pendiente, parcial o vencida, precargando su saldo restante;
+- monto precargado editable para permitir pagos parciales;
+- creación y reemplazo de Payment Plan cuando backend lo permite;
+- flujo simplificado de adelanto + saldo con porcentajes 30/40/50/60/70 y porcentaje manual;
+- cálculo del saldo como `total - adelanto` para conservar exactamente el total aun con redondeos;
+- configuración de vencimientos relativos al check-in convertidos a fechas concretas soportadas por backend;
+- modo de cuotas personalizadas;
+- reprogramación de vencimiento mientras el Payment Plan siga siendo reemplazable;
+- bloqueo visual de edición del plan cuando ya existen aplicaciones y backend no permite su reemplazo;
+- fechas humanas y estados operativos `Pendiente`, `Pago parcial`, `Pagada` y `Vencida`;
+- loading, empty y error states;
+- diseño responsive desktop/mobile;
+- controles accesibles, estados de foco y soporte de `prefers-reduced-motion`;
+- convivencia con FE-PAY-001 sin eliminar sus componentes/tests read-only ya mergeados.
+
+Fuera de alcance:
+
+- editar físicamente un Payment ya registrado;
+- eliminar Payments;
+- void/anulación;
+- refunds;
+- recibos o comprobantes;
+- payment gateway u online payments;
+- conciliación bancaria;
+- cambios backend.
+
+Decisión financiera:
+
+Un Payment registrado se considera un evento financiero histórico. La UI no expone edición o eliminación porque el contrato backend actual no ofrece esas operaciones. Una futura corrección de pagos debe modelarse explícitamente mediante void/anulación y nuevo registro, preservando trazabilidad.
+
+Validación:
+
+- QA manual funcional aprobado después del trasplante sobre `origin/develop`;
+- Hub de Payments validado;
+- navegación desde Booking Detail validada;
+- workspace financiero validado;
+- registro general de pago validado;
+- acción `Pagar` por cuota con importe restante precargado validada;
+- creación y modificación permitida de Payment Plan validada;
+- reprogramación de vencimientos validada dentro de las restricciones contractuales;
+- responsive revisado;
+- `npm run lint`: PASS, 0 warnings y 0 errors;
+- `npm run test`: PASS, 73 archivos y 368 tests;
+- `npm run build`: PASS;
+- `git diff --check`: PASS;
+- sin cambios de contrato backend.
+
+---
+
 # 14. FE-DSH — Dashboard
 
 ## FE-DSH-001 — Business Dashboard
@@ -1985,6 +2062,7 @@ Milestone:
 Historias:
 
 - FE-PAY-001 — Historial y saldo de la reserva
+- FE-PAY-002 — Gestión completa de pagos y plan de cobro
 - FE-DSH-* cuando backend esté disponible
 
 ---
@@ -2047,9 +2125,9 @@ Si frontend necesita un cambio backend:
 | Pricing | 5 | 0 | 0 | 0 |
 | Booking | 8 | 0 | 0 | 0 |
 | Block | 3 | 0 | 0 | 0 |
-| Payment | 1 | 0 | 0 | 0 |
+| Payment | 2 | 0 | 0 | 0 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **45** | **0** | **6** | **0** |
+| **TOTAL** | **46** | **0** | **6** | **0** |
 
 
 
