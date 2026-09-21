@@ -12,6 +12,7 @@ import { clearPersistedAuthSession, readPersistedAuthSession, writePersistedAuth
 import { configureUnauthorizedRecovery } from "../../../shared/api/api-client";
 import { logout as revokeSession } from "../api/logout";
 import { QueryClientContext } from "@tanstack/react-query";
+import { clearAllPaymentAttempts } from "../../payments/storage/payment-attempt-storage";
 
 export type AuthStatus = "restoring" | "authenticated" | "unauthenticated";
 let restorePromise: ReturnType<typeof refreshSession> | null = null;
@@ -78,6 +79,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setIsLoggingOut(true);
     const current = sessionRef.current;
     clearPersistedAuthSession();
+    clearAllPaymentAttempts();
     updateSession(null);
     setStatus("unauthenticated");
     queryClient?.clear();

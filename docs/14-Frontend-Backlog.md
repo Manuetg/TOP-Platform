@@ -52,7 +52,7 @@ Estado actual:
 - Planned: 6
 - Blocked: 0
 
-Recuento por estados reales: 45 + 0 + 6 + 0 = 51. FE-AVL-002 y FE-PAY-000 permanecen como registros históricos y se excluyen del total activo para no duplicar trabajo.
+Recuento por estados reales: 45 + 1 + 6 + 0 = 52. FE-AVL-002 y FE-PAY-000 permanecen como registros históricos y se excluyen del total activo para no duplicar trabajo.
 
 ---
 
@@ -2058,9 +2058,9 @@ Si frontend necesita un cambio backend:
 | Pricing | 5 | 0 | 0 | 0 |
 | Booking | 8 | 0 | 0 | 0 |
 | Block | 3 | 0 | 0 | 0 |
-| Payment | 1 | 0 | 0 | 0 |
+| Payment | 1 | 1 | 0 | 0 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **45** | **0** | **6** | **0** |
+| **TOTAL** | **45** | **1** | **6** | **0** |
 
 
 
