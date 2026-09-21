@@ -370,6 +370,23 @@ export function BookingDetailPage({
         </div>
 
         <div className="booking-detail-header-actions">
+          {[
+            "CONFIRMED",
+            "IN_PROGRESS",
+            "COMPLETED",
+          ].includes(booking.status) && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() =>
+                navigate(
+                  `/app/bookings/${booking.id}/payments`,
+                )
+              }
+            >
+              Gestionar pagos
+            </Button>
+          )}
           {booking.status === "DRAFT" && (
             <>
               <Button

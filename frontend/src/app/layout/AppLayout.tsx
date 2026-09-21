@@ -24,6 +24,14 @@ const sectionPaths: Record<AppSection, string> = {
 };
 
 function getActiveSection(pathname: string): AppSection {
+  if (
+    /^\/app\/bookings\/[^/]+\/payments\/?$/.test(
+      pathname,
+    )
+  ) {
+    return "payments";
+  }
+
   const match = Object.entries(sectionPaths).find(
     ([section, path]) =>
       section !== "home" && pathname.startsWith(`${path}/`),

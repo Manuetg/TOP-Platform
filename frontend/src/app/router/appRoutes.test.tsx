@@ -29,6 +29,9 @@ vi.mock("../layout/AppShell", async (importOriginal) => {
 });
 vi.mock("../../features/dashboard/pages/DashboardPage", () => ({ DashboardPage: () => <h1>Inicio sano</h1> }));
 vi.mock("../../features/auth/pages/LoginPage", () => ({ LoginPage: () => <h1>Login</h1> }));
+vi.mock("../../features/payments/pages/PaymentHubPage", () => ({
+  PaymentHubPage: () => <h1>Pagos</h1>,
+}));
 vi.mock("../../features/resources/pages/ResourceListPage", () => ({
   ResourceListPage: () => {
     state.pageRenders++;

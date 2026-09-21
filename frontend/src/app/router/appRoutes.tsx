@@ -27,6 +27,8 @@ import { CreateRatePlanPage } from "../../features/pricing/pages/CreateRatePlanP
 import { EditRatePlanPage } from "../../features/pricing/pages/EditRatePlanPage";
 import { SeasonalRatesPage } from "../../features/pricing/pages/SeasonalRatesPage";
 import { PricePreviewPage } from "../../features/pricing/pages/PricePreviewPage";
+import { PaymentHubPage } from "../../features/payments/pages/PaymentHubPage";
+import { BookingPaymentsPage } from "../../features/payments/pages/BookingPaymentsPage";
 import { ProtectedRoute, PublicRoute } from "./ProtectedRoute";
 
 import { ErrorFallback } from "../errors/ErrorFallback";
@@ -64,6 +66,10 @@ export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general 
       {
         path: "bookings/:bookingId",
         element: <BookingDetailPage />,
+      },
+      {
+        path: "bookings/:bookingId/payments",
+        element: <BookingPaymentsPage />,
       },
       {
         path: "bookings/:bookingId/edit",
@@ -135,7 +141,7 @@ export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general 
       },
       {
         path: "payments",
-        element: <AppSectionPage title="Pagos" />,
+        element: <PaymentHubPage />,
       },
       {
         path: "blocks",
