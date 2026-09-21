@@ -28,6 +28,7 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   isLoggingOut: boolean;
   status: AuthStatus;
+  sessionGeneration: number;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -38,6 +39,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const sessionRef = useRef<LoginResponse | null>(null);
   const logoutPromiseRef = useRef<Promise<void> | null>(null);
   const generationRef = useRef(0);
+  const sessionGenerationRef = useRef(0);
+  const [sessionGeneration, setSessionGeneration] = useState(0);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const queryClient = useContext(QueryClientContext);
   const updateSession = (next: LoginResponse | null) => { sessionRef.current = next; setSession(next); };
@@ -49,6 +52,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     void restore(persisted.refreshToken).then((tokens) => {
       if (!active || generationRef.current !== 0) return;
       const restored = { ...tokens, user: persisted.user, memberships: persisted.memberships };
+      sessionGenerationRef.current += 1; setSessionGeneration(sessionGenerationRef.current);
       updateSession(restored); writePersistedAuthSession(restored); setStatus("authenticated");
     }).catch(() => { if (!active || generationRef.current !== 0) return; clearPersistedAuthSession(); updateSession(null); setStatus("unauthenticated"); });
     return () => { active = false; };
@@ -72,10 +76,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => configureUnauthorizedRecovery(null);
   }, []);
 
-  const establish = (next: LoginResponse) => { updateSession(next); writePersistedAuthSession(next); setStatus("authenticated"); };
+  const establish = (next: LoginResponse) => { sessionGenerationRef.current += 1; setSessionGeneration(sessionGenerationRef.current); updateSession(next); writePersistedAuthSession(next); setStatus("authenticated"); };
   const logout = () => {
     if (logoutPromiseRef.current) return logoutPromiseRef.current;
     ++generationRef.current;
+    sessionGenerationRef.current += 1; setSessionGeneration(sessionGenerationRef.current);
     setIsLoggingOut(true);
     const current = sessionRef.current;
     clearPersistedAuthSession();
@@ -100,6 +105,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     status,
     logout,
     isLoggingOut,
+    sessionGeneration,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -109,7 +115,7 @@ export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
 
   if (!context) {
-    return { session: null, isAuthenticated: false, establishSession: () => undefined, logout: async () => undefined, isLoggingOut: false, status: "unauthenticated" };
+    return { session: null, isAuthenticated: false, establishSession: () => undefined, logout: async () => undefined, isLoggingOut: false, status: "unauthenticated", sessionGeneration: 0 };
   }
 
   return context;

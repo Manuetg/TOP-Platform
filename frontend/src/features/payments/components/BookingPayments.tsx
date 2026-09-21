@@ -16,6 +16,7 @@ interface Props {
   enabled: boolean;
   bookingStatus?: string;
   canRecord?: boolean;
+  sessionGeneration?: number;
 }
 
 const financialLabels: Record<FinancialStatus, string> = { UNPAID: "Sin pagos", PARTIALLY_PAID: "Pago parcial", PAID: "Pagada", OVERDUE: "Con vencimiento pendiente" };

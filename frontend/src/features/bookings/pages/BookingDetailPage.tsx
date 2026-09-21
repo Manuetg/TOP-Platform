@@ -111,7 +111,7 @@ export function BookingDetailPage({
 }: BookingDetailPageProps) {
   const navigate = useNavigate();
   const { bookingId = "" } = useParams();
-  const { session, status: authStatus } = useAuth();
+  const { session, status: authStatus, sessionGeneration } = useAuth();
   const { activeBusinessId, activeBusiness, status: businessStatus } = useBusinessContext();
   const businessId = suppliedBusinessId ?? activeBusinessId;
 
@@ -799,6 +799,7 @@ export function BookingDetailPage({
         enabled={authStatus === "authenticated" && businessStatus === "ready"}
         bookingStatus={booking.status}
         canRecord={session?.memberships.some((membership) => membership.businessId === businessId && ["OWNER", "ADMIN", "RECEPTIONIST"].includes(membership.role)) ?? false}
+        sessionGeneration={sessionGeneration}
       />
 
       <BookingTimeline
