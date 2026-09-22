@@ -28,6 +28,9 @@ const useContactsMock = vi.fn();
 const useAvailabilityCalendarMock = vi.fn();
 const useSelectableRatePlansMock = vi.fn();
 const useCalculatePriceMock = vi.fn();
+const createBookingMock = vi.fn();
+const submitBookingMock = vi.fn();
+const confirmBookingMock = vi.fn();
 
 vi.mock("../../auth/context/AuthContext", () => ({
   useAuth: () => ({
@@ -77,15 +80,15 @@ vi.mock("../../contacts/api/create-contact", () => ({
 }));
 
 vi.mock("../../bookings/api/create-booking", () => ({
-  createBooking: vi.fn(),
+  createBooking: (...args: unknown[]) => createBookingMock(...args),
 }));
 
 vi.mock("../../bookings/api/submit-booking", () => ({
-  submitBooking: vi.fn(),
+  submitBooking: (...args: unknown[]) => submitBookingMock(...args),
 }));
 
 vi.mock("../../bookings/api/confirm-booking", () => ({
-  confirmBooking: vi.fn(),
+  confirmBooking: (...args: unknown[]) => confirmBookingMock(...args),
 }));
 
 const resource = {
@@ -131,6 +134,13 @@ function renderPage() {
       </MemoryRouter>
     </QueryClientProvider>,
   );
+}
+
+async function goToRateStep() {
+  const user = await goToContactStep();
+  await user.click(screen.getByRole("button", { name: /Ema Bietros/i }));
+  await user.click(screen.getByRole("button", { name: /Continuar/i }));
+  return user;
 }
 
 async function openWizard() {
@@ -270,6 +280,10 @@ describe("AvailabilityCalendarPage", () => {
       }),
       isPending: false,
     });
+
+    createBookingMock.mockResolvedValue({ id: "booking-1" });
+    submitBookingMock.mockResolvedValue(undefined);
+    confirmBookingMock.mockResolvedValue(undefined);
   });
 
   it("renders the calendar with independent month and year controls", async () => {
@@ -387,5 +401,85 @@ describe("AvailabilityCalendarPage", () => {
         }),
       ).toHaveClass("is-selected");
     });
+  });
+
+  it("formats a manual amount as guaranies", async () => {
+    const user = await goToRateStep();
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    const input = screen.getByLabelText("Precio final");
+    await user.type(input, "600000");
+    expect(input).toHaveValue("600.000");
+  });
+
+  it("hides configured rate-plan cards in manual mode", async () => {
+    const user = await goToRateStep();
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    expect(screen.queryByRole("button", { name: /Tarifa Normal/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Plan de referencia")).not.toBeInTheDocument();
+  });
+
+  it("shows a compact reference-plan select for multiple plans in manual mode", async () => {
+    useSelectableRatePlansMock.mockReturnValue({
+      data: [
+        { id: "rate-plan-1", name: "Tarifa Normal", currency: "PYG", baseNightlyAmountMinor: 6500000 },
+        { id: "rate-plan-2", name: "Tarifa Flexible", currency: "PYG", baseNightlyAmountMinor: 7000000 },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+    const user = await goToRateStep();
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    expect(screen.queryByRole("button", { name: /Tarifa Normal/i })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Plan de referencia")).toBeInTheDocument();
+  });
+
+  it("keeps configured rate-plan cards visible in configured mode", async () => {
+    await goToRateStep();
+    expect(screen.getByRole("button", { name: /Tarifa Normal/i })).toBeInTheDocument();
+  });
+
+  it("does not calculate a preview before continuing in manual mode", async () => {
+    const user = await goToRateStep();
+    const calculate = useCalculatePriceMock.mock.results[0]?.value.mutateAsync as ReturnType<typeof vi.fn>;
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    await user.type(screen.getByLabelText("Precio final"), "600000");
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    expect(calculate).not.toHaveBeenCalled();
+  });
+
+  it("confirms manual pricing in minor units with the automatic reason", async () => {
+    const user = await goToRateStep();
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    await user.type(screen.getByLabelText("Precio final"), "600000");
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
+    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.objectContaining({ agreedAmountMinor: 60000000, overrideReason: "Precio manual desde calendario" })] }) })));
+  });
+
+  it("keeps configured pricing unchanged without a discount", async () => {
+    const user = await goToRateStep();
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
+    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.not.objectContaining({ agreedAmountMinor: expect.anything(), overrideReason: expect.anything() })] }) })));
+  });
+
+  it("applies a 10 percent configured discount in exact minor units", async () => {
+    const user = await goToRateStep();
+    await user.click(screen.getByRole("button", { name: "Aplicar descuento" }));
+    await user.click(screen.getByRole("button", { name: "10%" }));
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
+    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.objectContaining({ agreedAmountMinor: 5850000, overrideReason: "Descuento del 10% aplicado desde calendario" })] }) })));
+  });
+
+  it("removes the discount and restores the configured price", async () => {
+    const user = await goToRateStep();
+    await user.click(screen.getByRole("button", { name: "Aplicar descuento" }));
+    await user.click(screen.getByRole("button", { name: "10%" }));
+    await user.click(screen.getByRole("button", { name: "Quitar descuento" }));
+    expect(screen.queryByText(/Descuento \(10%\)/i)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
+    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.not.objectContaining({ agreedAmountMinor: expect.anything(), overrideReason: expect.anything() })] }) })));
   });
 });

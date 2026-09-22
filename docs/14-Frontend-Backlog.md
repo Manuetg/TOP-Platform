@@ -1318,10 +1318,14 @@ Implementado:
 - acción `Hoy`;
 - vista desktop/tablet mediante matriz `Resource × día`;
 - estado visual de reservas confirmadas, pendientes, en estadía, finalizadas y bloqueos;
+- reservas en la matriz desktop son interactivas y navegan directamente a Booking Detail;
+- hover/focus comunica visualmente que una reserva del Calendar puede abrirse;
+- Booking Detail conserva el origen de navegación: una reserva abierta desde Calendar ofrece `Volver a Calendario`, mientras otros accesos conservan `Volver a Reservas`;
 - celdas libres permiten iniciar una nueva reserva;
 - vista mobile específica de calendario mensual de 7 columnas, sin reutilizar la matriz horizontal desktop;
 - indicadores compactos de reservas y bloqueos en mobile;
 - agenda del día seleccionado debajo del calendario mobile;
+- un día mobile con varias reservas mantiene todas las opciones visibles en la agenda, sin modal adicional;
 - navegación desde una reserva de la agenda hacia Booking Detail;
 - wizard contextual de nueva reserva en 5 pasos;
 - fecha de entrada con salida automática inicial de `+1 día`;
@@ -1336,7 +1340,17 @@ Implementado:
 - Rate Plans obtenidos mediante selección contextual por Resource y estadía;
 - único Rate Plan válido se selecciona automáticamente;
 - pricing configurado mediante cálculo real del backend;
-- pricing manual conserva la obligación contractual de informar un `ratePlanId`, monto acordado y motivo;
+- montos recibidos en minor units se presentan correctamente en moneda visible, evitando multiplicaciones visuales por 100;
+- pricing configurado admite descuento opcional de 5%, 10%, 15%, 20% o porcentaje personalizado;
+- sin descuento, el pricing configurado conserva exactamente el flujo backend calculado existente;
+- con descuento, frontend deriva el total acordado desde el total calculado en minor units y envía un motivo técnico automático;
+- pricing manual se simplifica a definir únicamente el precio final acordado;
+- el precio manual se ingresa en guaraníes con separadores de miles `es-PY` y se convierte a minor units únicamente al enviar;
+- pricing manual no depende de una cotización previa ni muestra precio sugerido, diferencias o motivo de ajuste;
+- el motivo contractual del override manual se genera automáticamente y no se expone como carga operativa al usuario;
+- un único Rate Plan válido continúa seleccionándose automáticamente en modo Manual;
+- con múltiples Rate Plans válidos y sin selección previa, Manual muestra solamente un selector compacto de plan de referencia;
+- las tarjetas de Rate Plans permanecen visibles únicamente en modo Configurada;
 - confirmación reutiliza el flujo contractual `create → submit → confirm`;
 - después de confirmar, navegación a Booking Detail;
 - Blocks reciben rango RFC3339 compatible con su contrato mientras Availability Calendar conserva fechas `YYYY-MM-DD`;
@@ -1352,6 +1366,9 @@ Decisiones UX aprobadas:
 - mobile usa una representación mensual nativa y agenda diaria, en lugar de comprimir la matriz desktop;
 - navegación temporal directa mediante Mes + Año reemplaza navegación secuencial por flechas;
 - el wizard evita una acción `Atrás` inutilizable en el primer paso;
+- Configurada representa el precio calculado por TOP y permite un descuento opcional;
+- Manual representa una decisión explícita del operador sobre el precio final y evita información tarifaria innecesaria;
+- en mobile, la agenda diaria funciona como selector natural cuando existen varias reservas en una fecha;
 - Calendar compone módulos existentes sin convertirlos en un único dominio técnico.
 
 Validación funcional:
@@ -1368,10 +1385,14 @@ Validación funcional:
 Validación técnica:
 
 - suite específica `AvailabilityCalendarPage` aprobada;
-- regresión completa de frontend aprobada;
+- refinamiento 2026-09-22: 13/13 tests focalizados de Calendar aprobados;
+- cobertura focalizada incluye formato monetario manual, ausencia de cálculo previo en Manual, conversión exacta a minor units, motivo automático, pricing configurado sin descuento, descuento del 10%, eliminación del descuento y visibilidad/selección de Rate Plans según modo;
+- navegación Calendar → Booking Detail → Calendar validada manualmente;
+- comportamiento mobile con agenda diaria validado manualmente;
 - build productivo aprobado;
 - lint aprobado sin warnings ni errores;
 - `git diff --check` aprobado;
+- la regresión completa histórica de FE-AVL-002 permanece registrada; el refinamiento actual se validó de forma focalizada porque existen fallos independientes ya identificados en la rama de mantenimiento del frontend;
 - frontend no replica el algoritmo de Availability ni las reglas autoritativas de Pricing/Booking.
 
 Estado funcional del módulo:
