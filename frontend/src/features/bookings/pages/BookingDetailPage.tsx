@@ -15,6 +15,7 @@ import {
   useState,
 } from "react";
 import {
+  useLocation,
   useNavigate,
   useParams,
 } from "react-router-dom";
@@ -110,7 +111,23 @@ export function BookingDetailPage({
   businessId: suppliedBusinessId,
 }: BookingDetailPageProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { bookingId = "" } = useParams();
+
+  const cameFromCalendar =
+    (
+      location.state as
+        | { fromCalendar?: boolean }
+        | null
+    )?.fromCalendar === true;
+
+  const backDestination = cameFromCalendar
+    ? "/app/calendar"
+    : "/app/bookings";
+
+  const backLabel = cameFromCalendar
+    ? "Calendario"
+    : "Reservas";
   const { session, status: authStatus } = useAuth();
   const { activeBusinessId, activeBusiness, status: businessStatus } = useBusinessContext();
   const businessId = suppliedBusinessId ?? activeBusinessId;
@@ -307,7 +324,7 @@ export function BookingDetailPage({
               type="button"
               variant="secondary"
               onClick={() =>
-                navigate("/app/bookings")
+                navigate(backDestination)
               }
             >
               Volver
@@ -335,14 +352,14 @@ export function BookingDetailPage({
         type="button"
         className="booking-detail-back"
         onClick={() =>
-          navigate("/app/bookings")
+          navigate(backDestination)
         }
       >
         <ArrowLeft
           size={18}
           aria-hidden="true"
         />
-        Reservas
+        {backLabel}
       </button>
 
       <header className="booking-detail-header">

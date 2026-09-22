@@ -53,12 +53,32 @@ function addDays(value: string, days: number) {
   return isoDate(new Date(date.getTime() + days * DAY_MS));
 }
 
-function formatMoney(amount: number, currency = "PYG") {
+function formatMoney(
+  amountMinor: number,
+  currency = "PYG",
+) {
   return new Intl.NumberFormat("es-PY", {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(amountMinor / 100);
+}
+
+function guaraniesToMinor(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return null;
+  const guaranies = Number(digits);
+  if (!Number.isSafeInteger(guaranies)) return null;
+  const amountMinor = guaranies * 100;
+  return Number.isSafeInteger(amountMinor) ? amountMinor : null;
+}
+
+function formatGuaranies(value: number) {
+  return new Intl.NumberFormat("es-PY", { maximumFractionDigits: 0 }).format(value);
+}
+
+function formatManualInput(value: number) {
+  return formatGuaranies(value);
 }
 
 function intersectsDay(start: string | null, end: string | null, day: string) {
@@ -83,6 +103,8 @@ interface WizardState {
   mode: "CONFIGURED" | "MANUAL";
   agreedAmountMinor: string;
   overrideReason: string;
+  discountPercent: string;
+  customDiscountPercent: string;
 }
 
 const emptyWizard: WizardState = {
@@ -96,7 +118,15 @@ const emptyWizard: WizardState = {
   mode: "CONFIGURED",
   agreedAmountMinor: "",
   overrideReason: "",
+  discountPercent: "",
+  customDiscountPercent: "",
 };
+
+function selectedDiscountPercent(wizard: WizardState) {
+  return wizard.discountPercent === "OTHER"
+    ? Number(wizard.customDiscountPercent)
+    : Number(wizard.discountPercent || 0);
+}
 
 export function AvailabilityCalendarPage() {
   const navigate = useNavigate();
@@ -263,6 +293,14 @@ export function AvailabilityCalendarPage() {
     [],
   );
 
+  function openBooking(bookingId: string) {
+    navigate(`/app/bookings/${bookingId}`, {
+      state: {
+        fromCalendar: true,
+      },
+    });
+  }
+
   function changeMonth(nextMonth: number) {
     const next = new Date(Date.UTC(month.getUTCFullYear(), nextMonth, 1));
     setMonth(next);
@@ -285,7 +323,7 @@ export function AvailabilityCalendarPage() {
   function update<K extends keyof WizardState>(key: K, value: WizardState[K]) {
     setWizard((current) => ({ ...current, [key]: value }));
     setError(null);
-    if (key === "resourceId" || key === "checkIn" || key === "checkOut" || key === "ratePlanId") {
+    if (key === "resourceId" || key === "checkIn" || key === "checkOut" || key === "ratePlanId" || key === "mode") {
       setPreview(null);
     }
   }
@@ -332,13 +370,19 @@ export function AvailabilityCalendarPage() {
         return;
       }
       if (wizard.mode === "MANUAL") {
-        const amount = Number(wizard.agreedAmountMinor);
-        if (!Number.isSafeInteger(amount) || amount < 0 || wizard.overrideReason.trim().length < 2 || wizard.overrideReason.trim().length > 500) {
-          setError("Ingresá un monto válido y un motivo de 2 a 500 caracteres.");
+        const amountMinor = guaraniesToMinor(wizard.agreedAmountMinor);
+
+        if (amountMinor === null || !Number.isSafeInteger(amountMinor)) {
+          setError("Ingresá un precio final válido en guaraníes.");
           return;
         }
       }
-      if (!preview) {
+      const discount = selectedDiscountPercent(wizard);
+      if (wizard.mode === "CONFIGURED" && (!Number.isInteger(discount) || discount < 0 || discount > 100)) {
+        setError("Elegí un descuento válido.");
+        return;
+      }
+      if (wizard.mode === "CONFIGURED" && !preview) {
         try {
           setPreview(await calculate.mutateAsync({ resourceId: wizard.resourceId, checkIn: wizard.checkIn, checkOut: wizard.checkOut }));
         } catch (cause) {
@@ -395,7 +439,8 @@ export function AvailabilityCalendarPage() {
   }
 
   async function finishBooking() {
-    if (!preview || !wizard.ratePlanId) return;
+    if (!wizard.ratePlanId || (wizard.mode === "CONFIGURED" && !preview)) return;
+    const discount = selectedDiscountPercent(wizard);
     setSaving(true);
     setError(null);
     try {
@@ -421,8 +466,16 @@ export function AvailabilityCalendarPage() {
             resourceId: wizard.resourceId,
             ratePlanId: wizard.ratePlanId,
             ...(wizard.mode === "MANUAL"
-              ? { agreedAmountMinor: Number(wizard.agreedAmountMinor), overrideReason: wizard.overrideReason.trim() }
-              : {}),
+              ? {
+                  agreedAmountMinor: guaraniesToMinor(wizard.agreedAmountMinor) ?? 0,
+                  overrideReason: "Precio manual desde calendario",
+                }
+              : discount > 0
+                ? {
+                    agreedAmountMinor: Math.round((preview?.totalAmountMinor ?? 0) * (100 - discount) / 100),
+                    overrideReason: `Descuento del ${discount}% aplicado desde calendario`,
+                  }
+                : {}),
           }],
         },
       });
@@ -592,7 +645,7 @@ export function AvailabilityCalendarPage() {
                       type="button"
                       key={`booking-${item.resource.id}-${item.booking.id}`}
                       className="availability-mobile-event is-booking"
-                      onClick={() => navigate(`/app/bookings/${item.booking.id}`)}
+                      onClick={() => openBooking(item.booking.id)}
                     >
                       <span className="availability-mobile-event-dot" />
                       <span>
@@ -643,7 +696,18 @@ export function AvailabilityCalendarPage() {
                     const booking = (bookingsQuery.data ?? []).find((item) => item.resourceIds.includes(resource.id) && !["DRAFT", "CANCELLED", "NO_SHOW"].includes(item.status) && intersectsDay(item.checkInDate, item.checkOutDate, day));
                     const block = (blocksQuery.data ?? []).find((item) => item.resourceId === resource.id && item.effectiveStatus !== "CANCELLED" && instantIntersectsDay(item.startsAt, item.endsAt, day));
                     const free = availability?.status === "AVAILABLE";
-                    return <CalendarCell key={`${resource.id}-${day}`} day={day} resourceId={resource.id} booking={booking} block={block} free={free} onFreeClick={openWizard} />;
+                    return (
+                      <CalendarCell
+                        key={`${resource.id}-${day}`}
+                        day={day}
+                        resourceId={resource.id}
+                        booking={booking}
+                        block={block}
+                        free={free}
+                        onFreeClick={openWizard}
+                        onBookingClick={openBooking}
+                      />
+                    );
                   }),
                 ];
               })}
@@ -686,7 +750,7 @@ export function AvailabilityCalendarPage() {
               ) : (
                 <span aria-hidden="true" />
               )}
-              {step < 5 ? <Button type="button" disabled={saving || (step === 1 && stayAvailability.isLoading)} onClick={() => void nextStep()}>{step === 1 ? "Buscar disponibilidad" : "Continuar"}<ArrowRight size={16} /></Button> : <Button type="button" disabled={saving} onClick={() => void finishBooking()}>{saving ? "Confirmando…" : "Confirmar reserva"}<Check size={16} /></Button>}
+              {step < 5 ? <Button type="button" disabled={saving || (step === 1 && stayAvailability.isLoading) || (step === 4 && (!wizard.ratePlanId || (wizard.mode === "MANUAL" && guaraniesToMinor(wizard.agreedAmountMinor) === null) || (wizard.mode === "CONFIGURED" && (wizard.discountPercent === "OTHER" && (!Number.isInteger(Number(wizard.customDiscountPercent)) || Number(wizard.customDiscountPercent) < 1 || Number(wizard.customDiscountPercent) > 100)))))} onClick={() => void nextStep()}>{step === 1 ? "Buscar disponibilidad" : "Continuar"}<ArrowRight size={16} /></Button> : <Button type="button" disabled={saving} onClick={() => void finishBooking()}>{saving ? "Confirmando…" : "Confirmar reserva"}<Check size={16} /></Button>}
             </footer>
           </aside>
         </div>
@@ -695,12 +759,71 @@ export function AvailabilityCalendarPage() {
   );
 }
 
-function CalendarCell({ day, resourceId, booking, block, free, onFreeClick }: { day: string; resourceId: string; booking?: Booking; block?: Block; free: boolean; onFreeClick: (day?: string, resourceId?: string) => void }) {
+function CalendarCell({
+  day,
+  resourceId,
+  booking,
+  block,
+  free,
+  onFreeClick,
+  onBookingClick,
+}: {
+  day: string;
+  resourceId: string;
+  booking?: Booking;
+  block?: Block;
+  free: boolean;
+  onFreeClick: (
+    day?: string,
+    resourceId?: string,
+  ) => void;
+  onBookingClick: (bookingId: string) => void;
+}) {
   const date = new Date(`${day}T00:00:00.000Z`);
-  const weekend = date.getUTCDay() === 0 || date.getUTCDay() === 6;
-  if (booking) return <button type="button" className={`availability-calendar-cell is-booking is-${booking.status.toLowerCase()}`} title={bookingLabels[booking.status]}><span>{bookingLabels[booking.status]}</span></button>;
-  if (block) return <button type="button" className={`availability-calendar-cell is-block${weekend ? " is-weekend" : ""}`} title={block.reason}><span>Bloqueo</span></button>;
-  return <button type="button" className={`availability-calendar-cell${weekend ? " is-weekend" : ""}${free ? " is-free" : " is-unavailable"}`} disabled={!free} aria-label={free ? `Crear reserva para ${day}` : `No disponible el ${day}`} onClick={() => onFreeClick(day, resourceId)}>{free && <Plus size={14} />}</button>;
+  const weekend =
+    date.getUTCDay() === 0 || date.getUTCDay() === 6;
+
+  if (booking) {
+    return (
+      <button
+        type="button"
+        className={`availability-calendar-cell is-booking is-${booking.status.toLowerCase()}`}
+        title={bookingLabels[booking.status]}
+        aria-label={`Abrir reserva ${bookingLabels[booking.status]} del ${day}`}
+        onClick={() => onBookingClick(booking.id)}
+      >
+        <span>{bookingLabels[booking.status]}</span>
+      </button>
+    );
+  }
+
+  if (block) {
+    return (
+      <button
+        type="button"
+        className={`availability-calendar-cell is-block${weekend ? " is-weekend" : ""}`}
+        title={block.reason}
+      >
+        <span>Bloqueo</span>
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={`availability-calendar-cell${weekend ? " is-weekend" : ""}${free ? " is-free" : " is-unavailable"}`}
+      disabled={!free}
+      aria-label={
+        free
+          ? `Crear reserva para ${day}`
+          : `No disponible el ${day}`
+      }
+      onClick={() => onFreeClick(day, resourceId)}
+    >
+      {free && <Plus size={14} />}
+    </button>
+  );
 }
 
 function formatDateForDisplay(value: string) {
@@ -1038,10 +1161,17 @@ function ContactStep({
   );
 }
 function RateStep({ wizard, ratePlans, loading, preview, update }: { wizard: WizardState; ratePlans: NonNullable<ReturnType<typeof useSelectableRatePlans>["data"]>; loading: boolean; preview: CalculatePriceResult | null; update: <K extends keyof WizardState>(key: K, value: WizardState[K]) => void }) {
-  return <><div className="booking-wizard-heading"><span className="booking-wizard-currency">₲</span><div><h3>Definí la tarifa</h3><p>Ambas opciones requieren un plan válido para esta estadía.</p></div></div><div className="booking-wizard-segments"><button type="button" className={wizard.mode === "CONFIGURED" ? "is-active" : ""} onClick={() => update("mode", "CONFIGURED")}>Configurada</button><button type="button" className={wizard.mode === "MANUAL" ? "is-active" : ""} onClick={() => update("mode", "MANUAL")}>Manual</button></div>{loading ? <div className="booking-wizard-empty">Buscando planes tarifarios…</div> : <div className="booking-wizard-options">{ratePlans.map((plan) => <button type="button" key={plan.id} className={wizard.ratePlanId === plan.id ? "is-selected" : ""} onClick={() => update("ratePlanId", plan.id)}><span><strong>{plan.name}</strong><small>Base {formatMoney(plan.baseNightlyAmountMinor, plan.currency)}</small></span>{wizard.ratePlanId === plan.id && <Check size={18} />}</button>)}</div>}{wizard.mode === "MANUAL" && <div className="booking-wizard-fields booking-wizard-fields--single"><label>Monto total acordado<input type="number" min="0" step="1" value={wizard.agreedAmountMinor} onChange={(e) => update("agreedAmountMinor", e.target.value)} /></label><label>Motivo del ajuste<textarea rows={3} maxLength={500} value={wizard.overrideReason} onChange={(e) => update("overrideReason", e.target.value)} /></label></div>}{preview && <div className="booking-wizard-price"><span>Precio sugerido</span><strong>{formatMoney(preview.totalAmountMinor, preview.currency)}</strong><small>{preview.nights} {preview.nights === 1 ? "noche" : "noches"}</small></div>}</>;
+  const discount = selectedDiscountPercent(wizard);
+  const manualAmountMinor = guaraniesToMinor(wizard.agreedAmountMinor);
+  const amountError = wizard.mode === "MANUAL" && wizard.agreedAmountMinor.length > 0 && manualAmountMinor === null ? "Ingresá un monto entero válido en guaraníes." : null;
+  const configuredTotal = preview ? Math.round(preview.totalAmountMinor * (100 - discount) / 100) : null;
+  const planCards = loading ? <div className="booking-wizard-empty">Buscando planes tarifarios…</div> : <div className="booking-wizard-options">{ratePlans.map((plan) => <button type="button" key={plan.id} className={wizard.ratePlanId === plan.id ? "is-selected" : ""} onClick={() => update("ratePlanId", plan.id)}><span><strong>{plan.name}</strong><small>Base {formatMoney(plan.baseNightlyAmountMinor, plan.currency)}</small></span>{wizard.ratePlanId === plan.id && <Check size={18} />}</button>)}</div>;
+  const manualReferenceSelect = wizard.mode === "MANUAL" && !wizard.ratePlanId && ratePlans.length > 1 ? <label className="booking-wizard-reference-plan">Plan de referencia<select aria-label="Plan de referencia" value={wizard.ratePlanId} onChange={(event) => update("ratePlanId", event.target.value)}><option value="">Seleccioná un plan</option>{ratePlans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></label> : null;
+  return <><div className="booking-wizard-heading"><span className="booking-wizard-currency">₲</span><div><h3>Definí la tarifa</h3><p>Elegí un plan válido para esta estadía.</p></div></div><div className="booking-wizard-segments"><button type="button" className={wizard.mode === "CONFIGURED" ? "is-active" : ""} onClick={() => update("mode", "CONFIGURED")}>Configurada</button><button type="button" className={wizard.mode === "MANUAL" ? "is-active" : ""} onClick={() => update("mode", "MANUAL")}>Manual</button></div>{wizard.mode === "CONFIGURED" && planCards}{manualReferenceSelect}{wizard.mode === "MANUAL" ? <div className="booking-wizard-manual-pricing"><p className="booking-wizard-manual-helper">Definí el importe final acordado para esta reserva.</p><div className="booking-wizard-money-field"><label htmlFor="manual-agreed-amount">Precio final</label><div className="booking-wizard-money-input"><span aria-hidden="true">Gs.</span><input id="manual-agreed-amount" inputMode="numeric" type="text" value={wizard.agreedAmountMinor} placeholder="0" onChange={(event) => { const digits = event.target.value.replace(/\D/g, ""); update("agreedAmountMinor", digits ? formatManualInput(Number(digits)) : ""); }} aria-describedby="manual-amount-help manual-amount-error" aria-invalid={Boolean(amountError)} /></div><small id="manual-amount-help">Ingresá el total acordado para la reserva.</small>{amountError && <span id="manual-amount-error" className="booking-wizard-field-error" role="alert">{amountError}</span>}</div></div> : <div className="booking-wizard-configured-pricing">{preview && <div className="booking-wizard-price"><span>Precio de la estadía</span><strong>{formatMoney(preview.totalAmountMinor, preview.currency)}</strong><small>{preview.nights} {preview.nights === 1 ? "noche" : "noches"}</small></div>}<div className="booking-wizard-discount"><button type="button" className="booking-wizard-discount-trigger" onClick={() => update("discountPercent", wizard.discountPercent ? "" : "5")}>{wizard.discountPercent ? "Cambiar descuento" : "Aplicar descuento"}</button>{wizard.discountPercent && <div className="booking-wizard-discount-options"><div>{["5", "10", "15", "20"].map((value) => <button type="button" key={value} className={wizard.discountPercent === value ? "is-selected" : ""} onClick={() => update("discountPercent", value)}>{value}%</button>)}<button type="button" className={wizard.discountPercent === "OTHER" ? "is-selected" : ""} onClick={() => update("discountPercent", "OTHER")}>Otro</button></div>{wizard.discountPercent === "OTHER" && <label>Porcentaje<input type="number" min="1" max="100" step="1" value={wizard.customDiscountPercent} onChange={(event) => update("customDiscountPercent", event.target.value)} /></label>}<button type="button" className="booking-wizard-discount-remove" onClick={() => { update("discountPercent", ""); update("customDiscountPercent", ""); }}>Quitar descuento</button></div>}</div>{discount > 0 && configuredTotal !== null && preview && <div className="booking-wizard-discount-summary"><span>Original</span><strong>{formatMoney(preview.totalAmountMinor, preview.currency)}</strong><span>Descuento ({discount}%)</span><strong>−{formatMoney(preview.totalAmountMinor - configuredTotal, preview.currency)}</strong><span>Precio final</span><strong>{formatMoney(configuredTotal, preview.currency)}</strong></div>}</div>}</>;
 }
 
 function ReviewStep({ wizard, resourceName, contactName, rateName, preview }: { wizard: WizardState; resourceName?: string; contactName?: string; rateName?: string; preview: CalculatePriceResult | null }) {
-  const total = wizard.mode === "MANUAL" ? Number(wizard.agreedAmountMinor) : preview?.totalAmountMinor ?? 0;
+  const discount = selectedDiscountPercent(wizard);
+  const total = wizard.mode === "MANUAL" ? guaraniesToMinor(wizard.agreedAmountMinor) ?? 0 : preview ? Math.round(preview.totalAmountMinor * (100 - discount) / 100) : 0;
   return <><div className="booking-wizard-heading"><Check size={22} /><div><h3>Revisá y confirmá</h3><p>TOP volverá a validar disponibilidad y precio al confirmar.</p></div></div><dl className="booking-wizard-review"><div><dt>Contacto</dt><dd>{contactName}</dd></div><div><dt>Alojamiento</dt><dd>{resourceName}</dd></div><div><dt>Estadía</dt><dd>{wizard.checkIn} → {wizard.checkOut}</dd></div><div><dt>Huéspedes</dt><dd>{wizard.adults} adultos · {wizard.children} niños</dd></div><div><dt>Tarifa</dt><dd>{rateName}{wizard.mode === "MANUAL" ? " · ajuste manual" : ""}</dd></div><div className="is-total"><dt>Total acordado</dt><dd>{formatMoney(total, preview?.currency)}</dd></div></dl></>;
 }
