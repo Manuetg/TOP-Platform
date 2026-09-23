@@ -7,6 +7,7 @@ interface ListSelectableRatePlansOptions {
   checkIn: string;
   checkOut: string;
   accessToken?: string | null;
+  signal?: AbortSignal;
 }
 
 export function listSelectableRatePlans({
@@ -15,6 +16,7 @@ export function listSelectableRatePlans({
   checkIn,
   checkOut,
   accessToken,
+  signal,
 }: ListSelectableRatePlansOptions): Promise<RatePlan[]> {
   const params = new URLSearchParams({
     resourceId,
@@ -26,6 +28,7 @@ export function listSelectableRatePlans({
     `/businesses/${businessId}/rate-plans?${params.toString()}`,
     {
       accessToken,
+      signal,
     },
   );
 }

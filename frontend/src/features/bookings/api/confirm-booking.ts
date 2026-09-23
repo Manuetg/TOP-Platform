@@ -9,6 +9,7 @@ interface ConfirmBookingOptions {
   bookingId: string;
   input: ConfirmBookingInput;
   accessToken?: string | null;
+  signal?: AbortSignal;
 }
 
 export function confirmBooking({
@@ -16,12 +17,14 @@ export function confirmBooking({
   bookingId,
   input,
   accessToken,
+  signal,
 }: ConfirmBookingOptions): Promise<Booking> {
   return apiRequest<Booking>(
     `/businesses/${businessId}/bookings/${bookingId}/confirm`,
     {
       method: "POST",
       accessToken,
+      signal,
       body: JSON.stringify(input),
     },
   );

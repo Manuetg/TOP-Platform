@@ -26,13 +26,14 @@ export function useBlocks({
       from ?? "",
       to ?? "",
     ],
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       listBlocks({
         businessId,
         resourceId,
         from,
         to,
         accessToken,
+        signal,
       }),
     enabled:
       businessId.length > 0 &&

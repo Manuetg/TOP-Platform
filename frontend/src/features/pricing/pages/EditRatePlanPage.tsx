@@ -1,3 +1,4 @@
+import { parseGuaranies } from "../../../shared/utils/money";
 import {
   ArrowLeft,
   Check,
@@ -22,25 +23,10 @@ import "./CreateRatePlanPage.css";
 
 
 function minorToCurrency(value: number) {
-  return String(value / 100);
+  return new Intl.NumberFormat("es-PY").format(value);
 }
 
-function currencyToMinor(value: string) {
-  const normalized = value
-    .replace(/\./g, "")
-    .replace(",", ".");
 
-  const parsed = Number(normalized);
-
-  if (
-    !Number.isFinite(parsed) ||
-    parsed <= 0
-  ) {
-    return null;
-  }
-
-  return Math.round(parsed * 100);
-}
 
 export function EditRatePlanPage() {
   const { session } = useAuth();
@@ -174,7 +160,7 @@ export function EditRatePlanPage() {
     }
 
     const amountMinor =
-      currencyToMinor(baseAmount);
+      parseGuaranies(baseAmount);
 
     if (
       amountMinor === null ||

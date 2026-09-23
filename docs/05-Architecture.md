@@ -162,3 +162,11 @@ Contratos nuevos, ambos con `Cache-Control: no-store`, UUID validado, autenticac
 La UI usa `apiRequest` y QueryClient con clave `subscription/userId/businessId`, separada del token renovable. Perfil y alta de Resource comparten la lectura. Cambio de identidad/Business cancela lecturas y aborta mutaciones pendientes; resultados tardíos no confirman otra pantalla. La creación de Resource invalida cupo/listado; un GET posterior fallido no repite el POST. Un plan desconocido o no actualizado bloquea el alta en UI hasta reintentar. Backend siempre revalida el límite concurrente.
 
 Operación MVP: el registro persistido es el destino real de «Solicitar ampliación». El operador autorizado puede consultar pendientes con `SELECT "businessId", "upgradeRequestedAt", "upgradeRequestedBy" FROM "BusinessSubscription" WHERE "upgradeRequestedAt" IS NOT NULL ORDER BY "upgradeRequestedAt";` dentro del entorno administrativo protegido. No se exporta esta información al cliente ni se inventa un contacto comercial. La resolución comercial y un eventual cambio de plan requieren decisión y procedimiento administrativo auditado; no son un cobro o upgrade automático de este MVP.
+
+## 25. Quality gate frontend del MVP
+
+Las páginas operativas y Login usan `React.lazy`/`Suspense` por ruta; el shell y los guards permanecen disponibles y la espera expone un status accesible. Se conserva el respaldo por página y general; errores de importación no exponen detalles internos. No se elevó el umbral de 500 kB.
+
+Calendar consume Business Context; se elimina su única dependencia productiva de `VITE_DEV_BUSINESS_ID`. Sus lecturas reciben AbortSignal desde QueryClient y sus operaciones encadenadas cancelan al cerrar/desmontar. Una respuesta de alta tardía no inicia Submit/Confirm, no navega ni actualiza otra UI. El backend puede haber confirmado una operación antes del aborto: la cancelación cliente no equivale a rollback y no borra reservas. El diálogo reutiliza OverlayPanel, foco, Escape y Tab; la identidad estable no depende del token rotado.
+
+El helper monetario compartido de presentación/entrada mantiene PYG entero. No implementa reglas financieras ni conversión FX; Pricing y Payments continúan consumiendo importes calculados por backend. Los contratos HTTP y datos persistidos permanecen intactos.

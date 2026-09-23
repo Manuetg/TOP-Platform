@@ -20,13 +20,14 @@ export function useAvailabilityCalendar({
 }: UseAvailabilityCalendarOptions) {
   return useQuery({
     queryKey: ["availability", "calendar", businessId, from, to, resourceId ?? ""],
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       listAvailabilityCalendar({
         businessId,
         from,
         to,
         resourceId,
         accessToken,
+        signal,
       }),
     enabled: enabled && businessId.length > 0 && from.length > 0 && to.length > 0,
   });

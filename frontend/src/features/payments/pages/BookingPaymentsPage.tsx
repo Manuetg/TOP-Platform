@@ -1,3 +1,4 @@
+import { formatMoney as money } from "../../../shared/utils/money";
 import {
   ArrowLeft,
   CalendarClock,
@@ -49,13 +50,7 @@ const bookingStatusLabels = {
   NO_SHOW: "No se presentó",
 } as const;
 
-function money(value: number, currency = "PYG") {
-  return new Intl.NumberFormat("es-PY", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+
 
 function localDateTime() {
   const now = new Date();

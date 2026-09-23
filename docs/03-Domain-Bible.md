@@ -1430,3 +1430,7 @@ Configuración provisional del MVP: **TOP Inicial**, código `TOP_INITIAL`, hast
 - Backend proyecta disponibles (mínimo cero), porcentaje entero, estado `NORMAL`, `WARNING` desde 80% y `LIMIT` desde el cupo, y `canCreate`. Inventario anterior superior al cupo se conserva íntegro; se bloquean nuevas altas hasta disponer de capacidad.
 - La solicitud de ampliación registra una única fecha y actor por Business, reutilizadas ante reintentos. No modifica el plan ni cobra. Solo OWNER puede solicitarla; todos los roles con membresía vigente pueden consultar el uso operativo.
 - No incluye gateway, cobro online, facturación, autoservicio de cambios de plan ni autoridad GLOBAL. La revisión comercial de solicitudes corresponde al operador, mediante acceso administrativo controlado a los registros persistidos.
+
+### Clarificación de representación monetaria del MVP (quality gate 2026-09-23)
+
+`amountMinor`, `baseNightlyAmountMinor` y los importes de Snapshot/Payment se conservan como enteros seguros en la unidad menor de la moneda contractual. En PYG esa unidad es un guaraní: `450000` corresponde a `₲ 450.000`, no `₲ 4.500`. La UI de Pricing, Calendar y Confirm Booking se alinea con Payments y Dashboard; ingresar/restaurar `450.000` envía exactamente `450000`. Se rechazan fracciones de guaraní sin redondearlas. Esto aclara representación y serialización, no cambia cálculo de precios, descuentos, saldo o aplicaciones backend ni migra importes históricos.

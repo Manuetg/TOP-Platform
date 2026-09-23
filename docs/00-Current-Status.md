@@ -4,20 +4,26 @@
 
 ## Handoff vigente — cierre del MVP por épicos
 
-- Baseline: `develop@4c866cc`, PR #88 Payments y #89 Calendar/Pricing incorporadas. Frontend: 46/52 historias activas Completed, 6 Planned. La evidencia histórica inferior se conserva con sus fechas y límites; no describe una nueva ejecución de QA.
-- Orden aprobado: mantenimiento preliminar → Foundation Polish → Business Management → Subscription & Entitlements → quality gate final. Alcance, dependencias y evidencia vigente en `docs/14-Frontend-Backlog.md`, sección «Cierre del MVP por épicos».
-- Trabajo full-stack autorizado para resolver gaps directos del frontend, conservando dominio y reglas como autoridad. Las responsabilidades históricas siguientes no constituyen una prohibición de ajustes backend dentro del épico aprobado.
-- Mantenimiento en `codex/frontend-maintenance`, worktree local `C:\Users\Sady\workspace\TOP-MVP-Maintenance`. Corrección del submit concurrente de Login y tests de URL relativa/absoluta; 74 archivos/379 pruebas PASS en ambas configuraciones y ejecución final relativa de 380 pruebas PASS tras añadir recuperación de validación inválida; lint y build PASS. QA Login desktop/móvil y sesión con API real PASS; CI y revisión de PR pendientes. No se declara completo el épico todavía.
-- Business ya dispone de listado autorizado, detalle y edición de nombre, razón social, identificación fiscal, timezone y moneda contractual PYG. Falta integrar selector/perfil; no se necesita inventar un contrato de membresías.
-- Subscription implementa un mecanismo técnico de plan/cupo/uso y solicitud de ampliación persistida, sin billing. El registro TOP Inicial / 10 Resources es configuración provisional del MVP pendiente de confirmación comercial explícita antes de producción; no se atribuye aprobación ni delegación comercial a Rolo. Nombre y límites pueden cambiar sin rediseñar Entitlement/Usage.
-- Bundle de 710,96 kB: evaluación de división por rutas diferida al quality gate final; warnings de `act` y fallback del router corregidos en sus tests.
-- Primer Frontend CI de mantenimiento falló en instalación, antes de tests; se corrige reproducibilidad del builder con lockfile multiplataforma y `npm ci`, preservando versiones. Backend CI del primer HEAD aprobó. La evidencia del HEAD final se actualiza en la PR de mantenimiento, sin commits dedicados a repetir SHA.
-- Mantenimiento #90 validado: HEAD `cca693894b76772902edae973583eb71662423f8`, Frontend CI `35868609248` y Backend CI `35868609614` SUCCESS; pendiente de merge. Sustituye el estado de CI pendiente descrito arriba.
-- Foundation Polish implementado en `codex/foundation-polish`, worktree local `C:\Users\Sady\workspace\TOP-MVP-Foundation`, dependiente de #90: Button/superficies/motion, Login, overlays y navegación accesible, rail contextual optativo. Gates locales: 395 pruebas, lint y build PASS; QA Edge desktop 1440×900, tablet 1024×900 y móvil emulado 390×844 con API real PASS. Detalle y límites en `docs/14-Frontend-Backlog.md`. FE-FND-006/007/008 permanecen In Progress hasta revisión/merge; recuento vigente 46 Completed, 3 In Progress y 3 Planned.
-- Quality gate final: evaluar división por rutas (bundle Foundation 716,94 kB) y verificar discrepancia de escala monetaria observada entre Dashboard y Pricing. No se declara terminado el MVP.
-- Cambios locales de infraestructura del checkout original preservados. No se modifica ni mergea directamente `develop`.
+Baseline `develop@4c866cc` con Payments y Calendar/Pricing mergeados. Implementación en ramas nuevas, sin merge directo ni incorporación de infraestructura local. Las PR están encadenadas y deben revisarse/mergearse en orden:
 
-- Business Management implementado en codex/business-management: selector real y perfil contractual en Configuración, aislamiento/cancelación y permisos. 409 pruebas locales PASS; QA desktop/móvil emulado con API y segundo Business autorizado PASS. FE-BUS-002/003 In Progress hasta revisión/merge. Recuento vigente: 46 Completed, 5 In Progress, 1 Planned. Detalles, contratos y límites en el Backlog; CI final se mantiene en el cuerpo de la PR.
+
+| Épico | PR / feature HEAD | Evidencia |
+|---|---|---|
+| Mantenimiento preliminar | #90 / `cca693894b76772902edae973583eb71662423f8` | Frontend CI `35868609248`, Backend CI `35868609614` SUCCESS; Login real desktop/móvil |
+| Foundation Polish | #91 / `a6906b0ba1b25807e7a7d7b5a3c47db8d115e1f1` | Frontend CI `35872648453`, Backend CI `35872648438` SUCCESS; QA 1440/1024/390 px |
+| Business Management | #92 / `06a6f4c7c62f2e37c1fcbc6a74239ecf3c92c771` | Frontend CI `35875446704`, Backend CI `35875446441` SUCCESS; selector/perfil reales y segundo Business local autorizado |
+| Subscription & Entitlements | #93 / `c769770ab396bcbcdaf8d31c19608a507b3e8e7d` | Frontend CI `35879775070`, Backend CI `35879775033` SUCCESS; enforcement PostgreSQL, QA de 0/8/9/10 y aislamiento |
+| Quality gate final | `codex/frontend-quality-gate` | Rutas diferidas, Calendar contextual/cancelable y escala PYG unificada; HEAD/CI final en cuerpo de su PR |
+
+Subscription conserva una configuración provisional del MVP, pendiente de confirmación comercial antes de producción: TOP Inicial, 10 Resources ACTIVE/OUT_OF_SERVICE; ARCHIVED no consume. Todos los miembros leen capacidad; OWNER registra una solicitud única de ampliación, sin cobro ni cambio automático. Contratos, reglas y operación administrativa documentados en Domain Bible, Business Rules y Architecture.
+
+Quality gate resolvió dos regresiones demostradas: Calendar usaba una variable de demo en vez del Business activo y Pricing/Calendar escalaban PYG por 100 mientras Payments/Dashboard usaban el entero contractual. No se modifican registros financieros históricos ni se recalculan saldos. PYG se muestra/envía como guaraní entero; revisar manualmente cualquier dato introducido con la UI anterior antes de una operación real, sin conversión masiva inferida.
+
+Las capacidades internas y su QA se detallan en `docs/14-Frontend-Backlog.md`. Frontend funcional original conserva su estado Completed; FE-FND-006/007/008, FE-BUS-002/003 y FE-SUB-001 permanecen In Progress hasta revisión/merge. Recuento: 46 Completed, 6 In Progress, 0 Planned. No se declara merge ni aprobación formal independiente.
+
+QA vigente: Edge 153.0.4234.48, frontend local :3001 y API real :3000/api; desktop 1440×900, tablet 1024×900 (Foundation) y móvil emulado 390×844. Touch físico y cambio real de preferencia de motion del sistema NOT RUN; CSS reduced-motion y regresiones automatizadas acreditadas. No equivale a certificación WCAG completa.
+
+Worktree final: `C:\Users\Sady\workspace\TOP-MVP-Quality`. La ruta Windows es un worktree local, no el checkout sintético de GitHub. Base de QA y archivos ajenos del checkout original preservados. No auto-merge. Las secciones inferiores conservan el historial con sus fechas y no reemplazan este handoff.
 
 ## Responsabilidades
 

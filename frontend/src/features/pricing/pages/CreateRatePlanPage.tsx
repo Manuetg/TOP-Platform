@@ -1,3 +1,4 @@
+import { parseGuaranies } from "../../../shared/utils/money";
 import {
   ArrowLeft,
   Check,
@@ -18,22 +19,7 @@ import { useCreateRatePlan } from "../queries/use-create-rate-plan";
 import "./CreateRatePlanPage.css";
 
 
-function currencyToMinor(value: string) {
-  const normalized = value
-    .replace(/\./g, "")
-    .replace(",", ".");
 
-  const parsed = Number(normalized);
-
-  if (
-    !Number.isFinite(parsed) ||
-    parsed <= 0
-  ) {
-    return null;
-  }
-
-  return Math.round(parsed * 100);
-}
 
 export function CreateRatePlanPage() {
   const { session } = useAuth();
@@ -117,7 +103,7 @@ export function CreateRatePlanPage() {
     }
 
     const amountMinor =
-      currencyToMinor(baseAmount);
+      parseGuaranies(baseAmount);
 
     if (
       amountMinor === null ||

@@ -2202,3 +2202,29 @@ Implementado en `codex/subscription-entitlements`, sobre Business Management #92
 - QA real: Edge 153.0.4234.48, localhost:3001 con API localhost:3000/api; desktop 1440×900 y móvil emulado 390×844. PASS: 0/10, solicitud por Enter y foco en heading, persistencia tras recarga, 8/10 aviso, altas reales 9/10 y 10/10, detalle correcto, bloqueo de alta al límite, cambio al otro Business 4/10 sin heredar solicitud ni cupo. Sin overflow horizontal (375/375 móvil) ni errores de consola. Ocho Resources ficticios se prepararon exclusivamente en el segundo Business local autorizado; los dos últimos se crearon desde la UI. No se modificaron datos financieros ni producción. La concurrencia del último cupo y permisos negativos están acreditados por pruebas automatizadas, no por esa QA visual. Dispositivo táctil físico NOT RUN.
 - Bundle 729,02 kB: diferido al quality gate final ya previsto. Deprecación Prisma `package.json#prisma`: aceptada durante Prisma 6; migración de configuración diferida a la actualización mayor, sin warning funcional. El aviso transitorio de tiempos de plugins no apareció en el build posterior. React act/Router: sin warnings en ejecución final.
 - El cuerpo de la PR mantiene HEAD/checkout sintético y ambos CI finales, sin commits dedicados a repetir metadatos. No se realiza merge automático.
+
+## Quality gate final — implementación y QA, revisión/merge pendientes
+
+Rama `codex/frontend-quality-gate`, sobre Subscription #93 y sus dependencias #92/#91/#90; worktree local `C:\Users\Sady\workspace\TOP-MVP-Quality`. Las capacidades internas de los cuatro épicos están implementadas. El estado formal permanece In Progress hasta revisión y merge humano; no se inventan historias duplicadas ni se declara MVP integrado en develop antes del merge.
+
+Correcciones finales acotadas:
+
+- Carga diferida por página con status de espera; shell, guards y recuperación de errores conservados. Bundle principal pasa de 729,02 kB a aproximadamente 366,49 kB (115,15 kB gzip), sin aumentar límites ni dependencias.
+- Calendar usa Business activo en lecturas y operaciones, con AbortSignal efectivo. Las respuestas antiguas no sustituyen el nuevo contexto y cerrar durante alta no continúa Submit/Confirm. Se conserva caché ajena. Diálogo reutiliza OverlayPanel y recupera foco al cerrar, sin efectos tardíos. Textos auxiliares de Calendar usan token de contraste TOP.
+- Regresión monetaria demostrada corregida: Pricing/Calendar dividían/multiplicaban PYG por 100 mientras Dashboard/Payments representaban el entero contractual. Helper compartido muestra/envía 450000 como ₲ 450.000; edición restaura 450.000. Contrato backend intacto; no se convierten datos históricos. Los tests anteriores que codificaban la escala errónea se actualizan y se agregan pruebas de formulario/transporte para alta, edición y temporada.
+- Pruebas nuevas: `money.test.ts`, `PricingMoney.integration.test.tsx`, `CalendarContext.integration.test.tsx`; ampliaciones de Calendar para Business seleccionado, cierre pendiente y teclado; rutas mantienen sus regresiones esperando carga diferida. QueryClient/hooks/transporte reales en las integraciones. No se rebajan thresholds ni se excluyen suites.
+
+QA sobre build de producción con API real, Edge 153.0.4234.48, localhost:3001 / API :3000/api:
+
+| Caso | Entorno | Resultado | Evidencia |
+|---|---|---|---|
+| Carga de rutas y navegación | Desktop 1440×900 y móvil 390×844 emulado | PASS | Build final index-DK4PgtPb.js; shell visible durante carga y foco en main. Revisión final de Calendar con tokens de contraste en ambos viewports |
+| Calendar por Business | Ambos viewports | PASS | QA muestra Resources ficticios; cambio real al original muestra reserva Cabaña Lapacho, sin datos de QA |
+| Asistente Calendar | Ambos viewports | PASS | Panel desktop y pantalla móvil; Tab/Shift+Tab contenidos, Escape cierra y devuelve foco a Nueva reserva |
+| PYG alta/listado/edición/Dashboard | Desktop | PASS | Tarifa ficticia QA 450.000 → DB 450000 PYG → listado y Dashboard ₲ 450.000; edición restaura 450.000 |
+| Responsive y consola | Desktop/móvil emulado | PASS | Sin overflow de documento (375/375 móvil); scroll operativo; consola sin errores/warnings inesperados |
+| Touch físico / preferencia motion del SO | Dispositivo físico no disponible | NOT RUN | No se sustituye por jsdom; reduced-motion revisado en CSS y comportamiento de diálogo en tests |
+
+Warnings: bundle >500 kB **corregido**; React act/Router **corregidos**, sin supresión global; aviso transitorio de tiempo de plugins **no reproducido** en build posterior, sin alterar configuración; deprecación de `package.json#prisma` en Prisma 6 **aceptada/diferida** a actualización mayor. Sin nuevas dependencias/workflows. Backend no cambia en este último épico y conserva gates completos acreditados en #93; ambos CI del HEAD final se verifican y registran en el cuerpo de la PR.
+
+Gates locales finales (Node 24.19): lint PASS; suite completa 81 archivos / 457 pruebas PASS (pool threads, 2 workers por capacidad del host); build PASS, paquete principal 366,49 kB / 115,15 kB gzip; git diff --check PASS. Consola final sin errores/warnings y documento sin overflow en 1440×900 y 390×844. Self-review contra top-frontend-review realizado; no equivale a revisión independiente ni aprobación formal de GitHub. Pendientes de entrega: CI del HEAD publicado y revisión/merge humano en el orden de dependencias.

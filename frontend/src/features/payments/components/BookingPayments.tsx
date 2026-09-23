@@ -1,3 +1,4 @@
+import { formatMoney } from "../../../shared/utils/money";
 import { AlertCircle, CreditCard, WalletCards } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import { ApiError } from "../../../shared/api/api-client";
@@ -18,10 +19,7 @@ interface Props {
 const financialLabels: Record<FinancialStatus, string> = { UNPAID: "Sin pagos", PARTIALLY_PAID: "Pago parcial", PAID: "Pagada", OVERDUE: "Con vencimiento pendiente" };
 const methodLabels: Record<PaymentHistoryItem["method"], string> = { CASH: "Efectivo", BANK_TRANSFER: "Transferencia", CARD: "Tarjeta", OTHER: "Otro" };
 
-function formatMoney(amountMinor: number, currency: string) {
-  const value = new Intl.NumberFormat("es-PY").format(amountMinor);
-  return currency === "PYG" ? `₲ ${value}` : `${currency} ${value}`;
-}
+
 
 function formatInstant(value: string, timezone: string) {
   return new Intl.DateTimeFormat("es-PY", { dateStyle: "medium", timeStyle: "short", timeZone: timezone }).format(new Date(value));

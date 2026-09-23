@@ -1,3 +1,4 @@
+import { formatMoney } from "../../../shared/utils/money";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -24,16 +25,7 @@ import type { CalculatePriceResult } from "../../pricing/types/pricing.types";
 import "./ConfirmBookingPage.css";
 
 
-function formatMoney(
-  amountMinor: number,
-  currency: string,
-) {
-  return new Intl.NumberFormat("es-PY", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amountMinor / 100);
-}
+
 
 function formatDate(value: string) {
   const [year, month, day] = value

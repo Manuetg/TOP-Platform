@@ -1,3 +1,5 @@
+import { useBusinessContext } from "../../business/context/BusinessContext";
+import { formatMoney, parseGuaranies } from "../../../shared/utils/money";
 import {
   ArrowLeft,
   ArrowRight,
@@ -10,10 +12,11 @@ import {
   UserPlus,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../../shared/ui/Button";
+import { OverlayPanel } from "../../../shared/ui/OverlayPanel";
 import { useAuth } from "../../auth/context/AuthContext";
 import { useResources } from "../../resources/queries/use-resources";
 import { useBookings } from "../../bookings/queries/use-bookings";
@@ -31,7 +34,7 @@ import type { Block } from "../../blocks/types/block.types";
 import { useAvailabilityCalendar } from "../queries/use-availability-calendar";
 import "./AvailabilityCalendarPage.css";
 
-const BUSINESS_ID = import.meta.env.VITE_DEV_BUSINESS_ID ?? "";
+
 const DAY_MS = 86_400_000;
 
 const bookingLabels: Record<BookingStatus, string> = {
@@ -53,25 +56,9 @@ function addDays(value: string, days: number) {
   return isoDate(new Date(date.getTime() + days * DAY_MS));
 }
 
-function formatMoney(
-  amountMinor: number,
-  currency = "PYG",
-) {
-  return new Intl.NumberFormat("es-PY", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amountMinor / 100);
-}
 
-function guaraniesToMinor(value: string) {
-  const digits = value.replace(/\D/g, "");
-  if (!digits) return null;
-  const guaranies = Number(digits);
-  if (!Number.isSafeInteger(guaranies)) return null;
-  const amountMinor = guaranies * 100;
-  return Number.isSafeInteger(amountMinor) ? amountMinor : null;
-}
+
+function guaraniesToMinor(value: string) { return parseGuaranies(value, true); }
 
 function formatGuaranies(value: number) {
   return new Intl.NumberFormat("es-PY", { maximumFractionDigits: 0 }).format(value);
@@ -133,6 +120,13 @@ export function AvailabilityCalendarPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
   const accessToken = session?.accessToken;
+  const { activeBusinessId: businessId } = useBusinessContext();
+  const operations = useRef(new Set<AbortController>());
+  const wizardTrigger = useRef<HTMLElement | null>(null);
+  const savingLock = useRef(false);
+  useEffect(() => { const pending = operations.current; return () => { for (const controller of pending) controller.abort(); pending.clear(); }; }, [businessId, session?.user.id]);
+  function operation() { const controller = new AbortController(); operations.current.add(controller); return controller; }
+  function closeWizard() { for (const controller of operations.current) controller.abort(); operations.current.clear(); savingLock.current = false; wizardTrigger.current?.focus(); setSaving(false); setWizardOpen(false); }
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
@@ -163,29 +157,29 @@ export function AvailabilityCalendarPage() {
     return Array.from({ length: count }, (_, index) => addDays(monthFrom, index));
   }, [monthFrom, monthTo]);
 
-  const resourcesQuery = useResources({ businessId: BUSINESS_ID, accessToken });
-  const bookingsQuery = useBookings({ businessId: BUSINESS_ID, accessToken });
-  const blocksQuery = useBlocks({ businessId: BUSINESS_ID, from: blocksFrom, to: blocksTo, accessToken });
-  const calendarQuery = useAvailabilityCalendar({ businessId: BUSINESS_ID, from: monthFrom, to: monthTo, accessToken });
-  const contactsQuery = useContacts({ businessId: BUSINESS_ID, query: contactQuery, accessToken });
+  const resourcesQuery = useResources({ businessId: businessId, accessToken });
+  const bookingsQuery = useBookings({ businessId: businessId, accessToken });
+  const blocksQuery = useBlocks({ businessId: businessId, from: blocksFrom, to: blocksTo, accessToken });
+  const calendarQuery = useAvailabilityCalendar({ businessId: businessId, from: monthFrom, to: monthTo, accessToken });
+  const contactsQuery = useContacts({ businessId: businessId, query: contactQuery, accessToken });
 
   const validWizardRange = wizard.checkIn.length > 0 && wizard.checkOut > wizard.checkIn;
   const stayAvailability = useAvailabilityCalendar({
-    businessId: BUSINESS_ID,
+    businessId: businessId,
     from: wizard.checkIn,
     to: wizard.checkOut,
     accessToken,
     enabled: wizardOpen && validWizardRange,
   });
   const ratePlans = useSelectableRatePlans({
-    businessId: BUSINESS_ID,
+    businessId: businessId,
     resourceId: wizard.resourceId,
     checkIn: wizard.checkIn,
     checkOut: wizard.checkOut,
     accessToken,
   });
   const calculate = useCalculatePrice({
-    businessId: BUSINESS_ID,
+    businessId: businessId,
     ratePlanId: wizard.ratePlanId,
     accessToken,
   });
@@ -329,6 +323,7 @@ export function AvailabilityCalendarPage() {
   }
 
   function openWizard(day?: string, resourceId?: string) {
+    wizardTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setWizard({
       ...emptyWizard,
       checkIn: day ?? "",
@@ -383,11 +378,17 @@ export function AvailabilityCalendarPage() {
         return;
       }
       if (wizard.mode === "CONFIGURED" && !preview) {
+        const controller = operation();
         try {
-          setPreview(await calculate.mutateAsync({ resourceId: wizard.resourceId, checkIn: wizard.checkIn, checkOut: wizard.checkOut }));
+          const result = await calculate.mutateAsync({ resourceId: wizard.resourceId, checkIn: wizard.checkIn, checkOut: wizard.checkOut, signal: controller.signal });
+          if (controller.signal.aborted) return;
+          setPreview(result);
         } catch (cause) {
+          if (controller.signal.aborted) return;
           setError(cause instanceof Error ? cause.message : "No pudimos calcular la tarifa.");
           return;
+        } finally {
+          operations.current.delete(controller);
         }
       }
     }
@@ -400,10 +401,12 @@ export function AvailabilityCalendarPage() {
       setError("Completá nombre, apellido y teléfono del contacto.");
       return;
     }
+    const controller = operation();
     try {
       const contact = await createContact({
-        businessId: BUSINESS_ID,
+        businessId: businessId,
         accessToken,
+        signal: controller.signal,
         input: {
           name: newContact.name.trim(),
           lastName: newContact.lastName.trim(),
@@ -418,10 +421,11 @@ export function AvailabilityCalendarPage() {
         },
       });
 
+      if (controller.signal.aborted) return;
       await queryClient.invalidateQueries({
-        queryKey: ["contacts", BUSINESS_ID],
+        queryKey: ["contacts", businessId],
       });
-
+      if (controller.signal.aborted) return;
       setContactQuery("");
       update("contactId", contact.id);
       setCreatingContact(false);
@@ -434,19 +438,25 @@ export function AvailabilityCalendarPage() {
         documentNumber: "",
       });
     } catch (cause) {
+      if (controller.signal.aborted) return;
       setError(cause instanceof Error ? cause.message : "No pudimos crear el contacto.");
+    } finally {
+      operations.current.delete(controller);
     }
   }
 
   async function finishBooking() {
-    if (!wizard.ratePlanId || (wizard.mode === "CONFIGURED" && !preview)) return;
+    if (savingLock.current || !businessId || !wizard.ratePlanId || (wizard.mode === "CONFIGURED" && !preview)) return;
+    savingLock.current = true;
+    const controller = operation();
     const discount = selectedDiscountPercent(wizard);
     setSaving(true);
     setError(null);
     try {
       const booking = await createBooking({
-        businessId: BUSINESS_ID,
+        businessId: businessId,
         accessToken,
+        signal: controller.signal,
         input: {
           contactId: wizard.contactId,
           resourceIds: [wizard.resourceId],
@@ -456,11 +466,14 @@ export function AvailabilityCalendarPage() {
           children: Number(wizard.children),
         },
       });
-      await submitBooking({ businessId: BUSINESS_ID, bookingId: booking.id, accessToken });
+      if (controller.signal.aborted) return;
+      await submitBooking({ businessId: businessId, bookingId: booking.id, accessToken, signal: controller.signal });
+      if (controller.signal.aborted) return;
       await confirmBooking({
-        businessId: BUSINESS_ID,
+        businessId: businessId,
         bookingId: booking.id,
         accessToken,
+        signal: controller.signal,
         input: {
           pricing: [{
             resourceId: wizard.resourceId,
@@ -479,13 +492,17 @@ export function AvailabilityCalendarPage() {
           }],
         },
       });
-      await queryClient.invalidateQueries({ queryKey: ["bookings", BUSINESS_ID] });
+      if (controller.signal.aborted) return;
+      await queryClient.invalidateQueries({ queryKey: ["bookings", businessId] });
+      if (controller.signal.aborted) return;
       setWizardOpen(false);
       navigate(`/app/bookings/${booking.id}`);
     } catch (cause) {
+      if (controller.signal.aborted) return;
       setError(cause instanceof Error ? cause.message : "No pudimos confirmar la reserva.");
     } finally {
-      setSaving(false);
+      operations.current.delete(controller);
+      if (!controller.signal.aborted) { savingLock.current = false; setSaving(false); }
     }
   }
 
@@ -720,10 +737,8 @@ export function AvailabilityCalendarPage() {
 
       )}
 
-      {wizardOpen && (
-        <div className="booking-wizard-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setWizardOpen(false); }}>
-          <aside className="booking-wizard" role="dialog" aria-modal="true" aria-labelledby="booking-wizard-title">
-            <header><div><span>Paso {step} de 5</span><h2 id="booking-wizard-title">Nueva reserva</h2></div><button type="button" aria-label="Cerrar" onClick={() => setWizardOpen(false)}><X size={20} /></button></header>
+      <OverlayPanel open={wizardOpen} label="Nueva reserva" className="booking-wizard" layerClassName="booking-wizard-layer" closeLabel="Cerrar asistente de reserva" triggerRef={wizardTrigger} onClose={closeWizard}>
+            <header><div><span>Paso {step} de 5</span><h2 id="booking-wizard-title">Nueva reserva</h2></div><button type="button" aria-label="Cerrar" onClick={closeWizard}><X size={20} /></button></header>
             <div className="booking-wizard-progress" aria-hidden="true">{[1,2,3,4,5].map((item) => <i key={item} className={item <= step ? "is-active" : ""} />)}</div>
             <div className="booking-wizard-body">
               {step === 1 && <StayStep wizard={wizard} update={update} />}
@@ -752,9 +767,7 @@ export function AvailabilityCalendarPage() {
               )}
               {step < 5 ? <Button type="button" disabled={saving || (step === 1 && stayAvailability.isLoading) || (step === 4 && (!wizard.ratePlanId || (wizard.mode === "MANUAL" && guaraniesToMinor(wizard.agreedAmountMinor) === null) || (wizard.mode === "CONFIGURED" && (wizard.discountPercent === "OTHER" && (!Number.isInteger(Number(wizard.customDiscountPercent)) || Number(wizard.customDiscountPercent) < 1 || Number(wizard.customDiscountPercent) > 100)))))} onClick={() => void nextStep()}>{step === 1 ? "Buscar disponibilidad" : "Continuar"}<ArrowRight size={16} /></Button> : <Button type="button" disabled={saving} onClick={() => void finishBooking()}>{saving ? "Confirmando…" : "Confirmar reserva"}<Check size={16} /></Button>}
             </footer>
-          </aside>
-        </div>
-      )}
+      </OverlayPanel>
     </section>
   );
 }
