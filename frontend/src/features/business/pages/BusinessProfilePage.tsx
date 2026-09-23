@@ -12,6 +12,7 @@ import { ApiError } from "../../../shared/api/api-client";
 import { Button } from "../../../shared/ui/Button";
 import { Input } from "../../../shared/ui/Input";
 import "../components/Business.css";
+import { SubscriptionCard } from "../../subscription/components/SubscriptionCard";
 
 const schema = z.object({
   name: z.string().trim().min(1, "Ingresá el nombre del establecimiento.").max(120, "Usá hasta 120 caracteres."),
@@ -34,6 +35,7 @@ export function BusinessProfilePage() {
       {query.isError ? <><p role="alert">{inaccessible(query.error) ? "No tenés acceso a este establecimiento o ya no está disponible." : "No pudimos actualizar la información del establecimiento."}</p><Button onClick={() => { status.current?.focus(); void query.refetch(); }}>Reintentar perfil</Button></> : null}
     </div>
     {query.data && !inaccessible(query.error) && session ? <BusinessProfileForm key={`${session.user.id}:${activeBusinessId}`} business={query.data} accessToken={session.accessToken} userId={session.user.id} canEdit={activeRole === "OWNER" || activeRole === "ADMIN"} /> : null}
+    <SubscriptionCard />
   </section>;
 }
 

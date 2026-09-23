@@ -1,6 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useSubscription } from "../../subscription/queries/use-subscription";
+import { SubscriptionCard } from "../../subscription/components/SubscriptionCard";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
@@ -28,7 +31,14 @@ function createInternalCode(name: string): string {
 export function CreateResourcePage() {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const { activeBusinessId } = useBusinessContext();
+  const { activeBusinessId, activeRole } = useBusinessContext();
+  const quota = useSubscription();
+  const client = useQueryClient();
+  const canCreate = Boolean(quota.data?.usage.resources.canCreate && !quota.isError && (activeRole === "OWNER" || activeRole === "ADMIN"));
+  const controller = useRef<AbortController | null>(null);
+  const alive = useRef(true);
+  const locked = useRef(false);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; controller.current?.abort(); }; }, []);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
@@ -64,6 +74,7 @@ export function CreateResourcePage() {
     );
   }, [resourceName, setValue]);
 const onSubmit = handleSubmit(async (values) => {
+    if (!canCreate) { setSubmitError("No se pudo confirmar capacidad disponible y permiso para crear el recurso."); return; }
     if (!activeBusinessId) {
       setSubmitError(
         "No se pudo determinar el Business activo.",
@@ -74,9 +85,11 @@ const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
 
     try {
+      controller.current = new AbortController();
       const resource = await createResource({
         businessId: activeBusinessId,
         accessToken: session?.accessToken,
+        signal: controller.current.signal,
         input: {
           name: values.name.trim(),
           internalCode: values.internalCode
@@ -93,8 +106,13 @@ const onSubmit = handleSubmit(async (values) => {
         },
       });
 
+      if (!alive.current || controller.current.signal.aborted) return;
+      void client.invalidateQueries({ queryKey: ["subscription", session?.user.id, activeBusinessId] });
+      void client.invalidateQueries({ queryKey: ["resources", activeBusinessId] });
       navigate(`/app/resources/${resource.id}`);
     } catch (error) {
+      if (!alive.current || controller.current?.signal.aborted) return;
+      void quota.refetch();
       setSubmitError(
         error instanceof Error
           ? error.message
@@ -102,6 +120,12 @@ const onSubmit = handleSubmit(async (values) => {
       );
     }
   });
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (locked.current) return;
+    locked.current = true;
+    void onSubmit(event).finally(() => { locked.current = false; });
+  };
 
   return (
     <section
@@ -132,9 +156,10 @@ const onSubmit = handleSubmit(async (values) => {
         </p>
       </header>
 
+      <SubscriptionCard />
       <form
         className="resource-create-form"
-        onSubmit={onSubmit}
+        onSubmit={submit}
         noValidate
       >
         <input
@@ -301,7 +326,7 @@ const onSubmit = handleSubmit(async (values) => {
 
           <Button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !canCreate}
           >
             <Plus size={16} aria-hidden="true" />
             {isSubmitting

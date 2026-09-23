@@ -19,6 +19,10 @@ import { authenticationRepositoryFake, passwordHasherFake, resetUserRepositoryFa
 import { businessLookupFake, membershipRepositoryFake, resetMembershipFakes, userLookupFake } from './membership-repository.fake';
 import { TopWorld } from './world';
 import { RESOURCE_REPOSITORY } from '../../../src/modules/resource/domain/resource.repository';
+import { RESOURCE_USAGE_READER } from '../../../src/modules/resource/resource.contract';
+import { RESOURCE_QUOTA } from '../../../src/modules/subscription/subscription.contract';
+import { SUBSCRIPTION_REPOSITORY } from '../../../src/modules/subscription/application/subscription.repository';
+import { resourceQuotaFake, resourceUsageFake, resetSubscriptionFake, subscriptionRepositoryFake } from './subscription.fake';
 import { resetResourceRepositoryFake, resourceRepositoryFake } from './resource-repository.fake';
 import { FILE_STORAGE } from '../../../src/modules/resource/domain/file-storage.port';
 import { RESOURCE_IMAGE_REPOSITORY } from '../../../src/modules/resource/domain/resource-image.repository';
@@ -63,6 +67,7 @@ Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
   resetUserRepositoryFake();
   resetMembershipFakes();
   resetResourceRepositoryFake();
+  resetSubscriptionFake();
   resetResourceImageRepositoryFake();
   resetAmenityFakes();
   resetRatePlanRepositoryFake();
@@ -83,6 +88,9 @@ Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
   const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(BUSINESS_REPOSITORY).useValue(businessRepositoryFake)
     .overrideProvider(RESOURCE_REPOSITORY).useValue(resourceRepositoryFake)
+    .overrideProvider(RESOURCE_QUOTA).useValue(resourceQuotaFake)
+    .overrideProvider(RESOURCE_USAGE_READER).useValue(resourceUsageFake)
+    .overrideProvider(SUBSCRIPTION_REPOSITORY).useValue(subscriptionRepositoryFake)
     .overrideProvider(RESOURCE_IMAGE_REPOSITORY).useValue(resourceImageRepositoryFake)
     .overrideProvider(AMENITY_REPOSITORY).useValue(amenityRepositoryFake)
     .overrideProvider(RESOURCE_AMENITY_REPOSITORY).useValue(resourceAmenityRepositoryFake)

@@ -109,7 +109,7 @@ describe("LoginPage routing", () => {
     expect(router.state.location.search).toBe("?tab=images");
     expect(router.state.location.hash).toBe("#gallery");
     expect(dependencies.login).toHaveBeenCalledTimes(1);
-    expect(screen.getByText(/Private at/)).toBeInTheDocument();
+    expect(await screen.findByText(/Private at/)).toBeInTheDocument();
   });
 
   it("uses app as the post-login fallback when next is unsafe", async () => {

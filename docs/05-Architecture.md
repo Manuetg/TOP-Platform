@@ -148,3 +148,17 @@ backend/
 
 - Stack aprobado: TypeScript, NestJS, PostgreSQL, Prisma, REST con OpenAPI, almacenamiento S3-compatible, Docker y GitHub Actions. Se adopta por tipado, modularidad, ecosistema, migraciones y despliegue simple. Puede registrarse posteriormente mediante ADR sin bloquear el MVP.
 - La autenticación propia en NestJS para el MVP se define en [ADR-001: Estrategia de autenticación para el MVP](13-adr/ADR-001-estrategia-autenticacion-mvp.md). El proveedor concreto de almacenamiento S3-compatible, la solución inicial de observabilidad, la política y proveedor de backups, el proveedor de despliegue, y el tratamiento futuro de impuestos y multimoneda permanecen pendientes.
+
+## 24. Subscription & Entitlements del MVP
+
+El módulo Subscription persiste `SubscriptionPlan` y `BusinessSubscription`. `SubscriptionCoreModule` publica el puerto `RESOURCE_QUOTA`; Resource lo utiliza para serializar altas mediante `pg_advisory_xact_lock` por Business y transacción Prisma. Resource conserva la responsabilidad del conteo y escritura de su inventario dentro de esa transacción; Subscription conserva la asignación y el cupo. El scope de transacción es opaco para application. La composición de lectura usa `RESOURCE_USAGE_READER`, evitando acceso privado entre módulos y ciclos de módulos Nest.
+
+Contratos nuevos, ambos con `Cache-Control: no-store`, UUID validado, autenticación y Membership vigente:
+
+- `GET /api/businesses/:businessId/subscription`: `subscription {planCode, planName}`, `entitlements {maxResources}`, `usage.resources {used, available, percentage, state, canCreate}` y `upgrade {status, requestedAt}`. Todos los roles leen. Business no activo produce 409; inexistente 404. Error de una proyección no devuelve datos parciales.
+- `POST /api/businesses/:businessId/subscription/upgrade-request`: sin payload comercial; OWNER registra su actor desde el principal. Responde 200 `{status: REQUESTED, requestedAt}` tanto al crear como al repetir. No envía comunicaciones externas ni cambia el plan.
+- Consumidor afectado: `POST /api/businesses/:businessId/resources` agrega el conflicto `409 {code: RESOURCE_LIMIT_REACHED, message}`; su payload y respuesta exitosa permanecen compatibles.
+
+La UI usa `apiRequest` y QueryClient con clave `subscription/userId/businessId`, separada del token renovable. Perfil y alta de Resource comparten la lectura. Cambio de identidad/Business cancela lecturas y aborta mutaciones pendientes; resultados tardíos no confirman otra pantalla. La creación de Resource invalida cupo/listado; un GET posterior fallido no repite el POST. Un plan desconocido o no actualizado bloquea el alta en UI hasta reintentar. Backend siempre revalida el límite concurrente.
+
+Operación MVP: el registro persistido es el destino real de «Solicitar ampliación». El operador autorizado puede consultar pendientes con `SELECT "businessId", "upgradeRequestedAt", "upgradeRequestedBy" FROM "BusinessSubscription" WHERE "upgradeRequestedAt" IS NOT NULL ORDER BY "upgradeRequestedAt";` dentro del entorno administrativo protegido. No se exporta esta información al cliente ni se inventa un contacto comercial. La resolución comercial y un eventual cambio de plan requieren decisión y procedimiento administrativo auditado; no son un cobro o upgrade automático de este MVP.

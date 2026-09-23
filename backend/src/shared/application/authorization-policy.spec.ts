@@ -3,6 +3,8 @@ import { AuthorizationPolicy, AuthorizationScope, Capability, capabilityScopes }
 
 const allRoles = Object.values(MembershipRole);
 const expected: Readonly<Record<Capability, readonly MembershipRole[]>> = {
+  [Capability.SUBSCRIPTION_READ]: allRoles,
+  [Capability.SUBSCRIPTION_REQUEST_UPGRADE]: [MembershipRole.OWNER],
   [Capability.SEARCH_READ]: allRoles,
   [Capability.BUSINESS_READ]: allRoles, [Capability.BUSINESS_UPDATE]: [MembershipRole.OWNER, MembershipRole.ADMIN], [Capability.BUSINESS_ARCHIVE]: [MembershipRole.OWNER],
   [Capability.MEMBERSHIP_CREATE]: [MembershipRole.OWNER, MembershipRole.ADMIN], [Capability.MEMBERSHIP_ASSIGN_OWNER]: [MembershipRole.OWNER], [Capability.MEMBERSHIP_ASSIGN_ADMIN]: [MembershipRole.OWNER, MembershipRole.ADMIN], [Capability.MEMBERSHIP_ASSIGN_RECEPTIONIST]: [MembershipRole.OWNER, MembershipRole.ADMIN], [Capability.MEMBERSHIP_ASSIGN_VIEWER]: [MembershipRole.OWNER, MembershipRole.ADMIN],

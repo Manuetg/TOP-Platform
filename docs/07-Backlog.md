@@ -142,3 +142,7 @@ Progreso de Block: 3 de 3 capacidades completadas (100%).
 Progreso de Payment: 4 de 4 capacidades completadas (100%).
 
 Progreso de Dashboard: 4 de 4 capacidades completadas (100%).
+
+## Épico Subscription & Entitlements — In Progress
+
+Soporte full-stack aprobado para FE-SUB-001: plan persistido, asignación por Business, proyección de cupo/uso y solicitud única de ampliación; enforcement transaccional en creación de Resource. Contratos en Architecture y reglas en Domain Bible/Business Rules. No se duplican historias del backend original ni se reabre Payments. Implementación técnica validada; pendiente de revisión/merge y de confirmación comercial explícita de la configuración provisional TOP Inicial / 10 Resources antes de producción. No es un catálogo comercial aprobado. Incluye migración aditiva y Swagger; sin billing, gateway, cambios de plan automáticos ni nuevos permisos GLOBAL.

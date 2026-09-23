@@ -177,3 +177,11 @@ Los mecanismos concretos de capacidades futuras se definen en Architecture duran
 - Los amenities globales TOP son activos y visibles para todos los Businesses.
 - Un amenity personalizado pertenece a un único Business y no puede listarse ni asignarse desde otro Business.
 - La asignación de un Resource admite amenities globales activos y amenities personalizados activos de su propio Business; un identificador custom de otro Business se trata como inexistente.
+
+## Subscription — reglas del épico de cierre (2026-09-23)
+
+El registro provisional del MVP contiene TOP Inicial con 10 Resources operativos, pendiente de confirmación comercial antes de producción. No constituye una decisión comercial aprobada; nombre y límite pueden ajustarse sin cambiar el mecanismo técnico. `ACTIVE` y `OUT_OF_SERVICE` consumen cupo; `ARCHIVED` no. El alta debe contar y persistir dentro de una misma transacción serializada por Business. Al llegar al límite responde `409 RESOURCE_LIMIT_REACHED`, sin crear el Resource. La UI solo representa la proyección contractual; deshabilitar un botón no sustituye este control.
+
+Se conservan los Resources preexistentes aunque superen el cupo. Disponibles nunca es negativo; el porcentaje puede superar 100 y el estado es LIMIT. WARNING comienza en 80%; no modifica permisos ni bloquea altas por sí mismo.
+
+Complemento de BR-060/BR-080: `subscription.read` corresponde a todos los roles vigentes, para consultar capacidad operativa; `subscription.request-upgrade` solo a OWNER. ADMIN no gestiona suscripciones. La solicitud guarda actor y fecha originales, es única por Business y no altera plan, límites ni condiciones económicas. Ownership, autoridad GLOBAL y cambios comerciales de plan continúan fuera del alcance.
