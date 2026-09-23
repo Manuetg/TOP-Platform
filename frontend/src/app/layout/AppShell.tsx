@@ -42,6 +42,7 @@ export type AppSection =
 export type AppNavigationTarget = AppSection | "more";
 
 interface AppShellProps extends PropsWithChildren {
+  renderBusinessMenu?: (close: () => void) => ReactNode;
   contextRail?: ReactNode;
   activeSection: AppSection;
   businessName: string;
@@ -93,6 +94,7 @@ const moreSections: AppSection[] = moreItems.map((item) => item.id);
 export function AppShell({
   activeSection,
   contextRail,
+  renderBusinessMenu,
   businessName,
   userName,
   userRole,
@@ -355,7 +357,7 @@ export function AppShell({
       <OverlayPanel open={headerState.open} label="Panel del encabezado" closeLabel="Cerrar panel del encabezado" triggerRef={headerTrigger} onClose={closeHeader}
         layerClassName={`top-header-popover-layer${headerState.mode === "business" ? " top-header-popover-layer--business" : ""}`}
         className={`top-header-popover${headerState.mode === "business" ? " top-header-popover--business" : ""}`}>
-            <Button variant="tertiary" size="sm" iconOnly aria-label="Cerrar panel del encabezado" className="top-panel-close" onClick={() => { headerTrigger.current?.focus(); closeHeader(); }}><X size={20} aria-hidden="true" /></Button>            {headerState.mode === "business" ? (
+            <Button variant="tertiary" size="sm" iconOnly aria-label="Cerrar panel del encabezado" className="top-panel-close" onClick={() => { headerTrigger.current?.focus(); closeHeader(); }}><X size={20} aria-hidden="true" /></Button>            {headerState.mode === "business" && renderBusinessMenu ? <><div className="top-header-popover__heading"><span>Establecimientos</span><strong>Tu negocio activo</strong></div>{renderBusinessMenu(() => { headerTrigger.current?.focus(); closeHeader(); })}</> : headerState.mode === "business" ? (
               <>
                 <div className="top-header-popover__heading">
                   <span>Establecimiento</span>

@@ -10,6 +10,7 @@ import {
 import { useAuth } from "../../features/auth/context/AuthContext";
 import { useBusinessContext } from "../../features/business/context/BusinessContext";
 import { BusinessBoundary } from "../../features/business/components/BusinessBoundary";
+import { BusinessSelector } from "../../features/business/components/BusinessSelector";
 
 import { PageErrorBoundary } from "../errors/PageErrorBoundary";
 
@@ -80,6 +81,7 @@ export function AppLayout() {
   return (
     <AppShell
       activeSection={activeSection}
+      renderBusinessMenu={(close) => <BusinessSelector onSelected={() => { close(); void navigate("/app", { replace: true }); }} />}
       contextRail={rail ? <ContextRail title="Para tener en cuenta" blocks={rail} /> : null}
       businessName={activeBusiness?.name ?? (status === "empty" ? "Sin negocio activo" : status === "error" ? "No disponible" : "Seleccioná un negocio")}
       userName={session?.user.email ?? "Usuario"}
@@ -89,7 +91,7 @@ export function AppLayout() {
       onLogout={() => { void logout().finally(() => navigate("/login", { replace: true })); }}
       isLoggingOut={isLoggingOut}
     >
-      <BusinessBoundary><PageErrorBoundary /></BusinessBoundary>
+      <BusinessBoundary><PageErrorBoundary key={`${session?.user.id}:${activeBusiness?.id}`} /></BusinessBoundary>
     </AppShell>
   );
 }

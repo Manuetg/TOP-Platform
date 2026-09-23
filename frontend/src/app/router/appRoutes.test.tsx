@@ -17,7 +17,7 @@ vi.mock("../../features/auth/context/AuthContext", () => ({
 vi.mock("../../features/business/context/BusinessContext", () => ({
   useBusinessContext: () => {
 
-    return { status: state.businessStatus, activeBusinessId: state.businessId, activeBusiness: { name: "Negocio de prueba" }, activeRole: "OWNER" };
+    return { status: state.businessStatus, businesses: [], activeBusinessId: state.businessId, activeBusiness: { id: state.businessId, name: "Negocio de prueba" }, activeRole: "OWNER" };
   },
 }));
 vi.mock("../layout/AppShell", async (importOriginal) => {

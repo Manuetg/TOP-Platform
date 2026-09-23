@@ -31,6 +31,8 @@ vi.mock("../../features/auth/context/AuthContext", () => ({
 vi.mock("../../features/business/context/BusinessContext", () => ({
   useBusinessContext: () => ({
     status: state.businessStatus,
+    businesses: [],
+    activeBusinessId: "",
     retry: state.retry,
   }),
 }));

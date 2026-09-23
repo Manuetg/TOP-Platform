@@ -48,11 +48,11 @@ Total historias frontend activas: 52
 Estado actual:
 
 - Completed: 46
-- In Progress: 3
-- Planned: 3
+- In Progress: 5
+- Planned: 1
 - Blocked: 0
 
-Recuento por estados reales: 46 + 3 + 3 + 0 = 52. FE-AVL-002 y FE-PAY-000 permanecen como registros históricos y se excluyen del total activo para no duplicar trabajo.
+Recuento por estados reales: 46 + 5 + 1 + 0 = 52. FE-AVL-002 y FE-PAY-000 permanecen como registros históricos y se excluyen del total activo para no duplicar trabajo.
 
 ## Cierre del MVP por épicos
 
@@ -68,7 +68,7 @@ Baseline inspeccionado: `develop@4c866cc`, con Payments (#88) y refinamiento Cal
 
 Cada épico se implementa en una rama nueva y una PR hacia `develop`; no se realiza merge automático. Backend puede ajustarse cuando exista una necesidad directa demostrada, con dominio, reglas, consumidores, tests y contrato documentados. No se incorporan configuraciones locales de infraestructura.
 
-**Definición pendiente confirmada por Rolo:** no están aprobados los planes, cupos de Resources ni destino de upgrade. Los ejemplos de FE-SUB-001 no son valores comerciales. No se asignarán cuotas ni CTA ficticios; esta decisión es necesaria para cerrar Subscription.
+**Decisión delegada por Rolo (2026-09-23):** implementar una recomendación provisional ajustable. Propuesta: TOP Inicial con cupo de 10 Resources operativos; el conteo exacto y enforcement se documentarán con el contrato backend. Upgrade como solicitud persistida para revisión, sin cobro ni ampliación automática. No se presenta como catálogo comercial definitivo.
 
 ### Mantenimiento preliminar — In Progress
 
@@ -96,6 +96,16 @@ Implementación validada en PR #90, HEAD `cca693894b76772902edae973583eb71662423
 - QA 2026-09-23: Edge 153.0.4234.48; frontend `http://localhost:3001` servido desde el worktree Foundation y API real `http://localhost:3000/api`, baseline `develop@4c866cc`; base conservada. Desktop 1440×900, tablet 1024×900 y móvil emulado 390×844: PASS en composición, navegación, foco/teclado, cierre de overlays, ausencia de overflow horizontal y rail según breakpoint. Login: validación, reintento e inicio de sesión real PASS; Dashboard/Resources/Pricing conservan datos reales. Consola sin errores inesperados. No equivale a dispositivo físico ni a auditoría WCAG completa.
 - Contraste de tokens de texto: primario/blanco 7,87:1; secundario/blanco 10,52:1; texto secundario/fondo 6,65:1; error/blanco 6,57:1. `prefers-reduced-motion` revisado en CSS: desactiva animaciones/transiciones y desplazamientos decorativos; cambio de preferencia del sistema no ejecutado en navegador.
 - Hallazgo ajeno al cambio visual: una tarifa de demo se representa con distinta escala entre Dashboard y Pricing. Contrastar su contrato/formato en el quality gate final antes de afirmar cero regresiones conocidas; no se altera una regla monetaria durante este épico visual.
+
+### Business Management — In Progress
+
+- FE-BUS-002/003 entregadas juntas en `codex/business-management`, dependiente de Foundation #91 y mantenimiento #90. Foundation HEAD `a6906b0ba1b25807e7a7d7b5a3c47db8d115e1f1`: Frontend CI `35872648453` y Backend CI `35872648438` SUCCESS.
+- Selector real a partir de `GET /businesses` y memberships Auth. Un negocio se selecciona automáticamente; varios requieren decisión explícita. La selección vive en memoria durante la sesión y sobrevive al refresh del token, sin persistir credenciales ni reutilizar la selección de otra identidad. Al recargar con varios negocios se solicita selección de nuevo.
+- Cambio de Business: vuelve a Inicio, remonta contenido operativo y cancela/retira solo queries pertenecientes al negocio anterior según sus contratos de keys. Queries ajenas conservadas; logout mantiene limpieza global Auth. Las respuestas tardías no rellenan otra vista. El listado de Resources ahora consume AbortSignal hasta el transporte.
+- Configuración muestra perfil real: `GET /businesses/:id` y `PATCH /businesses/:id`, nombre, razón social e identificación fiscal opcionales, zona IANA y moneda PYG de solo lectura. OWNER/ADMIN editan; RECEPTIONIST/VIEWER consultan; backend sigue autorizando cada operación. 403/404 ocultan información afectada. Sin campos nuevos ni cambios backend.
+- Formulario conserva edición durante refresh/refetch, valida campos contractuales, bloquea envíos simultáneos, distingue pendiente/error/éxito y actualiza el nombre del shell tras guardar. Cancelar/salir aborta transporte; no se reenvía automáticamente ni se interpreta abort como rollback del servidor. Un nuevo GET confirma estado al volver.
+- Integración con AuthProvider, ProtectedRoute, QueryClient y HTTP controlado: Business/identidad A→B, resolución efectiva tardía, cancelación, queries ajenas, logout/desmontaje, permisos, rechazo 400/403/404, doble submit, refresh 401, foco durante/después de guardado y salida durante PATCH. Suite final local: 77 archivos/409 pruebas PASS; lint/build/diff-check registrados en PR. No se simulan flags de hooks para estas regresiones.
+- QA real: Edge 153.0.4234.48, `http://localhost:3001`, API local puerto 3000. Desktop 1440×900 y móvil emulado 390×844: PASS para selección explícita, Business visible, navegación al cambiar, perfil, guardado/restitución del nombre, feedback, foco y ausencia de overflow. Segundo Business ficticio y membresía OWNER creados exclusivamente en base local, con autorización expresa del usuario; datos existentes conservados. No es dispositivo físico ni auditoría exhaustiva WCAG. Roles sin edición y respuestas fallidas/tardías cubiertos automáticamente, sin cambiar privilegios reales para simularlos.
 
 # 4. FE-FND — Frontend Foundation
 
@@ -740,7 +750,7 @@ Criterios de aceptación:
 
 ## FE-BUS-002 — Business Selector
 
-Estado: Planned
+Estado: In Progress — implementado en Business Management; pendiente de revisión/merge.
 
 Objetivo:
 
@@ -756,7 +766,7 @@ Criterios de aceptación:
 
 ## FE-BUS-003 — Business Profile
 
-Estado: Planned
+Estado: In Progress — implementado en Business Management; pendiente de revisión/merge.
 
 Objetivo:
 
@@ -2166,7 +2176,7 @@ Si una necesidad frontend demuestra un gap backend, se revisan dominio, Business
 |---|---:|---:|---:|---:|
 | Foundation | 6 | 3 | 0 | 0 |
 | IAM | 6 | 0 | 0 | 0 |
-| Business | 1 | 0 | 2 | 0 |
+| Business | 1 | 2 | 0 | 0 |
 | Resource | 7 | 0 | 0 | 0 |
 | Subscription | 0 | 0 | 1 | 0 |
 | Contact | 4 | 0 | 0 | 0 |
@@ -2176,7 +2186,7 @@ Si una necesidad frontend demuestra un gap backend, se revisan dominio, Business
 | Block | 3 | 0 | 0 | 0 |
 | Payment | 2 | 0 | 0 | 0 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **46** | **3** | **3** | **0** |
+| **TOTAL** | **46** | **5** | **1** | **0** |
 
 
 
