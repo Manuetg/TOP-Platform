@@ -112,7 +112,7 @@
   height: 24px;
   background: #c9d0d1;
   border-radius: 999px;
-  transition: background-color 120ms ease;
+  transition: background-color var(--motion-fast) var(--motion-state);
 }
 
 .availability-rules-switch__visual::after {
@@ -124,7 +124,7 @@
   content: "";
   background: white;
   border-radius: 50%;
-  transition: transform 120ms ease;
+  transition: transform var(--motion-fast) var(--motion-state);
 }
 
 .availability-rules-switch

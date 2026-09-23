@@ -1,8 +1,10 @@
 import { GlobalSearch } from "../../features/search/components/GlobalSearch";
 import {
+  useRef,
   useEffect,
   useState,
   type PropsWithChildren,
+  type ReactNode,
 } from "react";
 import {
   BedDouble,
@@ -21,6 +23,8 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
+import { OverlayPanel } from "../../shared/ui/OverlayPanel";
+import { Button } from "../../shared/ui/Button";
 import "./AppShell.css";
 
 export type AppSection =
@@ -38,6 +42,7 @@ export type AppSection =
 export type AppNavigationTarget = AppSection | "more";
 
 interface AppShellProps extends PropsWithChildren {
+  contextRail?: ReactNode;
   activeSection: AppSection;
   businessName: string;
   userName: string;
@@ -87,6 +92,7 @@ const moreSections: AppSection[] = moreItems.map((item) => item.id);
 
 export function AppShell({
   activeSection,
+  contextRail,
   businessName,
   userName,
   userRole,
@@ -101,10 +107,28 @@ export function AppShell({
   children,
 }: AppShellProps) {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
-  const [headerMenu, setHeaderMenu] = useState<
-    "business" | "notifications" | "profile" | null
-  >(null);
-
+  const [headerState, setHeaderState] = useState<{ mode: "business" | "notifications" | "profile"; open: boolean }>({ mode: "profile", open: false });
+  const headerMenu = headerState.open ? headerState.mode : null;
+  const headerTrigger = useRef<HTMLElement | null>(null);
+  const moreTrigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!isMoreOpen || typeof window.matchMedia !== "function") return;
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => {
+      if (!desktop.matches) return;
+      if (document.activeElement?.closest(".top-mobile-more-layer")) document.getElementById("top-main-content")?.focus();
+      setIsMoreOpen(false);
+    };
+    desktop.addEventListener("change", closeOnDesktop);
+    closeOnDesktop();
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, [isMoreOpen]);
+  const toggleHeader = (mode: typeof headerState.mode, trigger: HTMLElement) => {
+    headerTrigger.current = trigger;
+    setIsMoreOpen(false);
+    setHeaderState((current) => ({ mode, open: !current.open || current.mode !== mode }));
+  };
+  const closeHeader = () => setHeaderState((current) => ({ ...current, open: false }));
   const userInitials = userName
     .trim()
     .split(/\s+/)
@@ -112,40 +136,21 @@ export function AppShell({
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
 
-  useEffect(() => {
-    if (!isMoreOpen) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsMoreOpen(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isMoreOpen]);
-
   const navigate = (target: AppNavigationTarget) => {
     if (target === "more") {
+      closeHeader();
       setIsMoreOpen((current) => !current);
       return;
     }
 
     setIsMoreOpen(false);
+    closeHeader();
     onNavigate?.(target);
   };
 
   return (
     <div className="top-app-shell">
+      <a className="top-skip-link" href="#top-main-content">Ir al contenido</a>
       <aside
         className="top-sidebar"
         aria-label="Navegación principal"
@@ -208,12 +213,11 @@ export function AppShell({
           type="button"
           className="top-global-header__business"
           aria-label="Cambiar negocio activo"
-          onClick={() => {
-            onBusinessMenuOpen?.();
-            setHeaderMenu((current) =>
-              current === "business" ? null : "business",
-            );
-          }}
+            aria-haspopup="dialog" aria-expanded={headerMenu === "business"}
+          onClick={(event) => {
+              onBusinessMenuOpen?.();
+              toggleHeader("business", event.currentTarget);
+            }}
         >
           <span
             className="top-global-header__business-icon"
@@ -235,7 +239,7 @@ export function AppShell({
         </button>
 
         <div className="top-global-header__search-wrap">
-          <GlobalSearch onModuleNavigate={navigate} onEntityNavigate={onSearchNavigate} onChange={onGlobalSearchChange} onOpen={() => setHeaderMenu(null)} menuOpen={headerMenu !== null} />
+          <GlobalSearch onModuleNavigate={navigate} onEntityNavigate={onSearchNavigate} onChange={onGlobalSearchChange} onOpen={closeHeader} menuOpen={headerMenu !== null} />
         </div>
 
         <div className="top-global-header__actions">
@@ -243,13 +247,10 @@ export function AppShell({
             type="button"
             className="top-global-header__icon-button"
             aria-label="Notificaciones"
-            onClick={() => {
+            aria-haspopup="dialog" aria-expanded={headerMenu === "notifications"}
+            onClick={(event) => {
               onNotificationsOpen?.();
-              setHeaderMenu((current) =>
-                current === "notifications"
-                  ? null
-                  : "notifications",
-              );
+              toggleHeader("notifications", event.currentTarget);
             }}
           >
             <Bell size={19} aria-hidden="true" />
@@ -259,11 +260,10 @@ export function AppShell({
             type="button"
             className="top-global-header__profile"
             aria-label="Abrir perfil"
-            onClick={() => {
+            aria-haspopup="dialog" aria-expanded={headerMenu === "profile"}
+            onClick={(event) => {
               onProfileOpen?.();
-              setHeaderMenu((current) =>
-                current === "profile" ? null : "profile",
-              );
+              toggleHeader("profile", event.currentTarget);
             }}
           >
             <span
@@ -297,13 +297,10 @@ export function AppShell({
               type="button"
               className="top-mobile-header__icon-button"
               aria-label="Notificaciones"
-              onClick={() => {
+            aria-haspopup="dialog" aria-expanded={headerMenu === "notifications"}
+              onClick={(event) => {
               onNotificationsOpen?.();
-              setHeaderMenu((current) =>
-                current === "notifications"
-                  ? null
-                  : "notifications",
-              );
+              toggleHeader("notifications", event.currentTarget);
             }}
             >
               <Bell size={20} aria-hidden="true" />
@@ -313,11 +310,10 @@ export function AppShell({
               type="button"
               className="top-mobile-header__avatar-button"
               aria-label="Abrir perfil"
-              onClick={() => {
+            aria-haspopup="dialog" aria-expanded={headerMenu === "profile"}
+              onClick={(event) => {
               onProfileOpen?.();
-              setHeaderMenu((current) =>
-                current === "profile" ? null : "profile",
-              );
+              toggleHeader("profile", event.currentTarget);
             }}
             >
               <span aria-hidden="true">
@@ -331,12 +327,11 @@ export function AppShell({
           type="button"
           className="top-mobile-header__business-selector"
           aria-label="Cambiar negocio activo"
-          onClick={() => {
-            onBusinessMenuOpen?.();
-            setHeaderMenu((current) =>
-              current === "business" ? null : "business",
-            );
-          }}
+            aria-haspopup="dialog" aria-expanded={headerMenu === "business"}
+          onClick={(event) => {
+              onBusinessMenuOpen?.();
+              toggleHeader("business", event.currentTarget);
+            }}
         >
           <span
             className="top-mobile-header__business-icon"
@@ -353,28 +348,14 @@ export function AppShell({
           <ChevronDown size={17} aria-hidden="true" />
         </button>
 
-        <GlobalSearch variant="mobile" onModuleNavigate={navigate} onEntityNavigate={onSearchNavigate} onChange={onGlobalSearchChange} onOpen={() => setHeaderMenu(null)} menuOpen={headerMenu !== null} />
+        <GlobalSearch variant="mobile" onModuleNavigate={navigate} onEntityNavigate={onSearchNavigate} onChange={onGlobalSearchChange} onOpen={closeHeader} menuOpen={headerMenu !== null} />
       </header>
 
 
-      {(headerMenu !== null) && (
-        <div
-          className={`top-header-popover-layer${headerMenu === "business" ? " top-header-popover-layer--business" : ""}`}
-        >
-          <button
-            type="button"
-            className="top-header-popover-backdrop"
-            aria-label="Cerrar panel del encabezado"
-            onClick={() => {
-              setHeaderMenu(null);
-            }}
-          />
-
-          <section
-            className={`top-header-popover${headerMenu === "business" ? " top-header-popover--business" : ""}`}
-            aria-label="Panel del encabezado"
-          >
-            {headerMenu === "business" ? (
+      <OverlayPanel open={headerState.open} label="Panel del encabezado" closeLabel="Cerrar panel del encabezado" triggerRef={headerTrigger} onClose={closeHeader}
+        layerClassName={`top-header-popover-layer${headerState.mode === "business" ? " top-header-popover-layer--business" : ""}`}
+        className={`top-header-popover${headerState.mode === "business" ? " top-header-popover--business" : ""}`}>
+            <Button variant="tertiary" size="sm" iconOnly aria-label="Cerrar panel del encabezado" className="top-panel-close" onClick={() => { headerTrigger.current?.focus(); closeHeader(); }}><X size={20} aria-hidden="true" /></Button>            {headerState.mode === "business" ? (
               <>
                 <div className="top-header-popover__heading">
                   <span>Establecimiento</span>
@@ -392,7 +373,7 @@ export function AppShell({
                   </div>
                 </div>
               </>
-            ) : headerMenu === "notifications" ? (
+            ) : headerState.mode === "notifications" ? (
               <>
                 <div className="top-header-popover__heading">
                   <span>Actividad</span>
@@ -439,28 +420,15 @@ export function AppShell({
                 </div>
               </>
             )}
-          </section>
-        </div>
-      )}
+      </OverlayPanel>
 
-      <main className="top-app-shell__content">
-        {children}
-      </main>
+      <div className={`top-app-shell__body${contextRail ? " top-app-shell__body--with-rail" : ""}`}>
+        <main id="top-main-content" tabIndex={-1} className="top-app-shell__content">{children}</main>
+        {contextRail}
+      </div>
 
-      {isMoreOpen && (
-        <div className="top-mobile-more-layer">
-          <button
-            type="button"
-            className="top-mobile-more-backdrop"
-            aria-label="Cerrar menú Más al tocar fuera"
-            onClick={() => setIsMoreOpen(false)}
-          />
-
-          <section
-            className="top-mobile-more-sheet"
-            role="region"
-            aria-label="Más opciones"
-          >
+      <OverlayPanel open={isMoreOpen} label="Más opciones" closeLabel="Cerrar menú Más al tocar fuera" triggerRef={moreTrigger}
+        onClose={() => setIsMoreOpen(false)} layerClassName="top-mobile-more-layer" className="top-mobile-more-sheet">
             <div
               className="top-mobile-more-sheet__handle"
               aria-hidden="true"
@@ -476,7 +444,7 @@ export function AppShell({
                 type="button"
                 className="top-mobile-more-sheet__close"
                 aria-label="Cerrar menú Más"
-                onClick={() => setIsMoreOpen(false)}
+                onClick={() => { moreTrigger.current?.focus(); setIsMoreOpen(false); }}
               >
                 <X size={20} aria-hidden="true" />
               </button>
@@ -512,9 +480,7 @@ export function AppShell({
                 );
               })}
             </div>
-          </section>
-        </div>
-      )}
+      </OverlayPanel>
 
       <nav
         className="top-bottom-nav"
@@ -531,6 +497,7 @@ export function AppShell({
           return (
             <button
               key={item.id}
+              ref={item.id === "more" ? moreTrigger : undefined}
               type="button"
               className={`top-bottom-nav__item${
                 isActive ? " is-active" : ""

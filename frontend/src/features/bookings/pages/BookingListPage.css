@@ -443,7 +443,7 @@
 
   .booking-list-filters-toggle__chevron {
     flex: 0 0 auto;
-    transition: transform 160ms ease;
+    transition: transform var(--motion-fast) var(--motion-state);
   }
 
   .booking-list-filters-toggle__chevron--open {

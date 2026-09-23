@@ -36,4 +36,22 @@ describe("Button", () => {
 
     expect(onClick).not.toHaveBeenCalled();
   });
+
+  it("announces pending state, blocks repeated activation and becomes available again", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    const view = render(<Button loading loadingLabel="Guardando..." onClick={onClick}>Guardar</Button>);
+    const button = screen.getByRole("button", { name: "Guardando..." });
+    expect(button).toHaveAttribute("aria-busy", "true");
+    await user.click(button);
+    expect(onClick).not.toHaveBeenCalled();
+    view.rerender(<Button onClick={onClick}>Guardar</Button>);
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it("keeps an accessible name for an icon-only control", () => {
+    render(<Button iconOnly aria-label="Cerrar" variant="tertiary" size="sm"><svg aria-hidden="true" /></Button>);
+    expect(screen.getByRole("button", { name: "Cerrar" })).toBeEnabled();
+  });
 });

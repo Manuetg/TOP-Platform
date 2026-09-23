@@ -26,7 +26,7 @@ export function OccupancyOverview({
   const rate = occupancy.occupancyRateBasisPoints;
   return (
     <section
-      className="dashboard-card dashboard-panel"
+      className="top-surface dashboard-card dashboard-panel"
       aria-labelledby="occupancy-heading"
     >
       <header>
@@ -92,7 +92,7 @@ export function ReservationsBreakdown({
 }) {
   return (
     <section
-      className="dashboard-card dashboard-panel"
+      className="top-surface dashboard-card dashboard-panel"
       aria-labelledby="reservations-heading"
     >
       <header>

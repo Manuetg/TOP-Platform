@@ -20,9 +20,8 @@
   font-weight: 600;
   text-decoration: none;
   border-radius: calc(var(--radius-md) - 3px);
-  transition:
-    background-color 120ms ease,
-    color 120ms ease;
+  transition: background-color var(--motion-fast) var(--motion-state),
+    color var(--motion-fast) var(--motion-state);
 }
 
 .availability-nav__link:hover {

@@ -8,6 +8,7 @@ import "@fontsource/plus-jakarta-sans/700.css";
 
 import "./index.css";
 import App from "./App";
+import "./shared/ui/foundation.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -94,7 +94,7 @@ export function BookingPayments(props: Props) {
   }
 
   return (
-    <section className="booking-payments" aria-labelledby="booking-payments-title">
+    <section className="top-surface booking-payments" aria-labelledby="booking-payments-title">
       <div className="booking-payments__heading"><WalletCards size={20} aria-hidden="true" /><div><h2 id="booking-payments-title">Pagos</h2><p>Saldo e historial de cobros registrados.</p></div></div>
       <section className="booking-payments__balance" aria-labelledby="booking-balance-title">
         <h3 id="booking-balance-title">Resumen financiero</h3>

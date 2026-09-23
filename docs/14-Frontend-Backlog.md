@@ -48,11 +48,11 @@ Total historias frontend activas: 52
 Estado actual:
 
 - Completed: 46
-- In Progress: 0
-- Planned: 6
+- In Progress: 3
+- Planned: 3
 - Blocked: 0
 
-Recuento por estados reales: 46 + 0 + 6 + 0 = 52. FE-AVL-002 y FE-PAY-000 permanecen como registros históricos y se excluyen del total activo para no duplicar trabajo.
+Recuento por estados reales: 46 + 3 + 3 + 0 = 52. FE-AVL-002 y FE-PAY-000 permanecen como registros históricos y se excluyen del total activo para no duplicar trabajo.
 
 ## Cierre del MVP por épicos
 
@@ -72,6 +72,8 @@ Cada épico se implementa en una rama nueva y una PR hacia `develop`; no se real
 
 ### Mantenimiento preliminar — In Progress
 
+Implementación validada en PR #90, HEAD `cca693894b76772902edae973583eb71662423f8`; Frontend CI `35868609248` y Backend CI `35868609614` SUCCESS. Pendiente de merge por el responsable. Checkout sintético de GitHub: `b619036ba7f8b34c35369ac649372f2c6fe619d1`; el worktree local es una ruta de Windows, no un checkout sintético.
+
 - La protección previa de Login ya existía en Git; una regresión reforzada demostró un segundo POST tras resolver el primero cuando dos submits atravesaban la validación asíncrona. La exclusión ahora empieza antes de esa validación y se libera al terminar, también ante errores.
 - Las pruebas HTTP resuelven las URLs capturadas con una base explícita de navegador. Se mantienen las comprobaciones de paths, parámetros, token y señal; se agrega cobertura de `apiRequest` con base `/api` y absoluta.
 - El primer Frontend CI de mantenimiento falló antes de tests: el builder resolvía dependencias nuevas sin lockfile y npm fallaba al construir el árbol de peers. La reproducción Linux también demostró que el lockfile omitía binarios opcionales fuera de Windows. Se completan esas entradas desde metadatos npm y se normalizan con npm, sin cambiar versiones existentes ni el manifest; Docker pasa a `npm ci --include=optional`. No se copian los ajustes locales de demo ni se modifican workflows.
@@ -83,6 +85,17 @@ Cada épico se implementa en una rama nueva y una PR hacia `develop`; no se real
 - Entorno local: frontend construido desde el worktree de mantenimiento; API recompilada desde el mismo baseline, PostgreSQL/MinIO existentes conservados, sin seeds ni borrado de volúmenes. El intento anterior al arranque de API produjo el error esperado de conexión; no se registra como defecto backend.
 
 ---
+
+### Foundation Polish — In Progress
+
+- FE-FND-006/007/008 se entregan juntas en `codex/foundation-polish`, sobre mantenimiento #90. Implementación funcional y QA verificadas; revisión/CI/merge se registran en la PR sin commits exclusivos de metadatos.
+- `shared/ui` centraliza Button (variantes, tamaños, icono accesible, loading y disabled), superficies, tokens de duración/easing y OverlayPanel (Escape, Tab/Shift+Tab, retorno inmediato de foco, cierre y scroll). Las transiciones de salida CSS no introducen temporizadores ni foco tardío. Se conserva Auth y el contrato HTTP.
+- Rail MVP: ayuda editorial contextual en crear Resource, Contact y plan tarifario, únicamente desde 1440 px. No muestra actividad ficticia, métricas, historial local ni navegación duplicada; no ocupa espacio en tablet/móvil ni en vistas operativas. Admite bloques reutilizables desde AppLayout.
+- Login, navegación, foco al cambiar ruta y tarjetas existentes adoptan los patrones compartidos. Se corrige la superposición de acciones de tarifas en tablet mediante columnas adaptables. No se modifican reglas financieras ni flujos de mutations.
+- Gates locales, Node 24.19.0: 76 archivos/395 pruebas PASS (`npm run test -- --pool=threads --maxWorkers=2`), lint PASS y build PASS. Nuevas regresiones: loading de Button, ciclo de foco/cierre de OverlayPanel, cierre de Más al pasar a desktop, foco/scroll de ruta y selección de rail. Sin nuevos warnings de tests. Bundle 716,94 kB / 191,61 kB gzip: división por rutas diferida al quality gate final, sin elevar umbrales.
+- QA 2026-09-23: Edge 153.0.4234.48; frontend `http://localhost:3001` servido desde el worktree Foundation y API real `http://localhost:3000/api`, baseline `develop@4c866cc`; base conservada. Desktop 1440×900, tablet 1024×900 y móvil emulado 390×844: PASS en composición, navegación, foco/teclado, cierre de overlays, ausencia de overflow horizontal y rail según breakpoint. Login: validación, reintento e inicio de sesión real PASS; Dashboard/Resources/Pricing conservan datos reales. Consola sin errores inesperados. No equivale a dispositivo físico ni a auditoría WCAG completa.
+- Contraste de tokens de texto: primario/blanco 7,87:1; secundario/blanco 10,52:1; texto secundario/fondo 6,65:1; error/blanco 6,57:1. `prefers-reduced-motion` revisado en CSS: desactiva animaciones/transiciones y desplazamientos decorativos; cambio de preferencia del sistema no ejecutado en navegador.
+- Hallazgo ajeno al cambio visual: una tarifa de demo se representa con distinta escala entre Dashboard y Pricing. Contrastar su contrato/formato en el quality gate final antes de afirmar cero regresiones conocidas; no se altera una regla monetaria durante este épico visual.
 
 # 4. FE-FND — Frontend Foundation
 
@@ -280,7 +293,7 @@ Criterios de aceptación:
 
 ## FE-FND-006 — Desktop Context Rail
 
-Estado: Planned
+Estado: In Progress — implementado en Foundation Polish; cierre pendiente de revisión/merge.
 
 Objetivo:
 
@@ -308,7 +321,7 @@ FE-DSH-001 implementa la composición visual del Dashboard; el alcance transvers
 
 ## FE-FND-007 — Interaction & Motion System
 
-Estado: Planned
+Estado: In Progress — implementado en Foundation Polish; cierre pendiente de revisión/merge.
 
 Objetivo:
 
@@ -336,7 +349,7 @@ Criterios de aceptación:
 
 ## FE-FND-008 — Visual Surface & Button Polish
 
-Estado: Planned
+Estado: In Progress — implementado en Foundation Polish; cierre pendiente de revisión/merge.
 
 Objetivo:
 
@@ -2151,7 +2164,7 @@ Si una necesidad frontend demuestra un gap backend, se revisan dominio, Business
 
 | Épica | Completed | In Progress | Planned | Blocked |
 |---|---:|---:|---:|---:|
-| Foundation | 6 | 0 | 3 | 0 |
+| Foundation | 6 | 3 | 0 | 0 |
 | IAM | 6 | 0 | 0 | 0 |
 | Business | 1 | 0 | 2 | 0 |
 | Resource | 7 | 0 | 0 | 0 |
@@ -2163,7 +2176,7 @@ Si una necesidad frontend demuestra un gap backend, se revisan dominio, Business
 | Block | 3 | 0 | 0 | 0 |
 | Payment | 2 | 0 | 0 | 0 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **46** | **0** | **6** | **0** |
+| **TOTAL** | **46** | **3** | **3** | **0** |
 
 
 

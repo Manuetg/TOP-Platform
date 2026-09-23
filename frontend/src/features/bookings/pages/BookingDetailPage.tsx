@@ -592,7 +592,7 @@ export function BookingDetailPage({
 
       <div className="booking-detail-grid">
         <div className="booking-detail-main">
-          <section className="booking-detail-card">
+          <section className="top-surface booking-detail-card">
             <div className="booking-detail-card__header">
               <div
                 className="booking-detail-card__icon"
@@ -669,7 +669,7 @@ export function BookingDetailPage({
             </div>
           </section>
 
-          <section className="booking-detail-card">
+          <section className="top-surface booking-detail-card">
             <div className="booking-detail-card__header">
               <div
                 className="booking-detail-card__icon"
@@ -712,7 +712,7 @@ export function BookingDetailPage({
             </dl>
           </section>
 
-          <section className="booking-detail-card">
+          <section className="top-surface booking-detail-card">
             <div className="booking-detail-card__header">
               <div
                 className="booking-detail-card__icon"
@@ -743,7 +743,7 @@ export function BookingDetailPage({
         </div>
 
         <aside className="booking-detail-sidebar">
-          <section className="booking-detail-card">
+          <section className="top-surface booking-detail-card">
             <div className="booking-detail-card__header">
               <div
                 className="booking-detail-card__icon"
@@ -798,7 +798,7 @@ export function BookingDetailPage({
             )}
           </section>
 
-          <section className="booking-detail-card">
+          <section className="top-surface booking-detail-card">
             <h2>Información</h2>
 
             <dl className="booking-detail-meta">

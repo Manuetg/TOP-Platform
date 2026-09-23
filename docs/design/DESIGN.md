@@ -99,4 +99,10 @@ El Business activo permanece visible y nunca se cambia silenciosamente. La UI no
 
 ## Próximos entregables
 
+### Implementación Foundation Polish (2026-09-23)
+
+La capa compartida `shared/ui/foundation.css` usa duraciones 120/180/240 ms, easing de entrada/salida y estados; únicamente el indicador continuo de carga usa 900 ms. Las preferencias de movimiento reducido desactivan animaciones y desplazamientos decorativos. Los overlays cierran sin esperar la animación, retiran inmediatamente la interacción del contenido oculto y recuperan foco al inicio del cierre. Las variantes Button primary/secondary/tertiary/destructive, sm/md/lg e icon mantienen blancos táctiles mínimos de 44 px y nombre accesible obligatorio para iconos; ghost/danger se conservan como aliases compatibles.
+
+El rail contextual MVP ocupa 248 px desde 1440 px únicamente en formularios de alta de Resource, Contact y plan tarifario. Presenta ayuda editorial, sin inventar datos ni duplicar navegación. En tamaños menores desaparece y no contiene acciones exclusivas; la información necesaria para operar permanece en el formulario. Login y navegación comparten superficies, foco y motion sin incorporar una librería de animación adicional.
+
 El Design Foundation requiere, antes de especificaciones de frontend: `02-App-Shell.md`, `03-Design-System.md`, `04-Component-Inventory.md`, `05-Screen-Map.md`, `06-Responsive-Rules.md` y los primeros wireframes validados. No se crean documentos vacíos como sustituto de esa validación.

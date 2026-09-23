@@ -126,7 +126,7 @@ function ContactCard({
     contact.phone ?? contact.whatsapp;
 
   return (
-    <article className="contact-list-card">
+    <article className="top-surface contact-list-card">
       <button
         type="button"
         className="contact-list-card__link"

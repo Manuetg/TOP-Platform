@@ -139,9 +139,8 @@
   border-radius: var(--radius-md);
   font: inherit;
   font-size: 0.875rem;
-  transition:
-    border-color 120ms ease,
-    box-shadow 120ms ease;
+  transition: border-color var(--motion-fast) var(--motion-state),
+    box-shadow var(--motion-fast) var(--motion-state);
 }
 
 .resource-edit-field input {

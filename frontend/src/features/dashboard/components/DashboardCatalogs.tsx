@@ -76,7 +76,7 @@ export function ResourcesPreview({
   );
   return (
     <section
-      className="dashboard-card dashboard-catalog dashboard-resources"
+      className="top-surface dashboard-card dashboard-catalog dashboard-resources"
       aria-labelledby="dashboard-resources-title"
       data-source="REAL"
     >
@@ -164,7 +164,7 @@ export function PricingPreview({
 }) {
   return (
     <section
-      className="dashboard-card dashboard-catalog dashboard-pricing"
+      className="top-surface dashboard-card dashboard-catalog dashboard-pricing"
       aria-labelledby="dashboard-pricing-title"
       data-source="REAL"
     >
