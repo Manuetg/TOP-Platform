@@ -62,7 +62,7 @@ describe("recuperación en las rutas productivas", () => {
   it("aísla la página, conserva shell/cuenta/cache y no expone detalles", async () => {
     const { client } = mount();
     client.setQueryData(["sentinel"], "conservado");
-    const title = screen.getByRole("heading", { name: "No pudimos mostrar esta pantalla." });
+    const title = await screen.findByRole("heading", { name: "No pudimos mostrar esta pantalla." });
     expect(title).toHaveFocus();
     expect(screen.getByRole("alert")).toContainElement(title);
     expect(screen.getAllByText("Negocio de prueba").length).toBeGreaterThan(0);
@@ -90,14 +90,14 @@ describe("recuperación en las rutas productivas", () => {
     expect(state.pageRenders).toBe(renders);
     expect(screen.getByRole("link", { name: "Ir al inicio" })).toHaveAttribute("href", "/app");
     await userEvent.click(screen.getByRole("link", { name: "Ir al inicio" }));
-    expect(screen.getByRole("heading", { name: "Inicio sano" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Inicio sano" })).toBeInTheDocument();
   });
 
   it("permite continuar mediante navegación del shell", async () => {
     mount();
     await userEvent.click(screen.getByRole("button", { name: "Pagos" }));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Pagos" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Pagos" })).toBeInTheDocument();
   });
 
   it.each(["unauthenticated", "restoring"])("no muestra página ni fallback privado durante %s", async (status) => {

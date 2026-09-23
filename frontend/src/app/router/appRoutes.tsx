@@ -1,37 +1,40 @@
+import { lazy, Suspense, type ComponentType } from "react";
 import { Navigate, type RouteObject } from "react-router-dom";
-import { LoginPage } from "../../features/auth/pages/LoginPage";
-import { DashboardPage } from "../../features/dashboard/pages/DashboardPage";
+const LoginPage = lazy(() => import("../../features/auth/pages/LoginPage").then((module) => ({ default: module.LoginPage })));
+const DashboardPage = lazy(() => import("../../features/dashboard/pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
 import { AppLayout } from "../layout/AppLayout";
-import { BusinessProfilePage } from "../../features/business/pages/BusinessProfilePage";
+const BusinessProfilePage = lazy(() => import("../../features/business/pages/BusinessProfilePage").then((module) => ({ default: module.BusinessProfilePage })));
 import { NotFoundPage } from "../pages/NotFoundPage";
-import { ResourceListPage } from "../../features/resources/pages/ResourceListPage";
-import { ResourceDetailPage } from "../../features/resources/pages/ResourceDetailPage";
-import { CreateResourcePage } from "../../features/resources/pages/CreateResourcePage";
-import { EditResourcePage } from "../../features/resources/pages/EditResourcePage";
-import { ContactListPage } from "../../features/contacts/pages/ContactListPage";
-import { CreateContactPage } from "../../features/contacts/pages/CreateContactPage";
-import { ContactDetailPage } from "../../features/contacts/pages/ContactDetailPage";
-import { EditContactPage } from "../../features/contacts/pages/EditContactPage";
-import { AvailabilityCheckPage } from "../../features/availability/pages/AvailabilityCheckPage";
-import { AvailabilityRulesPage } from "../../features/availability/pages/AvailabilityRulesPage";
-import { AvailabilityCalendarPage } from "../../features/availability/pages/AvailabilityCalendarPage";
-import { BlockListPage } from "../../features/blocks/pages/BlockListPage";
-import { BookingListPage } from "../../features/bookings/pages/BookingListPage";
-import { BookingDetailPage } from "../../features/bookings/pages/BookingDetailPage";
-import { CreateBookingPage } from "../../features/bookings/pages/CreateBookingPage";
-import { EditBookingPage } from "../../features/bookings/pages/EditBookingPage";
-import { ConfirmBookingPage } from "../../features/bookings/pages/ConfirmBookingPage";
-import { CreateBlockPage } from "../../features/blocks/pages/CreateBlockPage";
-import { RatePlanListPage } from "../../features/pricing/pages/RatePlanListPage";
-import { CreateRatePlanPage } from "../../features/pricing/pages/CreateRatePlanPage";
-import { EditRatePlanPage } from "../../features/pricing/pages/EditRatePlanPage";
-import { SeasonalRatesPage } from "../../features/pricing/pages/SeasonalRatesPage";
-import { PricePreviewPage } from "../../features/pricing/pages/PricePreviewPage";
-import { PaymentHubPage } from "../../features/payments/pages/PaymentHubPage";
-import { BookingPaymentsPage } from "../../features/payments/pages/BookingPaymentsPage";
+const ResourceListPage = lazy(() => import("../../features/resources/pages/ResourceListPage").then((module) => ({ default: module.ResourceListPage })));
+const ResourceDetailPage = lazy(() => import("../../features/resources/pages/ResourceDetailPage").then((module) => ({ default: module.ResourceDetailPage })));
+const CreateResourcePage = lazy(() => import("../../features/resources/pages/CreateResourcePage").then((module) => ({ default: module.CreateResourcePage })));
+const EditResourcePage = lazy(() => import("../../features/resources/pages/EditResourcePage").then((module) => ({ default: module.EditResourcePage })));
+const ContactListPage = lazy(() => import("../../features/contacts/pages/ContactListPage").then((module) => ({ default: module.ContactListPage })));
+const CreateContactPage = lazy(() => import("../../features/contacts/pages/CreateContactPage").then((module) => ({ default: module.CreateContactPage })));
+const ContactDetailPage = lazy(() => import("../../features/contacts/pages/ContactDetailPage").then((module) => ({ default: module.ContactDetailPage })));
+const EditContactPage = lazy(() => import("../../features/contacts/pages/EditContactPage").then((module) => ({ default: module.EditContactPage })));
+const AvailabilityCheckPage = lazy(() => import("../../features/availability/pages/AvailabilityCheckPage").then((module) => ({ default: module.AvailabilityCheckPage })));
+const AvailabilityRulesPage = lazy(() => import("../../features/availability/pages/AvailabilityRulesPage").then((module) => ({ default: module.AvailabilityRulesPage })));
+const AvailabilityCalendarPage = lazy(() => import("../../features/availability/pages/AvailabilityCalendarPage").then((module) => ({ default: module.AvailabilityCalendarPage })));
+const BlockListPage = lazy(() => import("../../features/blocks/pages/BlockListPage").then((module) => ({ default: module.BlockListPage })));
+const BookingListPage = lazy(() => import("../../features/bookings/pages/BookingListPage").then((module) => ({ default: module.BookingListPage })));
+const BookingDetailPage = lazy(() => import("../../features/bookings/pages/BookingDetailPage").then((module) => ({ default: module.BookingDetailPage })));
+const CreateBookingPage = lazy(() => import("../../features/bookings/pages/CreateBookingPage").then((module) => ({ default: module.CreateBookingPage })));
+const EditBookingPage = lazy(() => import("../../features/bookings/pages/EditBookingPage").then((module) => ({ default: module.EditBookingPage })));
+const ConfirmBookingPage = lazy(() => import("../../features/bookings/pages/ConfirmBookingPage").then((module) => ({ default: module.ConfirmBookingPage })));
+const CreateBlockPage = lazy(() => import("../../features/blocks/pages/CreateBlockPage").then((module) => ({ default: module.CreateBlockPage })));
+const RatePlanListPage = lazy(() => import("../../features/pricing/pages/RatePlanListPage").then((module) => ({ default: module.RatePlanListPage })));
+const CreateRatePlanPage = lazy(() => import("../../features/pricing/pages/CreateRatePlanPage").then((module) => ({ default: module.CreateRatePlanPage })));
+const EditRatePlanPage = lazy(() => import("../../features/pricing/pages/EditRatePlanPage").then((module) => ({ default: module.EditRatePlanPage })));
+const SeasonalRatesPage = lazy(() => import("../../features/pricing/pages/SeasonalRatesPage").then((module) => ({ default: module.SeasonalRatesPage })));
+const PricePreviewPage = lazy(() => import("../../features/pricing/pages/PricePreviewPage").then((module) => ({ default: module.PricePreviewPage })));
+const PaymentHubPage = lazy(() => import("../../features/payments/pages/PaymentHubPage").then((module) => ({ default: module.PaymentHubPage })));
+const BookingPaymentsPage = lazy(() => import("../../features/payments/pages/BookingPaymentsPage").then((module) => ({ default: module.BookingPaymentsPage })));
 import { ProtectedRoute, PublicRoute } from "./ProtectedRoute";
 
 import { ErrorFallback } from "../errors/ErrorFallback";
+
+function page(Component: ComponentType) { return <Suspense fallback={<p role="status" aria-live="polite">Cargando pantalla…</p>}><Component /></Suspense>; }
 
 export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general />, children: [
   {
@@ -41,7 +44,7 @@ export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general 
   {
     path: "/login",
     element: <PublicRoute />,
-    children: [{ index: true, element: <LoginPage /> }],
+    children: [{ index: true, element: page(LoginPage) }],
   },
   {
     path: "/app",
@@ -49,111 +52,111 @@ export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general 
     children: [
       {
         index: true,
-        element: <DashboardPage />,
+        element: page(DashboardPage),
       },
       {
         path: "calendar",
-        element: <AvailabilityCalendarPage />,
+        element: page(AvailabilityCalendarPage),
       },
       {
         path: "bookings",
-        element: <BookingListPage />,
+        element: page(BookingListPage),
       },
       {
         path: "bookings/new",
-        element: <CreateBookingPage />,
+        element: page(CreateBookingPage),
       },
       {
         path: "bookings/:bookingId",
-        element: <BookingDetailPage />,
+        element: page(BookingDetailPage),
       },
       {
         path: "bookings/:bookingId/payments",
-        element: <BookingPaymentsPage />,
+        element: page(BookingPaymentsPage),
       },
       {
         path: "bookings/:bookingId/edit",
-        element: <EditBookingPage />,
+        element: page(EditBookingPage),
       },
       {
         path: "bookings/:bookingId/confirm",
-        element: <ConfirmBookingPage />,
+        element: page(ConfirmBookingPage),
       },
       {
         path: "availability",
-        element: <AvailabilityCheckPage />,
+        element: page(AvailabilityCheckPage),
       },
       {
         path: "availability/rules",
-        element: <AvailabilityRulesPage />,
+        element: page(AvailabilityRulesPage),
       },
       {
         path: "resources",
-        element: <ResourceListPage />,
+        element: page(ResourceListPage),
       },
       {
         path: "resources/new",
-        element: <CreateResourcePage />,
+        element: page(CreateResourcePage),
       },
       {
         path: "resources/:resourceId/edit",
-        element: <EditResourcePage />,
+        element: page(EditResourcePage),
       },
       {
         path: "resources/:resourceId",
-        element: <ResourceDetailPage />,
+        element: page(ResourceDetailPage),
       },
       {
         path: "contacts",
-        element: <ContactListPage />,
+        element: page(ContactListPage),
       },
       {
         path: "contacts/new",
-        element: <CreateContactPage />,
+        element: page(CreateContactPage),
       },
       {
         path: "contacts/:contactId/edit",
-        element: <EditContactPage />,
+        element: page(EditContactPage),
       },
       {
         path: "contacts/:contactId",
-        element: <ContactDetailPage />,
+        element: page(ContactDetailPage),
       },
       {
         path: "pricing",
-        element: <RatePlanListPage />,
+        element: page(RatePlanListPage),
       },
       {
         path: "pricing/new",
-        element: <CreateRatePlanPage />,
+        element: page(CreateRatePlanPage),
       },
       {
         path: "pricing/:ratePlanId/edit",
-        element: <EditRatePlanPage />,
+        element: page(EditRatePlanPage),
       },
       {
         path: "pricing/:ratePlanId/seasons",
-        element: <SeasonalRatesPage />,
+        element: page(SeasonalRatesPage),
       },
       {
         path: "pricing/:ratePlanId/preview",
-        element: <PricePreviewPage />,
+        element: page(PricePreviewPage),
       },
       {
         path: "payments",
-        element: <PaymentHubPage />,
+        element: page(PaymentHubPage),
       },
       {
         path: "blocks",
-        element: <BlockListPage />,
+        element: page(BlockListPage),
       },
       {
         path: "blocks/new",
-        element: <CreateBlockPage />,
+        element: page(CreateBlockPage),
       },
       {
         path: "settings",
-        element: <BusinessProfilePage />,
+        element: page(BusinessProfilePage),
       },
     ],
   },

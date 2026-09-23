@@ -45,14 +45,14 @@ Las reglas de negocio continúan siendo responsabilidad del backend y de la docu
 
 Total historias frontend activas: 52
 
-Estado actual:
+Estado preparado para integración de la cadena #90 → #91 → #92 → #93 → #94 (no acredita merge ejecutado):
 
-- Completed: 46
-- In Progress: 5
-- Planned: 1
+- Completed: 51
+- In Progress: 1
+- Planned: 0
 - Blocked: 0
 
-Recuento por estados reales: 46 + 5 + 1 + 0 = 52. FE-AVL-002 y FE-PAY-000 permanecen como registros históricos y se excluyen del total activo para no duplicar trabajo.
+Recuento efectivo al integrar la cadena: 51 + 1 + 0 + 0 = 52. Foundation y Business quedan Completed al merge de la cadena aprobada; Subscription conserva implementación técnica completa y decisión comercial pendiente. FE-AVL-002 y FE-PAY-000 permanecen como registros históricos y se excluyen del total activo para no duplicar trabajo.
 
 ## Cierre del MVP por épicos
 
@@ -70,7 +70,7 @@ Cada épico se implementa en una rama nueva y una PR hacia `develop`; no se real
 
 **Configuración provisional del MVP (2026-09-23), pendiente de confirmación comercial antes de producción:** TOP Inicial con cupo de 10 Resources operativos; el conteo exacto y enforcement se documentarán con el contrato backend. Upgrade como solicitud persistida para revisión, sin cobro ni ampliación automática. No se presenta como catálogo comercial definitivo.
 
-### Mantenimiento preliminar — In Progress
+### Mantenimiento preliminar — Completed, efectivo al integrarse la cadena aprobada en develop
 
 Implementación validada en PR #90, HEAD `cca693894b76772902edae973583eb71662423f8`; Frontend CI `35868609248` y Backend CI `35868609614` SUCCESS. Pendiente de merge por el responsable. Checkout sintético de GitHub: `b619036ba7f8b34c35369ac649372f2c6fe619d1`; el worktree local es una ruta de Windows, no un checkout sintético.
 
@@ -86,7 +86,7 @@ Implementación validada en PR #90, HEAD `cca693894b76772902edae973583eb71662423
 
 ---
 
-### Foundation Polish — In Progress
+### Foundation Polish — Completed, efectivo al integrarse la cadena aprobada en develop
 
 - FE-FND-006/007/008 se entregan juntas en `codex/foundation-polish`, sobre mantenimiento #90. Implementación funcional y QA verificadas; revisión/CI/merge se registran en la PR sin commits exclusivos de metadatos.
 - `shared/ui` centraliza Button (variantes, tamaños, icono accesible, loading y disabled), superficies, tokens de duración/easing y OverlayPanel (Escape, Tab/Shift+Tab, retorno inmediato de foco, cierre y scroll). Las transiciones de salida CSS no introducen temporizadores ni foco tardío. Se conserva Auth y el contrato HTTP.
@@ -97,7 +97,7 @@ Implementación validada en PR #90, HEAD `cca693894b76772902edae973583eb71662423
 - Contraste de tokens de texto: primario/blanco 7,87:1; secundario/blanco 10,52:1; texto secundario/fondo 6,65:1; error/blanco 6,57:1. `prefers-reduced-motion` revisado en CSS: desactiva animaciones/transiciones y desplazamientos decorativos; cambio de preferencia del sistema no ejecutado en navegador.
 - Hallazgo ajeno al cambio visual: una tarifa de demo se representa con distinta escala entre Dashboard y Pricing. Contrastar su contrato/formato en el quality gate final antes de afirmar cero regresiones conocidas; no se altera una regla monetaria durante este épico visual.
 
-### Business Management — In Progress
+### Business Management — Completed, efectivo al integrarse la cadena aprobada en develop
 
 - FE-BUS-002/003 entregadas juntas en `codex/business-management`, dependiente de Foundation #91 y mantenimiento #90. Foundation HEAD `a6906b0ba1b25807e7a7d7b5a3c47db8d115e1f1`: Frontend CI `35872648453` y Backend CI `35872648438` SUCCESS.
 - Selector real a partir de `GET /businesses` y memberships Auth. Un negocio se selecciona automáticamente; varios requieren decisión explícita. La selección vive en memoria durante la sesión y sobrevive al refresh del token, sin persistir credenciales ni reutilizar la selección de otra identidad. Al recargar con varios negocios se solicita selección de nuevo.
@@ -303,7 +303,7 @@ Criterios de aceptación:
 
 ## FE-FND-006 — Desktop Context Rail
 
-Estado: In Progress — implementado en Foundation Polish; cierre pendiente de revisión/merge.
+Estado: Completed — efectivo al integrarse la cadena aprobada en develop.
 
 Objetivo:
 
@@ -331,7 +331,7 @@ FE-DSH-001 implementa la composición visual del Dashboard; el alcance transvers
 
 ## FE-FND-007 — Interaction & Motion System
 
-Estado: In Progress — implementado en Foundation Polish; cierre pendiente de revisión/merge.
+Estado: Completed — efectivo al integrarse la cadena aprobada en develop.
 
 Objetivo:
 
@@ -359,7 +359,7 @@ Criterios de aceptación:
 
 ## FE-FND-008 — Visual Surface & Button Polish
 
-Estado: In Progress — implementado en Foundation Polish; cierre pendiente de revisión/merge.
+Estado: Completed — efectivo al integrarse la cadena aprobada en develop.
 
 Objetivo:
 
@@ -750,7 +750,7 @@ Criterios de aceptación:
 
 ## FE-BUS-002 — Business Selector
 
-Estado: In Progress — implementado en Business Management; pendiente de revisión/merge.
+Estado: Completed — efectivo al integrarse la cadena aprobada en develop.
 
 Objetivo:
 
@@ -766,7 +766,7 @@ Criterios de aceptación:
 
 ## FE-BUS-003 — Business Profile
 
-Estado: In Progress — implementado en Business Management; pendiente de revisión/merge.
+Estado: Completed — efectivo al integrarse la cadena aprobada en develop.
 
 Objetivo:
 
@@ -1173,7 +1173,7 @@ Validación final:
 # 7A. FE-SUB — Subscription & Entitlements
 ## FE-SUB-001 — Subscription Entitlements & Usage UI
 
-Estado: In Progress
+Estado: In Progress — implementación técnica completa; decisión comercial pendiente antes de producción.
 
 Objetivo:
 
@@ -2170,13 +2170,13 @@ Si una necesidad frontend demuestra un gap backend, se revisan dominio, Business
 
 ---
 
-# 18. Estado vigente resumido
+# 18. Estado efectivo al integrar la cadena aprobada en develop
 
 | Épica | Completed | In Progress | Planned | Blocked |
 |---|---:|---:|---:|---:|
-| Foundation | 6 | 3 | 0 | 0 |
+| Foundation | 9 | 0 | 0 | 0 |
 | IAM | 6 | 0 | 0 | 0 |
-| Business | 1 | 2 | 0 | 0 |
+| Business | 3 | 0 | 0 | 0 |
 | Resource | 7 | 0 | 0 | 0 |
 | Subscription | 0 | 1 | 0 | 0 |
 | Contact | 4 | 0 | 0 | 0 |
@@ -2186,7 +2186,7 @@ Si una necesidad frontend demuestra un gap backend, se revisan dominio, Business
 | Block | 3 | 0 | 0 | 0 |
 | Payment | 2 | 0 | 0 | 0 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **46** | **6** | **0** | **0** |
+| **TOTAL** | **51** | **1** | **0** | **0** |
 
 
 
@@ -2202,3 +2202,41 @@ Implementado en `codex/subscription-entitlements`, sobre Business Management #92
 - QA real: Edge 153.0.4234.48, localhost:3001 con API localhost:3000/api; desktop 1440×900 y móvil emulado 390×844. PASS: 0/10, solicitud por Enter y foco en heading, persistencia tras recarga, 8/10 aviso, altas reales 9/10 y 10/10, detalle correcto, bloqueo de alta al límite, cambio al otro Business 4/10 sin heredar solicitud ni cupo. Sin overflow horizontal (375/375 móvil) ni errores de consola. Ocho Resources ficticios se prepararon exclusivamente en el segundo Business local autorizado; los dos últimos se crearon desde la UI. No se modificaron datos financieros ni producción. La concurrencia del último cupo y permisos negativos están acreditados por pruebas automatizadas, no por esa QA visual. Dispositivo táctil físico NOT RUN.
 - Bundle 729,02 kB: diferido al quality gate final ya previsto. Deprecación Prisma `package.json#prisma`: aceptada durante Prisma 6; migración de configuración diferida a la actualización mayor, sin warning funcional. El aviso transitorio de tiempos de plugins no apareció en el build posterior. React act/Router: sin warnings en ejecución final.
 - El cuerpo de la PR mantiene HEAD/checkout sintético y ambos CI finales, sin commits dedicados a repetir metadatos. No se realiza merge automático.
+
+## Quality gate final — implementación y QA, revisión/merge pendientes
+
+Rama `codex/frontend-quality-gate`, sobre Subscription #93 y sus dependencias #92/#91/#90; worktree local `C:\Users\Sady\workspace\TOP-MVP-Quality`. Las capacidades internas de los cuatro épicos están implementadas. Foundation y Business quedan Completed efectivo al integrar la cadena; Subscription permanece In Progress por decisión comercial pendiente; no se inventan historias duplicadas ni se declara MVP integrado en develop antes del merge.
+
+Correcciones finales acotadas:
+
+- Carga diferida por página con status de espera; shell, guards y recuperación de errores conservados. Bundle principal pasa de 729,02 kB a aproximadamente 366,49 kB (115,15 kB gzip), sin aumentar límites ni dependencias.
+- Calendar usa Business activo en lecturas y operaciones, con AbortSignal efectivo. Las respuestas antiguas no sustituyen el nuevo contexto y cerrar durante alta no continúa Submit/Confirm. Se conserva caché ajena. Diálogo reutiliza OverlayPanel y recupera foco al cerrar, sin efectos tardíos. Textos auxiliares de Calendar usan token de contraste TOP.
+- Regresión monetaria demostrada corregida: Pricing/Calendar dividían/multiplicaban PYG por 100 mientras Dashboard/Payments representaban el entero contractual. Helper compartido muestra/envía 450000 como ₲ 450.000; edición restaura 450.000. Contrato backend intacto; no se convierten datos históricos. Los tests anteriores que codificaban la escala errónea se actualizan y se agregan pruebas de formulario/transporte para alta, edición y temporada.
+- Pruebas nuevas: `money.test.ts`, `PricingMoney.integration.test.tsx`, `CalendarContext.integration.test.tsx`; ampliaciones de Calendar para Business seleccionado, cierre pendiente y teclado; rutas mantienen sus regresiones esperando carga diferida. QueryClient/hooks/transporte reales en las integraciones. No se rebajan thresholds ni se excluyen suites.
+
+QA sobre build de producción con API real, Edge 153.0.4234.48, localhost:3001 / API :3000/api:
+
+| Caso | Entorno | Resultado | Evidencia |
+|---|---|---|---|
+| Carga de rutas y navegación | Desktop 1440×900 y móvil 390×844 emulado | PASS | Build final index-DK4PgtPb.js; shell visible durante carga y foco en main. Revisión final de Calendar con tokens de contraste en ambos viewports |
+| Calendar por Business | Ambos viewports | PASS | QA muestra Resources ficticios; cambio real al original muestra reserva Cabaña Lapacho, sin datos de QA |
+| Asistente Calendar | Ambos viewports | PASS | Panel desktop y pantalla móvil; Tab/Shift+Tab contenidos, Escape cierra y devuelve foco a Nueva reserva |
+| PYG alta/listado/edición/Dashboard | Desktop | PASS | Tarifa ficticia QA 450.000 → DB 450000 PYG → listado y Dashboard ₲ 450.000; edición restaura 450.000 |
+| Responsive y consola | Desktop/móvil emulado | PASS | Sin overflow de documento (375/375 móvil); scroll operativo; consola sin errores/warnings inesperados |
+| Touch físico / preferencia motion del SO | Dispositivo físico no disponible | NOT RUN | No se sustituye por jsdom; reduced-motion revisado en CSS y comportamiento de diálogo en tests |
+
+Warnings: bundle >500 kB **corregido**; React act/Router **corregidos**, sin supresión global; aviso transitorio de tiempo de plugins **no reproducido** en build posterior, sin alterar configuración; deprecación de `package.json#prisma` en Prisma 6 **aceptada/diferida** a actualización mayor. Sin nuevas dependencias/workflows. Backend no cambia en este último épico y conserva gates completos acreditados en #93; ambos CI del HEAD final se verifican y registran en el cuerpo de la PR.
+
+Evidencia histórica del HEAD 5140669, anterior al fix IANA (no reejecutada localmente en esta corrección): lint PASS; suite completa 81 archivos / 457 pruebas PASS (pool threads, 2 workers por capacidad del host); build PASS, paquete principal 366,49 kB / 115,15 kB gzip; git diff --check PASS. Consola final sin errores/warnings y documento sin overflow en 1440×900 y 390×844. Self-review contra top-frontend-review realizado; no equivale a revisión independiente ni aprobación formal de GitHub. Los CI de la corrección final se registran en el cuerpo de #94; no se generan commits exclusivamente por metadatos. Pendientes: decisión comercial de Subscription y merge humano en el orden de dependencias.
+
+### Corrección final de revisión — Calendar Business-local y cierre condicionado
+
+#93 conserva TOP Inicial / 10 como configuración provisional, pendiente de confirmación comercial explícita de Rolo antes de producción. El mecanismo técnico está implementado y fue revisado favorablemente; no se atribuye aprobación comercial. Solicitar ampliación registra actor/requestedAt idempotentes, no cambia plan/cupo ni cobra; resolución administrativa/manual.
+
+#94 hereda el HEAD corregido de #93. Calendar usa `activeBusiness.timezone` para Hoy, selección/mes inicial, navegación Hoy, inicios de día y fin exclusivo, límites de consulta Blocks e intersección por día. Availability y Booking conservan fechas puras; solo Blocks recibe instantes RFC3339. La aritmética gregoriana/etiquetas usa un soporte UTC de fecha pura, nunca la zona del host ni un offset comercial fijo. Intl/IANA resuelve días de 23/25 horas, medianoche ausente o repetida. Cambio de Business/identidad/timezone remonta el calendario y conserva cancelación/aislamiento.
+
+Pruebas nuevas: `business-date.test.ts` (fecha IANA, límites, exclusividad, DST y medianoche) y `CalendarTimezone.integration.test.tsx` con QueryClient/hooks/transporte reales (Hoy con UTC en otro día, septiembre y Block UTC de octubre, cambio de Business/timezone). Se conservan las regresiones de cinco lecturas abortadas, respuestas antiguas, desmontaje, identidad y caché ajena; sin cambios al wizard financiero ni al fix PYG 1:1. No se migran importes históricos ni se presume cuáles requieren corrección: revisión antes de operar con datos reales.
+
+Validación de esta corrección: inspección y git diff --check local; tests/lint/build exclusivamente en GitHub CI para los HEAD finales de #93 y #94. Resultados y checkout sintético, separados de worktree local, en los cuerpos de ambas PR. Mutation SKIPPED según política, no PASS. QA real desktop/móvil emulado anterior conservada; el fix IANA se valida con regresiones deterministas y no se presenta como nueva QA interactiva. Touch físico NOT RUN.
+
+MVP técnicamente integrado no equivale a production readiness. Esta documentación prepara el estado efectivo tras integrar la cadena, sin afirmar merge ocurrido; el MVP final sigue sin cierre comercial mientras no se confirme o cambie TOP Inicial / 10. No hay PR documental posterior ni auto-merge.

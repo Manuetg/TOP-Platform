@@ -15,13 +15,14 @@ export function useCalculatePrice({
 }: UseCalculatePriceOptions) {
   return useMutation({
     mutationFn: (
-      input: CalculatePriceInput,
+      { signal, ...input }: CalculatePriceInput & { signal?: AbortSignal },
     ) =>
       calculatePrice({
         businessId,
         ratePlanId,
         input,
         accessToken,
+        signal,
       }),
   });
 }

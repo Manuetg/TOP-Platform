@@ -9,6 +9,7 @@ interface CalculatePriceOptions {
   ratePlanId: string;
   input: CalculatePriceInput;
   accessToken?: string | null;
+  signal?: AbortSignal;
 }
 
 export function calculatePrice({
@@ -16,12 +17,14 @@ export function calculatePrice({
   ratePlanId,
   input,
   accessToken,
+  signal,
 }: CalculatePriceOptions): Promise<CalculatePriceResult> {
   return apiRequest<CalculatePriceResult>(
     `/businesses/${businessId}/rate-plans/${ratePlanId}/calculate`,
     {
       method: "POST",
       accessToken,
+      signal,
       body: JSON.stringify(input),
     },
   );

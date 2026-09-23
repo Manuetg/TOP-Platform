@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -21,6 +22,8 @@ import {
 } from "vitest";
 import { AvailabilityCalendarPage } from "./AvailabilityCalendarPage";
 
+const context = vi.hoisted(() => ({ businessId: "business-1" }));
+vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeBusinessId: context.businessId, activeBusiness: { id: context.businessId, timezone: "America/Asuncion" } }) }));
 const useResourcesMock = vi.fn();
 const useBookingsMock = vi.fn();
 const useBlocksMock = vi.fn();
@@ -36,6 +39,7 @@ vi.mock("../../auth/context/AuthContext", () => ({
   useAuth: () => ({
     session: {
       accessToken: "token-123",
+      user: { id: "user-1" },
     },
   }),
 }));
@@ -453,7 +457,7 @@ describe("AvailabilityCalendarPage", () => {
     await user.type(screen.getByLabelText("Precio final"), "600000");
     await user.click(screen.getByRole("button", { name: /Continuar/i }));
     await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
-    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.objectContaining({ agreedAmountMinor: 60000000, overrideReason: "Precio manual desde calendario" })] }) })));
+    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.objectContaining({ agreedAmountMinor: 600000, overrideReason: "Precio manual desde calendario" })] }) })));
   });
 
   it("keeps configured pricing unchanged without a discount", async () => {
@@ -461,6 +465,41 @@ describe("AvailabilityCalendarPage", () => {
     await user.click(screen.getByRole("button", { name: /Continuar/i }));
     await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
     await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.not.objectContaining({ agreedAmountMinor: expect.anything(), overrideReason: expect.anything() })] }) })));
+  });
+
+  it("usa el Business activo en todas las lecturas y en la confirmación", async () => {
+    context.businessId = "business-selected";
+    try {
+      const user = await goToRateStep();
+      for (const hook of [useResourcesMock, useBookingsMock, useBlocksMock, useContactsMock, useAvailabilityCalendarMock, useSelectableRatePlansMock, useCalculatePriceMock]) {
+        expect(hook).toHaveBeenLastCalledWith(expect.objectContaining({ businessId: "business-selected" }));
+      }
+      await user.click(screen.getByRole("button", { name: /Continuar/i }));
+      await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
+      await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ businessId: "business-selected" })));
+    } finally { context.businessId = "business-1"; }
+  });
+
+  it("cerrar durante el alta aborta la señal y una respuesta tardía no continúa Submit/Confirm", async () => {
+    let resolve!: (value: { id: string }) => void;
+    createBookingMock.mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+    const user = await goToRateStep(); await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    await user.dblClick(screen.getByRole("button", { name: /Confirmar reserva/i }));
+    expect(createBookingMock).toHaveBeenCalledTimes(1);
+    const signal: AbortSignal = createBookingMock.mock.calls[0][0].signal;
+    await user.click(screen.getByRole("button", { name: "Cerrar" })); expect(signal.aborted).toBe(true);
+    await act(async () => resolve({ id: "late-booking" }));
+    expect(submitBookingMock).not.toHaveBeenCalled(); expect(confirmBookingMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("el asistente compartido contiene Tab y Escape devuelve foco al disparador", async () => {
+    const user = await openWizard();
+    expect(screen.getByRole("dialog", { name: "Nueva reserva" })).toHaveFocus();
+    await user.tab({ shift: true }); expect(screen.getByRole("button", { name: /Buscar disponibilidad/ })).toHaveFocus();
+    await user.tab(); expect(screen.getByRole("button", { name: "Cerrar" })).toHaveFocus();
+    await user.keyboard("{Escape}"); expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Nueva reserva/ })).toHaveFocus();
   });
 
   it("applies a 10 percent configured discount in exact minor units", async () => {

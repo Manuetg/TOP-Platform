@@ -5,18 +5,21 @@ interface SubmitBookingOptions {
   businessId: string;
   bookingId: string;
   accessToken?: string | null;
+  signal?: AbortSignal;
 }
 
 export function submitBooking({
   businessId,
   bookingId,
   accessToken,
+  signal,
 }: SubmitBookingOptions): Promise<Booking> {
   return apiRequest<Booking>(
     `/businesses/${businessId}/bookings/${bookingId}/submit`,
     {
       method: "POST",
       accessToken,
+      signal,
     },
   );
 }

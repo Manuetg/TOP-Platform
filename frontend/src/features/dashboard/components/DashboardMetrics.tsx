@@ -1,3 +1,4 @@
+import { formatMoney } from "../../../shared/utils/money";
 import {
   reservationStatuses,
   type DashboardResponse,
@@ -14,9 +15,7 @@ export const revenueLabel = ({
   currency,
   amountMinor,
 }: DashboardResponse["revenue"]) =>
-  currency === "PYG"
-    ? `₲ ${number.format(amountMinor)}`
-    : `${currency} ${number.format(amountMinor)}`;
+  formatMoney(amountMinor, currency);
 
 export function OccupancyOverview({
   occupancy,

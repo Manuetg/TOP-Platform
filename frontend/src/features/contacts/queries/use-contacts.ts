@@ -20,7 +20,7 @@ export function useContacts({
       businessId,
       normalizedQuery,
     ],
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       searchContacts({
         businessId,
         query:
@@ -28,6 +28,7 @@ export function useContacts({
             ? normalizedQuery
             : undefined,
         accessToken,
+        signal,
       }),
     enabled: businessId.length > 0,
   });

@@ -8,12 +8,14 @@ interface CreateBookingOptions {
   businessId: string;
   input: CreateBookingInput;
   accessToken?: string | null;
+  signal?: AbortSignal;
 }
 
 export function createBooking({
   businessId,
   input,
   accessToken,
+  signal,
 }: CreateBookingOptions): Promise<Booking> {
   return apiRequest<Booking>(
     `/businesses/${businessId}/bookings`,
@@ -21,6 +23,7 @@ export function createBooking({
       method: "POST",
       body: JSON.stringify(input),
       accessToken,
+      signal,
     },
   );
 }

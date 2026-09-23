@@ -25,13 +25,14 @@ export function useBookings({
       contactId ?? "",
       resourceId ?? "",
     ],
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       listBookings({
         businessId,
         status,
         contactId,
         resourceId,
         accessToken,
+        signal,
       }),
     enabled: businessId.length > 0,
   });

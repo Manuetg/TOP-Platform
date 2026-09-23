@@ -25,13 +25,14 @@ export function useSelectableRatePlans({
       checkIn,
       checkOut,
     ],
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       listSelectableRatePlans({
         businessId,
         resourceId,
         checkIn,
         checkOut,
         accessToken,
+        signal,
       }),
     enabled:
       businessId.length > 0 &&

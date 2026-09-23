@@ -1,3 +1,4 @@
+import { formatMoney } from "../../../shared/utils/money";
 import {
   BadgeDollarSign,
   CalendarRange,
@@ -34,16 +35,7 @@ const STATUS_LABELS: Record<
   ARCHIVED: "Archivado",
 };
 
-function formatMoney(
-  amountMinor: number,
-  currency: string,
-) {
-  return new Intl.NumberFormat("es-PY", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amountMinor / 100);
-}
+
 
 function formatDate(value: string | null) {
   if (!value) {

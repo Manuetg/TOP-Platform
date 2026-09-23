@@ -5,12 +5,14 @@ interface SearchContactsOptions {
   businessId: string;
   query?: string;
   accessToken?: string | null;
+  signal?: AbortSignal;
 }
 
 export function searchContacts({
   businessId,
   query,
   accessToken,
+  signal,
 }: SearchContactsOptions): Promise<Contact[]> {
   const normalizedQuery = query?.trim();
 
@@ -24,6 +26,7 @@ export function searchContacts({
     {
       method: "GET",
       accessToken,
+      signal,
     },
   );
 }

@@ -8,6 +8,7 @@ interface ListBookingsOptions
   extends ListBookingsInput {
   businessId: string;
   accessToken?: string | null;
+  signal?: AbortSignal;
 }
 
 export function listBookings({
@@ -16,6 +17,7 @@ export function listBookings({
   contactId,
   resourceId,
   accessToken,
+  signal,
 }: ListBookingsOptions): Promise<Booking[]> {
   const query = new URLSearchParams();
 
@@ -39,6 +41,7 @@ export function listBookings({
     }`,
     {
       accessToken,
+      signal,
     },
   );
 }

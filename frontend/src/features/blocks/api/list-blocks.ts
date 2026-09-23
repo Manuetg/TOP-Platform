@@ -7,6 +7,7 @@ import type {
 interface ListBlocksOptions extends ListBlocksInput {
   businessId: string;
   accessToken?: string | null;
+  signal?: AbortSignal;
 }
 
 export function listBlocks({
@@ -15,6 +16,7 @@ export function listBlocks({
   from,
   to,
   accessToken,
+  signal,
 }: ListBlocksOptions): Promise<Block[]> {
   const params = new URLSearchParams();
 
@@ -39,6 +41,7 @@ export function listBlocks({
     {
       method: "GET",
       accessToken,
+      signal,
     },
   );
 }

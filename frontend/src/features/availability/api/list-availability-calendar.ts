@@ -24,6 +24,7 @@ interface ListAvailabilityCalendarOptions {
   to: string;
   resourceId?: string;
   accessToken?: string | null;
+  signal?: AbortSignal;
 }
 
 export function listAvailabilityCalendar({
@@ -32,6 +33,7 @@ export function listAvailabilityCalendar({
   to,
   resourceId,
   accessToken,
+  signal,
 }: ListAvailabilityCalendarOptions): Promise<AvailabilityCalendarResult> {
   const params = new URLSearchParams({ from, to });
 
@@ -41,6 +43,6 @@ export function listAvailabilityCalendar({
 
   return apiRequest<AvailabilityCalendarResult>(
     `/businesses/${businessId}/availability/calendar?${params.toString()}`,
-    { accessToken },
+    { accessToken, signal },
   );
 }

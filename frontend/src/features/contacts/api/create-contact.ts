@@ -16,12 +16,14 @@ export interface CreateContactInput {
 interface CreateContactOptions {
   businessId: string;
   accessToken?: string | null;
+  signal?: AbortSignal;
   input: CreateContactInput;
 }
 
 export function createContact({
   businessId,
   accessToken,
+  signal,
   input,
 }: CreateContactOptions): Promise<Contact> {
   return apiRequest<Contact>(
@@ -29,6 +31,7 @@ export function createContact({
     {
       method: "POST",
       accessToken,
+      signal,
       body: JSON.stringify(input),
     },
   );

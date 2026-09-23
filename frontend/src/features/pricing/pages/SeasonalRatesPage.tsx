@@ -1,3 +1,5 @@
+import { parseGuaranies } from "../../../shared/utils/money";
+import { formatMoney } from "../../../shared/utils/money";
 import {
   ArrowLeft,
   CalendarDays,
@@ -20,33 +22,9 @@ import { useSeasonalRates } from "../queries/use-seasonal-rates";
 import "./SeasonalRatesPage.css";
 
 
-function currencyToMinor(value: string) {
-  const normalized = value
-    .replace(/\./g, "")
-    .replace(",", ".");
 
-  const parsed = Number(normalized);
 
-  if (
-    !Number.isFinite(parsed) ||
-    parsed <= 0
-  ) {
-    return null;
-  }
 
-  return Math.round(parsed * 100);
-}
-
-function formatMoney(
-  amountMinor: number,
-  currency: string,
-) {
-  return new Intl.NumberFormat("es-PY", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amountMinor / 100);
-}
 
 function formatDate(value: string) {
   const [year, month, day] = value
@@ -143,7 +121,7 @@ export function SeasonalRatesPage() {
     }
 
     const amountMinor =
-      currencyToMinor(amount);
+      parseGuaranies(amount);
 
     if (
       amountMinor === null ||
