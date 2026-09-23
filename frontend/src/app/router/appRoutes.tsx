@@ -2,7 +2,7 @@ import { Navigate, type RouteObject } from "react-router-dom";
 import { LoginPage } from "../../features/auth/pages/LoginPage";
 import { DashboardPage } from "../../features/dashboard/pages/DashboardPage";
 import { AppLayout } from "../layout/AppLayout";
-import { AppSectionPage } from "../pages/AppSectionPage";
+import { BusinessProfilePage } from "../../features/business/pages/BusinessProfilePage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { ResourceListPage } from "../../features/resources/pages/ResourceListPage";
 import { ResourceDetailPage } from "../../features/resources/pages/ResourceDetailPage";
@@ -153,7 +153,7 @@ export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general 
       },
       {
         path: "settings",
-        element: <AppSectionPage title="Configuración" />,
+        element: <BusinessProfilePage />,
       },
     ],
   },

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { BusinessBoundary } from "./BusinessBoundary";
-const context = vi.hoisted(() => ({ value: { status: "loading", retry: vi.fn() } }));
+const context = vi.hoisted(() => ({ value: { status: "loading", retry: vi.fn(), businesses: [], activeBusinessId: "", selectBusiness: vi.fn() } }));
 vi.mock("../context/BusinessContext", () => ({ useBusinessContext: () => context.value }));
 describe("BusinessBoundary", () => {
   it.each([["loading", "Cargando negocio..."], ["empty", "No tenés un negocio activo disponible."], ["selection-required", "Seleccioná un negocio para continuar."], ["error", "No pudimos cargar tus negocios."]])("does not mount tenant content for %s", (status, copy) => { context.value.status = status; render(<BusinessBoundary><span>Tenant content</span></BusinessBoundary>); expect(screen.queryByText("Tenant content")).not.toBeInTheDocument(); expect(screen.getByText(copy)).toBeInTheDocument(); });

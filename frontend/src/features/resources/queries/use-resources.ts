@@ -12,10 +12,11 @@ export function useResources({
 }: UseResourcesOptions) {
   return useQuery({
     queryKey: ["resources", businessId],
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       listResources({
         businessId,
         accessToken,
+        signal,
       }),
     enabled: businessId.length > 0,
   });

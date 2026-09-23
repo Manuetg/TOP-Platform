@@ -1,0 +1,17 @@
+.business-profile { max-width: 920px; margin-inline: auto; display: grid; gap: var(--space-6); }
+.business-profile h1 { margin: 0; font-size: 28px; letter-spacing: -.025em; }
+.business-profile header p { color: var(--color-text-secondary); line-height: 1.6; }
+.business-profile__card { padding: var(--space-5); display: grid; gap: var(--space-5); }
+.business-profile__grid { display: grid; gap: var(--space-5); }
+.business-profile__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.business-profile__notice { margin: 0; color: var(--color-text-secondary); font-size: 14px; line-height: 1.6; }
+.business-profile__message { scroll-margin-top: 100px; }
+.business-profile__message:empty { display: none; }
+.business-profile__message:focus { outline: 2px solid var(--color-brand-primary); outline-offset: 4px; }
+.business-selector { display: grid; gap: var(--space-2); max-height: 50dvh; overflow-y: auto; }
+.business-selector button { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); min-height: 48px; padding: var(--space-3); text-align: left; overflow-wrap: anywhere; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-primary); border-radius: var(--radius-md); cursor: pointer; }
+.business-selector button[aria-pressed="true"] { background: var(--color-action-soft); border-color: var(--color-brand-primary); color: var(--color-brand-primary); }
+.business-single { display: grid; gap: var(--space-2); overflow-wrap: anywhere; }
+.business-single span { font-size: 12px; color: var(--color-text-secondary); }
+.business-selection-page { max-width: 600px; margin: var(--space-5) auto; }
+@media (min-width: 768px) { .business-profile__grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .business-profile__card { padding: var(--space-6); } }
