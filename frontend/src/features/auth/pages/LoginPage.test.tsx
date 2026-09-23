@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
   Outlet,
   RouterProvider,
@@ -158,6 +158,25 @@ describe("LoginPage routing", () => {
     expect(dependencies.login).not.toHaveBeenCalled();
   });
 
+  it("allows a corrected submission after client validation fails", async () => {
+    dependencies.login.mockResolvedValue(session);
+    const router = renderLogin("/login");
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+    expect(await screen.findByText("Ingresa tu correo electrónico.")).toBeVisible();
+    expect(dependencies.login).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText("Correo electrónico"), {
+      target: { value: "jeni@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("Contraseña"), {
+      target: { value: "TopPassword123!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/app"));
+    expect(dependencies.login).toHaveBeenCalledTimes(1);
+  });
+
   it("shows pending state and ignores duplicate form submissions until the request settles", async () => {
     let resolveLogin!: (value: LoginResponse) => void;
     dependencies.login.mockReturnValue(new Promise<LoginResponse>((resolve) => {
@@ -174,7 +193,11 @@ describe("LoginPage routing", () => {
     const submitButton = screen.getByRole("button", { name: "Iniciar sesión" });
     const form = submitButton.closest("form");
     expect(form).not.toBeNull();
-    fireEvent.submit(form!);
+    // Two events in one batch exercise the synchronous lock, before disabled renders.
+    act(() => {
+      fireEvent.submit(form!);
+      fireEvent.submit(form!);
+    });
 
     const pendingButton = await screen.findByRole("button", { name: "Ingresando..." });
     expect(pendingButton).toBeDisabled();

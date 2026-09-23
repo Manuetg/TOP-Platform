@@ -155,6 +155,8 @@ describe("recuperación en las rutas productivas", () => {
     const resource = routes[0].children?.find((route) => route.path === "/app")?.children?.find((route) => route.path === "resources");
     if (!resource) throw new Error("Falta la ruta productiva de recursos");
     resource.loader = () => { throw new Error("SYNTHETIC_LOADER_SECRET"); };
+    // This synthetic async loader needs an initial fallback; production routes have none.
+    routes[0].hydrateFallbackElement = <p>Cargando prueba de ruta...</p>;
     mount("/app/resources", routes);
     expect(await screen.findByRole("heading", { name: "La aplicación encontró un problema." })).toBeInTheDocument();
     expect(screen.queryByText("No debe aparecer")).not.toBeInTheDocument();

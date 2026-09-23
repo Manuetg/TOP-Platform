@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { listRatePlans } from "./list-rate-plans";
 import { ApiError } from "../../../shared/api/api-client";
+import { requestUrl } from "../../../../tests/request-url";
 afterEach(() => vi.unstubAllGlobals());
 it("reads the general tenant catalog without contextual filters and preserves archived plans", async () => {
   const data = [
@@ -15,8 +16,8 @@ it("reads the general tenant catalog without contextual filters and preserves ar
     listRatePlans({ businessId: "b", accessToken: "token" }),
   ).resolves.toEqual(data);
   const [url, options] = request.mock.calls[0] as [string, RequestInit];
-  expect(new URL(url).pathname).toBe("/api/businesses/b/rate-plans");
-  expect(new URL(url).search).toBe("");
+  expect(requestUrl(url).pathname).toBe("/api/businesses/b/rate-plans");
+  expect(requestUrl(url).search).toBe("");
   expect(new Headers(options.headers).get("Authorization")).toBe(
     "Bearer token",
   );

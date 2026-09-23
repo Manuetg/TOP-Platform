@@ -1,6 +1,17 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-09-20
+Última actualización: 2026-09-23
+
+## Handoff vigente — cierre del MVP por épicos
+
+- Baseline: `develop@4c866cc`, PR #88 Payments y #89 Calendar/Pricing incorporadas. Frontend: 46/52 historias activas Completed, 6 Planned. La evidencia histórica inferior se conserva con sus fechas y límites; no describe una nueva ejecución de QA.
+- Orden aprobado: mantenimiento preliminar → Foundation Polish → Business Management → Subscription & Entitlements → quality gate final. Alcance, dependencias y evidencia vigente en `docs/14-Frontend-Backlog.md`, sección «Cierre del MVP por épicos».
+- Trabajo full-stack autorizado para resolver gaps directos del frontend, conservando dominio y reglas como autoridad. Las responsabilidades históricas siguientes no constituyen una prohibición de ajustes backend dentro del épico aprobado.
+- Mantenimiento en `codex/frontend-maintenance`, worktree local `C:\Users\Sady\workspace\TOP-MVP-Maintenance`. Corrección del submit concurrente de Login y tests de URL relativa/absoluta; 74 archivos/379 pruebas PASS en ambas configuraciones y ejecución final relativa de 380 pruebas PASS tras añadir recuperación de validación inválida; lint y build PASS. QA Login desktop/móvil y sesión con API real PASS; CI y revisión de PR pendientes. No se declara completo el épico todavía.
+- Business ya dispone de listado autorizado, detalle y edición de nombre, razón social, identificación fiscal, timezone y moneda contractual PYG. Falta integrar selector/perfil; no se necesita inventar un contrato de membresías.
+- Subscription no tiene implementación backend en el baseline. Rolo confirmó que planes/cupos/destino del upgrade aún no están definidos. Su definición comercial queda pendiente, sin usar como definitivos los ejemplos del backlog.
+- Bundle de 710,96 kB: evaluación de división por rutas diferida al quality gate final; warnings de `act` y fallback del router corregidos en sus tests.
+- Cambios locales de infraestructura del checkout original preservados. No se modifica ni mergea directamente `develop`.
 
 ## Responsabilidades
 
@@ -69,7 +80,7 @@ Estado:
 - FE-BUS-001 — Completed; las siete features tenant-scoped consumen Active Business Context y el ciclo de vida está cubierto por tests.
 - FE-FND-004 — Completed preparado, efectivo en `develop` al mergear PR #82. Boundary de contenido bajo ProtectedRoute/BusinessBoundary conserva shell, cuenta, Auth y QueryClient; reintento local y cambio de ruta/identidad/Business recuperan la vista sin reproducir mutations. Respaldo de shell/router y boundary exterior de providers sin dependencias de contexto, con inicio/recarga de documento. FE-FND-003 mantiene errores API locales; no se capturan por sí solos eventos o promesas fuera del árbol React. Frontend CI `35473054747` SUCCESS (Node `v22.23.2`, build, 67 archivos/317 tests, lint); Backend CI `35473054790` SUCCESS. Self-review sin bloqueantes y diff check PASS. HEAD/checkout finales en el cuerpo de la misma PR. QA manual móvil/desktop: NOT RUN; mutation diferida. Backend y trabajo de Manu sin cambios.
 - FE-FND-003 — manejo compartido de errores API completo; cierre efectivo al mergear PR #81. Frontend CI `35386101873` aprobó Node `v22.23.2`, build, 64 archivos/296 tests y lint; Backend CI `35386101857` SUCCESS. QA manual: NOT RUN.
-- 45/51 historias frontend activas Completed; 0 In Progress, 6 Planned y 0 Blocked.
+- 46/52 historias frontend activas Completed; 0 In Progress, 6 Planned y 0 Blocked (mantenimiento transversal registrado por separado).
 - Resources y Rate Plans usan contratos reales; Revenue, Occupancy y Reservations usan el Dashboard backend real.
 - Los widgets Dashboard sin contrato backend aprobado fueron retirados del MVP; no se muestran datos ficticios.
 - FE-IAM-003 — Session Persistence, FE-IAM-004 — Refresh Token Rotation, FE-IAM-005 — Logout y FE-IAM-006 — Protected Routes están Completed.

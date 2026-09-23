@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useRef, type FormEvent } from "react";
 import { useForm } from "react-hook-form";
 import { login } from "../api/login";
 import {
@@ -33,16 +33,24 @@ export function LoginPage() {
     onSuccess: (data) => {
       establishSession(data);
     },
-    onSettled: () => {
-      submissionLock.current = false;
-    },
   });
 
-  const onSubmit = handleSubmit((values) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    // Lock before asynchronous validation: a queued resolver must not start
+    // another request after the first mutation settles and unlocks.
     if (submissionLock.current) return;
     submissionLock.current = true;
-    loginMutation.mutate(values);
-  });
+    try {
+      await handleSubmit(async (values) => {
+        await loginMutation.mutateAsync(values);
+      })(event);
+    } catch {
+      // Mutation errors are rendered below; keep the form available for retry.
+    } finally {
+      submissionLock.current = false;
+    }
+  };
 
   const loginErrorMessage = loginMutation.error
     ? loginMutation.error instanceof ApiError
