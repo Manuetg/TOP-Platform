@@ -6,7 +6,7 @@ import { AvailabilityCalendarPage } from "./AvailabilityCalendarPage";
 import { requestUrl } from "../../../../tests/request-url";
 
 const context = vi.hoisted(() => ({ businessId: "a", userId: "one" }));
-vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeBusinessId: context.businessId }) }));
+vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeBusinessId: context.businessId, activeBusiness: { id: context.businessId, timezone: "America/Asuncion" } }) }));
 vi.mock("../../auth/context/AuthContext", () => ({ useAuth: () => ({ session: { user: { id: context.userId }, accessToken: `token-${context.userId}` } }) }));
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>((done) => { resolve = done; }); return { promise, resolve }; }
 function response(path: string, name: string) {

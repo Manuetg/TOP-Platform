@@ -23,7 +23,7 @@ import {
 import { AvailabilityCalendarPage } from "./AvailabilityCalendarPage";
 
 const context = vi.hoisted(() => ({ businessId: "business-1" }));
-vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeBusinessId: context.businessId }) }));
+vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeBusinessId: context.businessId, activeBusiness: { id: context.businessId, timezone: "America/Asuncion" } }) }));
 const useResourcesMock = vi.fn();
 const useBookingsMock = vi.fn();
 const useBlocksMock = vi.fn();

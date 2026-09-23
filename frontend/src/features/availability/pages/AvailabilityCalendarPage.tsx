@@ -1,4 +1,5 @@
 import { useBusinessContext } from "../../business/context/BusinessContext";
+import { addCalendarDays as addDays, businessDateAt, businessDayInstantRange, businessDayStartInstant, instantIntersectsRange } from "../../../shared/utils/business-date";
 import { formatMoney, parseGuaranies } from "../../../shared/utils/money";
 import {
   ArrowLeft,
@@ -47,16 +48,10 @@ const bookingLabels: Record<BookingStatus, string> = {
   NO_SHOW: "No presentada",
 };
 
-function isoDate(date: Date) {
+/** Soporte UTC para aritmética y etiquetas de fecha pura; nunca un instante del Business. */
+function calendarDateFromCarrier(date: Date) {
   return date.toISOString().slice(0, 10);
 }
-
-function addDays(value: string, days: number) {
-  const date = new Date(`${value}T00:00:00.000Z`);
-  return isoDate(new Date(date.getTime() + days * DAY_MS));
-}
-
-
 
 function guaraniesToMinor(value: string) { return parseGuaranies(value, true); }
 
@@ -71,12 +66,6 @@ function formatManualInput(value: number) {
 function intersectsDay(start: string | null, end: string | null, day: string) {
   if (!start || !end) return false;
   return start < addDays(day, 1) && end > day;
-}
-
-function instantIntersectsDay(start: string, end: string, day: string) {
-  const dayStart = Date.parse(`${day}T00:00:00.000Z`);
-  const dayEnd = dayStart + DAY_MS;
-  return Date.parse(start) < dayEnd && Date.parse(end) > dayStart;
 }
 
 interface WizardState {
@@ -116,22 +105,26 @@ function selectedDiscountPercent(wizard: WizardState) {
 }
 
 export function AvailabilityCalendarPage() {
+  const { activeBusiness } = useBusinessContext();
+  const { session } = useAuth();
+  if (!activeBusiness) return <p role="status">Seleccioná un negocio para ver el calendario.</p>;
+  return <BusinessCalendar key={`${session?.user.id}:${activeBusiness.id}:${activeBusiness.timezone}`} businessId={activeBusiness.id} timezone={activeBusiness.timezone} />;
+}
+
+function BusinessCalendar({ businessId, timezone }: { businessId: string; timezone: string }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { session } = useAuth();
   const accessToken = session?.accessToken;
-  const { activeBusinessId: businessId } = useBusinessContext();
+  const today = businessDateAt(new Date(), timezone);
   const operations = useRef(new Set<AbortController>());
   const wizardTrigger = useRef<HTMLElement | null>(null);
   const savingLock = useRef(false);
   useEffect(() => { const pending = operations.current; return () => { for (const controller of pending) controller.abort(); pending.clear(); }; }, [businessId, session?.user.id]);
   function operation() { const controller = new AbortController(); operations.current.add(controller); return controller; }
   function closeWizard() { for (const controller of operations.current) controller.abort(); operations.current.clear(); savingLock.current = false; wizardTrigger.current?.focus(); setSaving(false); setWizardOpen(false); }
-  const [month, setMonth] = useState(() => {
-    const now = new Date();
-    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
-  });
-  const [selectedDay, setSelectedDay] = useState(() => isoDate(new Date()));
+  const [month, setMonth] = useState(() => new Date(`${today.slice(0, 7)}-01T00:00:00.000Z`));
+  const [selectedDay, setSelectedDay] = useState(today);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [wizard, setWizard] = useState<WizardState>(emptyWizard);
@@ -148,14 +141,20 @@ export function AvailabilityCalendarPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const monthFrom = isoDate(month);
-  const monthTo = isoDate(new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 1)));
-  const blocksFrom = `${monthFrom}T00:00:00.000Z`;
-  const blocksTo = `${monthTo}T00:00:00.000Z`;
+  const monthFrom = calendarDateFromCarrier(month);
+  const monthTo = calendarDateFromCarrier(new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 1)));
+  const blocksFrom = useMemo(() => businessDayStartInstant(monthFrom, timezone), [monthFrom, timezone]);
+  const blocksTo = useMemo(() => businessDayStartInstant(monthTo, timezone), [monthTo, timezone]);
   const days = useMemo(() => {
     const count = Math.round((Date.parse(monthTo) - Date.parse(monthFrom)) / DAY_MS);
     return Array.from({ length: count }, (_, index) => addDays(monthFrom, index));
   }, [monthFrom, monthTo]);
+
+  const dayRanges = useMemo(() => new Map(days.map((day) => [day, businessDayInstantRange(day, timezone)])), [days, timezone]);
+  function instantIntersectsDay(start: string, end: string, day: string) {
+    const range = dayRanges.get(day);
+    return Boolean(range && instantIntersectsRange(start, end, range));
+  }
 
   const resourcesQuery = useResources({ businessId: businessId, accessToken });
   const bookingsQuery = useBookings({ businessId: businessId, accessToken });
@@ -298,20 +297,19 @@ export function AvailabilityCalendarPage() {
   function changeMonth(nextMonth: number) {
     const next = new Date(Date.UTC(month.getUTCFullYear(), nextMonth, 1));
     setMonth(next);
-    setSelectedDay(isoDate(next));
+    setSelectedDay(calendarDateFromCarrier(next));
   }
 
   function changeYear(nextYear: number) {
     const next = new Date(Date.UTC(nextYear, month.getUTCMonth(), 1));
     setMonth(next);
-    setSelectedDay(isoDate(next));
+    setSelectedDay(calendarDateFromCarrier(next));
   }
 
   function goToToday() {
-    const now = new Date();
-    const today = isoDate(now);
-    setMonth(new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1)));
-    setSelectedDay(today);
+    const currentBusinessDate = businessDateAt(new Date(), timezone);
+    setMonth(new Date(`${currentBusinessDate.slice(0, 7)}-01T00:00:00.000Z`));
+    setSelectedDay(currentBusinessDate);
   }
 
   function update<K extends keyof WizardState>(key: K, value: WizardState[K]) {
@@ -584,7 +582,7 @@ export function AvailabilityCalendarPage() {
 
             {days.map((day) => {
               const date = new Date(`${day}T00:00:00.000Z`);
-              const isToday = day === isoDate(new Date());
+              const isToday = day === today;
               const isSelected = day === selectedDay;
 
               const hasBooking = (bookingsQuery.data ?? []).some(
@@ -701,8 +699,8 @@ export function AvailabilityCalendarPage() {
               {days.map((day) => {
                 const date = new Date(`${day}T00:00:00.000Z`);
                 const weekend = date.getUTCDay() === 0 || date.getUTCDay() === 6;
-                const today = day === isoDate(new Date());
-                return <div key={day} className={`availability-calendar-day-head${weekend ? " is-weekend" : ""}${today ? " is-today" : ""}`}><span>{new Intl.DateTimeFormat("es-PY", { weekday: "short", timeZone: "UTC" }).format(date).slice(0, 2)}</span><strong>{date.getUTCDate()}</strong></div>;
+                const isToday = day === today;
+                return <div key={day} className={`availability-calendar-day-head${weekend ? " is-weekend" : ""}${isToday ? " is-today" : ""}`}><span>{new Intl.DateTimeFormat("es-PY", { weekday: "short", timeZone: "UTC" }).format(date).slice(0, 2)}</span><strong>{date.getUTCDate()}</strong></div>;
               })}
               {resources.map((resource) => {
                 const calendarResource = calendarQuery.data?.resources.find((item) => item.resourceId === resource.id);
