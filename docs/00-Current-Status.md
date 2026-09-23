@@ -11,6 +11,7 @@
 - Business ya dispone de listado autorizado, detalle y edición de nombre, razón social, identificación fiscal, timezone y moneda contractual PYG. Falta integrar selector/perfil; no se necesita inventar un contrato de membresías.
 - Subscription no tiene implementación backend en el baseline. Rolo confirmó que planes/cupos/destino del upgrade aún no están definidos. Su definición comercial queda pendiente, sin usar como definitivos los ejemplos del backlog.
 - Bundle de 710,96 kB: evaluación de división por rutas diferida al quality gate final; warnings de `act` y fallback del router corregidos en sus tests.
+- Primer Frontend CI de mantenimiento falló en instalación, antes de tests; se corrige reproducibilidad del builder con lockfile multiplataforma y `npm ci`, preservando versiones. Backend CI del primer HEAD aprobó. La evidencia del HEAD final se actualiza en la PR de mantenimiento, sin commits dedicados a repetir SHA.
 - Cambios locales de infraestructura del checkout original preservados. No se modifica ni mergea directamente `develop`.
 
 ## Responsabilidades
