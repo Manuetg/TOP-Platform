@@ -1,0 +1,15 @@
+.subscription-card { display: grid; gap: var(--space-3); padding: var(--space-5); }
+.subscription-card h2 { font-size: 20px; margin: var(--space-2) 0 0; }
+.subscription-card h2:focus { outline: 2px solid var(--color-brand-primary); outline-offset: 4px; }
+.subscription-card__eyebrow { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); }
+.subscription-card__usage { display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); }
+.subscription-card p { margin: 0; line-height: 1.6; }
+.subscription-card__help { font-size: 13px; color: var(--color-text-secondary); }
+.subscription-card__notice { font-weight: 600; }
+.subscription-card--warning, .subscription-card--limit { border-color: var(--color-accent); }
+.subscription-card--limit .subscription-card__notice { color: var(--color-error); }
+.subscription-card progress { width: 100%; height: 10px; accent-color: var(--color-brand-primary); border: 0; border-radius: var(--radius-md); overflow: hidden; }
+.subscription-card progress::-webkit-progress-bar { background: var(--color-border); }
+.subscription-card progress::-webkit-progress-value { background: var(--color-brand-primary); }
+.subscription-card progress::-moz-progress-bar { background: var(--color-brand-primary); }
+.subscription-card .top-button { justify-self: start; }

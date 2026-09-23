@@ -1173,7 +1173,7 @@ Validación final:
 # 7A. FE-SUB — Subscription & Entitlements
 ## FE-SUB-001 — Subscription Entitlements & Usage UI
 
-Estado: Planned
+Estado: In Progress
 
 Objetivo:
 
@@ -2178,7 +2178,7 @@ Si una necesidad frontend demuestra un gap backend, se revisan dominio, Business
 | IAM | 6 | 0 | 0 | 0 |
 | Business | 1 | 2 | 0 | 0 |
 | Resource | 7 | 0 | 0 | 0 |
-| Subscription | 0 | 0 | 1 | 0 |
+| Subscription | 0 | 1 | 0 | 0 |
 | Contact | 4 | 0 | 0 | 0 |
 | Availability | 2 | 0 | 0 | 0 |
 | Pricing | 5 | 0 | 0 | 0 |
@@ -2186,7 +2186,19 @@ Si una necesidad frontend demuestra un gap backend, se revisan dominio, Business
 | Block | 3 | 0 | 0 | 0 |
 | Payment | 2 | 0 | 0 | 0 |
 | Dashboard | 1 | 0 | 0 | 0 |
-| **TOTAL** | **46** | **5** | **1** | **0** |
+| **TOTAL** | **46** | **6** | **0** | **0** |
 
 
 
+
+## Evidencia del épico Subscription & Entitlements (2026-09-23)
+
+Implementado en `codex/subscription-entitlements`, sobre Business Management #92 (dependencias #91 y #90), worktree local `C:\Users\Sady\workspace\TOP-MVP-Subscription`. FE-SUB-001 In Progress hasta revisión/merge; no declara MVP completo.
+
+- Backend nuevo real: plan/asignación persistidos, cupo/uso y solicitud única auditable. La recomendación provisional delegada es TOP Inicial, 10 Resources ACTIVE/OUT_OF_SERVICE, WARNING desde 80%; ARCHIVED no consume. Es configurable en backend; no se calcula en React. OWNER solicita ampliación; ADMIN y otros roles solo leen Subscription, respetando BR-060. Solicitar no cambia plan ni genera cobros. Destino operativo de solicitudes documentado en Architecture.
+- UI compartida en Perfil y alta de Resource. No se repite la misma tarjeta en Context Rail. Cubre carga, error/reintento, vacío 0/10, normal/aviso/límite, ausencia de acceso y confirmación. Query por identidad/Business, aborto y descarte tardío; foco estable al iniciar solicitud. El alta invalida cupo y listado; un GET posterior fallido no repite el POST.
+- Backend oficial en PostgreSQL desechable separado de QA: 111 suites/1091 unitarias, 33 suites/172 integración, 21 suites/254 E2E; 194 escenarios/759 pasos de aceptación. Cobertura conjunta: 165 suites/1517 pruebas, statements 97,58%, branches 92,56%, functions 98,35%, lines 98,34%. Lint, arquitectura (290 módulos sin violaciones), Prisma validation, migraciones y build PASS. Logs de invariantes/500 deliberados pertenecen a regresiones negativas.
+- Frontend: suite completa de 78 archivos/429 pruebas PASS; 20 regresiones de Subscription PASS. Se agrega integración de logout con AuthProvider/ProtectedRoute reales para lectura y solicitud pendientes. El build detectó un argumento `exact` no admitido por Testing Library; corregido conservando selectores literales. La prueba de Login ahora espera el DOM después de navegar; un timeout inicial de Calendar bajo saturación del host no se reprodujo al limitar Jest a un proceso. Sin cambios de timeouts, thresholds o workflows.
+- QA real: Edge 153.0.4234.48, localhost:3001 con API localhost:3000/api; desktop 1440×900 y móvil emulado 390×844. PASS: 0/10, solicitud por Enter y foco en heading, persistencia tras recarga, 8/10 aviso, altas reales 9/10 y 10/10, detalle correcto, bloqueo de alta al límite, cambio al otro Business 4/10 sin heredar solicitud ni cupo. Sin overflow horizontal (375/375 móvil) ni errores de consola. Ocho Resources ficticios se prepararon exclusivamente en el segundo Business local autorizado; los dos últimos se crearon desde la UI. No se modificaron datos financieros ni producción. La concurrencia del último cupo y permisos negativos están acreditados por pruebas automatizadas, no por esa QA visual. Dispositivo táctil físico NOT RUN.
+- Bundle 729,02 kB: diferido al quality gate final ya previsto. Deprecación Prisma `package.json#prisma`: aceptada durante Prisma 6; migración de configuración diferida a la actualización mayor, sin warning funcional. El aviso transitorio de tiempos de plugins no apareció en el build posterior. React act/Router: sin warnings en ejecución final.
+- El cuerpo de la PR mantiene HEAD/checkout sintético y ambos CI finales, sin commits dedicados a repetir metadatos. No se realiza merge automático.

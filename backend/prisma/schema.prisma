@@ -159,6 +159,25 @@ model Business {
   amenities             Amenity[]
   payments              Payment[]
   paymentPlans          PaymentPlan[]
+  subscription          BusinessSubscription?
+}
+
+model SubscriptionPlan {
+  code         String @id
+  name         String
+  maxResources Int
+  subscriptions BusinessSubscription[]
+}
+
+model BusinessSubscription {
+  businessId String @id
+  planCode String @default("TOP_INITIAL")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  upgradeRequestedAt DateTime?
+  upgradeRequestedBy String?
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  plan SubscriptionPlan @relation(fields: [planCode], references: [code], onDelete: Restrict)
 }
 
 model AvailabilityRule {

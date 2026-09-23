@@ -229,3 +229,7 @@ La revisión Swagger Jeni/Tobera puede generar:
 - mejoras de documentación.
 
 No implementar estos hallazgos hasta clasificarlos y aprobarlos.
+
+### Subscription & Entitlements — implementación lista para validación final de PR
+
+Backend real y UI en perfil/alta de Resource implementados en `codex/subscription-entitlements`, dependiente de #92/#91/#90. TOP Inicial provisional: 10 operativos, enforcement atómico, lectura para miembros y solicitud única solo OWNER. Contratos/reglas/operación en Domain Bible, Business Rules y Architecture. Gates backend completos PASS (1517 pruebas de cobertura y 194 escenarios de aceptación); frontend 429 pruebas completas PASS más integración Auth de logout. QA Edge desktop/móvil emulado con API real, cupo 0/8/9/10 y aislamiento entre Businesses PASS. FE-SUB-001 In Progress hasta revisión/merge. Recuento vigente: 46 Completed, 6 In Progress, 0 Planned. Pendiente quality gate final para bundle y discrepancia monetaria; no declarar MVP terminado.

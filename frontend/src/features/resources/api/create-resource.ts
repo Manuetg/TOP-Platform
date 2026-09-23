@@ -15,18 +15,21 @@ interface CreateResourceOptions {
   businessId: string;
   accessToken?: string | null;
   input: CreateResourceInput;
+  signal?: AbortSignal;
 }
 
 export function createResource({
   businessId,
   accessToken,
   input,
+  signal,
 }: CreateResourceOptions): Promise<Resource> {
   return apiRequest<Resource>(
     `/businesses/${businessId}/resources`,
     {
       method: "POST",
       accessToken,
+      signal,
       body: JSON.stringify(input),
     },
   );

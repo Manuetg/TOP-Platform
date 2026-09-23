@@ -178,3 +178,7 @@
 .resource-create-field input {
   height: 44px;
 }
+
+.resource-create-page > .subscription-card {
+  margin-bottom: var(--space-5);
+}

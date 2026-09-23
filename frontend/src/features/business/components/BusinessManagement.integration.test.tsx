@@ -48,6 +48,7 @@ describe("Business Management con Auth, QueryClient y HTTP reales", () => {
       const path = requestUrl(input instanceof Request ? input.url : input).pathname; requests.push({ path, method: init.method ?? "GET", init });
       const custom = override(path, init); if (custom) return custom;
       if (path.endsWith("/auth/logout")) return Promise.resolve(new Response(null, { status: 204 }));
+      if (path.endsWith("/subscription")) return Promise.resolve(json({ subscription: { planCode: "TOP_INITIAL", planName: "TOP Inicial" }, entitlements: { maxResources: 10 }, usage: { resources: { used: 0, available: 10, percentage: 0, state: "NORMAL", canCreate: true } }, upgrade: { status: "AVAILABLE", requestedAt: null } }));
       if (path.endsWith("/businesses")) return Promise.resolve(json([business("a"), business("b")]));
       if (path.endsWith("/resources")) return Promise.resolve(json([{ name: `Recurso ${path.includes("/a/") ? "a" : "b"}` }]));
       return Promise.resolve(json(business(path.endsWith("/a") ? "a" : "b")));
@@ -81,8 +82,8 @@ describe("Business Management con Auth, QueryClient y HTTP reales", () => {
     const profile = deferred<Response>(); const resources = deferred<Response>();
     override = (path) => path.endsWith("/businesses/a") ? profile.promise : path.endsWith("/a/resources") ? resources.promise : undefined;
     const view = mount(); await login(); await choose("a");
-    await waitFor(() => expect(requests.filter((item) => item.path.includes("/businesses/a"))).toHaveLength(2));
-    const old = requests.filter((item) => item.path.includes("/businesses/a"));
+    await waitFor(() => expect(requests.filter((item) => /\/businesses\/a(?:\/resources)?$/.test(item.path))).toHaveLength(2));
+    const old = requests.filter((item) => /\/businesses\/a(?:\/resources)?$/.test(item.path));
     if (exit === "logout") { await userEvent.click(screen.getByRole("button", { name: "Logout" })); await screen.findByRole("heading", { name: "Login route" }); expect(screen.getByLabelText("Auth")).toHaveTextContent("unauthenticated"); expect(sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY)).toBeNull(); }
     else view.unmount();
     expect(old.every((item) => item.init.signal?.aborted)).toBe(true);
@@ -105,6 +106,24 @@ describe("Business Management con Auth, QueryClient y HTTP reales", () => {
     await act(async () => pending.resolve(json([{ name: "Dato autorizado nuevo" }])));
     await waitFor(() => expect(screen.getByLabelText("Recursos")).toHaveTextContent("Dato autorizado nuevo"));
     expect(client.getQueryData(["unrelated"])).toBe("conservar");
+  });
+
+  it.each(["lectura", "solicitud"])("logout real cancela Subscription pendiente (%s), limpia caché y descarta su respuesta", async (operation) => {
+    const pending = deferred<Response>(); const { client } = mount(); await ready();
+    await screen.findByRole("button", { name: "Solicitar ampliación" });
+    const suffix = operation === "lectura" ? "/subscription" : "/subscription/upgrade-request";
+    override = (path) => path.endsWith(suffix) ? pending.promise : undefined;
+    const previous = requests.length;
+    if (operation === "lectura") act(() => { void client.refetchQueries({ queryKey: ["subscription", "one", "a"] }); });
+    else await userEvent.click(screen.getByRole("button", { name: "Solicitar ampliación" }));
+    await waitFor(() => expect(requests.slice(previous).some((item) => item.path.endsWith(suffix))).toBe(true));
+    const request = requests.slice(previous).find((item) => item.path.endsWith(suffix))!;
+    await userEvent.click(screen.getByRole("button", { name: "Logout" })); await screen.findByRole("heading", { name: "Login route" });
+    expect(request.init.signal?.aborted).toBe(true); expect(client.getQueryCache().getAll()).toHaveLength(0);
+    await act(async () => pending.resolve(json(operation === "lectura" ? { subscription: { planCode: "OLD", planName: "Plan antiguo" } } : { status: "REQUESTED", requestedAt: "2026-09-23T00:00:00Z" })));
+    expect(screen.queryByRole("region", { name: "Plan y capacidad" })).not.toBeInTheDocument();
+    expect(client.getQueryCache().getAll()).toHaveLength(0); expect(client.getMutationCache().getAll()).toHaveLength(0);
+    expect(sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY)).toBeNull(); expect(screen.getByLabelText("Auth")).toHaveTextContent("unauthenticated");
   });
 
   it("guarda una vez, normaliza opcionales y actualiza el nombre activo sin perder otra caché", async () => {

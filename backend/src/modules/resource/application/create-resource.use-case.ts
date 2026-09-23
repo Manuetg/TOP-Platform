@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { BUSINESS_REPOSITORY, type BusinessRepository, BusinessStatus } from '../../business/business.contract';
 import { Resource } from '../domain/resource.entity';
 import { RESOURCE_REPOSITORY, type ResourceRepository } from '../domain/resource.repository';
+import { RESOURCE_QUOTA, type ResourceQuota } from '../../subscription/subscription.contract';
 
 export class InvalidResourceInputError extends Error {}
 export class ResourceBusinessNotFoundError extends Error {}
@@ -12,7 +13,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 
 @Injectable()
 export class CreateResourceUseCase {
-  constructor(@Inject(BUSINESS_REPOSITORY) private readonly businesses: BusinessRepository, @Inject(RESOURCE_REPOSITORY) private readonly resources: ResourceRepository) {}
+  constructor(@Inject(BUSINESS_REPOSITORY) private readonly businesses: BusinessRepository, @Inject(RESOURCE_REPOSITORY) private readonly resources: ResourceRepository, @Inject(RESOURCE_QUOTA) private readonly quota: ResourceQuota) {}
   async execute(input: { businessId: string; name?: unknown; internalCode?: unknown; description?: unknown; capacityMinimum?: unknown; capacityMaximum?: unknown; capacityMaximumChildren?: unknown; sortOrder?: unknown }): Promise<Resource> {
     if (!uuid.test(input.businessId)) throw new InvalidResourceInputError('El identificador del negocio no es válido.');
     const name = this.text(input.name, 'El nombre es obligatorio.', 2, 120);
@@ -25,7 +26,8 @@ export class CreateResourceUseCase {
     if (!business) throw new ResourceBusinessNotFoundError('El negocio no existe.');
     if (business.status !== BusinessStatus.ACTIVE) throw new ResourceBusinessUnavailableError('El negocio no está activo.');
     if (await this.resources.findByBusinessAndCode(input.businessId, internalCode)) throw new ResourceCodeAlreadyExistsError('El código interno ya existe.');
-    return this.resources.create({ businessId: input.businessId, name, internalCode, description: this.description(input.description), capacityMinimum, capacityMaximum, capacityMaximumChildren, sortOrder });
+    const data = { businessId: input.businessId, name, internalCode, description: this.description(input.description), capacityMinimum, capacityMaximum, capacityMaximumChildren, sortOrder };
+    return this.quota.allocate(input.businessId, (maximum, transaction) => this.resources.create(data, { maximum, transaction }));
   }
   private text(value: unknown, message: string, minimum: number, maximum: number): string { if (typeof value !== 'string') throw new InvalidResourceInputError(message); const text = value.trim(); if (text.length < minimum || text.length > maximum) throw new InvalidResourceInputError(message); return text; }
   private code(value: unknown): string { const code = this.text(value, 'El código interno es inválido.', 2, 30).toUpperCase(); if (!/^[A-Z0-9_-]+$/.test(code)) throw new InvalidResourceInputError('El código interno es inválido.'); return code; }

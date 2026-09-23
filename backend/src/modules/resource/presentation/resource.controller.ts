@@ -68,6 +68,7 @@ import { AmenitiesNotFoundError, InactiveAmenitiesError, InvalidResourceAmenitie
 import { SetResourceAmenitiesRequestDto } from './dto/set-resource-amenities.request.dto';
 import { BusinessAccess } from '../../../shared/security/security.decorators';
 import { Capability } from '../../../shared/application/authorization-policy';
+import { ResourceLimitReachedError } from '../../subscription/subscription.contract';
 
 function isResourceImageBadRequestError(
   error: unknown,
@@ -125,7 +126,7 @@ export class ResourceController {
   @ApiCreatedResponse({ type: ResourceResponseDto })
   @ApiBadRequestResponse()
   @ApiNotFoundResponse()
-  @ApiConflictResponse()
+  @ApiConflictResponse({ description: 'Código duplicado, negocio no disponible o RESOURCE_LIMIT_REACHED.' })
   async createResource(
     @Param('businessId') businessId: string,
     @Body() body: CreateResourceRequestDto,
@@ -135,6 +136,7 @@ export class ResourceController {
         await this.create.execute({ businessId, ...body }),
       );
     } catch (error: unknown) {
+      if (error instanceof ResourceLimitReachedError) throw new ConflictException({ code: 'RESOURCE_LIMIT_REACHED', message: error.message });
       if (error instanceof InvalidResourceInputError) {
         throw new BadRequestException(error.message);
       }

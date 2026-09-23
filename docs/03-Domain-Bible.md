@@ -1419,3 +1419,14 @@ DSH-004 cuenta las Bookings creadas dentro de un período obligatorio `[from, to
 La proyección interna devuelve `total` y `byStatus`, incluyendo siempre `DRAFT`, `PENDING`, `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED` y `NO_SHOW`, aunque su valor sea cero. Cada Booking cuenta una vez según su estado actual al consultar: no se reconstruye el estado histórico. Una Booking multi-resource sigue contando una sola reserva y Contact no afecta el agregado.
 
 La consulta es tenant-scoped, permite lectura histórica de Business archivado y no expone endpoint propio. Counts negativos, decimales, fuera del entero seguro, estados desconocidos, filas duplicadas o una suma inconsistente constituyen invariantes internas. DSH-004 no persiste agregados ni usa cache; DSH-001 compone esta proyección en el contrato público del Dashboard protegido por `dashboard.read`.
+
+## Subscription & Entitlements — MVP 2026-09-23
+
+Decisión provisional delegada por Rolo para el cierre del MVP: **TOP Inicial**, código `TOP_INITIAL`, hasta **10 Resources operativos**. Es una configuración persistida y revisable, no un catálogo comercial definitivo ni un precio.
+
+- **Subscription:** una asignación por Business a un `SubscriptionPlan`. La migración asigna el plan a los negocios existentes; los nuevos lo reciben al consultar su plan o intentar un alta. La ausencia de configuración nunca concede uso ilimitado.
+- **Entitlements:** `maxResources`, entero positivo del plan. Backend es autoridad.
+- **Usage:** conteo del Business de Resources `ACTIVE` y `OUT_OF_SERVICE`; `ARCHIVED` no consume cupo. Fuera de servicio conserva su plaza, por lo que reactivar no permite eludir el límite. No es el denominador de Occupancy.
+- Backend proyecta disponibles (mínimo cero), porcentaje entero, estado `NORMAL`, `WARNING` desde 80% y `LIMIT` desde el cupo, y `canCreate`. Inventario anterior superior al cupo se conserva íntegro; se bloquean nuevas altas hasta disponer de capacidad.
+- La solicitud de ampliación registra una única fecha y actor por Business, reutilizadas ante reintentos. No modifica el plan ni cobra. Solo OWNER puede solicitarla; todos los roles con membresía vigente pueden consultar el uso operativo.
+- No incluye gateway, cobro online, facturación, autoservicio de cambios de plan ni autoridad GLOBAL. La revisión comercial de solicitudes corresponde al operador, mediante acceso administrativo controlado a los registros persistidos.

@@ -1,4 +1,5 @@
 import { SearchModule } from './modules/search/search.module';
+import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { BusinessModule } from './modules/business/business.module';
@@ -19,7 +20,7 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
-  imports: [SearchModule, ConfigModule.forRoot({ isGlobal: true }), BusinessModule, IdentityModule, ResourceModule, PricingModule, ContactModule, BlockModule, BookingModule, AvailabilityModule, BookingLifecycleModule, PaymentModule, DashboardModule],
+  imports: [SubscriptionModule, SearchModule, ConfigModule.forRoot({ isGlobal: true }), BusinessModule, IdentityModule, ResourceModule, PricingModule, ContactModule, BlockModule, BookingModule, AvailabilityModule, BookingLifecycleModule, PaymentModule, DashboardModule],
   controllers: [HealthController],
   providers: [HealthService, AuthenticationGuard, AuthorizationPolicy, BusinessAuthorizationGuard],
 })
