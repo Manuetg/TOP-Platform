@@ -1422,7 +1422,7 @@ La consulta es tenant-scoped, permite lectura histórica de Business archivado y
 
 ## Subscription & Entitlements — MVP 2026-09-23
 
-Decisión provisional delegada por Rolo para el cierre del MVP: **TOP Inicial**, código `TOP_INITIAL`, hasta **10 Resources operativos**. Es una configuración persistida y revisable, no un catálogo comercial definitivo ni un precio.
+Configuración provisional del MVP: **TOP Inicial**, código `TOP_INITIAL`, hasta **10 Resources operativos**. Está pendiente de confirmación comercial explícita antes de producción; no se atribuye aprobación ni delegación comercial a Rolo. El mecanismo técnico Entitlement/Usage fue revisado favorablemente, pero nombre, cupos definitivos y futuros planes pueden cambiar sin modificar esa arquitectura. No define precios ni un catálogo comercial definitivo.
 
 - **Subscription:** una asignación por Business a un `SubscriptionPlan`. La migración asigna el plan a los negocios existentes; los nuevos lo reciben al consultar su plan o intentar un alta. La ausencia de configuración nunca concede uso ilimitado.
 - **Entitlements:** `maxResources`, entero positivo del plan. Backend es autoridad.

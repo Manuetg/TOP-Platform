@@ -68,7 +68,7 @@ Baseline inspeccionado: `develop@4c866cc`, con Payments (#88) y refinamiento Cal
 
 Cada épico se implementa en una rama nueva y una PR hacia `develop`; no se realiza merge automático. Backend puede ajustarse cuando exista una necesidad directa demostrada, con dominio, reglas, consumidores, tests y contrato documentados. No se incorporan configuraciones locales de infraestructura.
 
-**Decisión delegada por Rolo (2026-09-23):** implementar una recomendación provisional ajustable. Propuesta: TOP Inicial con cupo de 10 Resources operativos; el conteo exacto y enforcement se documentarán con el contrato backend. Upgrade como solicitud persistida para revisión, sin cobro ni ampliación automática. No se presenta como catálogo comercial definitivo.
+**Configuración provisional del MVP (2026-09-23), pendiente de confirmación comercial antes de producción:** TOP Inicial con cupo de 10 Resources operativos; el conteo exacto y enforcement se documentarán con el contrato backend. Upgrade como solicitud persistida para revisión, sin cobro ni ampliación automática. No se presenta como catálogo comercial definitivo.
 
 ### Mantenimiento preliminar — In Progress
 
@@ -2193,9 +2193,9 @@ Si una necesidad frontend demuestra un gap backend, se revisan dominio, Business
 
 ## Evidencia del épico Subscription & Entitlements (2026-09-23)
 
-Implementado en `codex/subscription-entitlements`, sobre Business Management #92 (dependencias #91 y #90), worktree local `C:\Users\Sady\workspace\TOP-MVP-Subscription`. FE-SUB-001 In Progress hasta revisión/merge; no declara MVP completo.
+Implementado en `codex/subscription-entitlements`, sobre Business Management #92 (dependencias #91 y #90), worktree local `C:\Users\Sady\workspace\TOP-MVP-Subscription`. FE-SUB-001 técnicamente implementada; In Progress por decisión comercial pendiente y revisión/merge; no declara MVP completo.
 
-- Backend nuevo real: plan/asignación persistidos, cupo/uso y solicitud única auditable. La recomendación provisional delegada es TOP Inicial, 10 Resources ACTIVE/OUT_OF_SERVICE, WARNING desde 80%; ARCHIVED no consume. Es configurable en backend; no se calcula en React. OWNER solicita ampliación; ADMIN y otros roles solo leen Subscription, respetando BR-060. Solicitar no cambia plan ni genera cobros. Destino operativo de solicitudes documentado en Architecture.
+- Backend nuevo real: plan/asignación persistidos, cupo/uso y solicitud única auditable. La configuración comercial provisional, todavía no aprobada, es TOP Inicial, 10 Resources ACTIVE/OUT_OF_SERVICE, WARNING desde 80%; ARCHIVED no consume. Es configurable en backend; no se calcula en React. OWNER solicita ampliación; ADMIN y otros roles solo leen Subscription, respetando BR-060. Solicitar no cambia plan ni genera cobros. Destino operativo de solicitudes documentado en Architecture.
 - UI compartida en Perfil y alta de Resource. No se repite la misma tarjeta en Context Rail. Cubre carga, error/reintento, vacío 0/10, normal/aviso/límite, ausencia de acceso y confirmación. Query por identidad/Business, aborto y descarte tardío; foco estable al iniciar solicitud. El alta invalida cupo y listado; un GET posterior fallido no repite el POST.
 - Backend oficial en PostgreSQL desechable separado de QA: 111 suites/1091 unitarias, 33 suites/172 integración, 21 suites/254 E2E; 194 escenarios/759 pasos de aceptación. Cobertura conjunta: 165 suites/1517 pruebas, statements 97,58%, branches 92,56%, functions 98,35%, lines 98,34%. Lint, arquitectura (290 módulos sin violaciones), Prisma validation, migraciones y build PASS. Logs de invariantes/500 deliberados pertenecen a regresiones negativas.
 - Frontend: suite completa de 78 archivos/429 pruebas PASS; 20 regresiones de Subscription PASS. Se agrega integración de logout con AuthProvider/ProtectedRoute reales para lectura y solicitud pendientes. El build detectó un argumento `exact` no admitido por Testing Library; corregido conservando selectores literales. La prueba de Login ahora espera el DOM después de navegar; un timeout inicial de Calendar bajo saturación del host no se reprodujo al limitar Jest a un proceso. Sin cambios de timeouts, thresholds o workflows.
