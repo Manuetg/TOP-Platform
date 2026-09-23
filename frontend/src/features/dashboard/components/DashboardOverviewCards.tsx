@@ -30,7 +30,7 @@ function OverviewCard({
 } & MetricState) {
   return (
     <article
-      className={`dashboard-card dashboard-overview-card dashboard-overview-card--${tone}`}
+      className={`top-surface dashboard-card dashboard-overview-card dashboard-overview-card--${tone}`}
       aria-label={title}
       data-source="REAL"
     >

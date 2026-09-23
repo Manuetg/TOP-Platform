@@ -1,4 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { ContextRail } from "../../shared/ui/ContextRail";
+import { getContextRailContent } from "./contextRailContent";
 import {
   AppShell,
   type AppNavigationTarget,
@@ -55,6 +58,16 @@ export function AppLayout() {
   const { activeBusiness, activeRole, status } = useBusinessContext();
 
   const activeSection = getActiveSection(location.pathname);
+  const rail = status === "ready" ? getContextRailContent(location.pathname) : null;
+  const previousPath = useRef(location.pathname);
+  useEffect(() => {
+    if (previousPath.current === location.pathname) return;
+    previousPath.current = location.pathname;
+    document.getElementById("top-main-content")?.focus({ preventScroll: true });
+    const scrollingElement = document.scrollingElement ?? document.documentElement;
+    scrollingElement.scrollTop = 0;
+    scrollingElement.scrollLeft = 0;
+  }, [location.pathname]);
 
   const handleNavigate = (target: AppNavigationTarget) => {
     if (target === "more") {
@@ -67,6 +80,7 @@ export function AppLayout() {
   return (
     <AppShell
       activeSection={activeSection}
+      contextRail={rail ? <ContextRail title="Para tener en cuenta" blocks={rail} /> : null}
       businessName={activeBusiness?.name ?? (status === "empty" ? "Sin negocio activo" : status === "error" ? "No disponible" : "Seleccioná un negocio")}
       userName={session?.user.email ?? "Usuario"}
       userRole={activeRole ?? "Sin rol"}

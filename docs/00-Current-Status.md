@@ -12,6 +12,9 @@
 - Subscription no tiene implementación backend en el baseline. Rolo confirmó que planes/cupos/destino del upgrade aún no están definidos. Su definición comercial queda pendiente, sin usar como definitivos los ejemplos del backlog.
 - Bundle de 710,96 kB: evaluación de división por rutas diferida al quality gate final; warnings de `act` y fallback del router corregidos en sus tests.
 - Primer Frontend CI de mantenimiento falló en instalación, antes de tests; se corrige reproducibilidad del builder con lockfile multiplataforma y `npm ci`, preservando versiones. Backend CI del primer HEAD aprobó. La evidencia del HEAD final se actualiza en la PR de mantenimiento, sin commits dedicados a repetir SHA.
+- Mantenimiento #90 validado: HEAD `cca693894b76772902edae973583eb71662423f8`, Frontend CI `35868609248` y Backend CI `35868609614` SUCCESS; pendiente de merge. Sustituye el estado de CI pendiente descrito arriba.
+- Foundation Polish implementado en `codex/foundation-polish`, worktree local `C:\Users\Sady\workspace\TOP-MVP-Foundation`, dependiente de #90: Button/superficies/motion, Login, overlays y navegación accesible, rail contextual optativo. Gates locales: 395 pruebas, lint y build PASS; QA Edge desktop 1440×900, tablet 1024×900 y móvil emulado 390×844 con API real PASS. Detalle y límites en `docs/14-Frontend-Backlog.md`. FE-FND-006/007/008 permanecen In Progress hasta revisión/merge; recuento vigente 46 Completed, 3 In Progress y 3 Planned.
+- Quality gate final: evaluar división por rutas (bundle Foundation 716,94 kB) y verificar discrepancia de escala monetaria observada entre Dashboard y Pricing. No se declara terminado el MVP.
 - Cambios locales de infraestructura del checkout original preservados. No se modifica ni mergea directamente `develop`.
 
 ## Responsabilidades

@@ -1,6 +1,3 @@
-.top-mobile-more-layer {
-  display: contents;
-}
 
 .top-sidebar-hospitality {
   margin: var(--space-5) 0;
@@ -21,17 +18,6 @@
 .top-sidebar-hospitality strong { font-size: 13px; line-height: 20px; }
 .top-sidebar-hospitality p { margin: var(--space-2) 0 0; color: var(--color-text-secondary); font-size: 12px; line-height: 20px; }
 
-.top-mobile-more-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  padding: 0;
-  cursor: default;
-  background: rgb(23 32 29 / 42%);
-  border: 0;
-  backdrop-filter: blur(2px);
-  animation: top-more-backdrop-in 180ms ease-out;
-}
 
 .top-mobile-more-sheet {
   position: fixed;
@@ -52,8 +38,6 @@
   box-shadow:
     0 -2px 6px rgb(23 32 29 / 5%),
     0 -20px 48px rgb(23 32 29 / 18%);
-  animation: top-more-sheet-in 220ms
-    cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .top-mobile-more-sheet__handle {
@@ -105,10 +89,9 @@
   background: var(--color-background);
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  transition:
-    color var(--motion-fast) ease,
-    background-color var(--motion-fast) ease,
-    transform var(--motion-fast) ease;
+  transition: color var(--motion-fast) var(--motion-state),
+    background-color var(--motion-fast) var(--motion-state),
+    transform var(--motion-fast) var(--motion-state);
 }
 
 .top-mobile-more-sheet__close:hover {
@@ -147,12 +130,11 @@
   background: var(--color-background);
   border: 1px solid transparent;
   border-radius: 12px;
-  transition:
-    color var(--motion-fast) ease,
-    background-color var(--motion-fast) ease,
-    border-color var(--motion-fast) ease,
-    transform var(--motion-fast) ease,
-    box-shadow var(--motion-fast) ease;
+  transition: color var(--motion-fast) var(--motion-state),
+    background-color var(--motion-fast) var(--motion-state),
+    border-color var(--motion-fast) var(--motion-state),
+    transform var(--motion-fast) var(--motion-state),
+    box-shadow var(--motion-fast) var(--motion-state);
 }
 
 .top-mobile-more-sheet__item:hover {
@@ -194,27 +176,9 @@
   border-color: rgb(21 92 76 / 12%);
 }
 
-@keyframes top-more-backdrop-in {
-  from {
-    opacity: 0;
-  }
 
-  to {
-    opacity: 1;
-  }
-}
 
-@keyframes top-more-sheet-in {
-  from {
-    opacity: 0;
-    transform: translateY(28px);
-  }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 @media (min-width: 600px) and (max-width: 1023px) {
   .top-mobile-more-sheet {
@@ -234,7 +198,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .top-mobile-more-backdrop,
   .top-mobile-more-sheet {
     animation: none;
   }
@@ -312,10 +275,9 @@
     background: transparent;
     border: 1px solid transparent;
     border-radius: 12px;
-    transition:
-      background-color var(--motion-fast) ease,
-      border-color var(--motion-fast) ease,
-      box-shadow var(--motion-fast) ease;
+    transition: background-color var(--motion-fast) var(--motion-state),
+      border-color var(--motion-fast) var(--motion-state),
+      box-shadow var(--motion-fast) var(--motion-state);
   }
 
   .top-global-header__business:hover {
@@ -384,10 +346,9 @@
     background: var(--color-background);
     border: 1px solid var(--color-border);
     border-radius: 12px;
-    transition:
-      background-color var(--motion-fast) ease,
-      border-color var(--motion-fast) ease,
-      box-shadow var(--motion-fast) ease;
+    transition: background-color var(--motion-fast) var(--motion-state),
+      border-color var(--motion-fast) var(--motion-state),
+      box-shadow var(--motion-fast) var(--motion-state);
   }
 
   .top-global-header__search:hover {
@@ -441,11 +402,10 @@
     background: transparent;
     border: 1px solid transparent;
     border-radius: 11px;
-    transition:
-      color var(--motion-fast) ease,
-      background-color var(--motion-fast) ease,
-      border-color var(--motion-fast) ease,
-      transform var(--motion-fast) ease;
+    transition: color var(--motion-fast) var(--motion-state),
+      background-color var(--motion-fast) var(--motion-state),
+      border-color var(--motion-fast) var(--motion-state),
+      transform var(--motion-fast) var(--motion-state);
   }
 
   .top-global-header__icon-button:hover {
@@ -472,9 +432,8 @@
     background: transparent;
     border: 1px solid transparent;
     border-radius: 12px;
-    transition:
-      background-color var(--motion-fast) ease,
-      border-color var(--motion-fast) ease;
+    transition: background-color var(--motion-fast) var(--motion-state),
+      border-color var(--motion-fast) var(--motion-state);
   }
 
   .top-global-header__profile:hover {
@@ -641,10 +600,9 @@
     background: transparent;
     border: 1px solid transparent;
     border-radius: 10px;
-    transition:
-      color var(--motion-fast) ease,
-      background-color var(--motion-fast) ease,
-      transform var(--motion-fast) ease;
+    transition: color var(--motion-fast) var(--motion-state),
+      background-color var(--motion-fast) var(--motion-state),
+      transform var(--motion-fast) var(--motion-state);
   }
 
   .top-mobile-header__icon-button:hover {
@@ -689,10 +647,9 @@
     border: 1px solid var(--color-border);
     border-radius: 11px;
     box-shadow: 0 1px 2px rgb(23 32 29 / 2%);
-    transition:
-      border-color var(--motion-fast) ease,
-      box-shadow var(--motion-fast) ease,
-      background-color var(--motion-fast) ease;
+    transition: border-color var(--motion-fast) var(--motion-state),
+      box-shadow var(--motion-fast) var(--motion-state),
+      background-color var(--motion-fast) var(--motion-state);
   }
 
   .top-mobile-header__business-selector:hover {
@@ -753,9 +710,8 @@
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 11px;
-    transition:
-      border-color var(--motion-fast) ease,
-      box-shadow var(--motion-fast) ease;
+    transition: border-color var(--motion-fast) var(--motion-state),
+      box-shadow var(--motion-fast) var(--motion-state);
   }
 
   .top-mobile-header__search input,
@@ -874,10 +830,9 @@
     background: transparent;
     border: 1px solid transparent;
     border-radius: 10px;
-    transition:
-      color var(--motion-fast) ease,
-      background-color var(--motion-fast) ease,
-      transform var(--motion-fast) ease;
+    transition: color var(--motion-fast) var(--motion-state),
+      background-color var(--motion-fast) var(--motion-state),
+      transform var(--motion-fast) var(--motion-state);
   }
 
   .top-mobile-header__icon-button:hover {
@@ -922,10 +877,9 @@
     border: 1px solid var(--color-border);
     border-radius: 11px;
     box-shadow: 0 1px 2px rgb(23 32 29 / 2%);
-    transition:
-      border-color var(--motion-fast) ease,
-      box-shadow var(--motion-fast) ease,
-      background-color var(--motion-fast) ease;
+    transition: border-color var(--motion-fast) var(--motion-state),
+      box-shadow var(--motion-fast) var(--motion-state),
+      background-color var(--motion-fast) var(--motion-state);
   }
 
   .top-mobile-header__business-selector:hover {
@@ -986,9 +940,8 @@
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 11px;
-    transition:
-      border-color var(--motion-fast) ease,
-      box-shadow var(--motion-fast) ease;
+    transition: border-color var(--motion-fast) var(--motion-state),
+      box-shadow var(--motion-fast) var(--motion-state);
   }
 
   .top-mobile-header__search input,
@@ -1056,18 +1009,6 @@
   pointer-events: none;
 }
 
-.top-header-popover-backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  cursor: default;
-  background: transparent;
-  border: 0;
-  pointer-events: auto;
-}
 
 .top-header-popover {
   position: absolute;
@@ -1085,7 +1026,6 @@
     0 8px 18px rgb(23 32 29 / 8%),
     0 20px 50px rgb(23 32 29 / 12%);
   pointer-events: auto;
-  animation: top-header-popover-in 160ms ease-out;
 }
 
 .top-header-popover__heading {
@@ -1132,10 +1072,9 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: 10px;
-  transition:
-    background-color var(--motion-fast) ease,
-    border-color var(--motion-fast) ease,
-    color var(--motion-fast) ease;
+  transition: background-color var(--motion-fast) var(--motion-state),
+    border-color var(--motion-fast) var(--motion-state),
+    color var(--motion-fast) var(--motion-state);
 }
 
 .top-header-popover__item:hover {
@@ -1236,17 +1175,7 @@
   margin-bottom: 8px;
 }
 
-@keyframes top-header-popover-in {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 @media (min-width: 1024px) {
   .top-header-popover {

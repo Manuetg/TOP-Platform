@@ -1,4 +1,4 @@
-﻿.resource-list-page {
+.resource-list-page {
   width: min(100%, 1220px);
   margin: 0;
 }
@@ -76,9 +76,8 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  transition:
-    border-color 120ms ease,
-    box-shadow 120ms ease;
+  transition: border-color var(--motion-fast) var(--motion-state),
+    box-shadow var(--motion-fast) var(--motion-state);
 }
 
 .resource-list-filters__search-control:focus-within {
@@ -177,13 +176,9 @@
   position: relative;
   min-width: 0;
   overflow: hidden;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  transition:
-    border-color 140ms ease,
-    box-shadow 140ms ease,
-    transform 140ms ease;
+  transition: border-color var(--motion-fast) var(--motion-state),
+    box-shadow var(--motion-fast) var(--motion-state),
+    transform var(--motion-fast) var(--motion-state);
 }
 
 .resource-list-card:hover {
@@ -470,10 +465,9 @@
       scale(0.92);
     transform-origin: center center;
     opacity: 0.72;
-    transition:
-      transform 280ms
-        cubic-bezier(0.22, 1, 0.36, 1),
-      opacity 220ms ease;
+    transition: transform var(--motion-slow)
+        var(--motion-enter),
+      opacity var(--motion-base) var(--motion-state);
   }
 
   .resource-list-deck-item + .resource-list-deck-item {
@@ -491,9 +485,6 @@
   .resource-list-deck-item--active
     .resource-list-card {
     border-color: rgb(21 92 76 / 18%);
-    box-shadow:
-      0 8px 22px rgb(23 32 29 / 8%),
-      0 20px 42px rgb(23 32 29 / 10%);
   }
 
   .resource-list-card {

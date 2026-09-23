@@ -489,13 +489,13 @@ if (isLoading) {
             (plan, index) => (
               <div
                 key={plan.id}
-                className={`rate-plan-deck-item${
+                className={`top-motion-card rate-plan-deck-item${
                   index === activeRatePlanIndex
                     ? " rate-plan-deck-item--active"
                     : ""
                 }`}
               >
-                <article className="rate-plan-card">
+                <article className="top-surface rate-plan-card">
                 <div className="rate-plan-card__top">
                   <div>
                     <span className="rate-plan-card__label">

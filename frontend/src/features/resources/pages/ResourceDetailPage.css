@@ -71,9 +71,8 @@
   border-radius: 999px;
   background: #dfe5e2;
   cursor: pointer;
-  transition:
-    background-color var(--motion-fast) ease,
-    border-color var(--motion-fast) ease;
+  transition: background-color var(--motion-fast) var(--motion-state),
+    border-color var(--motion-fast) var(--motion-state);
 }
 
 .resource-detail-status-switch span {
@@ -85,7 +84,7 @@
   border-radius: 999px;
   background: var(--color-surface);
   box-shadow: var(--shadow-1);
-  transition: transform var(--motion-base) ease;
+  transition: transform var(--motion-base) var(--motion-state);
 }
 
 .resource-detail-status-switch--active {
@@ -125,10 +124,9 @@
   background: var(--color-surface);
   color: var(--color-brand-secondary);
   cursor: pointer;
-  transition:
-    color var(--motion-fast) ease,
-    border-color var(--motion-fast) ease,
-    background-color var(--motion-fast) ease;
+  transition: color var(--motion-fast) var(--motion-state),
+    border-color var(--motion-fast) var(--motion-state),
+    background-color var(--motion-fast) var(--motion-state);
 }
 
 .resource-detail-edit-button {
@@ -314,9 +312,8 @@
   margin: auto;
   border-radius: 999px;
   background: #aebbb5;
-  transition:
-    width var(--motion-fast) ease,
-    background-color var(--motion-fast) ease;
+  transition: width var(--motion-fast) var(--motion-state),
+    background-color var(--motion-fast) var(--motion-state);
 }
 
 .resource-detail-media-dot--active::after {
@@ -529,10 +526,9 @@
   line-height: 20px;
   font-weight: 600;
   cursor: pointer;
-  transition:
-    background-color var(--motion-fast) ease,
-    border-color var(--motion-fast) ease,
-    color var(--motion-fast) ease;
+  transition: background-color var(--motion-fast) var(--motion-state),
+    border-color var(--motion-fast) var(--motion-state),
+    color var(--motion-fast) var(--motion-state);
 }
 
 .resource-amenities-editor__option:hover {

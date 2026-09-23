@@ -55,6 +55,8 @@ describe("AppLayout", () => {
       screen.getByRole("heading", { name: "Inicio" }),
     ).toBeInTheDocument();
 
+    document.documentElement.scrollTop = 400;
+
     await user.click(
       screen.getAllByRole("button", { name: "Reservas" })[0],
     );
@@ -62,9 +64,11 @@ describe("AppLayout", () => {
     expect(
       screen.getByRole("heading", { name: "Reservas" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("main")).toHaveFocus();
+    expect(document.documentElement.scrollTop).toBe(0);
   });
 
-  it("keeps Más without navigation until its flow is implemented", async () => {
+  it("opens Más without changing the current route", async () => {
     const user = userEvent.setup();
 
     renderApp("/app");
@@ -76,6 +80,7 @@ describe("AppLayout", () => {
     expect(
       screen.getByRole("heading", { name: "Inicio" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Más opciones" })).toHaveFocus();
   });
 });
 

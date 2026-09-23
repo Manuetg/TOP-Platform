@@ -1,6 +1,6 @@
 import { QueryProvider } from "../providers/QueryProvider";
 import type { ReactElement } from "react";
-import { render as rtlRender, screen, within } from "@testing-library/react";
+import { act, render as rtlRender, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { AppShell } from "./AppShell";
@@ -84,13 +84,13 @@ describe("AppShell", () => {
     const moreButton = screen.getByRole("button", { name: "Más" });
 
     expect(
-      screen.queryByRole("region", { name: "Más opciones" }),
+      screen.queryByRole("dialog", { name: "Más opciones" }),
     ).not.toBeInTheDocument();
 
     await user.click(moreButton);
 
     expect(
-      screen.getByRole("region", { name: "Más opciones" }),
+      screen.getByRole("dialog", { name: "Más opciones" }),
     ).toBeInTheDocument();
 
     await user.click(
@@ -98,7 +98,7 @@ describe("AppShell", () => {
     );
 
     expect(
-      screen.queryByRole("region", { name: "Más opciones" }),
+      screen.queryByRole("dialog", { name: "Más opciones" }),
     ).not.toBeInTheDocument();
   });
 
@@ -122,7 +122,7 @@ describe("AppShell", () => {
       screen.getByRole("button", { name: "Más" }),
     );
 
-    const moreMenu = screen.getByRole("region", { name: "Más opciones" });
+    const moreMenu = screen.getByRole("dialog", { name: "Más opciones" });
 
     await user.click(
       within(moreMenu).getByRole("button", { name: "Precios" }),
@@ -131,7 +131,7 @@ describe("AppShell", () => {
     expect(onNavigate).toHaveBeenCalledWith("pricing");
 
     expect(
-      screen.queryByRole("region", { name: "Más opciones" }),
+      screen.queryByRole("dialog", { name: "Más opciones" }),
     ).not.toBeInTheDocument();
   });
   it("searches modules and reports navigation intent", async () => {
@@ -189,7 +189,7 @@ describe("AppShell", () => {
       })[0],
     );
 
-    const panel = screen.getByRole("region", {
+    const panel = screen.getByRole("dialog", {
       name: "Panel del encabezado",
     });
 
@@ -222,7 +222,7 @@ describe("AppShell", () => {
       })[0],
     );
 
-    const panel = screen.getByRole("region", {
+    const panel = screen.getByRole("dialog", {
       name: "Panel del encabezado",
     });
 
@@ -257,7 +257,7 @@ describe("AppShell", () => {
       })[0],
     );
 
-    const panel = screen.getByRole("region", {
+    const panel = screen.getByRole("dialog", {
       name: "Panel del encabezado",
     });
 
@@ -283,6 +283,52 @@ describe("AppShell", () => {
     await user.click(screen.getByRole("button", { name: "Cerrar sesión" }));
 
     expect(onLogout).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores the Más trigger after Escape from a focused menu control", async () => {
+    const user = userEvent.setup();
+    render(<AppShell activeSection="home" businessName="Tobera" userName="Jeni" userRole="Propietaria"><div /></AppShell>);
+    const more = screen.getByRole("button", { name: "Más" });
+    await user.click(more);
+    expect(screen.getByRole("dialog", { name: "Más opciones" })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Cerrar menú Más" })).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(more).toHaveFocus();
+  });
+
+  it("closes profile on navigation and returns focus on explicit dismissal", async () => {
+    const user = userEvent.setup();
+    const onNavigate = vi.fn();
+    render(<AppShell activeSection="home" businessName="Tobera" userName="Jeni" userRole="Propietaria" onNavigate={onNavigate}><div /></AppShell>);
+    const trigger = screen.getAllByRole("button", { name: "Abrir perfil" })[0];
+    await user.click(trigger);
+    await user.keyboard("{Escape}");
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await user.click(trigger);
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Configuración" }));
+    expect(onNavigate).toHaveBeenCalledWith("settings");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("closes the mobile overlay when the desktop breakpoint hides its trigger", async () => {
+    const listeners = new Set<() => void>();
+    const media = { matches: false, addEventListener: (_event: string, listener: () => void) => listeners.add(listener), removeEventListener: (_event: string, listener: () => void) => listeners.delete(listener) };
+    vi.stubGlobal("matchMedia", () => media);
+    try {
+      const user = userEvent.setup();
+      render(<AppShell activeSection="home" businessName="Tobera" userName="Jeni" userRole="Propietaria"><h1>Contenido</h1></AppShell>);
+      await user.click(screen.getByRole("button", { name: "Más" }));
+      expect(screen.getByRole("dialog")).toHaveFocus();
+      act(() => { media.matches = true; listeners.forEach((listener) => listener()); });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.getByRole("main")).toHaveFocus();
+      expect(document.body.style.overflow).toBe("");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("disables logout while it is running", async () => {

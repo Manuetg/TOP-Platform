@@ -53,7 +53,7 @@ function ResourceCard({
     navigate(`/app/resources/${resource.id}`);
 
   return (
-    <article className="resource-list-card">
+    <article className="top-surface resource-list-card">
       <button
         type="button"
         className="resource-list-card__link"
@@ -533,7 +533,7 @@ export function ResourceListPage({
                 (resource, index) => (
                   <div
                     key={resource.id}
-                    className={`resource-list-deck-item${
+                    className={`top-motion-card resource-list-deck-item${
                       index === activeResourceIndex
                         ? " resource-list-deck-item--active"
                         : ""

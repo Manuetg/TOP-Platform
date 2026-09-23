@@ -194,7 +194,7 @@
   height: 100%;
   border-radius: inherit;
   background: var(--pay-primary);
-  transition: width 160ms ease;
+  transition: width var(--motion-fast) var(--motion-state);
 }
 
 .payments-invoice__metrics {
@@ -694,7 +694,7 @@
 }
 
 .payments-details-toggle svg {
-  transition: transform 150ms ease;
+  transition: transform var(--motion-fast) var(--motion-state);
 }
 
 .payments-details-toggle svg.is-open {

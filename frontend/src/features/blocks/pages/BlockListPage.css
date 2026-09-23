@@ -413,7 +413,7 @@
 
   .block-list-filters-toggle__chevron {
     flex-shrink: 0;
-    transition: transform 160ms ease;
+    transition: transform var(--motion-fast) var(--motion-state);
   }
 
   .block-list-filters-toggle__chevron--open {

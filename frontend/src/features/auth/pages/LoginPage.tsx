@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useRef, type FormEvent } from "react";
+import { CalendarDays, ArrowRight, ShieldCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { login } from "../api/login";
 import {
@@ -60,10 +61,17 @@ export function LoginPage() {
 
   return (
     <main className="top-auth-page">
+      <aside className="top-auth-intro" aria-label="TOP, gestión de alojamientos">
+        <div className="top-auth-brand">TOP<span>Gestión de alojamientos</span></div>
+        <div className="top-auth-intro__copy">
+          <span className="top-icon-container"><CalendarDays size={24} aria-hidden="true" /></span>
+          <h2>Tu operación,<br />en un solo lugar.</h2>
+          <p>Reservas, huéspedes y cobros. La información que tu equipo necesita para el día a día.</p>
+        </div>
+        <p className="top-auth-intro__footnote">Más claridad para tu operación.<br />Más tiempo para tus huéspedes.</p>
+      </aside>
       <section className="top-auth-card" aria-labelledby="login-title">
         <header className="top-auth-header">
-          <span className="top-auth-brand">TOP</span>
-
           <div>
             <h1 id="login-title" className="top-auth-title">
               Iniciar sesión
@@ -98,10 +106,11 @@ export function LoginPage() {
             </div>
           ) : null}
 
-          <Button type="submit" disabled={loginMutation.isPending}>
-            {loginMutation.isPending ? "Ingresando..." : "Iniciar sesión"}
+          <Button type="submit" size="lg" loading={loginMutation.isPending} loadingLabel="Ingresando...">
+            Iniciar sesión <ArrowRight size={18} aria-hidden="true" />
           </Button>
         </form>
+        <p className="top-auth-footnote"><ShieldCheck size={16} aria-hidden="true" />Acceso seguro para tu equipo.</p>
       </section>
     </main>
   );

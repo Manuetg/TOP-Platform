@@ -27,7 +27,7 @@
 .availability-calendar-cell.is-weekend { background: #fbfaf8; }
 .availability-calendar-cell.is-free { cursor: pointer; }
 .availability-calendar-cell.is-free:hover { background: #edf6f2; }
-.availability-calendar-cell.is-free svg { opacity: 0; transition: opacity 140ms ease; }
+.availability-calendar-cell.is-free svg { opacity: 0; transition: opacity var(--motion-fast) var(--motion-state); }
 .availability-calendar-cell.is-free:hover svg, .availability-calendar-cell.is-free:focus-visible svg { opacity: 1; }
 .availability-calendar-cell.is-unavailable { background: #f4f5f5; }
 .availability-calendar-cell > span { width: 100%; overflow: hidden; padding: 6px 4px; border-radius: 6px; font-size: .58rem; font-weight: 800; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
@@ -507,9 +507,8 @@ button.availability-mobile-event,
 }
 
 .booking-wizard-search {
-  transition:
-    border-color 140ms ease,
-    box-shadow 140ms ease;
+  transition: border-color var(--motion-fast) var(--motion-state),
+    box-shadow var(--motion-fast) var(--motion-state);
 }
 
 .booking-wizard-search input,
@@ -566,10 +565,9 @@ button.availability-calendar-cell.is-booking {
 }
 
 button.availability-calendar-cell.is-booking > span {
-  transition:
-    transform 140ms ease,
-    box-shadow 140ms ease,
-    filter 140ms ease;
+  transition: transform var(--motion-fast) var(--motion-state),
+    box-shadow var(--motion-fast) var(--motion-state),
+    filter var(--motion-fast) var(--motion-state);
 }
 
 button.availability-calendar-cell.is-booking:hover {

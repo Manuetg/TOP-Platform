@@ -145,7 +145,7 @@ export function BookingTimeline({
   if (isLoading) {
     return (
       <section
-        className="booking-detail-card"
+        className="top-surface booking-detail-card"
         aria-busy="true"
       >
         <h2>Historial</h2>
@@ -158,7 +158,7 @@ export function BookingTimeline({
 
   if (isError) {
     return (
-      <section className="booking-detail-card">
+      <section className="top-surface booking-detail-card">
         <h2>Historial</h2>
 
         <div
@@ -186,7 +186,7 @@ export function BookingTimeline({
   }
 
   return (
-    <section className="booking-detail-card">
+    <section className="top-surface booking-detail-card">
       <div className="booking-detail-card__header">
         <div>
           <h2>Historial</h2>

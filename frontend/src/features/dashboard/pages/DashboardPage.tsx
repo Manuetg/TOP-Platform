@@ -104,12 +104,12 @@ export function DashboardPage({
         />
       </section>
       {!businessId ? (
-        <div className="dashboard-card dashboard-message" role="status">
+        <div className="top-surface dashboard-card dashboard-message" role="status">
           No hay un negocio activo para consultar el resumen.
           durante el desarrollo.
         </div>
       ) : !session ? (
-        <div className="dashboard-card dashboard-message" role="status">
+        <div className="top-surface dashboard-card dashboard-message" role="status">
           <h2>Inicia sesión para ver el resumen.</h2>
           <Link to="/login">Ir a iniciar sesión</Link>
         </div>
@@ -142,7 +142,7 @@ export function DashboardPage({
             data-source="REAL"
           >
             {query.isError ? (
-              <div className="dashboard-card dashboard-message" role="alert">
+              <div className="top-surface dashboard-card dashboard-message" role="alert">
                 <AlertCircle size={24} aria-hidden="true" />
                 <h2>No pudimos cargar el resumen.</h2>
                 <p>
@@ -169,7 +169,7 @@ export function DashboardPage({
               >
                 <div className="dashboard-panels" aria-hidden="true">
                   {[0, 1].map((key) => (
-                    <div className="dashboard-card dashboard-panel" key={key}>
+                    <div className="top-surface dashboard-card dashboard-panel" key={key}>
                       <span />
                       <div className="dashboard-loading__body" />
                     </div>
