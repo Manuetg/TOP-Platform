@@ -21,7 +21,7 @@ Quality gate resolvió dos regresiones demostradas: Calendar usaba una variable 
 
 Calendar corrige además Hoy/mes/día comercial con la timezone IANA del Business; Blocks recibe los instantes correspondientes al inicio local y fin exclusivo, preservando fechas puras de Availability. Regresiones deterministas de borde de mes, DST y cambio de contexto; QA interactiva anterior conservada, no repetida. Mutation SKIPPED, no PASS. Los gates finales se ejecutan en GitHub CI y se registran en #93/#94.
 
-Las capacidades internas y su QA se detallan en `docs/14-Frontend-Backlog.md`. Frontend funcional original conserva su estado Completed; FE-FND-006/007/008 y FE-BUS-002/003 quedan Completed — efectivo al integrarse la cadena aprobada en develop. FE-SUB-001 conserva implementación técnica completa e In Progress por decisión comercial pendiente. Recuento efectivo al integrar: 51 Completed, 1 In Progress, 0 Planned. No se declara merge ni aprobación formal independiente. MVP técnicamente integrado no equivale a production readiness; tampoco se declara MVP final cerrado mientras falte confirmar o cambiar TOP Inicial / 10. No habrá PR documental posterior.
+Las capacidades internas y su QA se detallan en `docs/14-Frontend-Backlog.md`. El estado efectivo preparado se especifica en «Estado Frontend» y coincide con ese backlog. No se declara merge ni aprobación formal independiente. TOP Inicial / 10 Resources es configuración provisional, no una decisión comercial final. MVP técnicamente integrado no equivale a production readiness: no se declara production-ready ni MVP final cerrado mientras FE-SUB-001 conserve la decisión comercial de nombre/cupo pendiente antes de producción. No habrá PR documental posterior.
 
 QA vigente: Edge 153.0.4234.48, frontend local :3001 y API real :3000/api; desktop 1440×900, tablet 1024×900 (Foundation) y móvil emulado 390×844. Touch físico y cambio real de preferencia de motion del sistema NOT RUN; CSS reduced-motion y regresiones automatizadas acreditadas. No equivale a certificación WCAG completa.
 
@@ -86,7 +86,23 @@ Pendientes principales posteriores:
 
 ## Estado Frontend
 
-Estado:
+Total historias frontend activas: 52
+
+Estado preparado para integración de la cadena #90 → #91 → #92 → #93 → #94 (no acredita merge ejecutado):
+
+- Completed: 51
+- In Progress: 1
+- Planned: 0
+- Blocked: 0
+
+El único In Progress es FE-SUB-001 — implementación técnica completa; decisión comercial de nombre/cupo pendiente antes de producción.
+
+- Foundation: FE-FND-006/007/008 — Completed — efectivo al integrarse la cadena aprobada en develop.
+- Business: FE-BUS-002/003 — Completed — efectivo al integrarse la cadena aprobada en develop.
+
+Recuento efectivo al integrar la cadena: 51 + 1 + 0 + 0 = 52. FE-AVL-002 y FE-PAY-000 son registros históricos excluidos del total activo, como en `docs/14-Frontend-Backlog.md`.
+
+Evidencia histórica de capacidades completadas:
 - FE-FND-009 — Completed por merge de [PR #83](https://github.com/Manuetg/TOP-Platform/pull/83), commit `38b8ac0`. La evidencia histórica de integración, reintento controlado, teclado, scroll, cancelación y logout se conserva en el Backlog. Touch real y cambio real de Business/identidad permanecen NOT RUN; Rolo aceptó el riesgo residual para el merge.
 - FE-PAY-001 — Completed por merge de [PR #85](https://github.com/Manuetg/TOP-Platform/pull/85), commit `05e6bd6`. Integra saldo e historial de Payments de solo lectura en el detalle de Booking, sobre PAY-003/PAY-004; cubre paginación, refetch, foco, cambios de contexto y logout sin modificar `/app/payments` ni incorporar mutations. Frontend y Backend CI del HEAD final `c766fbc` aprobaron; mutation omitida por política. QA interactiva: NOT RUN por decisión expresa de Rolo.
 - Dashboard Business implementado y mergeado en `/app`.
@@ -94,7 +110,6 @@ Estado:
 - FE-BUS-001 — Completed; las siete features tenant-scoped consumen Active Business Context y el ciclo de vida está cubierto por tests.
 - FE-FND-004 — Completed preparado, efectivo en `develop` al mergear PR #82. Boundary de contenido bajo ProtectedRoute/BusinessBoundary conserva shell, cuenta, Auth y QueryClient; reintento local y cambio de ruta/identidad/Business recuperan la vista sin reproducir mutations. Respaldo de shell/router y boundary exterior de providers sin dependencias de contexto, con inicio/recarga de documento. FE-FND-003 mantiene errores API locales; no se capturan por sí solos eventos o promesas fuera del árbol React. Frontend CI `35473054747` SUCCESS (Node `v22.23.2`, build, 67 archivos/317 tests, lint); Backend CI `35473054790` SUCCESS. Self-review sin bloqueantes y diff check PASS. HEAD/checkout finales en el cuerpo de la misma PR. QA manual móvil/desktop: NOT RUN; mutation diferida. Backend y trabajo de Manu sin cambios.
 - FE-FND-003 — manejo compartido de errores API completo; cierre efectivo al mergear PR #81. Frontend CI `35386101873` aprobó Node `v22.23.2`, build, 64 archivos/296 tests y lint; Backend CI `35386101857` SUCCESS. QA manual: NOT RUN.
-- 46/52 historias frontend activas Completed; 0 In Progress, 6 Planned y 0 Blocked (mantenimiento transversal registrado por separado).
 - Resources y Rate Plans usan contratos reales; Revenue, Occupancy y Reservations usan el Dashboard backend real.
 - Los widgets Dashboard sin contrato backend aprobado fueron retirados del MVP; no se muestran datos ficticios.
 - FE-IAM-003 — Session Persistence, FE-IAM-004 — Refresh Token Rotation, FE-IAM-005 — Logout y FE-IAM-006 — Protected Routes están Completed.
@@ -105,7 +120,7 @@ Estado:
 - La quality gate frontend usa Node 22: 59 archivos y 225 tests PASS; `npm run lint` PASS con alcance explícito a `src`, `tests` y `vite.config.ts`; build PASS.
 - Los widgets Dashboard sin contrato backend fueron retirados del MVP; no hay mocks operativos visibles.
 
-Siguiente objetivo: continuar con las historias frontend Planned restantes. El frontend MVP no se declara completo.
+Siguiente decisión pendiente: confirmar o cambiar el nombre/cupo provisional TOP Inicial / 10 Resources de FE-SUB-001 antes de producción. No hay historias frontend Planned restantes. La integración de la cadena corresponde a un merge humano; el MVP final no se declara cerrado mientras persista esa decisión comercial pendiente.
 
 ## Contratos que impactan Frontend
 
@@ -240,4 +255,4 @@ No implementar estos hallazgos hasta clasificarlos y aprobarlos.
 
 ### Subscription & Entitlements — implementación técnica completa, decisión comercial pendiente
 
-Backend real y UI en perfil/alta de Resource implementados en `codex/subscription-entitlements`, dependiente de #92/#91/#90. TOP Inicial provisional: 10 operativos, enforcement atómico, lectura para miembros y solicitud única solo OWNER. Contratos/reglas/operación en Domain Bible, Business Rules y Architecture. Gates backend completos PASS (1517 pruebas de cobertura y 194 escenarios de aceptación); frontend 429 pruebas completas PASS más integración Auth de logout. QA Edge desktop/móvil emulado con API real, cupo 0/8/9/10 y aislamiento entre Businesses PASS. FE-SUB-001 técnicamente implementada; In Progress por decisión comercial pendiente, revisión y merge. Recuento preparado al integrar la cadena: 51 Completed, 1 In Progress, 0 Planned. Quality gate resuelve bundle, escala PYG y fechas IANA de Calendar; evidencia final en #94. MVP final no cerrado por decisión comercial pendiente.
+Backend real y UI en perfil/alta de Resource implementados en `codex/subscription-entitlements`, dependiente de #92/#91/#90. TOP Inicial provisional: 10 operativos, enforcement atómico, lectura para miembros y solicitud única solo OWNER. Contratos/reglas/operación en Domain Bible, Business Rules y Architecture. Gates backend completos PASS (1517 pruebas de cobertura y 194 escenarios de aceptación); frontend 429 pruebas completas PASS más integración Auth de logout. QA Edge desktop/móvil emulado con API real, cupo 0/8/9/10 y aislamiento entre Businesses PASS. FE-SUB-001 es el único In Progress: implementación técnica completa; decisión comercial de nombre/cupo pendiente antes de producción. Recuento preparado al integrar la cadena: 52 activas, 51 Completed, 1 In Progress, 0 Planned y 0 Blocked. Quality gate resuelve bundle, escala PYG y fechas IANA de Calendar; evidencia final en #94. MVP final no cerrado por decisión comercial pendiente.
