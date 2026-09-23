@@ -2,13 +2,11 @@ FROM node:22-bookworm-slim AS build
 
 WORKDIR /app
 
-COPY package.json ./
+COPY package*.json ./
 
-# npm omite del lockfile generado en Windows los binarios opcionales de Linux.
-# El builder resuelve el árbol desde package.json en su propia plataforma, sin
-# declarar ni instalar manualmente paquetes específicos de plataforma.
-RUN npm install --global npm@11 && \
-    npm install --include=optional
+# El lockfile incluye los binarios opcionales de todas las plataformas.
+# CI y el build local usan las mismas versiones, sin resolver latest ni peers nuevos.
+RUN npm ci --include=optional
 
 COPY . .
 

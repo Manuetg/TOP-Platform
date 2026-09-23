@@ -1,6 +1,6 @@
 # TOP — Frontend Backlog
 
-Última actualización: 2026-09-21
+Última actualización: 2026-09-23
 
 ## Objetivo
 
@@ -53,6 +53,34 @@ Estado actual:
 - Blocked: 0
 
 Recuento por estados reales: 46 + 0 + 6 + 0 = 52. FE-AVL-002 y FE-PAY-000 permanecen como registros históricos y se excluyen del total activo para no duplicar trabajo.
+
+## Cierre del MVP por épicos
+
+Baseline inspeccionado: `develop@4c866cc`, con Payments (#88) y refinamiento Calendar/Pricing (#89) mergeados. Las capacidades completadas se conservan; no se reabren salvo regresión o dependencia demostrada. Este agrupamiento no crea historias adicionales ni altera el recuento anterior.
+
+| Orden | Épico y alcance | Módulos y dependencia | Validación / riesgo principal |
+|---|---|---|---|
+| 1 | Mantenimiento preliminar: URLs de pruebas, submit de Login y warnings de tests | `shared/api`, pruebas Pricing/Dashboard/Payments, Login y router; sin cambio contractual | Suite completa con base relativa y absoluta; conservar aserciones y detectar concurrencia antes de validar el formulario |
+| 2 | Foundation Polish: FE-FND-006/007/008, Login y navegación | `shared/ui`, tokens CSS/motion, AppShell y adopción gradual en features existentes | Componentes compartidos, teclado/foco, reduced motion y QA desktop/móvil; evitar regresiones transversales. Rail MVP optativo con ayuda contextual y siguientes acciones reales, sin actividad ficticia |
+| 3 | Business Management: FE-BUS-002/003 | Business Context, selector, perfil y shell; GET listado/detalle y PATCH existentes | Permisos y aislamiento por identidad/Business, cancelación y respuestas tardías; perfil limitado a campos contractuales |
+| 4 | Subscription & Entitlements: FE-SUB-001 | Nuevo soporte backend mínimo de plan/asignación, entitlements y uso; UI en perfil, rail y Resources | Sin módulo ni persistencia encontrados en baseline. Enforcement backend transaccional, autorización, migración, Swagger y gates oficiales; definición comercial pendiente |
+| 5 | Quality gate final | Regresión frontend completa e integración frontend/backend, documentación | Desktop/móvil, permisos, aislamiento, warnings y gates verdes antes de declarar completo el MVP |
+
+Cada épico se implementa en una rama nueva y una PR hacia `develop`; no se realiza merge automático. Backend puede ajustarse cuando exista una necesidad directa demostrada, con dominio, reglas, consumidores, tests y contrato documentados. No se incorporan configuraciones locales de infraestructura.
+
+**Definición pendiente confirmada por Rolo:** no están aprobados los planes, cupos de Resources ni destino de upgrade. Los ejemplos de FE-SUB-001 no son valores comerciales. No se asignarán cuotas ni CTA ficticios; esta decisión es necesaria para cerrar Subscription.
+
+### Mantenimiento preliminar — In Progress
+
+- La protección previa de Login ya existía en Git; una regresión reforzada demostró un segundo POST tras resolver el primero cuando dos submits atravesaban la validación asíncrona. La exclusión ahora empieza antes de esa validación y se libera al terminar, también ante errores.
+- Las pruebas HTTP resuelven las URLs capturadas con una base explícita de navegador. Se mantienen las comprobaciones de paths, parámetros, token y señal; se agrega cobertura de `apiRequest` con base `/api` y absoluta.
+- El primer Frontend CI de mantenimiento falló antes de tests: el builder resolvía dependencias nuevas sin lockfile y npm fallaba al construir el árbol de peers. La reproducción Linux también demostró que el lockfile omitía binarios opcionales fuera de Windows. Se completan esas entradas desde metadatos npm y se normalizan con npm, sin cambiar versiones existentes ni el manifest; Docker pasa a `npm ci --include=optional`. No se copian los ajustes locales de demo ni se modifican workflows.
+- Verificación del builder corregido: Linux/Node 22.23.2, instalación limpia, build PASS con el mismo bundle `index-3Srv2ajA.js`, lint sin warnings y suite completa `npm test` de 74 archivos/380 pruebas PASS. No se reducen thresholds ni se excluyen suites.
+- Warnings React `act`: corregidos en la integración de logout de Payments mediante eventos esperados y resolución diferida dentro de `act`. Warning Router: corregido mediante fallback del loader exclusivo del test, sin supresiones globales.
+- Gates locales: Node 24.19.0, `npm run lint` PASS, `npm run build` PASS; `npm run test -- --pool=threads --maxWorkers=2` PASS con `/api` y con `http://localhost:3000/api`: 74 archivos / 379 pruebas en cada ejecución; ejecución final relativa de 380 pruebas PASS tras añadir la corrección de campos inválidos. Threads limita el coste de workers en este host Windows; no se modifica la configuración del runner ni los workflows.
+- Bundle de 710,96 kB (189,61 kB gzip): **diferido al quality gate final** para evaluar división por rutas durante Foundation. No bloquea esta corrección funcional; no se eleva el umbral de advertencia.
+- QA Login en Edge 153.0.4234.48, `http://localhost:3001/login`: desktop 1440×900 y viewport móvil emulado 390×844 PASS para disposición sin overflow, errores asociados, foco y Tab/Shift+Tab. No equivale a dispositivo táctil físico. Inicio de sesión realizado por el usuario contra API real PASS: navegación a Dashboard, Business y datos cargados, sin errores de consola; bundle verificado `index-3Srv2ajA.js`. CI y revisión de PR pendientes.
+- Entorno local: frontend construido desde el worktree de mantenimiento; API recompilada desde el mismo baseline, PostgreSQL/MinIO existentes conservados, sin seeds ni borrado de volúmenes. El intento anterior al arranque de API produjo el error esperado de conexión; no se registra como defecto backend.
 
 ---
 
@@ -2113,22 +2141,9 @@ Una historia frontend puede considerarse `Completed` cuando:
 
 # 17. Dependencia con Backend
 
-Responsable backend: Rolo.
+Para el cierre por épicos aprobado el 2026-09-23, el trabajo es full-stack: no existe una separación rígida entre implementación frontend y backend.
 
-Responsable frontend: Emanuel.
-
-Regla:
-
-Frontend no debe modificar backend para resolver inconsistencias de contrato.
-
-Si frontend necesita un cambio backend:
-
-1. registrar hallazgo;
-2. documentar endpoint afectado;
-3. describir comportamiento esperado;
-4. enviar al responsable backend;
-5. esperar contrato actualizado;
-6. adaptar frontend después de merge a `develop`.
+Si una necesidad frontend demuestra un gap backend, se revisan dominio, Business Rules y consumidores; se implementa el ajuste mínimo con autorización, aislamiento tenant, validaciones, pruebas, Swagger y documentación del impacto. El frontend no reemplaza reglas financieras, permisos ni límites del backend. El MVP backend original permanece completo; los cambios nuevos responden al alcance aprobado del épico.
 
 ---
 
@@ -2136,7 +2151,7 @@ Si frontend necesita un cambio backend:
 
 | Épica | Completed | In Progress | Planned | Blocked |
 |---|---:|---:|---:|---:|
-| Foundation | 6 | 1 | 3 | 0 |
+| Foundation | 6 | 0 | 3 | 0 |
 | IAM | 6 | 0 | 0 | 0 |
 | Business | 1 | 0 | 2 | 0 |
 | Resource | 7 | 0 | 0 | 0 |

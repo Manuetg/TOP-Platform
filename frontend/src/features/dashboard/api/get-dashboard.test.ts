@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getBusinessDashboard } from "./get-dashboard";
 import { ApiError } from "../../../shared/api/api-client";
+import { requestUrl } from "../../../../tests/request-url";
 
 afterEach(() => vi.unstubAllGlobals());
 describe("getBusinessDashboard", () => {
@@ -25,10 +26,10 @@ describe("getBusinessDashboard", () => {
       }),
     ).resolves.toEqual(response);
     const [url, options] = request.mock.calls[0] as [string, RequestInit];
-    expect(new URL(url).pathname).toBe(
+    expect(requestUrl(url).pathname).toBe(
       "/api/businesses/business%2Fa/dashboard",
     );
-    expect([...new URL(url).searchParams]).toEqual([
+    expect([...requestUrl(url).searchParams]).toEqual([
       ["from", "2026-09-01"],
       ["to", "2026-09-08"],
     ]);

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { useRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -33,17 +34,21 @@ describe("Payments logout integration", () => {
     vi.mocked(getOutstandingBalance).mockImplementation(({ signal }) => { balanceSignal = signal; return pendingBalance.promise; });
     vi.mocked(listPayments).mockImplementation(({ signal }) => { historySignal = signal; return pendingHistory.promise; });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const user = userEvent.setup();
     show(client);
-    screen.getByRole("button", { name: "Establecer" }).click();
+    await user.click(screen.getByRole("button", { name: "Establecer" }));
     await waitFor(() => expect(balanceSignal).toBeInstanceOf(AbortSignal));
-    screen.getByRole("button", { name: "Salir" }).click();
+    await user.click(screen.getByRole("button", { name: "Salir" }));
     await waitFor(() => expect(screen.getByText("Login /login")).toBeVisible());
     expect(screen.getByText("unauthenticated")).toBeVisible();
     expect(sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY)).toBeNull();
     expect(client.getQueryCache().getAll()).toHaveLength(0);
     expect(balanceSignal?.aborted).toBe(true); expect(historySignal?.aborted).toBe(true);
-    pendingBalance.resolve(balance); pendingHistory.resolve(page);
-    await Promise.resolve();
+    await act(async () => {
+      pendingBalance.resolve(balance);
+      pendingHistory.resolve(page);
+      await Promise.all([pendingBalance.promise, pendingHistory.promise]);
+    });
     expect(screen.queryByRole("heading", { name: "Pagos" })).not.toBeInTheDocument();
     expect(client.getQueryCache().getAll()).toHaveLength(0);
   });
