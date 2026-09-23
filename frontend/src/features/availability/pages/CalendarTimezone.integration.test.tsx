@@ -44,9 +44,9 @@ describe("Calendar Business-local con QueryClient, hooks y transporte reales", (
     expectRange("/availability/calendar", "2026-09-01", "2026-10-01");
     expectRange("/blocks", "2026-09-01T03:00:00.000Z", "2026-10-01T03:00:00.000Z");
     fireEvent.change(screen.getByRole("combobox", { name: "Mes" }), { target: { value: "9" } });
-    expect(screen.getByRole("button", { name: "1", pressed: true })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "1", pressed: true })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Hoy" }));
-    expect(screen.getByRole("button", { name: "23", pressed: true })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "23", pressed: true })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Mes" })).toHaveValue("8");
   });
   it("incluye en septiembre el Block de 30/09 local con timestamps UTC de 01/10", async () => {
