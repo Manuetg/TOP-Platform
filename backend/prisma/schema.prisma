@@ -252,6 +252,9 @@ model Contact {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   business       Business      @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  archivedAt     DateTime?
+  archivedBy     String?
+  archivedFromStatus ContactStatus?
   bookings       Booking[]
 
   @@index([businessId, name, lastName])

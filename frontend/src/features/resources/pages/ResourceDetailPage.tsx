@@ -1,3 +1,4 @@
+import { ConfirmDialog } from "../../../shared/ui/ConfirmDialog";
 import {
   ArrowLeft,
   Building2,
@@ -7,7 +8,7 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
@@ -46,6 +47,10 @@ function getResourceStatusLabel(status: ResourceStatus) {
 }
 
 export function ResourceDetailPage() {
+  const { resourceId } = useParams(); const { activeBusinessId } = useBusinessContext(); const { session } = useAuth();
+  return <ResourceDetailContent key={`${session?.user.id}:${activeBusinessId}:${resourceId}`} />;
+}
+function ResourceDetailContent() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { resourceId = "" } = useParams();
@@ -57,6 +62,11 @@ export function ResourceDetailPage() {
     null,
   );
 
+  const deleteTrigger = useRef<HTMLButtonElement>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
+  const deleteOperation = useRef<AbortController | null>(null);
+  useEffect(() => () => deleteOperation.current?.abort(), []);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageActionError, setImageActionError] = useState<string | null>(
@@ -205,22 +215,16 @@ export function ResourceDetailPage() {
   }
 
   async function handleDeleteCurrentImage() {
+    const imageToDelete = resourceImages.find((image) => image.id === deleteImageId);
     if (
       !resource ||
-      !currentImage ||
+      !imageToDelete ||
       isManagingImage ||
       resource.status === "ARCHIVED"
     ) {
       return;
     }
 
-    const confirmed = window.confirm(
-      "¿Querés eliminar esta imagen del recurso?",
-    );
-
-    if (!confirmed) {
-      return;
-    }
 
     const imageQueryKey = [
       "resources",
@@ -229,6 +233,7 @@ export function ResourceDetailPage() {
       "images",
     ];
 
+    const controller = new AbortController(); deleteOperation.current = controller;
     setImageActionError(null);
     setIsManagingImage(true);
 
@@ -236,12 +241,14 @@ export function ResourceDetailPage() {
       await deleteResourceImage({
         businessId: activeBusinessId,
         resourceId: resource.id,
-        imageId: currentImage.id,
+        imageId: imageToDelete.id,
+        signal: controller.signal,
         accessToken: session?.accessToken,
       });
 
+      if (controller.signal.aborted) return;
       const remainingImages = resourceImages
-        .filter((image) => image.id !== currentImage.id)
+        .filter((image) => image.id !== imageToDelete.id)
         .map((image, sortOrder) => ({
           ...image,
           sortOrder,
@@ -258,19 +265,21 @@ export function ResourceDetailPage() {
         ];
 
       setCurrentImageId(nextSelectedImage?.id ?? null);
+      setDeleteOpen(false);
 
       await queryClient.invalidateQueries({
         queryKey: imageQueryKey,
         exact: true,
       });
     } catch (deleteError) {
+      if (controller.signal.aborted) return;
       setImageActionError(
         deleteError instanceof Error
           ? deleteError.message
           : "No pudimos eliminar la imagen.",
       );
     } finally {
-      setIsManagingImage(false);
+      if (!controller.signal.aborted) { deleteOperation.current = null; setIsManagingImage(false); }
     }
   }
 
@@ -492,7 +501,8 @@ export function ResourceDetailPage() {
                   className="resource-detail-icon-button resource-detail-icon-button--overlay resource-detail-icon-button--danger"
                   aria-label="Eliminar imagen"
                   disabled={!canManageImages || isManagingImage}
-                  onClick={() => void handleDeleteCurrentImage()}
+                  ref={deleteTrigger}
+                  onClick={() => { setImageActionError(null); setDeleteImageId(currentImage?.id ?? null); setDeleteOpen(true); }}
                 >
                   <Trash2 size={20} aria-hidden="true" />
                 </button>
@@ -676,6 +686,7 @@ export function ResourceDetailPage() {
           </span>
         </article>
       </div>
+      <ConfirmDialog open={deleteOpen} title="Eliminar imagen" description={`Vas a eliminar esta imagen de ${resource.name}. Las demás imágenes se conservan.`} confirmLabel="Eliminar imagen" destructive disabled={!resourceImages.some((image) => image.id === deleteImageId)} triggerRef={deleteTrigger} loading={isManagingImage} error={imageActionError} onCancel={() => setDeleteOpen(false)} onConfirm={() => void handleDeleteCurrentImage()} />
     </section>
   );
 }

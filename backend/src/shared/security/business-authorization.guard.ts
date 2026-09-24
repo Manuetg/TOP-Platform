@@ -48,6 +48,11 @@ export class BusinessAuthorizationGuard implements CanActivate {
   }
 
   private resolveCapabilities(requirement: BusinessAccessRequirement, request: AuthenticatedRequest): readonly Capability[] {
+    if (requirement.pricingOverrideCapability) {
+      const pricing = (request.body as { pricing?: unknown } | undefined)?.pricing;
+      const hasOverride = Array.isArray(pricing) && pricing.some((item: unknown) => item !== null && typeof item === 'object' && ('agreedAmountMinor' in item || 'overrideReason' in item));
+      return hasOverride ? [...requirement.capabilities, requirement.pricingOverrideCapability] : requirement.capabilities;
+    }
     if (!requirement.bodySelector) return requirement.capabilities;
     const body = request.body as Record<string, unknown> | undefined;
     const selected = body?.[requirement.bodySelector.field];

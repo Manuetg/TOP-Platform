@@ -983,7 +983,7 @@ No se definen aún las cardinalidades técnicas de base de datos.
 ### 12. Pendientes
 
 - Campos mínimos exactos para crear un Contact.
-- Normalización y validación de teléfonos.
+- Normalización y validación de teléfonos: definida por POST-A3 en Business Rules; se conserva compatibilidad histórica sin inferir prefijos ausentes.
 - Tipos de documento iniciales.
 - Reglas exactas para detectar duplicados.
 - Proceso de fusión manual de duplicados.

@@ -1,3 +1,4 @@
+import { formatPureDate as formatDate } from "../../../shared/utils/date-format";
 import { formatMoney } from "../../../shared/utils/money";
 import {
   ArrowLeft,
@@ -6,6 +7,8 @@ import {
   Home,
 } from "lucide-react";
 import {
+  useEffect,
+  useRef,
   useMemo,
   useState,
 } from "react";
@@ -27,21 +30,13 @@ import "./ConfirmBookingPage.css";
 
 
 
-function formatDate(value: string) {
-  const [year, month, day] = value
-    .split("-")
-    .map(Number);
-
-  return new Intl.DateTimeFormat("es-PY", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(
-    new Date(year, month - 1, day),
-  );
-}
 
 export function ConfirmBookingPage() {
+  const { activeBusinessId } = useBusinessContext(); const { session } = useAuth(); const { bookingId } = useParams();
+  return <ConfirmBookingContent key={`${session?.user.id}:${activeBusinessId}:${bookingId}`} />;
+}
+
+function ConfirmBookingContent() {
   const navigate = useNavigate();
   const { bookingId = "" } = useParams();
   const { session } = useAuth();
@@ -90,6 +85,9 @@ export function ConfirmBookingPage() {
   const {
     data: ratePlans,
     isLoading: isLoadingRatePlans,
+    isFetching: isFetchingRatePlans,
+    refetch: retryRatePlans,
+    isSuccess: ratePlansReady,
     isError: isRatePlansError,
     error: ratePlansError,
   } = useSelectableRatePlans({
@@ -134,47 +132,63 @@ export function ConfirmBookingPage() {
     [ratePlans, ratePlanId],
   );
 
+  const operation = useRef<AbortController | null>(null);
+  useEffect(() => {
+    setPreview(null); setPageError(null);
+    return () => { operation.current?.abort(); operation.current = null; };
+  }, [resourceId, checkIn, checkOut, ratePlanId]);
+  useEffect(() => {
+    if (!ratePlansReady) return;
+    if (!(ratePlans ?? []).some((plan) => plan.id === ratePlanId)) setRatePlanId(ratePlans?.length === 1 ? ratePlans[0].id : "");
+  }, [ratePlans, ratePlansReady, ratePlanId]);
+
   async function handlePreview() {
     setPageError(null);
     setPreview(null);
 
-    if (!ratePlanId) {
+    if (operation.current || !selectedRatePlan || isFetchingRatePlans || isRatePlansError) {
       setPageError(
         "Seleccioná un plan tarifario.",
       );
       return;
     }
 
+    const controller = new AbortController(); operation.current = controller;
     try {
       const result =
         await calculateMutation.mutateAsync({
           resourceId,
           checkIn,
           checkOut,
+          signal: controller.signal,
         });
 
+      if (controller.signal.aborted) return;
       setPreview(result);
     } catch (error) {
+      if (controller.signal.aborted) return;
       setPageError(
         error instanceof Error
           ? error.message
           : "No pudimos calcular el precio.",
       );
-    }
+    } finally { if (operation.current === controller) operation.current = null; }
   }
 
   async function handleConfirm() {
     setPageError(null);
 
-    if (!ratePlanId || !preview) {
+    if (operation.current || !selectedRatePlan || isFetchingRatePlans || isRatePlansError || !preview) {
       setPageError(
         "Calculá el precio antes de confirmar.",
       );
       return;
     }
 
+    const controller = new AbortController(); operation.current = controller;
     try {
       await confirmMutation.mutateAsync({
+        signal: controller.signal,
         pricing: [
           {
             resourceId,
@@ -183,16 +197,18 @@ export function ConfirmBookingPage() {
         ],
       });
 
+      if (controller.signal.aborted) return;
       navigate(
         `/app/bookings/${bookingId}`,
       );
     } catch (error) {
+      if (controller.signal.aborted) return;
       setPageError(
         error instanceof Error
           ? error.message
           : "No pudimos confirmar la reserva.",
       );
-    }
+    } finally { if (operation.current === controller) operation.current = null; }
   }
 
   const loading =
@@ -346,10 +362,11 @@ export function ConfirmBookingPage() {
             {ratePlansError instanceof Error
               ? ratePlansError.message
               : "No pudimos cargar los planes tarifarios."}
+            <Button type="button" variant="secondary" onClick={() => void retryRatePlans()}>Reintentar tarifarios</Button>
           </div>
         ) : !ratePlans?.length ? (
           <div className="confirm-booking-empty">
-            No hay planes tarifarios disponibles para esta estadía.
+            No hay un tarifario disponible para esta estadía. Se requiere configurar una tarifa antes de confirmar.
           </div>
         ) : (
           <label className="confirm-booking-field">
@@ -357,7 +374,7 @@ export function ConfirmBookingPage() {
               Plan tarifario
             </span>
 
-            <select
+            <select className="top-input" disabled={calculateMutation.isPending || confirmMutation.isPending}
               value={ratePlanId}
               onChange={(event) => {
                 setRatePlanId(
@@ -401,7 +418,7 @@ export function ConfirmBookingPage() {
           type="button"
           variant="secondary"
           disabled={
-            !ratePlanId ||
+            !selectedRatePlan || isRatePlansError || isFetchingRatePlans ||
             calculateMutation.isPending
           }
           onClick={() =>
@@ -473,7 +490,7 @@ export function ConfirmBookingPage() {
         <Button
           type="button"
           disabled={
-            !preview ||
+            !preview || !selectedRatePlan || isRatePlansError || isFetchingRatePlans ||
             confirmMutation.isPending
           }
           onClick={() =>

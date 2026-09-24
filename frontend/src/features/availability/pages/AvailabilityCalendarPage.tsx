@@ -1,3 +1,8 @@
+import { ContactPhoneField } from "../../contacts/components/ContactPhoneField";
+import { normalizePhone } from "../../contacts/utils/contact-phone";
+import { COUNTRIES } from "../../contacts/constants/countries";
+import { Input } from "../../../shared/ui/Input";
+import { formatPureDate as formatDateForDisplay } from "../../../shared/utils/date-format";
 import { useBusinessContext } from "../../business/context/BusinessContext";
 import { addCalendarDays as addDays, businessDateAt, businessDayInstantRange, businessDayStartInstant, instantIntersectsRange } from "../../../shared/utils/business-date";
 import { formatMoney, parseGuaranies } from "../../../shared/utils/money";
@@ -115,6 +120,8 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { session } = useAuth();
+  const { activeRole } = useBusinessContext();
+  const canOverride = activeRole === "OWNER" || activeRole === "ADMIN";
   const accessToken = session?.accessToken;
   const today = businessDateAt(new Date(), timezone);
   const operations = useRef(new Set<AbortController>());
@@ -134,6 +141,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
     name: "",
     lastName: "",
     phone: "",
+    country: "Paraguay",
     documentType: "",
     documentNumber: "",
   });
@@ -199,24 +207,13 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
   const selectedRate = ratePlans.data?.find((item) => item.id === wizard.ratePlanId);
 
   useEffect(() => {
+    if (!ratePlans.isSuccess) return;
     const plans = ratePlans.data ?? [];
-
-    if (
-      wizard.resourceId &&
-      wizard.checkIn &&
-      wizard.checkOut &&
-      plans.length === 1 &&
-      !wizard.ratePlanId
-    ) {
-      update("ratePlanId", plans[0].id);
+    if (!plans.some((plan) => plan.id === wizard.ratePlanId)) {
+      const next = plans.length === 1 ? plans[0].id : "";
+      if (next !== wizard.ratePlanId) update("ratePlanId", next);
     }
-  }, [
-    ratePlans.data,
-    wizard.resourceId,
-    wizard.checkIn,
-    wizard.checkOut,
-    wizard.ratePlanId,
-  ]);
+  }, [ratePlans.data, ratePlans.isSuccess, wizard.ratePlanId]);
 
   const monthOptions = Array.from({ length: 12 }, (_, index) => ({
     value: index,
@@ -313,7 +310,12 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
   }
 
   function update<K extends keyof WizardState>(key: K, value: WizardState[K]) {
-    setWizard((current) => ({ ...current, [key]: value }));
+    if (["resourceId", "checkIn", "checkOut", "ratePlanId", "mode"].includes(key)) {
+      for (const controller of operations.current) controller.abort();
+      operations.current.clear();
+      setSaving(false);
+    }
+    setWizard((current) => ({ ...current, [key]: value, ...(["resourceId", "checkIn", "checkOut"].includes(key) ? { ratePlanId: "" } : {}) }));
     setError(null);
     if (key === "resourceId" || key === "checkIn" || key === "checkOut" || key === "ratePlanId" || key === "mode") {
       setPreview(null);
@@ -335,6 +337,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
   }
 
   async function nextStep() {
+    if (saving) return;
     setError(null);
     if (step === 1) {
       const adults = Number(wizard.adults);
@@ -358,10 +361,11 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
       return;
     }
     if (step === 4) {
-      if (!wizard.ratePlanId) {
-        setError("Elegí un plan tarifario.");
+      if (ratePlans.isFetching || ratePlans.isError || !selectedRate) {
+        setError("Selecciona un tarifario disponible para esta estadía.");
         return;
       }
+      if ((wizard.mode === "MANUAL" || selectedDiscountPercent(wizard) > 0) && !canOverride) { setError("No tienes permiso para ajustar el precio."); return; }
       if (wizard.mode === "MANUAL") {
         const amountMinor = guaraniesToMinor(wizard.agreedAmountMinor);
 
@@ -376,6 +380,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
         return;
       }
       if (wizard.mode === "CONFIGURED" && !preview) {
+        setSaving(true);
         const controller = operation();
         try {
           const result = await calculate.mutateAsync({ resourceId: wizard.resourceId, checkIn: wizard.checkIn, checkOut: wizard.checkOut, signal: controller.signal });
@@ -387,6 +392,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
           return;
         } finally {
           operations.current.delete(controller);
+          if (!controller.signal.aborted) setSaving(false);
         }
       }
     }
@@ -399,6 +405,8 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
       setError("Completá nombre, apellido y teléfono del contacto.");
       return;
     }
+    const phone = normalizePhone(newContact.phone, newContact.country);
+    if (!phone) { setError("Ingresa un teléfono válido con país o prefijo internacional."); return; }
     const controller = operation();
     try {
       const contact = await createContact({
@@ -408,7 +416,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
         input: {
           name: newContact.name.trim(),
           lastName: newContact.lastName.trim(),
-          phone: newContact.phone.trim(),
+          phone, whatsapp: phone, country: newContact.country,
           documentType:
             newContact.documentType === "PASSPORT"
               ? "Pasaporte"
@@ -432,6 +440,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
         name: "",
         lastName: "",
         phone: "",
+    country: "Paraguay",
         documentType: "",
         documentNumber: "",
       });
@@ -444,7 +453,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
   }
 
   async function finishBooking() {
-    if (savingLock.current || !businessId || !wizard.ratePlanId || (wizard.mode === "CONFIGURED" && !preview)) return;
+    if (savingLock.current || !businessId || ratePlans.isFetching || ratePlans.isError || !selectedRate || ((wizard.mode === "MANUAL" || selectedDiscountPercent(wizard) > 0) && !canOverride) || (wizard.mode === "CONFIGURED" && !preview)) return;
     savingLock.current = true;
     const controller = operation();
     const discount = selectedDiscountPercent(wizard);
@@ -621,12 +630,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
               <div>
                 <span>Agenda</span>
                 <strong>
-                  {new Intl.DateTimeFormat("es-PY", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    timeZone: "UTC",
-                  }).format(new Date(`${selectedDay}T00:00:00.000Z`))}
+                  {formatDateForDisplay(selectedDay)}
                 </strong>
               </div>
 
@@ -668,7 +672,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
                         <small>
                           {bookingLabels[item.booking.status]}
                           {item.booking.checkInDate && item.booking.checkOutDate
-                            ? ` · ${item.booking.checkInDate} → ${item.booking.checkOutDate}`
+                            ? ` · ${formatDateForDisplay(item.booking.checkInDate)} → ${formatDateForDisplay(item.booking.checkOutDate)}`
                             : ""}
                         </small>
                       </span>
@@ -742,7 +746,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
               {step === 1 && <StayStep wizard={wizard} update={update} />}
               {step === 2 && <ResourceStep resources={availableResources} selected={wizard.resourceId} loading={stayAvailability.isLoading} onSelect={(id) => update("resourceId", id)} />}
               {step === 3 && <ContactStep contacts={contactsQuery.data ?? []} query={contactQuery} selected={wizard.contactId} creating={creatingContact} newContact={newContact} onQuery={setContactQuery} onSelect={(id) => update("contactId", id)} onToggleCreate={setCreatingContact} onNewContact={setNewContact} onCreate={() => void handleCreateContact()} />}
-              {step === 4 && <RateStep wizard={wizard} ratePlans={ratePlans.data ?? []} loading={ratePlans.isLoading} preview={preview} update={update} />}
+              {step === 4 && <RateStep canOverride={canOverride} failed={ratePlans.isError} retry={() => void ratePlans.refetch()} wizard={wizard} ratePlans={ratePlans.data ?? []} loading={ratePlans.isLoading || ratePlans.isFetching} preview={preview} update={update} />}
               {step === 5 && <ReviewStep wizard={wizard} resourceName={selectedResource?.name} contactName={selectedContact?.fullName} rateName={selectedRate?.name} preview={preview} />}
               {error && <div className="booking-wizard-error" role="alert">{error}</div>}
             </div>
@@ -763,7 +767,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
               ) : (
                 <span aria-hidden="true" />
               )}
-              {step < 5 ? <Button type="button" disabled={saving || (step === 1 && stayAvailability.isLoading) || (step === 4 && (!wizard.ratePlanId || (wizard.mode === "MANUAL" && guaraniesToMinor(wizard.agreedAmountMinor) === null) || (wizard.mode === "CONFIGURED" && (wizard.discountPercent === "OTHER" && (!Number.isInteger(Number(wizard.customDiscountPercent)) || Number(wizard.customDiscountPercent) < 1 || Number(wizard.customDiscountPercent) > 100)))))} onClick={() => void nextStep()}>{step === 1 ? "Buscar disponibilidad" : "Continuar"}<ArrowRight size={16} /></Button> : <Button type="button" disabled={saving} onClick={() => void finishBooking()}>{saving ? "Confirmando…" : "Confirmar reserva"}<Check size={16} /></Button>}
+              {step < 5 ? <Button type="button" disabled={saving || (step === 1 && stayAvailability.isLoading) || (step === 4 && (ratePlans.isFetching || ratePlans.isError || !selectedRate || (wizard.mode === "MANUAL" && guaraniesToMinor(wizard.agreedAmountMinor) === null) || (wizard.mode === "CONFIGURED" && (wizard.discountPercent === "OTHER" && (!Number.isInteger(Number(wizard.customDiscountPercent)) || Number(wizard.customDiscountPercent) < 1 || Number(wizard.customDiscountPercent) > 100)))))} onClick={() => void nextStep()}>{step === 1 ? "Buscar disponibilidad" : "Continuar"}<ArrowRight size={16} /></Button> : <Button type="button" disabled={saving} onClick={() => void finishBooking()}>{saving ? "Confirmando…" : "Confirmar reserva"}<Check size={16} /></Button>}
             </footer>
       </OverlayPanel>
     </section>
@@ -800,7 +804,7 @@ function CalendarCell({
         type="button"
         className={`availability-calendar-cell is-booking is-${booking.status.toLowerCase()}`}
         title={bookingLabels[booking.status]}
-        aria-label={`Abrir reserva ${bookingLabels[booking.status]} del ${day}`}
+        aria-label={`Abrir reserva ${bookingLabels[booking.status]} del ${formatDateForDisplay(day)}`}
         onClick={() => onBookingClick(booking.id)}
       >
         <span>{bookingLabels[booking.status]}</span>
@@ -827,8 +831,8 @@ function CalendarCell({
       disabled={!free}
       aria-label={
         free
-          ? `Crear reserva para ${day}`
-          : `No disponible el ${day}`
+          ? `Crear reserva para ${formatDateForDisplay(day)}`
+          : `No disponible el ${formatDateForDisplay(day)}`
       }
       onClick={() => onFreeClick(day, resourceId)}
     >
@@ -837,15 +841,6 @@ function CalendarCell({
   );
 }
 
-function formatDateForDisplay(value: string) {
-  if (!value) return "";
-
-  const [year, month, day] = value.split("-");
-
-  if (!year || !month || !day) return "";
-
-  return `${day}-${month}-${year}`;
-}
 
 function DateField({
   label,
@@ -864,7 +859,7 @@ function DateField({
 
       <div className="booking-wizard-date-control">
         <span className={value ? "" : "is-placeholder"}>
-          {value ? formatDateForDisplay(value) : "dd-mm-aaaa"}
+          {value ? formatDateForDisplay(value) : "dd/mm/aaaa"}
         </span>
 
         <CalendarDays size={18} aria-hidden="true" />
@@ -1000,6 +995,7 @@ function ContactStep({
     name: string;
     lastName: string;
     phone: string;
+    country: string;
     documentType: string;
     documentNumber: string;
   };
@@ -1010,6 +1006,7 @@ function ContactStep({
     name: string;
     lastName: string;
     phone: string;
+    country: string;
     documentType: string;
     documentNumber: string;
   }) => void;
@@ -1030,77 +1027,25 @@ function ContactStep({
       </div>
 
       {creating ? (
-        <div className="booking-wizard-fields booking-wizard-fields--single">
-          <label>
-            Nombre
-            <input
-              value={newContact.name}
-              onChange={(event) =>
-                onNewContact({
-                  ...newContact,
-                  name: event.target.value,
-                })
-              }
-            />
-          </label>
-
-          <label>
-            Apellido
-            <input
-              value={newContact.lastName}
-              onChange={(event) =>
-                onNewContact({
-                  ...newContact,
-                  lastName: event.target.value,
-                })
-              }
-            />
-          </label>
-
-          <label>
-            Teléfono
-            <input
-              value={newContact.phone}
-              onChange={(event) =>
-                onNewContact({
-                  ...newContact,
-                  phone: event.target.value,
-                })
-              }
-            />
-          </label>
-
-          <label>
-            Tipo de documento
-            <select
-              value={newContact.documentType}
-              onChange={(event) =>
-                onNewContact({
-                  ...newContact,
-                  documentType: event.target.value,
-                })
-              }
-            >
+        <div className="contact-form-fields contact-form-fields--single">
+          <Input id="quick-contact-name" label="Nombre" autoComplete="given-name" value={newContact.name} onChange={(event) => onNewContact({ ...newContact, name: event.target.value })} />
+          <Input id="quick-contact-last-name" label="Apellido" autoComplete="family-name" value={newContact.lastName} onChange={(event) => onNewContact({ ...newContact, lastName: event.target.value })} />
+          <div className="top-field">
+            <label className="top-field__label" htmlFor="quick-contact-country">País</label>
+            <select id="quick-contact-country" className="top-input" autoComplete="country-name" value={newContact.country} onChange={(event) => onNewContact({ ...newContact, country: event.target.value })}>
+              {COUNTRIES.map((country) => <option key={country}>{country}</option>)}
+            </select>
+          </div>
+          <ContactPhoneField label="Teléfono" country={newContact.country} phone={newContact.phone} value={newContact.phone} onChange={(event) => onNewContact({ ...newContact, phone: event.target.value })} />
+          <div className="top-field">
+            <label className="top-field__label" htmlFor="quick-contact-document-type">Tipo de documento</label>
+            <select id="quick-contact-document-type" className="top-input" value={newContact.documentType} onChange={(event) => onNewContact({ ...newContact, documentType: event.target.value })}>
               <option value="">Seleccionar</option>
               <option value="CI">CI</option>
               <option value="PASSPORT">Pasaporte</option>
             </select>
-          </label>
-
-          <label>
-            Número de documento
-            <input
-              type="text"
-              maxLength={120}
-              value={newContact.documentNumber}
-              onChange={(event) =>
-                onNewContact({
-                  ...newContact,
-                  documentNumber: event.target.value,
-                })
-              }
-            />
-          </label>
+          </div>
+          <Input id="quick-contact-document-number" label="Número de documento" maxLength={120} value={newContact.documentNumber} onChange={(event) => onNewContact({ ...newContact, documentNumber: event.target.value })} />
 
           <div className="booking-wizard-inline-actions">
             <Button
@@ -1171,18 +1116,44 @@ function ContactStep({
     </>
   );
 }
-function RateStep({ wizard, ratePlans, loading, preview, update }: { wizard: WizardState; ratePlans: NonNullable<ReturnType<typeof useSelectableRatePlans>["data"]>; loading: boolean; preview: CalculatePriceResult | null; update: <K extends keyof WizardState>(key: K, value: WizardState[K]) => void }) {
+function RateStep({ wizard, ratePlans, loading, failed, retry, canOverride, preview, update }: {
+  wizard: WizardState; ratePlans: NonNullable<ReturnType<typeof useSelectableRatePlans>["data"]>;
+  loading: boolean; failed: boolean; retry: () => void; canOverride: boolean; preview: CalculatePriceResult | null;
+  update: <K extends keyof WizardState>(key: K, value: WizardState[K]) => void;
+}) {
   const discount = selectedDiscountPercent(wizard);
-  const manualAmountMinor = guaraniesToMinor(wizard.agreedAmountMinor);
-  const amountError = wizard.mode === "MANUAL" && wizard.agreedAmountMinor.length > 0 && manualAmountMinor === null ? "Ingresá un monto entero válido en guaraníes." : null;
+  const amountError = wizard.agreedAmountMinor && guaraniesToMinor(wizard.agreedAmountMinor) === null ? "Ingresa un monto entero válido en guaraníes." : undefined;
   const configuredTotal = preview ? Math.round(preview.totalAmountMinor * (100 - discount) / 100) : null;
-  const planCards = loading ? <div className="booking-wizard-empty">Buscando planes tarifarios…</div> : <div className="booking-wizard-options">{ratePlans.map((plan) => <button type="button" key={plan.id} className={wizard.ratePlanId === plan.id ? "is-selected" : ""} onClick={() => update("ratePlanId", plan.id)}><span><strong>{plan.name}</strong><small>Base {formatMoney(plan.baseNightlyAmountMinor, plan.currency)}</small></span>{wizard.ratePlanId === plan.id && <Check size={18} />}</button>)}</div>;
-  const manualReferenceSelect = wizard.mode === "MANUAL" && !wizard.ratePlanId && ratePlans.length > 1 ? <label className="booking-wizard-reference-plan">Plan de referencia<select aria-label="Plan de referencia" value={wizard.ratePlanId} onChange={(event) => update("ratePlanId", event.target.value)}><option value="">Seleccioná un plan</option>{ratePlans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></label> : null;
-  return <><div className="booking-wizard-heading"><span className="booking-wizard-currency">₲</span><div><h3>Definí la tarifa</h3><p>Elegí un plan válido para esta estadía.</p></div></div><div className="booking-wizard-segments"><button type="button" className={wizard.mode === "CONFIGURED" ? "is-active" : ""} onClick={() => update("mode", "CONFIGURED")}>Configurada</button><button type="button" className={wizard.mode === "MANUAL" ? "is-active" : ""} onClick={() => update("mode", "MANUAL")}>Manual</button></div>{wizard.mode === "CONFIGURED" && planCards}{manualReferenceSelect}{wizard.mode === "MANUAL" ? <div className="booking-wizard-manual-pricing"><p className="booking-wizard-manual-helper">Definí el importe final acordado para esta reserva.</p><div className="booking-wizard-money-field"><label htmlFor="manual-agreed-amount">Precio final</label><div className="booking-wizard-money-input"><span aria-hidden="true">Gs.</span><input id="manual-agreed-amount" inputMode="numeric" type="text" value={wizard.agreedAmountMinor} placeholder="0" onChange={(event) => { const digits = event.target.value.replace(/\D/g, ""); update("agreedAmountMinor", digits ? formatManualInput(Number(digits)) : ""); }} aria-describedby="manual-amount-help manual-amount-error" aria-invalid={Boolean(amountError)} /></div><small id="manual-amount-help">Ingresá el total acordado para la reserva.</small>{amountError && <span id="manual-amount-error" className="booking-wizard-field-error" role="alert">{amountError}</span>}</div></div> : <div className="booking-wizard-configured-pricing">{preview && <div className="booking-wizard-price"><span>Precio de la estadía</span><strong>{formatMoney(preview.totalAmountMinor, preview.currency)}</strong><small>{preview.nights} {preview.nights === 1 ? "noche" : "noches"}</small></div>}<div className="booking-wizard-discount"><button type="button" className="booking-wizard-discount-trigger" onClick={() => update("discountPercent", wizard.discountPercent ? "" : "5")}>{wizard.discountPercent ? "Cambiar descuento" : "Aplicar descuento"}</button>{wizard.discountPercent && <div className="booking-wizard-discount-options"><div>{["5", "10", "15", "20"].map((value) => <button type="button" key={value} className={wizard.discountPercent === value ? "is-selected" : ""} onClick={() => update("discountPercent", value)}>{value}%</button>)}<button type="button" className={wizard.discountPercent === "OTHER" ? "is-selected" : ""} onClick={() => update("discountPercent", "OTHER")}>Otro</button></div>{wizard.discountPercent === "OTHER" && <label>Porcentaje<input type="number" min="1" max="100" step="1" value={wizard.customDiscountPercent} onChange={(event) => update("customDiscountPercent", event.target.value)} /></label>}<button type="button" className="booking-wizard-discount-remove" onClick={() => { update("discountPercent", ""); update("customDiscountPercent", ""); }}>Quitar descuento</button></div>}</div>{discount > 0 && configuredTotal !== null && preview && <div className="booking-wizard-discount-summary"><span>Original</span><strong>{formatMoney(preview.totalAmountMinor, preview.currency)}</strong><span>Descuento ({discount}%)</span><strong>−{formatMoney(preview.totalAmountMinor - configuredTotal, preview.currency)}</strong><span>Precio final</span><strong>{formatMoney(configuredTotal, preview.currency)}</strong></div>}</div>}</>;
+  if (loading) return <p role="status">Buscando planes tarifarios…</p>;
+  if (failed) return <div role="alert"><p>No pudimos consultar los tarifarios de esta estadía.</p><Button type="button" variant="secondary" onClick={retry}>Reintentar tarifarios</Button></div>;
+  if (!ratePlans.length) return <div className="booking-wizard-empty" role="status"><h3>No hay un tarifario disponible para esta estadía.</h3><p>Se requiere configurar una tarifa para este alojamiento y estas fechas antes de continuar. El precio manual también necesita un tarifario de referencia.</p>{canOverride ? <a href="/app/pricing" target="_blank" rel="noreferrer">Configurar tarifas (nueva pestaña)</a> : <p>Solicita la configuración al propietario o administrador.</p>}<Button type="button" variant="secondary" onClick={retry}>Volver a consultar</Button></div>;
+  return <>
+    <div className="booking-wizard-heading"><span className="booking-wizard-currency">₲</span><div><h3>Definí la tarifa</h3><p>Elegí un plan válido para esta estadía.</p></div></div>
+    <div className="booking-wizard-segments" role="group" aria-label="Modo de precio">
+      <Button type="button" variant="secondary" aria-pressed={wizard.mode === "CONFIGURED"} onClick={() => update("mode", "CONFIGURED")}>Configurada</Button>
+      {canOverride && <Button type="button" variant="secondary" aria-pressed={wizard.mode === "MANUAL"} onClick={() => update("mode", "MANUAL")}>Manual</Button>}
+    </div>
+    {wizard.mode === "CONFIGURED" && <div className="booking-wizard-options" role="group" aria-label="Tarifarios disponibles">{ratePlans.map((plan) => <button type="button" key={plan.id} aria-pressed={wizard.ratePlanId === plan.id} className={`top-choice ${wizard.ratePlanId === plan.id ? "is-selected" : ""}`} onClick={() => update("ratePlanId", plan.id)}><span><strong>{plan.name}</strong><small>Base {formatMoney(plan.baseNightlyAmountMinor, plan.currency)}</small></span>{wizard.ratePlanId === plan.id && <Check size={18} aria-hidden="true" />}</button>)}</div>}
+    {wizard.mode === "MANUAL" && ratePlans.length > 1 && <label>Plan de referencia<select className="top-input" value={wizard.ratePlanId} onChange={(event) => update("ratePlanId", event.target.value)}><option value="">Selecciona un plan</option>{ratePlans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></label>}
+    {wizard.mode === "MANUAL" && canOverride ? <div className="booking-wizard-manual-pricing">
+      <p className="booking-wizard-manual-helper">Definí el importe final acordado para esta reserva.</p>
+      <Input id="manual-agreed-amount" label="Precio final" inputMode="numeric" type="text" value={wizard.agreedAmountMinor} placeholder="0" error={amountError} aria-describedby="manual-amount-help" onChange={(event) => { const digits = event.target.value.replace(/\D/g, ""); update("agreedAmountMinor", digits ? formatManualInput(Number(digits)) : ""); }} />
+      <small id="manual-amount-help">Ingresa el total acordado en guaraníes.</small>
+    </div> : <div className="booking-wizard-configured-pricing">
+      {preview && <div className="booking-wizard-price"><span>Precio de la estadía</span><strong>{formatMoney(preview.totalAmountMinor, preview.currency)}</strong><small>{preview.nights} noches</small></div>}
+      {canOverride && <div className="booking-wizard-discount"><Button type="button" variant="tertiary" onClick={() => update("discountPercent", wizard.discountPercent ? "" : "5")}>{wizard.discountPercent ? "Cambiar descuento" : "Aplicar descuento"}</Button>
+        {wizard.discountPercent && <div className="booking-wizard-discount-options"><div>{["5", "10", "15", "20", "OTHER"].map((value) => <Button type="button" variant="secondary" key={value} aria-pressed={wizard.discountPercent === value} onClick={() => update("discountPercent", value)}>{value === "OTHER" ? "Otro" : `${value}%`}</Button>)}</div>
+          {wizard.discountPercent === "OTHER" && <Input id="booking-discount" label="Porcentaje" type="number" min="1" max="100" step="1" value={wizard.customDiscountPercent} onChange={(event) => update("customDiscountPercent", event.target.value)} />}
+          <Button type="button" variant="tertiary" onClick={() => { update("discountPercent", ""); update("customDiscountPercent", ""); }}>Quitar descuento</Button>
+        </div>}
+      </div>}
+      {discount > 0 && configuredTotal !== null && preview && <div className="booking-wizard-discount-summary"><span>Original</span><strong>{formatMoney(preview.totalAmountMinor, preview.currency)}</strong><span>Descuento ({discount}%)</span><strong>−{formatMoney(preview.totalAmountMinor - configuredTotal, preview.currency)}</strong><span>Precio final</span><strong>{formatMoney(configuredTotal, preview.currency)}</strong></div>}
+    </div>}
+  </>;
 }
 
 function ReviewStep({ wizard, resourceName, contactName, rateName, preview }: { wizard: WizardState; resourceName?: string; contactName?: string; rateName?: string; preview: CalculatePriceResult | null }) {
   const discount = selectedDiscountPercent(wizard);
   const total = wizard.mode === "MANUAL" ? guaraniesToMinor(wizard.agreedAmountMinor) ?? 0 : preview ? Math.round(preview.totalAmountMinor * (100 - discount) / 100) : 0;
-  return <><div className="booking-wizard-heading"><Check size={22} /><div><h3>Revisá y confirmá</h3><p>TOP volverá a validar disponibilidad y precio al confirmar.</p></div></div><dl className="booking-wizard-review"><div><dt>Contacto</dt><dd>{contactName}</dd></div><div><dt>Alojamiento</dt><dd>{resourceName}</dd></div><div><dt>Estadía</dt><dd>{wizard.checkIn} → {wizard.checkOut}</dd></div><div><dt>Huéspedes</dt><dd>{wizard.adults} adultos · {wizard.children} niños</dd></div><div><dt>Tarifa</dt><dd>{rateName}{wizard.mode === "MANUAL" ? " · ajuste manual" : ""}</dd></div><div className="is-total"><dt>Total acordado</dt><dd>{formatMoney(total, preview?.currency)}</dd></div></dl></>;
+  return <><div className="booking-wizard-heading"><Check size={22} /><div><h3>Revisá y confirmá</h3><p>TOP volverá a validar disponibilidad y precio al confirmar.</p></div></div><dl className="booking-wizard-review"><div><dt>Contacto</dt><dd>{contactName}</dd></div><div><dt>Alojamiento</dt><dd>{resourceName}</dd></div><div><dt>Estadía</dt><dd>{formatDateForDisplay(wizard.checkIn)} → {formatDateForDisplay(wizard.checkOut)}</dd></div><div><dt>Huéspedes</dt><dd>{wizard.adults} adultos · {wizard.children} niños</dd></div><div><dt>Tarifa</dt><dd>{rateName}{wizard.mode === "MANUAL" ? " · ajuste manual" : ""}</dd></div><div className="is-total"><dt>Total acordado</dt><dd>{formatMoney(total, preview?.currency)}</dd></div></dl></>;
 }

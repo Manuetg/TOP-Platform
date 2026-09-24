@@ -1,3 +1,4 @@
+import { Contact } from '../../src/modules/contact/domain/contact.entity';
 import { PrismaClient } from '@prisma/client';
 import { ContactStatus } from '../../src/modules/contact/domain/contact-status.enum';
 import { PrismaContactRepository } from '../../src/modules/contact/infrastructure/prisma-contact.repository';
@@ -25,4 +26,23 @@ describeWithPostgres('PrismaContactRepository', () => {
     for (const query of ['Ana', '0981000', 'ana@example.com', '456']) await expect(repository.searchByBusinessId(owner.id, query)).resolves.toEqual([expect.objectContaining({ id: local.id })]);
     await expect(repository.findByIdAndBusinessId(local.id, other.id)).resolves.toBeNull();
   });
+  it.each([ContactStatus.ACTIVE, ContactStatus.INACTIVE])('archives %s concurrently once, preserving Booking and audit', async (status) => {
+    const owner = await business('Owner'); const other = await business('Other');
+    const actor = '11111111-1111-4111-8111-111111111111';
+    const row = await prisma.contact.create({ data: { businessId: owner.id, name: 'Ana', phone: 'ambiguo histórico', status } });
+    const booking = await prisma.booking.create({ data: { businessId: owner.id, contactId: row.id } });
+    await expect(repository.archive(row.id, other.id, actor)).resolves.toBeNull();
+    const results = await Promise.all([repository.archive(row.id, owner.id, actor), repository.archive(row.id, owner.id, actor)]);
+    expect(results.every((item) => item?.status === ContactStatus.ARCHIVED)).toBe(true);
+    const archived = await prisma.contact.findUniqueOrThrow({ where: { id: row.id } });
+    expect(archived).toMatchObject({ archivedBy: actor, archivedAt: expect.any(Date), archivedFromStatus: status, phone: row.phone });
+    await repository.archive(row.id, owner.id, '22222222-2222-4222-8222-222222222222');
+    const repeated = await prisma.contact.findUniqueOrThrow({ where: { id: row.id } });
+    expect(repeated).toEqual(archived);
+    const stale = Contact.create({ ...row, status });
+    await repository.update(stale.update({ city: 'Encarnación' }));
+    expect(await prisma.contact.findUniqueOrThrow({ where: { id: row.id } })).toMatchObject({ status: ContactStatus.ARCHIVED, archivedBy: actor });
+    expect(await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } })).toMatchObject({ contactId: row.id });
+  });
+
 });

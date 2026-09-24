@@ -53,7 +53,7 @@ import { ConfirmBookingUseCase } from '../application/confirm-booking.use-case';
 import { CancelBookingUseCase } from '../application/cancel-booking.use-case';
 import { SubmitBookingUseCase } from '../application/submit-booking.use-case';
 import { ConfirmBookingRequestDto } from './dto/confirm-booking.request.dto';
-import { BusinessAccess } from '../../../shared/security/security.decorators';
+import { BusinessAccess, BusinessAccessWithPricingOverride } from '../../../shared/security/security.decorators';
 import { Capability } from '../../../shared/application/authorization-policy';
 import type { AuthenticatedRequest } from '../../../shared/security/authenticated-principal';
 import { CancelBookingRequestDto } from './dto/cancel-booking.request.dto';
@@ -101,7 +101,7 @@ export class BookingLifecycleController {
   }
 
   @Post(':bookingId/confirm')
-  @BusinessAccess('businessId', Capability.BOOKING_WRITE)
+  @BusinessAccessWithPricingOverride('businessId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:

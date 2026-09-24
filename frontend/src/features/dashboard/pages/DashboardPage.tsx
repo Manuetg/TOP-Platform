@@ -1,3 +1,4 @@
+import { formatPureDate } from "../../../shared/utils/date-format";
 import { useState } from "react";
 import { AlertCircle, CalendarDays, Plus, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -180,8 +181,8 @@ export function DashboardPage({
               <div className="dashboard-results">
                 <p className="dashboard-applied-period">
                   Mostrando del{" "}
-                  <time dateTime={period.from}>{period.from}</time> al{" "}
-                  <time dateTime={period.to}>{period.to}</time> (hasta no
+                  <time dateTime={period.from}>{formatPureDate(period.from)}</time> al{" "}
+                  <time dateTime={period.to}>{formatPureDate(period.to)}</time> (hasta no
                   incluido)
                 </p>
                 {empty && (

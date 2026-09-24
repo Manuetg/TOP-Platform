@@ -1,3 +1,4 @@
+import { formatBusinessInstant } from "../../../shared/utils/date-format";
 import {
   Ban,
   CalendarDays,
@@ -60,12 +61,6 @@ function getTypeLabel(type: BlockType) {
   }
 }
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("es-PY", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 function toStartOfDayIso(date: string) {
   if (!date) {
@@ -137,6 +132,8 @@ function BlockTableRow({
   resourceName: string;
   onCancel: (block: Block) => void;
 }) {
+  const { activeBusiness } = useBusinessContext();
+  const formatDateTime = (value: string) => activeBusiness ? formatBusinessInstant(value, activeBusiness.timezone) : "Sin fecha";
   return (
     <div className="block-list-row">
       <div className="block-list-row__resource">
@@ -185,6 +182,8 @@ function BlockCard({
   resourceName: string;
   onCancel: (block: Block) => void;
 }) {
+  const { activeBusiness } = useBusinessContext();
+  const formatDateTime = (value: string) => activeBusiness ? formatBusinessInstant(value, activeBusiness.timezone) : "Sin fecha";
   return (
     <article className="block-list-card">
       <div className="block-list-card__header">
@@ -237,7 +236,8 @@ export function BlockListPage({
 }: BlockListPageProps) {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const { activeBusinessId } = useBusinessContext();
+  const { activeBusinessId, activeBusiness } = useBusinessContext();
+  const formatDateTime = (value: string) => activeBusiness ? formatBusinessInstant(value, activeBusiness.timezone) : "Sin fecha";
   const businessId = suppliedBusinessId ?? activeBusinessId;
 
   const [resourceId, setResourceId] = useState("");

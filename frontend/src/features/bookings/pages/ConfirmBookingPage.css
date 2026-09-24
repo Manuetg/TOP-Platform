@@ -111,15 +111,6 @@
   font-weight: 700;
 }
 
-.confirm-booking-field select {
-  min-height: 44px;
-  padding: 0 10px;
-  border: 1px solid #d5dfdc;
-  border-radius: 9px;
-  background: #ffffff;
-  color: #29434a;
-  font: inherit;
-}
 
 .confirm-booking-plan-info {
   display: flex;

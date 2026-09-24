@@ -15,6 +15,7 @@ export interface BusinessAccessRequirement {
   parameter: string;
   capabilities: readonly Capability[];
   bodySelector?: BodyCapabilitySelector;
+  pricingOverrideCapability?: Capability;
 }
 
 export const Public = (): MethodDecorator & ClassDecorator => SetMetadata(PUBLIC_ROUTE_KEY, true);
@@ -39,6 +40,12 @@ export const BusinessAccessByBody = (
   SetMetadata(BUSINESS_ACCESS_KEY, { parameter, capabilities: [capability], bodySelector: { field, capabilities } } satisfies BusinessAccessRequirement),
   Authenticated(),
   ApiForbiddenResponse({ description: 'El usuario no tiene membresía o capabilities autorizadas en el Business.' }),
+);
+
+export const BusinessAccessWithPricingOverride = (parameter: string): MethodDecorator & ClassDecorator => applyDecorators(
+  SetMetadata(BUSINESS_ACCESS_KEY, { parameter, capabilities: [Capability.BOOKING_WRITE], pricingOverrideCapability: Capability.PRICING_OVERRIDE_CALCULATE } satisfies BusinessAccessRequirement),
+  Authenticated(),
+  ApiForbiddenResponse({ description: 'El precio manual y los descuentos requieren la capability de override vigente.' }),
 );
 
 export const PlatformAuthorityRequired = (): MethodDecorator & ClassDecorator => applyDecorators(

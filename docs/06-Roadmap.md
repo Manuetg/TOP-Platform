@@ -8,7 +8,99 @@ Este documento registra la secuencia de evolución del MVP y las iniciativas fut
 
 El backlog de implementación del Backend MVP está completado: 53 de 53 capacidades (100%). Dashboard completó sus 4 capacidades: DSH-002 — Occupancy KPI, DSH-003 — Revenue KPI, DSH-004 — Reservations KPI y DSH-001 — Business Dashboard como agregador público final. No quedan capacidades backend planificadas dentro del backlog MVP aprobado. El estado operativo vigente se encuentra en [07-Backlog.md](07-Backlog.md); este cierre no implica que frontend o el quality gate preproducción estén completados.
 
-## Áreas funcionales del producto
+## POST-MVP / PRODUCTION READINESS — roadmap aprobado (2026-09-24)
+
+Baseline verificado con `git fetch`: `origin/develop@cb9eddcb5eb9fcd55008555a29bb478d71f6009a`, sin PR abiertas al iniciar. Backend MVP histórico: **53/53 Completed**, inalterado. El frontend conserva su recuento histórico de 52 historias (51 Completed y FE-SUB-001 con decisión comercial pendiente). Este roadmap se contabiliza por separado y no declara Product Ready ni Production Ready.
+
+Un épico activo = una rama = una PR con implementación, pruebas, documentación y correcciones de revisión. Secuencia A → B → C → D; E es discovery separado. Solo A se implementa en esta ejecución. Estados: Planned, In Progress, Completed, Blocked, Discovery. Completed es efectivo al merge, después de cumplir la DoD y ambos CI.
+
+| Iniciativa | Estado | Alcance y evidencia requerida |
+|---|---|---|
+| A — Refinamiento funcional y UX | Completed efectivo al merge de PR #96 | A1 fechas; A2 selector/buscador Pricing; A3 teléfono internacional Contact; A4 archivo Contact; A5 ConfirmDialog; A6 inputs Booking; A7 estadía sin Rate Plan. Una PR `POST-MVP: UX & Functional Refinement` desde `post-mvp/ux-functional-refinement`. |
+| B — Seguridad para producción | Planned | B1–B10 siguientes; decisiones sustentadas en riesgos reales. |
+| C — Escalabilidad de API y base de datos | Planned | C1–C6 siguientes; medición antes de optimizar. |
+| D — Assets y performance | Planned | D1–D10 siguientes; conservar capacidades ya integradas. |
+| E — Automatización del ciclo de Booking | Discovery | Resolver semántica operativa antes de implementar automatización. |
+
+### A — Criterios de entrega
+
+- A1: fechas puras visibles `dd/mm/yyyy`, helpers compartidos sin timezone accidental. Contrato/inputs nativos permanecen `YYYY-MM-DD`; instantes UTC/RFC3339 se presentan en timezone IANA del Business. Auditar Calendar, Booking, Pricing, Payments, Blocks, Dashboard, timelines y detalles/listados. Probar bisiestos, null, fechas, instantes y timezone.
+- A2: selector/buscador/listado de planes con hover discreto, pressed, selected, focus-visible, tacto y reduced motion usando Foundation.
+- A3: país, prefijo visible, entrada nacional/internacional y WhatsApp consistentes; validación backend compatible con E.164; edición conserva teléfonos históricos ambiguos sin migración inferida. Reutilizar metadatos existentes o una dependencia acotada justificada, sin catálogo mundial manual.
+- A4: `PATCH /api/businesses/:businessId/contacts/:contactId/archive`, tenant-scoped, `contact.write`, Business activo, respuesta pública, archivo idempotente desde ACTIVE/INACTIVE y repetición sin duplicar auditoría. Preservar reservas e historial; sin Restore. Confirmación TOP, permisos, loading/error/success e invalidación de caché en detalle.
+- A5: ConfirmDialog compartido sobre OverlayPanel, título/descripción, confirmar/cancelar, variante sensible, loading/disabled, foco/Tab/Escape/retorno, aria-modal y reduced motion. Aplicar en acciones sensibles existentes, incluido Resources.
+- A6: inputs Booking alineados a shared forms conservando labels, ayuda/error, foco, disabled, responsive y RHF/Zod donde existen. Sin rediseño masivo.
+- A7: la consulta contextual backend decide los planes seleccionables. Sin planes: «No hay un tarifario disponible para esta estadía», sin modo configurado funcional. El contrato vigente de ConfirmBooking y ApplyManualPriceOverride **requiere un Rate Plan también para override**; por ello sin planes se bloquea a todos los roles y se explica que debe configurarse una tarifa. Con planes, OWNER/ADMIN conservan override y los demás sus permisos actuales. Probar carga, cero/uno/varios, error, cambios de Resource/fechas/Business, respuestas tardías y teclado.
+- DoD: pruebas de regresión, aislamiento/permisos, estados aplicables, coherencia móvil/desktop, fechas contractuales intactas, documentación y `git diff --check`; Frontend CI y Backend CI SUCCESS. Mutation según política vigente: SKIPPED no equivale a PASS. QA interactiva NOT RUN salvo necesidad concreta o petición expresa. Sin infraestructura accidental ni TODO funcional oculto.
+
+### POST-A7 — Discovery de precio manual sin Rate Plan (revisión final PR #96)
+
+**DECISION REQUIRED: YES.** Precio manual sin Rate Plan pendiente de decisión de Producto. La ausencia de fallback no es un bug del contrato vigente. Esta revisión conserva A7 y no implementa el modelo alternativo.
+
+**Contrato vigente (A).** Domain Bible exige plan seleccionado, desglose, precio sugerido/acordado y motivo en Snapshot; BR-020/022/085 y POST-A7 conservan motivo, inmutabilidad y seleccionabilidad. `CalculatePriceUseCase` valida Business/Resource, plan asignado y activo, vigencia, estadía y moneda. `ApplyManualPriceOverrideUseCase` llama a CalculatePrice y calcula ajuste = acordado − sugerido. ConfirmBooking exige `ratePlanId`, recalcula y persiste Snapshot + confirmación + Timeline atómicamente. OWNER/ADMIN pueden ajustar; RECEPTIONIST confirma calculada. Sin plan aplicable todos quedan bloqueados.
+
+| Alternativa | Beneficio | Costo o riesgo |
+|---|---|---|
+| A — Manual siempre sobre plan | Referencia comercial y comparación de descuentos inequívocas; compatible hoy. | Configurar Pricing es requisito previo para confirmar. |
+| B — Manual independiente | Operación libre aun sin configuración tarifaria. | Pricing puede volverse opcional incluso habiendo planes; pierde referencia y aumenta entrada arbitraria. |
+| C — Híbrido excepcional | Conserva A cuando hay plan y habilitaría operación inicial cuando no hay ninguno aplicable. | Requiere una nueva regla explícita y validación backend de la excepción al confirmar. |
+
+**Recomendación:** C como evolución sujeta a aprobación; mantener A en esta PR. Limitar el eventual fallback a OWNER/ADMIN, ausencia real de planes aplicables al Resource/estadía y motivo obligatorio. No basta comprobar un array vacío en frontend: el backend tendría que volver a validar elegibilidad al confirmar, contemplando cambios concurrentes de asignación/vigencia y conservando autorización, disponibilidad y auditoría. No crear planes ficticios ni usar importes sugeridos iguales a cero para simular una referencia inexistente.
+
+**Impacto técnico comprobado:**
+
+- API/cálculo: los DTO y casos de uso exigen UUID de plan; el endpoint de override también lo recibe por ruta. Permitir ausencia exige definir un contrato distinto y cómo obtener moneda, límites de estadía, importe y motivo sin saltarse validaciones compartidas. No se cambia `ratePlanId` a null en esta PR.
+- Snapshot/persistencia: `PricingSnapshotItem` solo admite CALCULATED/MANUAL_OVERRIDE, plan string y sugerido/ajuste numéricos con desglose calculado. `PricingSnapshot.items` es JSON, no una columna SQL de plan con FK: flexibilizar JSON no resuelve las invariantes de tipos/lectores. Habría que acordar origen explícito, semántica de referencia ausente, desglose, lectura compatible de históricos y auditoría del motivo/actor. La necesidad de migración depende del diseño aprobado; no se presupone ni se reescriben snapshots existentes.
+- Dashboard/pagos: Revenue suma exclusivamente Payments RECORDED por paidAt (BR-084, `PrismaRevenueProjectionReader`); no utiliza plan ni sugerido. PaymentPlan y saldos consumen moneda/total acordado del Snapshot. No requieren inventar nuevas métricas, pero sí regresión si se incorpora otra forma de Snapshot.
+- Reportes futuros: separar precio sin referencia de descuento real; no atribuir ajuste cero, descuento del 100% ni una tarifa ficticia a la excepción. No existe hoy un reporte de descuentos que deba modificarse.
+- Agente TOP/automatización futura: IA sigue fuera del alcance implementado. Una futura operación asistida debería consumir el contrato backend, explicar cuándo falta referencia y respetar motivo/permisos y confirmación humana definida por Producto; no inferir precios ni privilegios. Este discovery no autoriza agentes, workers ni automatizaciones.
+
+**Decisión que falta:** aprobar o rechazar C frente a A y, si se aprueba, definir elegibilidad excepcional y representación del Snapshot sin referencia antes de implementar. La hipótesis inicial del pedido no constituye aprobación. La corrección visual y el bloqueo seguro actual pueden revisarse con independencia de esa decisión.
+
+### B — Seguridad para producción (Planned)
+
+- B1: auditar rate limiting de signup, login, forgot-password, verify-reset-code, reset-password, resend-verification, verify-email y refresh cuando corresponda. IP + identidad/email normalizada + endpoint + ventana, 429/Retry-After, sin enumeración y con múltiples instancias Cloud Run. Memoria local no basta; comparar alternativas sin elegir Redis automáticamente.
+- B2: DATABASE_URL, claves JWT, SMTP, storage y terceros fuera de repositorio/imágenes; evaluar Secret Manager y Workload Identity. Nunca secretos VITE_*.
+- B3: configuración crítica fail-fast con NODE_ENV=production.
+- B4: CORS fail-closed con origins explícitos; auditar fallback abierto.
+- B5: evaluar Helmet/equivalente y compatibilidad antes de incorporar dependencias.
+- B6: Swagger deshabilitado o protegido en producción; auditar rutas debug/test/seed.
+- B7: manejo global seguro de excepciones: 4xx contractuales, 500 genérico, stack solo interno; no filtrar SQL, paths, secretos ni payload sensible.
+- B8: logs JSON compatibles con Cloud Logging: timestamp, level, requestId/correlationId, método, ruta, status, duración y userId/businessId cuando corresponda. Excluir passwords, JWT, refresh/verification tokens, reset codes, SMTP password, Authorization y datos sensibles.
+- B9: acceso privado Cloud Run → Cloud SQL y usuario DB de mínimo privilegio; ningún cliente accede directamente a DB.
+- B10: discovery/ADR/prototipo RLS: clasificar tablas globales, tenant-owned y tenant-derived; estudiar Prisma, transacciones, variables de sesión, pooling, migraciones, jobs/admin, bypass owner y tests. Defensa adicional a guards/repositories, sin activar RLS globalmente por checklist.
+
+### C — Escalabilidad (Planned)
+
+- C1: paginación de Contacts y Bookings, cursor estable cuando convenga; Payments/Timeline ya tienen cursor, no duplicar.
+- C2: diseñar pooling Cloud Run/Cloud SQL: máximo de instancias × conexiones por instancia menor que capacidad segura DB.
+- C3: inventario de queries, EXPLAIN ANALYZE, consultas lentas, selectividad y costo de escritura antes de agregar índices; respetar los índices existentes.
+- C4: detectar N+1 reales (loops con acceso DB), conservar queries sanas.
+- C5: medir payloads antes de Brotli/gzip en infraestructura apropiada.
+- C6: medir Dashboard/Search/Availability antes de cachear; si se justifica, definir TTL, claves por tenant, invalidación y consistencia. Sin Redis automático.
+
+### D — Assets y performance (Planned)
+
+- D1: auditar uploads; variantes thumbnail/medium/original según necesidad, resize/WebP/AVIF/tamaño/metadatos/signed URLs/cache headers. Preservar originales con estrategia explícita.
+- D2 — Completed existente: React.lazy/Suspense y división por rutas integrados; no reimplementar.
+- D3 — Completed existente: minificación de producción Vite; no duplicar.
+- D4 — Completed existente: TanStack Query; auditar staleTime/gcTime solo ante beneficio concreto, sin otra caché global.
+- D5: evaluar CDN de estáticos/imágenes y cache headers tras definir despliegue Google Cloud.
+- D6: React Profiler antes de useMemo/useCallback; optimizar costos demostrados.
+- D7: debounce solo para búsquedas remotas (Global Search, Contact y futuros autocomplete), nunca inputs normales.
+- D8: skeletons donde reduzcan saltos de layout o mejoren percepción, no por estética.
+- D9: auditar dependencias sin uso; verificar consumidores/build/tests antes de retirarlas.
+- D10: baseline Lighthouse Login/Dashboard/Calendar/Resources/Booking Detail, desktop y móvil; LCP, CLS, INP, assets dominantes y recursos bloqueantes. Objetivos orientativos: accesibilidad/buenas prácticas ≥95, performance móvil ≥85/desktop ≥90; no gates hasta medir, no perseguir 100 artificialmente.
+
+### E — Ciclo de Booking (Discovery)
+
+No asumir CONFIRMED → IN_PROGRESS al llegar checkInDate. Determinar si IN_PROGRESS significa fecha alcanzada o check-in confirmado y distinguir confirmada, llega hoy, check-in real, en estadía, sale hoy, check-out, no-show, completed y cancel. Evaluar estados derivados ARRIVES_TODAY/CURRENT_STAY/DEPARTS_TODAY/OVERDUE_CHECKIN sin persistirlos necesariamente. Solo tras aprobación, evaluar Cloud Scheduler → Cloud Run Job/endpoint SYSTEM protegido → caso de uso idempotente con timezone del Business; nunca setInterval/while permanente dentro de NestJS. Sin implementación en esta ejecución.
+
+### Capacidades integradas que se conservan
+
+ProtectedRoute, guards globales de autenticación/autorización, apiRequest, manejo frontend seguro de 5xx, TanStack Query, rutas diferidas, minificación Vite, índices PostgreSQL, Calendar Business-local, PYG 1:1, aislamiento por Business, AbortSignal en varios flujos y ambos workflows CI ya existen. Solo un gap demostrado justifica trabajo nuevo.
+
+## Áreas funcionales del producto (MVP histórico)
 
 El MVP mantiene las ocho áreas aprobadas en Vision y Product Strategy: Negocio, Recursos, Precios, Disponibilidad, Reservas, Pagos, Calendario y Dashboard. Identity & Access, Contact y Block son dominios backend de soporte y no representan áreas comerciales adicionales.
 

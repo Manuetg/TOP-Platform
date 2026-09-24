@@ -37,5 +37,6 @@ export class Contact {
   get createdAt(): Date { return this.props.createdAt; }
   get updatedAt(): Date { return this.props.updatedAt; }
   get fullName(): string { return [this.name, this.lastName].filter((part): part is string => part !== null).join(' '); }
+  archive(): Contact { return this.status === ContactStatus.ARCHIVED ? this : Contact.create({ ...this.props, status: ContactStatus.ARCHIVED, updatedAt: new Date() }); }
   update(changes: ContactUpdate): Contact { return Contact.create({ ...this.props, ...changes, updatedAt: new Date() }); }
 }

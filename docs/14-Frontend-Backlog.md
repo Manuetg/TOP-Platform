@@ -1,6 +1,24 @@
 # TOP — Frontend Backlog
 
-Última actualización: 2026-09-23
+Última actualización: 2026-09-24
+
+## POST-MVP / PRODUCTION READINESS (2026-09-24)
+
+Épico A implementado y validado por ambos CI SUCCESS en [PR #96](https://github.com/Manuetg/TOP-Platform/pull/96); **Completed preparado, efectivo al merge humano**. Todavía sin integrar en develop. Evidencia y limitaciones en [Estado actual](00-Current-Status.md). Sin modificación de los conteos MVP.
+
+Bloque separado: no altera las 52 historias ni sus conteos históricos. Baseline remoto `cb9eddc`; la cadena #90–95 ya está integrada. Épico A — Completed efectivo al merge, una rama/PR junto a sus capacidades backend. Roadmap completo B/C/D Planned y E Discovery en [06-Roadmap.md](06-Roadmap.md).
+
+| Punto | Estado | Alcance aprobado |
+|---|---|---|
+| POST-A1 | Completed efectivo al merge | Presentación compartida dd/mm/yyyy; contratos y controles ISO intactos; instantes en timezone del Business. |
+| POST-A2 | Completed efectivo al merge | Selector/buscador/listado de Rate Plans con estados Foundation y reduced motion. |
+| POST-A3 | Completed efectivo al merge | Prefijo internacional ligado a país, pegado internacional, edición sin corrupción y WhatsApp; validación backend. |
+| POST-A4 | Completed efectivo al merge | Archivar Contact desde detalle con ConfirmDialog, permisos, cancelación, caché y estados. |
+| POST-A5 | Completed efectivo al merge | ConfirmDialog accesible compartido; adopción en Resources y Contact. |
+| POST-A6 | Completed efectivo al merge | Inputs Booking coherentes con shared forms sin megarefactor. |
+| POST-A7 | Completed efectivo al merge | Sin planes seleccionables no se ofrece modo configurado ni continuación. El contrato exige plan también para manual: se explica que debe configurarse tarifa. Con planes se preservan override OWNER/ADMIN y selección backend. |
+
+DoD y riesgos en Roadmap. QA interactiva NOT RUN por instrucción expresa; pruebas de regresión y gates finales oficiales en la PR. Completed efectivo al merge; no se declara production readiness.
 
 ## Objetivo
 

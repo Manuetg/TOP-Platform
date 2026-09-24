@@ -1,8 +1,45 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-09-23
+Última actualización: 2026-09-24
 
-## Handoff vigente — cierre del MVP por épicos
+## Handoff vigente — POST-MVP / PRODUCTION READINESS
+
+Baseline remoto verificado: `develop@cb9eddcb5eb9fcd55008555a29bb478d71f6009a`, PR #90–95 integradas y ninguna PR abierta al iniciar. Checkout local limpio; rama `post-mvp/ux-functional-refinement` creada desde origin/develop. El handoff siguiente se conserva como historial, no como estado actual de esas PR.
+
+Épico A: implementación y gates completos; **Completed preparado, efectivo al merge de [PR #96](https://github.com/Manuetg/TOP-Platform/pull/96)**. Hasta ese merge sigue sin integrar en develop. B/C/D: Planned. E: Discovery. Roadmap completo en [06-Roadmap.md](06-Roadmap.md). Backend MVP permanece **53/53 Completed**; recuento frontend histórico intacto. No se declara Product Ready ni Production Ready; decisión comercial de FE-SUB-001 sigue pendiente antes de producción.
+
+Gaps del baseline resueltos: fechas de presentación inconsistentes, selector Pricing sin estados Foundation completos, teléfonos sin normalización backend, ausencia de archivo explícito Contact, window.confirm en Resources, inputs Booking ad-hoc y modo configurado visible sin planes. OverlayPanel, consulta contextual Rate Plans y permisos backend ya existen.
+
+A7: el contrato actual exige Rate Plan incluso para precio manual; sin planes se explica el bloqueo para todos los roles. No se inventa un tarifario ni se amplía Pricing. A3/A4 son cambios backend post-MVP explícitamente aprobados; su contrato y evidencia se registran en el backlog separado. QA interactiva: NOT RUN por instrucción de esta ejecución. CI propios del nuevo épico: ambos SUCCESS; evidencia debajo.
+
+### Implementación y verificación del Épico A
+
+Implementados A1–A7 en esta rama: helper de fechas puro y formatter de instantes por Business; interacción Foundation en Pricing; teléfono internacional en alta/edición/alta contextual y WhatsApp; archivo Contact auditado; ConfirmDialog en Contact/Resources; inputs Booking; cero tarifas con bloqueo explícito, cancelación contextual y permiso de override también en confirmación backend. La API de fechas permanece intacta.
+
+Migración aditiva pendiente de despliegue: `20260924000000_contact_archive_audit`. Sin cambios de infraestructura, sin migraciones sobre datos locales/reales, sin B/C/D/E implementados. `libphonenumber-js/min` se declara explícitamente (ya existía transitivamente en backend), fijada en ambos lockfiles; chunk diferido aproximado 121 kB / 30 kB gzip.
+
+Validación local: lint/build frontend y backend, Prisma validate, arquitectura y diff check PASS. Regresión focal backend: 73 pruebas; E2E Contact/seguridad: 33 PASS. Pruebas PostgreSQL de archivo concurrente, idempotencia, historial y aislamiento aprobadas en CI; aceptación de archivo repetido aprobada. Frontend incluye regresiones de bisiesto/null/instantes, focus trap/retorno, teléfonos históricos, cache/cancelación de archivo y planes cero/uno/varios/error/roles/cambio de contexto. La corrida local completa de frontend aprobó 90 archivos/508 pruebas; la prueba posterior de API y Calendar aprobó 25/25. La suite oficial incluye las 509 pruebas finales. Los resultados oficiales corresponden al código implementado; el HEAD final con este cierre documental y su checkout sintético se verifican y registran en el cuerpo de la misma PR.
+
+Evidencia oficial de implementación: feature HEAD `151ee2b9c818379fd0ba1648030a8dc231ec7d01`, checkout sintético de PR `a06fe60521b987427061f4c10e4dddfcf8059852` sobre el baseline indicado. No confundir el checkout de GitHub con la rama local.
+
+| Gate oficial | Resultado | Evidencia |
+|---|---|---|
+| Frontend CI | SUCCESS | [Run 36003408977](https://github.com/Manuetg/TOP-Platform/actions/runs/36003408977): build, lint y 91 archivos/509 pruebas PASS. |
+| Backend CI | SUCCESS | [Run 36003409058](https://github.com/Manuetg/TOP-Platform/actions/runs/36003409058): 119 suites/1135 unitarias, 34 suites/178 integración PostgreSQL, 22 suites/260 E2E, 195 escenarios/771 pasos de aceptación. Lint, arquitectura, migraciones, Prisma y build PASS. |
+| Cobertura backend | PASS | 175 suites/1573 pruebas; statements 96,07%, branches 88,98%, functions 96,27%, lines 97,11%. Sin rebajar gates. |
+| Mutation | SKIPPED | Job omitido por política de pull_request; no equivale a PASS. |
+
+Self-review técnica (no independiente) siguiendo top-frontend-review: sin bloqueantes conocidos tras corregir foco del shell, preservación de teléfonos legacy y targets tardíos. QA manual/interactiva móvil/desktop: **NOT RUN** por instrucción expresa; no equivale a certificación visual o WCAG. Mutation: **SKIPPED** en pull_request según workflow vigente, nunca PASS. DoD técnica acreditada por pruebas y ambos CI; cierre documental preparado en la misma PR, efectivo en develop solo tras revisión/merge humano. No hay aprobación independiente ni auto-merge. Siguiente épico previsto: B, sin inicio automático.
+
+### Revisión final de PR #96 — correcciones UX y discovery
+
+Continuación sobre `f419789876789a83d9a5e456ca1f18438e5fb8e4`, sin cambios remotos posteriores al comenzar. Contact agrupa País/Teléfono/Email y comparte controles entre alta/edición; Calendar reutiliza el teléfono compuesto. Archivo adopta warning terracota en la acción y confirmación, con etiqueta visible móvil. ConfirmDialog agrega backdrop modal al 40%, portal sobre la aplicación y aislamiento inert del fondo; conserva foco, cierre condicionado y reduced-motion. Decisiones visuales acotadas en [Design Context](design/DESIGN.md).
+
+**POST-A7: DECISION REQUIRED** — precio manual sin Rate Plan pendiente de decisión de Producto. Discovery y comparación A/B/C en [Roadmap](06-Roadmap.md#post-a7--discovery-de-precio-manual-sin-rate-plan-revisión-final-pr-96). Se recomienda evaluar C (híbrido excepcional), pero se conserva A vigente: manual siempre sobre un plan seleccionable. No se modifica backend, contrato, Snapshot ni migraciones en esta revisión. No es un bug del contrato actual.
+
+Validación local: 10 archivos/90 pruebas focalizadas PASS (orden/prefijo/payload, warning, backdrop/foco/inert/carga y regresión de shell/Resources, incluido retorno de foco cuando el navegador ya lo movió al body), lint/build y diff check PASS. Contraste calculado de texto warning: 5,77:1 en reposo, 5,34:1 en hover y 4,93:1 en pressed; no sustituye QA visual. Los gates oficiales del HEAD final se registran en el cuerpo de la misma PR. Self-review frontend, sin aprobación independiente; QA interactiva **NOT RUN**. Estado: **DECISION REQUIRED** para el modelo futuro de Pricing; correcciones frontend preparadas para revisión PM/TL. PR #96 permanece abierta, sin merge y sin iniciar B.
+
+## Handoff histórico — cierre del MVP por épicos
 
 Baseline `develop@4c866cc` con Payments y Calendar/Pricing mergeados. Implementación en ramas nuevas, sin merge directo ni incorporación de infraestructura local. Las PR están encadenadas y deben revisarse/mergearse en orden:
 

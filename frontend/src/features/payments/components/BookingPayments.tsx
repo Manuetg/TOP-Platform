@@ -1,3 +1,4 @@
+import { formatPureDate, formatBusinessInstant as formatInstant } from "../../../shared/utils/date-format";
 import { formatMoney } from "../../../shared/utils/money";
 import { AlertCircle, CreditCard, WalletCards } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
@@ -21,14 +22,7 @@ const methodLabels: Record<PaymentHistoryItem["method"], string> = { CASH: "Efec
 
 
 
-function formatInstant(value: string, timezone: string) {
-  return new Intl.DateTimeFormat("es-PY", { dateStyle: "medium", timeStyle: "short", timeZone: timezone }).format(new Date(value));
-}
 
-function formatPureDate(value: string) {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Intl.DateTimeFormat("es-PY", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(year, month - 1, day));
-}
 
 function safeMessage(error: unknown, fallback: string) {
   if (error instanceof ApiError) {

@@ -1,3 +1,4 @@
+import { within } from "@testing-library/react";
 import {
   QueryClient,
   QueryClientProvider,
@@ -722,9 +723,7 @@ describe("ResourceDetailPage", () => {
 
     mockedDeleteResourceImage.mockResolvedValue(undefined);
 
-    const confirmMock = vi
-      .spyOn(window, "confirm")
-      .mockReturnValue(true);
+
 
     const { queryClient } = renderPage();
 
@@ -750,9 +749,8 @@ describe("ResourceDetailPage", () => {
       }),
     );
 
-    expect(confirmMock).toHaveBeenCalledWith(
-      "¿Querés eliminar esta imagen del recurso?",
-    );
+    expect(screen.getByRole("dialog", { name: "Eliminar imagen" })).toBeVisible();
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Eliminar imagen" }));
 
     await waitFor(() => {
       expect(mockedDeleteResourceImage).toHaveBeenCalledWith({
@@ -760,6 +758,7 @@ describe("ResourceDetailPage", () => {
         resourceId: activeResource.id,
         imageId: "image-2",
         accessToken: undefined,
+        signal: expect.any(AbortSignal),
       });
     });
 
@@ -817,7 +816,7 @@ describe("ResourceDetailPage", () => {
       refetch: vi.fn(),
     } as never);
 
-    vi.spyOn(window, "confirm").mockReturnValue(false);
+
 
     renderPage();
 
@@ -827,6 +826,7 @@ describe("ResourceDetailPage", () => {
       }),
     );
 
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancelar" }));
     expect(mockedDeleteResourceImage).not.toHaveBeenCalled();
   });
 

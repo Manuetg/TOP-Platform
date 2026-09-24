@@ -163,7 +163,19 @@ La UI usa `apiRequest` y QueryClient con clave `subscription/userId/businessId`,
 
 Operación MVP: el registro persistido es el destino real de «Solicitar ampliación». El operador autorizado puede consultar pendientes con `SELECT "businessId", "upgradeRequestedAt", "upgradeRequestedBy" FROM "BusinessSubscription" WHERE "upgradeRequestedAt" IS NOT NULL ORDER BY "upgradeRequestedAt";` dentro del entorno administrativo protegido. No se exporta esta información al cliente ni se inventa un contacto comercial. La resolución comercial y un eventual cambio de plan requieren decisión y procedimiento administrativo auditado; no son un cobro o upgrade automático de este MVP.
 
-## 25. Quality gate frontend del MVP
+## POST-MVP A — contratos y consumidores (2026-09-24)
+
+ArchiveContactUseCase valida Business activo e identificadores; `ContactRepository.archive` realiza la transición tenant-scoped e idempotente y su auditoría en una transacción PostgreSQL. La migración aditiva `20260924000000_contact_archive_audit` incorpora `Contact.archivedAt`, `archivedBy` y `archivedFromStatus`, sin backfill ni cambios en FK/Bookings. Un update ordinario ya no escribe status; evita restauraciones por una edición concurrente. Auditoría interna no se añade al DTO público.
+
+`PATCH /api/businesses/:businessId/contacts/:contactId/archive`: sin body; `contact.write`, JWT/membresía vigente, actor desde principal. Respuesta 200 ContactResponseDto (también al repetir), 400 identificadores inválidos, 401/403 autenticación/autorización, 404 Business/Contact ausente o Contact cruzado y 409 Business no activo. No expone Restore. Contact Detail permanece abierto con éxito, invalida detalle/listado/búsqueda y aborta al desmontarse/cambiar contexto. Abortar el cliente no implica rollback backend.
+
+POST/PATCH Contact mantienen campos públicos. `libphonenumber-js/min` con versión fija en ambos lockfiles proporciona metadatos de país/prefijos y longitud posible, evitando un catálogo mundial manual y sin añadir un paquete UI. Es una dependencia acotada justificada por A3 ([documentación primaria](https://github.com/catamphetamine/libphonenumber-js)); carga con las rutas consumidoras. País usa labels españoles/ISO y aliases del catálogo existente. Nuevos valores con contexto se normalizan a E.164; el contrato legado sin país y valores históricos no editados se preservan según Business Rules. WhatsApp solo genera enlace para un número internacional inequívoco.
+
+ConfirmBooking conserva su payload y obligatoriedad de Rate Plan. El guard agrega la capability vigente de override cuando algún item `pricing[]` contiene agreedAmountMinor/overrideReason; evita que recepción omita el permiso del endpoint de override mediante confirmación. No modifica cálculo, moneda ni snapshots.
+
+Presentación frontend: helper puro `formatPureDate` (dd/mm/yyyy) separado de `formatBusinessInstant` (timezone IANA explícita). ISO permanece en API, inputs nativos y atributos dateTime. Calendar conserva encabezados de mes/día como navegación parcial. ConfirmDialog reutiliza OverlayPanel y Foundation; carga bloquea cierre/duplicados, error queda en el diálogo y el cierre devuelve foco sin desplazar una navegación del shell.
+
+## 25. Quality gate frontend del MVP (histórico)
 
 Las páginas operativas y Login usan `React.lazy`/`Suspense` por ruta; el shell y los guards permanecen disponibles y la espera expone un status accesible. Se conserva el respaldo por página y general; errores de importación no exponen detalles internos. No se elevó el umbral de 500 kB.
 
