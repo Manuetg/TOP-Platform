@@ -69,7 +69,9 @@ export function OverlayPanel({ open, label, className, layerClassName, closeLabe
       document.removeEventListener("focusin", onFocusIn);
       background.forEach(({ element: item, inert }) => { if (!inert) item.removeAttribute("inert"); });
       document.body.style.overflow = previousOverflow;
-      if (element.contains(document.activeElement)) triggerRef.current?.focus();
+      // Un modal puede perder foco al ocultarse antes de que React ejecute el cleanup.
+      // Los paneles del shell conservan su condición para respetar cambios de breakpoint.
+      if (portal || element.contains(document.activeElement)) triggerRef.current?.focus();
     };
   }, [open, triggerRef, portal]);
 

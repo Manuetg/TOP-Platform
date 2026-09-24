@@ -4,11 +4,21 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ConfirmDialog } from "./ConfirmDialog";
 
-function Example({ loading = false, disabled = false, confirm = vi.fn() }) {
+function Example({ loading = false, disabled = false, confirm = vi.fn(), visible = true }) {
   const [open, setOpen] = useState(false); const trigger = useRef<HTMLButtonElement>(null);
-  return <><button ref={trigger} onClick={() => setOpen(true)}>Abrir</button><ConfirmDialog open={open} title="Archivar contacto" description="Conserva el historial." confirmLabel="Archivar" triggerRef={trigger} destructive loading={loading} disabled={disabled} onCancel={() => setOpen(false)} onConfirm={confirm} /></>;
+  return <><button ref={trigger} onClick={() => setOpen(true)}>Abrir</button><ConfirmDialog open={open && visible} title="Archivar contacto" description="Conserva el historial." confirmLabel="Archivar" triggerRef={trigger} destructive loading={loading} disabled={disabled} onCancel={() => setOpen(false)} onConfirm={confirm} /></>;
 }
 describe("ConfirmDialog", () => {
+  it("devuelve foco al cerrar aunque el navegador ya lo haya movido al body", async () => {
+    const user = userEvent.setup(); const view = render(<Example />);
+    const trigger = screen.getByRole("button", { name: "Abrir" });
+    await user.click(trigger);
+    // Emula la pérdida de foco nativa al ocultar el panel, ausente en jsdom.
+    screen.getByRole("dialog").blur();
+    expect(document.body).toHaveFocus();
+    view.rerender(<Example visible={false} />);
+    expect(trigger).toHaveFocus();
+  });
   it("monta la confirmación fuera de la página, aísla el fondo y cierra desde el backdrop", async () => {
     const user = userEvent.setup(); const view = render(<Example />);
     const trigger = screen.getByRole("button", { name: "Abrir" });
