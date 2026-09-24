@@ -57,7 +57,7 @@ export function OccupancyOverview({
           )}
         </svg>
         <div>
-          <strong>{occupancyLabel(rate)}</strong>
+          <strong>{rate === null ? "—" : `${occupancyLabel(rate)} ocupado`}</strong>
           <span>{rate === null ? "Sin inventario vendible" : "Ocupación"}</span>
         </div>
       </div>

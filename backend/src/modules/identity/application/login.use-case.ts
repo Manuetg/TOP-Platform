@@ -26,7 +26,7 @@ export interface LoginResponse {
   refreshToken: string;
   tokenType: 'Bearer';
   expiresIn: number;
-  user: { id: string; email: string; status: UserStatus };
+  user: { id: string; email: string; displayName: string | null; status: UserStatus };
   memberships: Array<{ businessId: string; role: MembershipRole }>;
 }
 
@@ -73,7 +73,7 @@ export class LoginUseCase {
       refreshToken,
       tokenType: 'Bearer',
       expiresIn: token.expiresIn,
-      user: { id: record.user.id, email: record.user.email, status: record.user.status },
+      user: { id: record.user.id, email: record.user.email, displayName: record.user.displayName ?? null, status: record.user.status },
       memberships: memberships.map((membership) => ({ businessId: membership.businessId, role: membership.role })),
     };
   }

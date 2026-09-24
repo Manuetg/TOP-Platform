@@ -50,7 +50,7 @@ describe('LoginUseCase', () => {
 
     await expect(useCase.execute({ email: ' USER@EXAMPLE.COM ', password: 'contraseña' })).resolves.toEqual({
       accessToken: 'jwt-token', refreshToken: 'refresh-token', tokenType: 'Bearer', expiresIn: 900,
-      user: { id: user().id, email: 'user@example.com', status: UserStatus.ACTIVE },
+      user: { id: user().id, email: 'user@example.com', displayName: null, status: UserStatus.ACTIVE },
       memberships: [{ businessId: 'business-a', role: MembershipRole.OWNER }, { businessId: 'business-b', role: MembershipRole.VIEWER }],
     });
     expect(findForLoginByEmail).toHaveBeenCalledWith('user@example.com');

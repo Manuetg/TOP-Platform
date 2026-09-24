@@ -1,13 +1,6 @@
-import {
-  House,
-  Tags,
-  WalletCards,
-  type LucideIcon,
-} from "lucide-react";
+import { House, Tags, type LucideIcon } from "lucide-react";
 import type { Resource } from "../../resources/types/resource.types";
 import type { RatePlan } from "../../pricing/types/pricing.types";
-import type { DashboardResponse } from "../types/dashboard.types";
-import { revenueLabel } from "./DashboardMetrics";
 
 interface MetricState {
   loading: boolean;
@@ -59,17 +52,13 @@ function OverviewCard({
 export function DashboardOverviewCards({
   resources,
   plans,
-  dashboard,
   resourceState,
   planState,
-  dashboardState,
 }: {
   resources?: Resource[];
   plans?: RatePlan[];
-  dashboard?: DashboardResponse;
   resourceState: MetricState;
   planState: MetricState;
-  dashboardState: MetricState;
 }) {
   return (
     <div className="dashboard-overview">
@@ -93,14 +82,6 @@ export function DashboardOverviewCards({
         icon={Tags}
         tone="pricing"
         {...planState}
-      />
-      <OverviewCard
-        title="Ingresos del período"
-        value={dashboard ? revenueLabel(dashboard.revenue) : "—"}
-        detail="Pagos registrados"
-        icon={WalletCards}
-        tone="revenue"
-        {...dashboardState}
       />
     </div>
   );

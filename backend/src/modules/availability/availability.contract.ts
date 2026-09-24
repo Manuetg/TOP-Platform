@@ -32,6 +32,37 @@ export interface OccupancyProjectionInput {
 export interface OccupancyProjection {
   occupiedResourceNights: number;
   sellableResourceNights: number;
+  daily?: DailyOccupancyItem[];
+  weekend?: OccupancySegment;
+  weekday?: OccupancySegment;
+  weekends?: WeekendAvailabilitySummary;
+}
+export interface DailyOccupancyItem {
+  date: string;
+  occupiedResourceNights: number;
+  sellableResourceNights: number;
+  availableResourceNights: number;
+  occupancyRateBasisPoints: number | null;
+}
+export interface OccupancySegment {
+  occupiedNights: number;
+  sellableNights: number;
+  availableNights: number;
+  occupancyRateBasisPoints: number | null;
+}
+export interface WeekendAvailabilityItem {
+  from: string;
+  to: string;
+  totalResources: number;
+  availableResources: number;
+  status: 'AVAILABLE' | 'PARTIAL' | 'FULL';
+}
+export interface WeekendAvailabilitySummary {
+  total: number;
+  full: number;
+  partial: number;
+  available: number;
+  items: WeekendAvailabilityItem[];
 }
 
 export const OCCUPANCY_PROJECTION_READER = Symbol('OCCUPANCY_PROJECTION_READER');

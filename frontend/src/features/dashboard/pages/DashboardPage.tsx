@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { AlertCircle, CalendarDays, Plus, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 import { useBusinessContext } from "../../business/context/BusinessContext";
@@ -9,13 +9,10 @@ import { useResources } from "../../resources/queries/use-resources";
 import { useResourceImageCovers } from "../../resources/queries/use-resource-image-covers";
 import { useRatePlans } from "../../pricing/queries/use-rate-plans";
 import { useDashboard } from "../queries/use-dashboard";
-import { initialDashboardPeriod } from "../period";
-import { DashboardPeriodFilter } from "../components/DashboardPeriodFilter";
-import {
-  OccupancyOverview,
-  ReservationsBreakdown,
-} from "../components/DashboardMetrics";
-import { DashboardOverviewCards } from "../components/DashboardOverviewCards";
+import { dashboardMonthToPeriod, formatDashboardMonth, initialDashboardMonth } from "../period";
+import { DashboardHeader } from "../components/DashboardHeader";
+import { DashboardKpiStrip } from "../components/DashboardKpiStrip";
+import { DashboardHospitalityIntelligence } from "../components/DashboardHospitalityIntelligence";
 import {
   PricingPreview,
   ResourcesPreview,
@@ -31,7 +28,13 @@ export function DashboardPage({
   const { session } = useAuth();
   const businessContext = useBusinessContext();
   businessId = businessId ?? businessContext.activeBusinessId;
-  const [period, setPeriod] = useState(initialDashboardPeriod);
+  const timezone = businessContext.activeBusiness?.timezone ?? "America/Asuncion";
+  const [month, setMonth] = useState(() => initialDashboardMonth(timezone));
+  const currentMonth = initialDashboardMonth(timezone);
+  useEffect(() => {
+    setMonth((selected) => businessContext.activeBusiness?.id === businessId ? selected : initialDashboardMonth(timezone));
+  }, [businessContext.activeBusiness?.id, businessId, timezone]);
+  const period = dashboardMonthToPeriod(month);
   // Reutilizar las queries de catálogo sin requests anónimos cuando falta sesión.
   const catalogInput = {
     businessId: session ? businessId : "",
@@ -60,49 +63,9 @@ export function DashboardPage({
     loading: plans.isLoading || !plans.data,
     error: plans.isError,
   };
-  const dashboardState = {
-    loading: query.isFetching || !data,
-    error: query.isError,
-  };
   return (
     <div className="dashboard-page dashboard-reference">
-      <header className="dashboard-header">
-        <div>
-          <h1>Dashboard</h1>
-          <p>Gestiona tu alojamiento desde un solo lugar.</p>
-        </div>
-        <div className="dashboard-header-actions">
-          <Link
-            className="top-button top-button--primary"
-            to="/app/resources/new"
-          >
-            <Plus size={18} aria-hidden="true" />
-            Crear recurso
-          </Link>
-          <Link className="top-button top-button--secondary" to="/app/bookings">
-            <CalendarDays size={18} aria-hidden="true" />
-            Ver reservas
-          </Link>
-        </div>
-      </header>
-      <section className="dashboard-toolbar" aria-label="Seleccionar período">
-        <div className="dashboard-toolbar__title">
-          <CalendarDays size={18} aria-hidden="true" />
-          <div>
-            <span>Período del resumen</span>
-            <small>Ingresos, ocupación y reservas creadas</small>
-          </div>
-        </div>
-        <DashboardPeriodFilter
-          period={period}
-          onApply={(next) => {
-            if (!businessId || !session?.accessToken) return;
-            if (next.from === period.from && next.to === period.to) {
-              void query.refetch();
-            } else setPeriod(next);
-          }}
-        />
-      </section>
+      <DashboardHeader business={businessContext.activeBusiness} displayName={session?.user?.displayName} month={month} currentMonth={currentMonth} onMonthChange={setMonth} />
       {!businessId ? (
         <div className="top-surface dashboard-card dashboard-message" role="status">
           No hay un negocio activo para consultar el resumen.
@@ -115,30 +78,11 @@ export function DashboardPage({
         </div>
       ) : (
         <div className="dashboard-reference-grid">
-          <DashboardOverviewCards
-            resources={resources.data}
-            plans={plans.data}
-            dashboard={data}
-            resourceState={resourceState}
-            planState={planState}
-            dashboardState={dashboardState}
-          />
-          <ResourcesPreview
-            resources={resources.data}
-            covers={covers.data}
-            loading={resourceState.loading}
-            error={resourceState.error}
-            onRetry={() => void resources.refetch()}
-          />
-          <PricingPreview
-            plans={plans.data}
-            loading={planState.loading}
-            error={planState.error}
-            onRetry={() => void plans.refetch()}
-          />
+          <DashboardKpiStrip dashboard={query.isFetching || query.isError ? undefined : data} />
+          {data && !query.isFetching && !query.isError ? <DashboardHospitalityIntelligence dashboard={data} month={month} /> : null}
           <section
             className="dashboard-secondary"
-            aria-label="Ocupación y reservas del período"
+            aria-label="Estado del período"
             data-source="REAL"
           >
             {query.isError ? (
@@ -179,23 +123,33 @@ export function DashboardPage({
             ) : (
               <div className="dashboard-results">
                 <p className="dashboard-applied-period">
-                  Mostrando del{" "}
-                  <time dateTime={period.from}>{period.from}</time> al{" "}
-                  <time dateTime={period.to}>{period.to}</time> (hasta no
-                  incluido)
+                  Mostrando el resumen de <strong>{formatDashboardMonth(month)}</strong>.
                 </p>
                 {empty && (
                   <div className="dashboard-empty" role="status">
-                    <strong>Aún no hay actividad para este período.</strong>
-                    <span>Prueba seleccionando otro rango de fechas.</span>
+                    <strong>Aún no hay actividad en {formatDashboardMonth(month)}.</strong>
+                    <span>Prueba seleccionando otro mes.</span>
                   </div>
                 )}
-                <div className="dashboard-panels">
-                  <OccupancyOverview occupancy={data.occupancy} />
-                  <ReservationsBreakdown reservations={data.reservations} />
-                </div>
               </div>
             )}
+          </section>
+          <section className="top-surface dashboard-catalog-group dashboard-catalog-grid" aria-label="Catálogos operativos">
+            <ResourcesPreview
+              resources={resources.data}
+              covers={covers.data}
+              loading={resourceState.loading}
+              error={resourceState.error}
+              summary={resources.data ? `${resources.data.filter((resource) => resource.status === "ACTIVE").length} de ${resources.data.length} activos` : undefined}
+              onRetry={() => void resources.refetch()}
+            />
+            <PricingPreview
+              plans={plans.data}
+              loading={planState.loading}
+              error={planState.error}
+              summary={plans.data ? `${plans.data.filter((plan) => plan.status === "ACTIVE").length} activas` : undefined}
+              onRetry={() => void plans.refetch()}
+            />
           </section>
         </div>
       )}

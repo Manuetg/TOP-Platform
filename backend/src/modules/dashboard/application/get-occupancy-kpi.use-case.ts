@@ -1,6 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   OCCUPANCY_PROJECTION_READER,
+  type DailyOccupancyItem,
+  type OccupancySegment,
+  type WeekendAvailabilitySummary,
   type OccupancyProjectionReader,
 } from '../../availability/availability.contract';
 import {
@@ -17,6 +20,10 @@ export interface OccupancyKpi {
   occupiedResourceNights: number;
   sellableResourceNights: number;
   occupancyRateBasisPoints: number | null;
+  daily?: DailyOccupancyItem[];
+  weekend?: OccupancySegment;
+  weekday?: OccupancySegment;
+  weekends?: WeekendAvailabilitySummary;
 }
 
 export class OccupancyKpiInputError extends Error {}

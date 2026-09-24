@@ -1,3 +1,4 @@
+import { businessDateAt } from "../../shared/utils/business-date";
 import type { DashboardPeriod } from "./types/dashboard.types";
 
 function calendarDay(value: string): number | null {
@@ -23,15 +24,37 @@ export function validateDashboardPeriod({
   return null;
 }
 
-export function initialDashboardPeriod(today = new Date()): DashboardPeriod {
-  const format = (offset: number) => {
-    const date = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate() + offset,
-    );
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  };
-  // Solo propone fechas de calendario del navegador; backend aplica la timezone del Business.
-  return { from: format(-6), to: format(1) };
+export function isValidDashboardMonth(month: string): boolean {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return false;
+  return validateDashboardPeriod(dashboardMonthToPeriod(month)) === null;
+}
+
+export function dashboardMonthToPeriod(month: string): DashboardPeriod {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new RangeError("Mes de Dashboard inválido");
+  const [year, monthNumber] = month.split("-").map(Number);
+  const nextYear = monthNumber === 12 ? year + 1 : year;
+  const nextMonth = monthNumber === 12 ? 1 : monthNumber + 1;
+  return { from: `${month}-01`, to: `${nextYear}-${String(nextMonth).padStart(2, "0")}-01` };
+}
+
+export function currentDashboardMonth(timezone = "America/Asuncion", today = new Date()): string {
+  return businessDateAt(today, timezone).slice(0, 7);
+}
+
+export function initialDashboardMonth(timezone = "America/Asuncion", today = new Date()): string {
+  return currentDashboardMonth(timezone, today);
+}
+
+export function shiftDashboardMonth(month: string, offset: number): string {
+  if (!isValidDashboardMonth(month)) throw new RangeError("Mes de Dashboard inválido");
+  const [year, monthNumber] = month.split("-").map(Number);
+  const shifted = new Date(Date.UTC(year, monthNumber - 1 + offset, 1));
+  return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+export function formatDashboardMonth(month: string, locale = "es-PY"): string {
+  if (!isValidDashboardMonth(month)) return "Mes inválido";
+  const [year, monthNumber] = month.split("-").map(Number);
+  return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" })
+    .format(new Date(Date.UTC(year, monthNumber - 1, 1)));
 }
