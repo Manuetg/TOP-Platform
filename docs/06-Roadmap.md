@@ -16,7 +16,7 @@ Un épico activo = una rama = una PR con implementación, pruebas, documentació
 
 | Iniciativa | Estado | Alcance y evidencia requerida |
 |---|---|---|
-| A — Refinamiento funcional y UX | In Progress | A1 fechas; A2 selector/buscador Pricing; A3 teléfono internacional Contact; A4 archivo Contact; A5 ConfirmDialog; A6 inputs Booking; A7 estadía sin Rate Plan. Una PR `POST-MVP: UX & Functional Refinement` desde `post-mvp/ux-functional-refinement`. |
+| A — Refinamiento funcional y UX | Completed efectivo al merge de PR #96 | A1 fechas; A2 selector/buscador Pricing; A3 teléfono internacional Contact; A4 archivo Contact; A5 ConfirmDialog; A6 inputs Booking; A7 estadía sin Rate Plan. Una PR `POST-MVP: UX & Functional Refinement` desde `post-mvp/ux-functional-refinement`. |
 | B — Seguridad para producción | Planned | B1–B10 siguientes; decisiones sustentadas en riesgos reales. |
 | C — Escalabilidad de API y base de datos | Planned | C1–C6 siguientes; medición antes de optimizar. |
 | D — Assets y performance | Planned | D1–D10 siguientes; conservar capacidades ya integradas. |
