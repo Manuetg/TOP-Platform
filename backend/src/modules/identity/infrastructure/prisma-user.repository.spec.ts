@@ -15,6 +15,8 @@ describe('PrismaUserRepository', () => {
       status: UserStatus.DISABLED,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt,
+      displayName: null,
+      emailVerifiedAt: null,
     });
     const repository = new PrismaUserRepository(prisma);
     const user = User.create({ id: '11111111-1111-4111-8111-111111111111', email: 'user@example.com', status: UserStatus.DISABLED, createdAt: new Date('2026-01-01T00:00:00.000Z'), updatedAt: new Date('2026-01-01T00:00:00.000Z') });
@@ -24,7 +26,7 @@ describe('PrismaUserRepository', () => {
   });
   it('persiste exclusivamente el email y mapea el conflicto unique', async () => {
     const prisma = new PrismaIdentityService();
-    const update = jest.spyOn(prisma.user, 'update').mockResolvedValue({ id: '11111111-1111-4111-8111-111111111111', email: 'new@example.com', status: UserStatus.ACTIVE, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-09-01') });
+    const update = jest.spyOn(prisma.user, 'update').mockResolvedValue({ id: '11111111-1111-4111-8111-111111111111', email: 'new@example.com', status: UserStatus.ACTIVE, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-09-01'), displayName: null, emailVerifiedAt: null });
     const repository = new PrismaUserRepository(prisma);
     const changed = User.create({ id: '11111111-1111-4111-8111-111111111111', email: 'new@example.com', status: UserStatus.ACTIVE, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-09-01') });
     await expect(repository.updateEmail(changed)).resolves.toMatchObject({ email: 'new@example.com', status: UserStatus.ACTIVE });

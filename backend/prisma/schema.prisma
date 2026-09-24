@@ -89,12 +89,17 @@ enum PaymentStatus {
 model User {
   id              String                   @id @default(uuid())
   email           String                   @unique
+  displayName      String?
+  emailVerifiedAt  DateTime?
   status          UserStatus               @default(ACTIVE)
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
   localCredential LocalCredential?
   memberships     UserBusinessMembership[]
   refreshSessions RefreshSession[]
+  passwordResetTokens PasswordResetToken[]
+  passwordResetChallenges PasswordResetChallenge[]
+  emailVerificationTokens EmailVerificationToken[]
 }
 
 model UserBusinessMembership {
@@ -133,6 +138,47 @@ model RefreshSession {
   replacedSession     RefreshSession? @relation("RefreshSessionReplacement")
 
   @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetChallenge {
+  id          String   @id @default(uuid())
+  userId      String
+  codeDigest  String
+  expiresAt   DateTime
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(5)
+  lastSentAt  DateTime
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Business {

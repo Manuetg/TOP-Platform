@@ -115,6 +115,10 @@ Las reglas de autorización y el detalle operativo de cada capacidad están **Pe
 
 ## Identity & Access
 
+### Phase 2 — Registro público y verificación de correo
+
+El registro público de cuenta se realiza exclusivamente mediante `POST /api/auth/signup` y crea atómicamente User, LocalCredential, Business, membresía `OWNER`, suscripción `TOP_INITIAL` y un `EmailVerificationToken`. El registro no inicia sesión ni devuelve tokens. `User.displayName` es opcional para usuarios legacy pero obligatorio en Signup; `emailVerifiedAt` se backfillea para usuarios existentes durante la migración y queda nulo en nuevas cuentas hasta verificar el correo. La verificación usa token opaco de alta entropía, hash-only, TTL de 24 horas y single-use mediante `POST /api/auth/verify-email`. Google queda fuera de Phase 2 y Terms/Privacy son deuda pre-lanzamiento.
+
 ### 1. Propósito
 
 Administrar la identidad global de los usuarios, sus credenciales locales y sus membresías con Negocios para habilitar autenticación y autorización en TOP.

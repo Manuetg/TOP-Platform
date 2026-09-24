@@ -104,7 +104,7 @@ function createHeaders(
 }
 
 function isAuthEndpoint(path: string): boolean {
-  return ["/auth/login", "/auth/refresh", "/auth/logout"].some((endpoint) =>
+  return ["/auth/login", "/auth/refresh", "/auth/logout", "/auth/forgot-password", "/auth/verify-reset-code", "/auth/reset-password"].some((endpoint) =>
     path === endpoint || path.startsWith(`${endpoint}?`),
   );
 }

@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { useRef, type FormEvent } from "react";
-import { CalendarDays, ArrowRight, ShieldCheck } from "lucide-react";
+import { useRef, useState, type FormEvent } from "react";
+import { CalendarDays, ArrowRight, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import { useForm } from "react-hook-form";
 import { login } from "../api/login";
 import {
@@ -12,10 +13,19 @@ import { useAuth } from "../context/AuthContext";
 import { ApiError } from "../../../shared/api/api-client";
 import { Button } from "../../../shared/ui/Button";
 import { Input } from "../../../shared/ui/Input";
+import {
+  createStaggerContainerVariants,
+  createStaggerItemVariants,
+} from "../../../shared/motion/motion-presets";
 
 export function LoginPage() {
   const { establishSession } = useAuth();
   const submissionLock = useRef(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const reducedMotion = useReducedMotion() ?? false;
+  const containerVariants = createStaggerContainerVariants(reducedMotion);
+  const itemVariants = createStaggerItemVariants(reducedMotion);
 
   const {
     register,
@@ -32,7 +42,7 @@ export function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (data) => {
-      establishSession(data);
+      establishSession(data, rememberMe ? "PERSISTENT" : "SESSION");
     },
   });
 
@@ -60,59 +70,56 @@ export function LoginPage() {
     : null;
 
   return (
-    <main className="top-auth-page">
-      <aside className="top-auth-intro" aria-label="TOP, gestión de alojamientos">
-        <div className="top-auth-brand">TOP<span>Gestión de alojamientos</span></div>
-        <div className="top-auth-intro__copy">
-          <span className="top-icon-container"><CalendarDays size={24} aria-hidden="true" /></span>
-          <h2>Tu operación,<br />en un solo lugar.</h2>
-          <p>Reservas, huéspedes y cobros. La información que tu equipo necesita para el día a día.</p>
-        </div>
-        <p className="top-auth-intro__footnote">Más claridad para tu operación.<br />Más tiempo para tus huéspedes.</p>
-      </aside>
-      <section className="top-auth-card" aria-labelledby="login-title">
-        <header className="top-auth-header">
-          <div>
-            <h1 id="login-title" className="top-auth-title">
-              Iniciar sesión
-            </h1>
-
-            <p className="top-auth-description">
-              Accede a la gestión de tu alojamiento.
-            </p>
+    <motion.main className="top-auth-page" variants={containerVariants} initial="hidden" animate="visible">
+      <motion.aside className="top-auth-hero" aria-label="TOP, gestión de alojamientos" variants={itemVariants}>
+        <img className="top-auth-hero__image" src="/top-auth-hero.png" alt="Alojamiento rodeado de naturaleza al atardecer" />
+        <div className="top-auth-hero__scrim" />
+        <div className="top-auth-hero__content">
+          <div className="top-auth-brand">TOP<span>Gestión de alojamientos</span></div>
+          <div className="top-auth-hero__caption">
+            <CalendarDays size={20} aria-hidden="true" />
+            <span>Todo lo que tu equipo necesita para recibir mejor.</span>
           </div>
-        </header>
+        </div>
+      </motion.aside>
+      <motion.section className="top-auth-panel" aria-labelledby="login-title" variants={itemVariants}>
+        <div className="top-auth-mobile-brand">TOP<span>Gestión de alojamientos</span></div>
+        <motion.div className="top-auth-form-shell" variants={containerVariants}>
+          <motion.header className="top-auth-header" variants={itemVariants}>
+            <h1 id="login-title" className="top-auth-title">Bienvenido<br />de nuevo</h1>
+            <p className="top-auth-description">Ingresá a tu espacio de trabajo en TOP.</p>
+          </motion.header>
 
-        <form className="top-auth-form" onSubmit={onSubmit} noValidate>
-          <Input
-            label="Correo electrónico"
-            type="email"
-            autoComplete="email"
-            error={errors.email?.message}
-            {...register("email")}
-          />
+          <motion.form className="top-auth-form" onSubmit={onSubmit} noValidate variants={containerVariants}>
+            <motion.div variants={itemVariants}>
+              <Input label="Correo electrónico" type="email" autoComplete="email" error={errors.email?.message} {...register("email")} />
+            </motion.div>
 
-          <Input
-            label="Contraseña"
-            type="password"
-            autoComplete="current-password"
-            error={errors.password?.message}
-            {...register("password")}
-          />
+            <motion.div className="top-password-field" variants={itemVariants}>
+              <Input label="Contraseña" type={showPassword ? "text" : "password"} autoComplete="current-password" error={errors.password?.message} {...register("password")} />
+              <button type="button" className="top-password-field__toggle" aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} aria-pressed={showPassword} onClick={() => setShowPassword((current) => !current)}>
+                {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+              </button>
+            </motion.div>
 
-          {loginErrorMessage ? (
-            <div className="top-auth-error" role="alert">
-              {loginErrorMessage}
-            </div>
-          ) : null}
+            <motion.div className="top-auth-options" variants={itemVariants}>
+              <label className="top-auth-remember"><input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} /><span>Mantener sesión iniciada</span></label>
+              <a className="top-auth-forgot" href="/forgot-password">¿Olvidaste tu contraseña?</a>
+            </motion.div>
 
-          <Button type="submit" size="lg" loading={loginMutation.isPending} loadingLabel="Ingresando...">
-            Iniciar sesión <ArrowRight size={18} aria-hidden="true" />
-          </Button>
-        </form>
-        <p className="top-auth-footnote"><ShieldCheck size={16} aria-hidden="true" />Acceso seguro para tu equipo.</p>
-      </section>
-    </main>
+            {loginErrorMessage ? <motion.div className="top-auth-error" role="alert" variants={itemVariants}>{loginErrorMessage}</motion.div> : null}
+
+            <motion.div variants={itemVariants}>
+              <Button type="submit" size="lg" loading={loginMutation.isPending} loadingLabel="Ingresando...">
+                Iniciar sesión <ArrowRight size={18} aria-hidden="true" />
+              </Button>
+            </motion.div>
+          </motion.form>
+          <motion.p className="top-auth-footnote" variants={itemVariants}><ShieldCheck size={16} aria-hidden="true" />Acceso seguro para tu equipo.</motion.p>
+          <motion.p className="top-auth-footnote" variants={itemVariants}>¿Todavía no tenés una cuenta? <a className="top-auth-forgot" href="/signup">Crear cuenta</a></motion.p>
+        </motion.div>
+      </motion.section>
+    </motion.main>
   );
 }
 

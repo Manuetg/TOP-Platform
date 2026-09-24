@@ -1,7 +1,7 @@
 import { GetBusinessCapabilitiesUseCase } from './application/get-business-capabilities.use-case';
 import { AuthorizationPolicy } from '../../shared/application/authorization-policy';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { CreateUserUseCase } from './application/create-user.use-case';
 import { CreateMembershipUseCase } from './application/create-membership.use-case';
@@ -29,6 +29,22 @@ import { PrismaRefreshSessionRepository } from './infrastructure/prisma-refresh-
 import { AuthController } from './presentation/auth.controller';
 import { MembershipController } from './presentation/membership.controller';
 import { UserController } from './presentation/user.controller';
+import { ForgotPasswordUseCase } from './application/forgot-password.use-case';
+import { ResetPasswordUseCase } from './application/reset-password.use-case';
+import { PASSWORD_RESET_TOKEN_REPOSITORY } from './domain/password-reset-token.repository';
+import { PrismaPasswordResetTokenRepository } from './infrastructure/prisma-password-reset-token.repository';
+import { CryptoPasswordResetTokenService } from './infrastructure/crypto-password-reset-token.service';
+import { EMAIL_SENDER } from './domain/email-sender';
+import { ConsoleEmailSender } from './infrastructure/console-email-sender';
+import { SmtpEmailSender } from './infrastructure/smtp-email-sender';
+import { PASSWORD_RESET_CHALLENGE_REPOSITORY } from './domain/password-reset-challenge.repository';
+import { CryptoPasswordResetOtpService } from './infrastructure/crypto-password-reset-otp.service';
+import { VerifyResetCodeUseCase } from './application/verify-reset-code.use-case';
+import { SignupUseCase } from './application/signup.use-case';
+import { VerifyEmailUseCase } from './application/verify-email.use-case';
+import { SignupRateLimiter } from './application/signup-rate-limiter';
+import { CryptoEmailVerificationTokenService } from './infrastructure/crypto-email-verification-token.service';
+import { ResendVerificationUseCase } from './application/resend-verification.use-case';
 
 @Module({
   imports: [ConfigModule, JwtModule.register({})],
@@ -38,6 +54,15 @@ import { UserController } from './presentation/user.controller';
     PrismaMembershipRepository,
     PrismaUserRepository,
     PrismaRefreshSessionRepository,
+    PrismaPasswordResetTokenRepository,
+    CryptoPasswordResetTokenService,
+    CryptoPasswordResetOtpService,
+    CryptoEmailVerificationTokenService,
+    ConsoleEmailSender,
+    SmtpEmailSender,
+    { provide: EMAIL_SENDER, inject: [ConfigService, ConsoleEmailSender, SmtpEmailSender], useFactory: (config: ConfigService, consoleSender: ConsoleEmailSender, smtpSender: SmtpEmailSender) => { const mode = config.get<string>('EMAIL_DELIVERY_MODE', 'console'); if (config.get<string>('NODE_ENV') === 'production' && mode !== 'smtp') throw new Error('EMAIL_DELIVERY_MODE=smtp es obligatorio en producción.'); return mode === 'smtp' ? smtpSender : consoleSender; } },
+    { provide: PASSWORD_RESET_TOKEN_REPOSITORY, useExisting: PrismaPasswordResetTokenRepository },
+    { provide: PASSWORD_RESET_CHALLENGE_REPOSITORY, useExisting: PrismaPasswordResetTokenRepository },
     JwtAccessTokenIssuer,
     CryptoRefreshTokenService,
     { provide: USER_REPOSITORY, useExisting: PrismaUserRepository },
@@ -61,6 +86,13 @@ import { UserController } from './presentation/user.controller';
     LogoutUseCase,
     DisableUserUseCase,
     UpdateUserUseCase,
+    ForgotPasswordUseCase,
+    ResetPasswordUseCase,
+    VerifyResetCodeUseCase,
+    SignupUseCase,
+    ResendVerificationUseCase,
+    VerifyEmailUseCase,
+    SignupRateLimiter,
   ],
   exports: [GetBusinessCapabilitiesUseCase,ACCESS_TOKEN_VERIFIER, MEMBERSHIP_REPOSITORY, USER_BY_ID_LOOKUP],
 })
