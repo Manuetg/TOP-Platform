@@ -206,8 +206,8 @@ describe("CreateContactPage", () => {
           input: {
             name: "Juan",
             lastName: "Pérez",
-            phone: "0981123456",
-            whatsapp: "0981123456",
+            phone: "+595981123456",
+            whatsapp: "+595981123456",
             email: "juan@example.com",
             documentType: "CI",
             documentNumber: "1234567",

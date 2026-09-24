@@ -1,3 +1,6 @@
+import { CONTACT_REPOSITORY } from '../../src/modules/contact/domain/contact.repository';
+import { Contact } from '../../src/modules/contact/domain/contact.entity';
+import { ContactStatus } from '../../src/modules/contact/domain/contact-status.enum';
 import { Controller, Get, type INestApplication, ParseUUIDPipe, Param, Patch, Post } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
@@ -22,6 +25,7 @@ import { BusinessStatus } from '../../src/modules/business/domain/business-statu
 import { RATE_PLAN_REPOSITORY } from '../../src/modules/pricing/domain/rate-plan.repository';
 import { RESOURCE_REPOSITORY } from '../../src/modules/resource/domain/resource.repository';
 
+const archiveContact = jest.fn();
 const secret = 'security-e2e-secret';
 const userId = '11111111-1111-4111-8111-111111111111';
 const businessId = '22222222-2222-4222-8222-222222222222';
@@ -67,6 +71,7 @@ describe('Protección JWT y membresía', () => {
       .overrideProvider(BOOKING_TIMELINE_REPOSITORY).useValue({list:()=>Promise.resolve([])})
       .overrideProvider(BUSINESS_REPOSITORY).useValue({ findById: (id: string) => Promise.resolve(id === businessId ? securityBusiness : null), create: jest.fn(), list: jest.fn(), update: jest.fn() })
       .overrideProvider(RESOURCE_REPOSITORY).useValue({ findByIdAndBusinessId: () => Promise.resolve(null), findByBusinessAndCode: jest.fn(), listByBusinessId: jest.fn(), create: jest.fn(), update: jest.fn() })
+      .overrideProvider(CONTACT_REPOSITORY).useValue({ archive: archiveContact })
       .overrideProvider(RATE_PLAN_REPOSITORY).useValue({ create: jest.fn(), findByIdAndBusinessId: jest.fn(), listByBusinessId: () => Promise.resolve([]), update: jest.fn() })
       .compile();
     app = module.createNestApplication();
@@ -192,4 +197,24 @@ describe('Protección JWT y membresía', () => {
     userStatus = UserStatus.DISABLED;
     await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${token}`).send({ email: 'blocked@example.com' }).expect(401);
   });
+  it.each([MembershipRole.OWNER, MembershipRole.ADMIN, MembershipRole.RECEPTIONIST, MembershipRole.VIEWER])('archives Contact using contact.write for %s', async (role) => {
+    memberships = [membership(businessId, role)]; archiveContact.mockReset();
+    const contactId = '55555555-5555-4555-8555-555555555555';
+    archiveContact.mockResolvedValue(Contact.create({ id: contactId, businessId, name: 'Ana', lastName: null, phone: '+595981123456', whatsapp: null, email: null, country: 'Paraguay', city: null, documentType: null, documentNumber: null, status: ContactStatus.ARCHIVED, createdAt: new Date(), updatedAt: new Date() }));
+    const token = await bearer();
+    const response = await request(app.getHttpServer()).patch(`/api/businesses/${businessId}/contacts/${contactId}/archive`).set('Authorization', `Bearer ${token}`).expect(role === MembershipRole.VIEWER ? 403 : 200);
+    if (role === MembershipRole.VIEWER) expect(archiveContact).not.toHaveBeenCalled();
+    else { expect(response.body).toMatchObject({ id: contactId, status: 'ARCHIVED', businessId }); expect(response.body).not.toHaveProperty('props'); expect(archiveContact).toHaveBeenCalledWith(contactId, businessId, userId); }
+    archiveContact.mockClear();
+    await request(app.getHttpServer()).patch(`/api/businesses/${otherBusinessId}/contacts/${contactId}/archive`).set('Authorization', `Bearer ${token}`).expect(403);
+    await request(app.getHttpServer()).patch(`/api/businesses/${businessId}/contacts/${contactId}/archive`).expect(401);
+    expect(archiveContact).not.toHaveBeenCalled();
+  });
+  it('denies nested Booking override to receptionist before invoking confirmation', async () => {
+    memberships = [membership(businessId, MembershipRole.RECEPTIONIST)]; const token = await bearer();
+    const endpoint = `/api/businesses/${businessId}/bookings/${timelineBookingId}/confirm`;
+    await request(app.getHttpServer()).post(endpoint).set('Authorization', `Bearer ${token}`).send({ pricing: [{ resourceId: otherBusinessId, ratePlanId: otherBusinessId, agreedAmountMinor: 0, overrideReason: 'Ajuste' }] }).expect(403);
+    await request(app.getHttpServer()).post(endpoint).set('Authorization', `Bearer ${token}`).send({ pricing: [{ resourceId: otherBusinessId, ratePlanId: otherBusinessId }] }).expect(409);
+  });
+
 });

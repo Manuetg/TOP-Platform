@@ -1,8 +1,28 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-09-23
+Última actualización: 2026-09-24
 
-## Handoff vigente — cierre del MVP por épicos
+## Handoff vigente — POST-MVP / PRODUCTION READINESS
+
+Baseline remoto verificado: `develop@cb9eddcb5eb9fcd55008555a29bb478d71f6009a`, PR #90–95 integradas y ninguna PR abierta al iniciar. Checkout local limpio; rama `post-mvp/ux-functional-refinement` creada desde origin/develop. El handoff siguiente se conserva como historial, no como estado actual de esas PR.
+
+Épico A: In Progress. B/C/D: Planned. E: Discovery. Roadmap completo en [06-Roadmap.md](06-Roadmap.md). Backend MVP permanece **53/53 Completed**; recuento frontend histórico intacto. No se declara Product Ready ni Production Ready; decisión comercial de FE-SUB-001 sigue pendiente antes de producción.
+
+Gaps confirmados: fechas de presentación inconsistentes, selector Pricing sin estados Foundation completos, teléfonos sin normalización backend, ausencia de archivo explícito Contact, window.confirm en Resources, inputs Booking ad-hoc y modo configurado visible sin planes. OverlayPanel, consulta contextual Rate Plans y permisos backend ya existen.
+
+A7: el contrato actual exige Rate Plan incluso para precio manual; sin planes se explica el bloqueo para todos los roles. No se inventa un tarifario ni se amplía Pricing. A3/A4 son cambios backend post-MVP explícitamente aprobados; su contrato y evidencia se registran en el backlog separado. QA interactiva: NOT RUN por instrucción de esta ejecución. CI del nuevo épico: pendiente, no se reutiliza evidencia del MVP.
+
+### Implementación y verificación del Épico A
+
+Implementados A1–A7 en esta rama: helper de fechas puro y formatter de instantes por Business; interacción Foundation en Pricing; teléfono internacional en alta/edición/alta contextual y WhatsApp; archivo Contact auditado; ConfirmDialog en Contact/Resources; inputs Booking; cero tarifas con bloqueo explícito, cancelación contextual y permiso de override también en confirmación backend. La API de fechas permanece intacta.
+
+Migración aditiva pendiente de despliegue: `20260924000000_contact_archive_audit`. Sin cambios de infraestructura, sin migraciones sobre datos locales/reales, sin B/C/D/E implementados. `libphonenumber-js/min` se declara explícitamente (ya existía transitivamente en backend), fijada en ambos lockfiles; chunk diferido aproximado 121 kB / 30 kB gzip.
+
+Validación local: lint/build frontend y backend, Prisma validate, arquitectura y diff check PASS. Regresión focal backend: 73 pruebas; E2E Contact/seguridad: 33 PASS. Pruebas PostgreSQL de archivo concurrente, idempotencia, historial y aislamiento escritas para CI; aceptación agrega archivo repetido. Frontend incluye regresiones de bisiesto/null/instantes, focus trap/retorno, teléfonos históricos, cache/cancelación de archivo y planes cero/uno/varios/error/roles/cambio de contexto. Las corridas oficiales, HEAD y revisión de la misma PR se registran al concluir CI; no se declara DoD cumplida antes de ambos SUCCESS.
+
+Self-review técnica (no independiente) siguiendo top-frontend-review: sin bloqueantes conocidos tras corregir foco del shell, preservación de teléfonos legacy y targets tardíos. QA manual/interactiva móvil/desktop: **NOT RUN** por instrucción expresa; no equivale a certificación visual o WCAG. Mutation: se espera **SKIPPED** en pull_request según workflow vigente, nunca PASS. Épico A se conserva In Progress hasta merge humano, con cierre efectivo únicamente después de CI SUCCESS. Siguiente épico previsto: B, sin inicio automático.
+
+## Handoff histórico — cierre del MVP por épicos
 
 Baseline `develop@4c866cc` con Payments y Calendar/Pricing mergeados. Implementación en ramas nuevas, sin merge directo ni incorporación de infraestructura local. Las PR están encadenadas y deben revisarse/mergearse en orden:
 

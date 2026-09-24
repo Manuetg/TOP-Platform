@@ -1,3 +1,4 @@
+import { formatPureDate as formatDate } from "../../../shared/utils/date-format";
 import { formatMoney } from "../../../shared/utils/money";
 import {
   ArrowLeft,
@@ -25,19 +26,6 @@ import "./PricePreviewPage.css";
 
 
 
-function formatDate(value: string) {
-  const [year, month, day] = value
-    .split("-")
-    .map(Number);
-
-  return new Intl.DateTimeFormat("es-PY", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(
-    new Date(year, month - 1, day),
-  );
-}
 
 export function PricePreviewPage() {
   const { session } = useAuth();

@@ -1,3 +1,5 @@
+import { useBusinessContext } from "../../business/context/BusinessContext";
+import { formatBusinessInstant } from "../../../shared/utils/date-format";
 import {
   CheckCircle2,
   Circle,
@@ -27,12 +29,6 @@ const EVENT_LABELS: Record<
   BOOKING_CANCELLED: "Reserva cancelada",
 };
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("es-PY", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 function EventIcon({
   type,
@@ -80,6 +76,8 @@ function TimelineItem({
 }: {
   item: BookingTimelineItem;
 }) {
+  const { activeBusiness } = useBusinessContext();
+  const formatDateTime = (value: string) => activeBusiness ? formatBusinessInstant(value, activeBusiness.timezone) : "Sin fecha";
   return (
     <li className="booking-timeline-item">
       <div

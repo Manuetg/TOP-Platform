@@ -1,6 +1,16 @@
 # TOP — Backlog del MVP
 
-## Convenciones
+## POST-MVP / PRODUCTION READINESS — separado del MVP
+
+Implementación A preparada en esta rama; In Progress hasta CI y merge humano. Evidencia y limitaciones en [Estado actual](00-Current-Status.md). Sin modificación de los conteos MVP.
+
+Backend MVP histórico permanece **53/53 Completed**. El roadmap A–D/E y sus criterios están en [06-Roadmap.md](06-Roadmap.md). Épico A In Progress sobre `cb9eddc`, una única rama/PR junto al frontend.
+
+- **POST-A3 — Teléfono internacional Contact. In Progress.** Normalización/validación backend para POST/PATCH existentes; compatible con E.164 y país, conserva teléfonos históricos sin cambios, sin migración automática de valores ambiguos. Swagger, tests y consumidores incluidos en la misma PR.
+- **POST-A4 — Archive Contact. In Progress.** `PATCH /api/businesses/:businessId/contacts/:contactId/archive`, `contact.write`, Business ACTIVE; ACTIVE/INACTIVE → ARCHIVED, repetición idempotente con contrato Contact público. Sin borrado ni Restore, reservas preservadas y auditoría actor/fecha. Pruebas unitarias, PostgreSQL, E2E y aceptación, aislamiento/permisos/concurrencia cuando aplique. Completed efectivo al merge y CI aprobado.
+- A7 consume selección/override existentes: no permite precio manual sin Rate Plan porque el contrato vigente también lo exige para override. No agrega capacidad backend.
+
+## Convenciones del MVP histórico
 
 Estados permitidos: Planned, In Progress, Completed y Blocked.
 

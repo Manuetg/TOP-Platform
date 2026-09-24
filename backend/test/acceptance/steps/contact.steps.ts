@@ -13,3 +13,6 @@ Then('recibo el Contact público actualizado', function (this: TopWorld): void {
 Given('existe un Contact en otro negocio', async function (): Promise<void> { await contactRepositoryFake.create({ businessId: otherBusinessId, name: 'María', lastName: null, phone: '0981000', whatsapp: null, email: null, documentType: null, documentNumber: null, country: null, city: null }); });
 When('busco Contacts por María', async function (this: TopWorld): Promise<void> { this.response = await request(this.app?.getHttpServer()).get(`/api/businesses/${businessId}/contacts?query=María`); });
 Then('recibo una lista vacía de Contacts', function (this: TopWorld): void { assert.deepEqual(this.response?.body, []); });
+
+When('archivo el Contact creado', async function (this: TopWorld): Promise<void> { this.response = await request(this.app?.getHttpServer()).patch(`/api/businesses/${businessId}/contacts/${this.contactId}/archive`); });
+Then('el Contact está archivado y conserva sus datos', function (this: TopWorld): void { assert.equal(this.response?.body.status, 'ARCHIVED'); assert.equal(this.response?.body.name, 'María'); assert.equal(this.response?.body.phone, '0981123456'); });

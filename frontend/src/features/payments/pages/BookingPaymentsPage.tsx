@@ -1,3 +1,5 @@
+import { formatBusinessInstant } from "../../../shared/utils/date-format";
+import { formatPureDate as formatHumanDate } from "../../../shared/utils/date-format";
 import { formatMoney as money } from "../../../shared/utils/money";
 import {
   ArrowLeft,
@@ -76,24 +78,6 @@ function dateFromYmd(value: string) {
   return new Date(Date.UTC(year, month - 1, day));
 }
 
-function formatHumanDate(value?: string | null) {
-  if (!value) return "Sin fecha";
-
-  const date = dateFromYmd(value);
-
-  if (!date || Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("es-PY", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  })
-    .format(date)
-    .replace(".", "");
-}
 
 function formatStay(checkIn?: string | null, checkOut?: string | null) {
   if (!checkIn || !checkOut) {
@@ -151,7 +135,7 @@ export function BookingPaymentsPage() {
   const navigate = useNavigate();
   const { bookingId = "" } = useParams();
   const { session } = useAuth();
-  const { activeBusinessId } = useBusinessContext();
+  const { activeBusinessId, activeBusiness } = useBusinessContext();
 
   const booking = useBooking({
     businessId: activeBusinessId,
@@ -1069,15 +1053,7 @@ export function BookingPaymentsPage() {
 
                 <div className="payments-activity__date">
                   <strong>
-                    {new Intl.DateTimeFormat(
-                      "es-PY",
-                      {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      },
-                    ).format(
-                      new Date(item.paidAt),
-                    )}
+                    {activeBusiness ? formatBusinessInstant(item.paidAt, activeBusiness.timezone) : "Sin fecha"}
                   </strong>
 
                   <span>

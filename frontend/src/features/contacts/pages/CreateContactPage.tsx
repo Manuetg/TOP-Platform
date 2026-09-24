@@ -1,3 +1,5 @@
+import { ContactPhoneField } from "../components/ContactPhoneField";
+import { normalizePhone } from "../utils/contact-phone";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowLeft,
@@ -35,6 +37,8 @@ export function CreateContactPage() {
     useState<string | null>(null);
 
   const {
+    watch,
+    setError,
     register,
     handleSubmit,
     formState: {
@@ -65,8 +69,8 @@ export function CreateContactPage() {
 
     setSubmitError(null);
 
-    const contactPhone =
-      values.contactPhone.trim();
+    const contactPhone = normalizePhone(values.contactPhone, values.country);
+    if (!contactPhone) { setError("contactPhone", { message: "Ingresa un teléfono válido con país o prefijo internacional." }, { shouldFocus: true }); return; }
 
     try {
       const contact = await createContact({
@@ -261,28 +265,7 @@ export function CreateContactPage() {
           </div>
 
           <div className="contact-create-fields">
-            <label className="contact-create-field">
-              <span>Teléfono / WhatsApp *</span>
-
-              <input
-                type="tel"
-                autoComplete="tel"
-                maxLength={120}
-                placeholder="Ej. 0981 123 456"
-                aria-invalid={
-                  errors.contactPhone
-                    ? "true"
-                    : "false"
-                }
-                {...register("contactPhone")}
-              />
-
-              {errors.contactPhone && (
-                <small role="alert">
-                  {errors.contactPhone.message}
-                </small>
-              )}
-            </label>
+            <ContactPhoneField country={watch("country")} value={watch("contactPhone")} registration={register("contactPhone")} error={errors.contactPhone?.message} />
 
             <label className="contact-create-field">
               <span>Email</span>

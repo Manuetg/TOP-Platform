@@ -22,8 +22,8 @@ import {
 } from "vitest";
 import { AvailabilityCalendarPage } from "./AvailabilityCalendarPage";
 
-const context = vi.hoisted(() => ({ businessId: "business-1" }));
-vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeBusinessId: context.businessId, activeBusiness: { id: context.businessId, timezone: "America/Asuncion" } }) }));
+const context = vi.hoisted(() => ({ businessId: "business-1", role: "OWNER" }));
+vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeRole: context.role, activeBusinessId: context.businessId, activeBusiness: { id: context.businessId, timezone: "America/Asuncion" } }) }));
 const useResourcesMock = vi.fn();
 const useBookingsMock = vi.fn();
 const useBlocksMock = vi.fn();
@@ -196,28 +196,41 @@ async function goToContactStep() {
 
 describe("AvailabilityCalendarPage", () => {
   beforeEach(() => {
+    context.role = "OWNER";
     vi.clearAllMocks();
 
     useResourcesMock.mockReturnValue({
       data: [resource],
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
       isLoading: false,
       isError: false,
     });
 
     useBookingsMock.mockReturnValue({
       data: [],
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
       isLoading: false,
       isError: false,
     });
 
     useBlocksMock.mockReturnValue({
       data: [],
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
       isLoading: false,
       isError: false,
     });
 
     useContactsMock.mockReturnValue({
       data: [contact],
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
       isLoading: false,
       isError: false,
     });
@@ -241,7 +254,10 @@ describe("AvailabilityCalendarPage", () => {
                 },
               ],
             },
-            isLoading: false,
+            isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+      isLoading: false,
             isError: false,
             error: null,
           };
@@ -256,7 +272,10 @@ describe("AvailabilityCalendarPage", () => {
               },
             ],
           },
-          isLoading: false,
+          isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+      isLoading: false,
           isError: false,
           error: null,
         };
@@ -272,6 +291,9 @@ describe("AvailabilityCalendarPage", () => {
           baseNightlyAmountMinor: 6500000,
         },
       ],
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
       isLoading: false,
       isError: false,
     });
@@ -355,11 +377,11 @@ describe("AvailabilityCalendarPage", () => {
     );
 
     expect(
-      screen.getByText("17-09-2026"),
+      screen.getByText("17/09/2026"),
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText("18-09-2026"),
+      screen.getByText("18/09/2026"),
     ).toBeInTheDocument();
   });
 
@@ -428,6 +450,9 @@ describe("AvailabilityCalendarPage", () => {
         { id: "rate-plan-1", name: "Tarifa Normal", currency: "PYG", baseNightlyAmountMinor: 6500000 },
         { id: "rate-plan-2", name: "Tarifa Flexible", currency: "PYG", baseNightlyAmountMinor: 7000000 },
       ],
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
       isLoading: false,
       isError: false,
     });
@@ -521,4 +546,37 @@ describe("AvailabilityCalendarPage", () => {
     await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
     await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.not.objectContaining({ agreedAmountMinor: expect.anything(), overrideReason: expect.anything() })] }) })));
   });
+  it.each(["OWNER", "ADMIN", "RECEPTIONIST", "VIEWER"])("no ofrece modos ni permite continuar sin planes para %s", async (role) => {
+    context.role = role;
+    useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
+    await goToRateStep();
+    expect(screen.getByText("No hay un tarifario disponible para esta estadía.")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Configurada" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Manual" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Continuar/i })).toBeDisabled();
+    expect(confirmBookingMock).not.toHaveBeenCalled();
+  });
+  it.each(["RECEPTIONIST", "VIEWER"])("no ofrece override ni descuento a %s", async (role) => {
+    context.role = role; await goToRateStep();
+    expect(screen.queryByRole("button", { name: "Manual" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Aplicar descuento" })).not.toBeInTheDocument();
+  });
+  it("no presenta vacío durante carga ni después de error y permite reintentar", async () => {
+    const retry = vi.fn(); useSelectableRatePlansMock.mockReturnValue({ data: undefined, isSuccess: false, isLoading: true, isFetching: true, isError: false, refetch: retry });
+    const user = await goToRateStep(); expect(screen.getByText("Buscando planes tarifarios…")).toBeVisible();
+    expect(screen.queryByText("No hay un tarifario disponible para esta estadía.")).not.toBeInTheDocument();
+    useSelectableRatePlansMock.mockReturnValue({ data: undefined, isSuccess: false, isLoading: false, isFetching: false, isError: true, refetch: retry });
+    await user.click(screen.getByRole("button", { name: /Atrás/i })); await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    expect(screen.getByText("No pudimos consultar los tarifarios de esta estadía.")).toBeVisible();
+    expect(screen.getByRole("button", { name: /Continuar/i })).toBeDisabled(); await user.click(screen.getByRole("button", { name: "Reintentar tarifarios" })); expect(retry).toHaveBeenCalledOnce();
+  });
+  it("el cambio de fechas descarta una tarifa previamente seleccionada", async () => {
+    const user = await goToRateStep(); expect(screen.getByRole("button", { name: /Tarifa Normal/i })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: /Atrás/i })); await user.click(screen.getByRole("button", { name: /Atrás/i })); await user.click(screen.getByRole("button", { name: /Atrás/i }));
+    useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
+    fireEvent.change(screen.getByLabelText("Entrada"), { target: { value: "2026-09-18" } }); fireEvent.change(screen.getByLabelText("Salida"), { target: { value: "2026-09-20" } });
+    await user.click(screen.getByRole("button", { name: /Buscar disponibilidad/i })); await user.click(screen.getByRole("button", { name: /Habitacion 1/i })); await user.click(screen.getByRole("button", { name: /Continuar/i })); await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    expect(screen.getByText("No hay un tarifario disponible para esta estadía.")).toBeVisible(); expect(screen.getByRole("button", { name: /Continuar/i })).toBeDisabled();
+  });
+
 });

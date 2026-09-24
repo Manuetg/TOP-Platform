@@ -45,6 +45,11 @@
   .top-input:not(:disabled):hover { border-color: var(--color-border-strong); }
 }
 .top-input { transition: border-color var(--motion-fast) var(--motion-state), background-color var(--motion-fast) var(--motion-state); }
+.top-choice { min-height: 44px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-primary); cursor: pointer; transition: background-color var(--motion-fast) var(--motion-state), border-color var(--motion-fast) var(--motion-state); }
+.top-choice:focus-visible { outline: 3px solid var(--color-brand-primary); outline-offset: 3px; }
+.top-choice:active, .top-choice[aria-pressed="true"], .top-button[aria-pressed="true"] { border-color: var(--color-brand-primary); background: var(--color-action-soft); }
+@media (hover: hover) { .top-choice:hover { background: var(--color-action-soft); border-color: var(--color-border-strong); } }
+@media (prefers-reduced-motion: reduce) { .top-choice, .top-input { transition: none; } }
 .top-password-field { position: relative; }
 .top-password-field .top-input { padding-right: calc(var(--space-3) + 40px); }
 .top-password-field__toggle { position: absolute; top: 28px; right: var(--space-2); display: grid; place-items: center; width: 40px; height: 40px; padding: 0; color: var(--color-text-secondary); background: transparent; border: 0; border-radius: var(--radius-md); cursor: pointer; transition: color var(--motion-fast) var(--motion-state), background-color var(--motion-fast) var(--motion-state); }
@@ -160,3 +165,8 @@
   .top-button:not(:disabled):active { transform: none; }
   .top-motion-card, .top-surface:hover { transform: none !important; transition: none !important; }
 }
+
+.top-interactive-surface { transition: border-color var(--motion-fast) var(--motion-state), background-color var(--motion-fast) var(--motion-state); }
+.top-interactive-surface:focus-within { border-color: var(--color-brand-primary); }
+@media (hover: hover) { .top-interactive-surface:hover { border-color: var(--color-border-strong); background: var(--color-surface-subtle); } }
+@media (prefers-reduced-motion: reduce) { .top-interactive-surface { transition: none; } }

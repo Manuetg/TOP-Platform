@@ -1,3 +1,5 @@
+import { formatBusinessInstant } from "../../../shared/utils/date-format";
+import { formatPureDate } from "../../../shared/utils/date-format";
 import {
   ArrowLeft,
   CalendarDays,
@@ -50,6 +52,8 @@ const STATUS_LABELS: Record<
   NO_SHOW: "No show",
 };
 
+const formatDate = (value: string | null) => formatPureDate(value, "Sin definir");
+
 function BookingStatusBadge({
   status,
 }: {
@@ -64,30 +68,7 @@ function BookingStatusBadge({
   );
 }
 
-function formatDate(value: string | null) {
-  if (!value) {
-    return "Sin definir";
-  }
 
-  const [year, month, day] = value
-    .split("-")
-    .map(Number);
-
-  return new Intl.DateTimeFormat("es-PY", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(
-    new Date(year, month - 1, day),
-  );
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("es-PY", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 function shortBookingId(id: string) {
   return id.slice(0, 8).toUpperCase();
@@ -130,6 +111,7 @@ export function BookingDetailPage({
     : "Reservas";
   const { session, status: authStatus } = useAuth();
   const { activeBusinessId, activeBusiness, status: businessStatus } = useBusinessContext();
+  const formatDateTime = (value: string) => activeBusiness ? formatBusinessInstant(value, activeBusiness.timezone) : "Sin fecha";
   const businessId = suppliedBusinessId ?? activeBusinessId;
 
   const {

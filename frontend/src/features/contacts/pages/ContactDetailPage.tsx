@@ -1,3 +1,5 @@
+import { whatsappUrl } from "../utils/contact-phone";
+import { ArchiveContactAction } from "../components/ArchiveContactAction";
 import {
   ArrowLeft,
   Mail,
@@ -61,7 +63,7 @@ export function ContactDetailPage() {
   const navigate = useNavigate();
   const { contactId = "" } = useParams();
   const { session } = useAuth();
-  const { activeBusinessId } = useBusinessContext();
+  const { activeBusinessId, activeRole } = useBusinessContext();
 
   const {
     data: contact,
@@ -211,6 +213,7 @@ export function ContactDetailPage() {
         </Button>
       </header>
 
+      {activeRole && ["OWNER", "ADMIN", "RECEPTIONIST"].includes(activeRole) && <ArchiveContactAction key={`${session?.user.id}:${activeBusinessId}:${contact.id}`} contact={contact} accessToken={session?.accessToken} />}
       <div className="contact-detail-grid">
         <section className="contact-detail-card">
           <div className="contact-detail-card__header">
@@ -255,6 +258,7 @@ export function ContactDetailPage() {
               <div>
                 <span>Teléfono / WhatsApp</span>
                 <strong>{phone || "—"}</strong>
+                {whatsappUrl(contact.whatsapp) && <a href={whatsappUrl(contact.whatsapp)} target="_blank" rel="noreferrer">Abrir WhatsApp</a>}
               </div>
             </div>
 

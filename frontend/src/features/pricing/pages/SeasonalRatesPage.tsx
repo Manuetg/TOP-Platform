@@ -1,3 +1,4 @@
+import { formatPureDate as formatDate } from "../../../shared/utils/date-format";
 import { parseGuaranies } from "../../../shared/utils/money";
 import { formatMoney } from "../../../shared/utils/money";
 import {
@@ -26,19 +27,6 @@ import "./SeasonalRatesPage.css";
 
 
 
-function formatDate(value: string) {
-  const [year, month, day] = value
-    .split("-")
-    .map(Number);
-
-  return new Intl.DateTimeFormat("es-PY", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(
-    new Date(year, month - 1, day),
-  );
-}
 
 export function SeasonalRatesPage() {
   const { session } = useAuth();

@@ -2,6 +2,24 @@
 
 Última actualización: 2026-09-23
 
+## POST-MVP / PRODUCTION READINESS (2026-09-24)
+
+Implementación A preparada en esta rama; In Progress hasta CI y merge humano. Evidencia y limitaciones en [Estado actual](00-Current-Status.md). Sin modificación de los conteos MVP.
+
+Bloque separado: no altera las 52 historias ni sus conteos históricos. Baseline remoto `cb9eddc`; la cadena #90–95 ya está integrada. Épico A — In Progress, una rama/PR junto a sus capacidades backend. Roadmap completo B/C/D Planned y E Discovery en [06-Roadmap.md](06-Roadmap.md).
+
+| Punto | Estado | Alcance aprobado |
+|---|---|---|
+| POST-A1 | In Progress | Presentación compartida dd/mm/yyyy; contratos y controles ISO intactos; instantes en timezone del Business. |
+| POST-A2 | In Progress | Selector/buscador/listado de Rate Plans con estados Foundation y reduced motion. |
+| POST-A3 | In Progress | Prefijo internacional ligado a país, pegado internacional, edición sin corrupción y WhatsApp; validación backend. |
+| POST-A4 | In Progress | Archivar Contact desde detalle con ConfirmDialog, permisos, cancelación, caché y estados. |
+| POST-A5 | In Progress | ConfirmDialog accesible compartido; adopción en Resources y Contact. |
+| POST-A6 | In Progress | Inputs Booking coherentes con shared forms sin megarefactor. |
+| POST-A7 | In Progress | Sin planes seleccionables no se ofrece modo configurado ni continuación. El contrato exige plan también para manual: se explica que debe configurarse tarifa. Con planes se preservan override OWNER/ADMIN y selección backend. |
+
+DoD y riesgos en Roadmap. QA interactiva NOT RUN por instrucción expresa; pruebas de regresión y gates finales oficiales en la PR. Completed efectivo al merge; no se declara production readiness.
+
 ## Objetivo
 
 Este documento define el backlog funcional del frontend de TOP Platform.

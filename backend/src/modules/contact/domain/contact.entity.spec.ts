@@ -75,5 +75,10 @@ describe('Contact', () => {
       createdAt,
     });
     expect(updated.updatedAt.getTime()).toBeGreaterThanOrEqual(updatedAt.getTime());
+    const archived = original.archive();
+    expect(original.status).toBe(ContactStatus.ACTIVE);
+    expect(archived).toMatchObject({ status: ContactStatus.ARCHIVED, phone: original.phone, businessId: original.businessId, createdAt });
+    expect(archived.archive()).toBe(archived);
+
   });
 });

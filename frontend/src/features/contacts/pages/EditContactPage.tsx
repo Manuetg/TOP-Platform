@@ -1,3 +1,6 @@
+import { z } from "zod";
+import { ContactPhoneField } from "../components/ContactPhoneField";
+import { normalizePhone } from "../utils/contact-phone";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowLeft,
@@ -74,6 +77,8 @@ export function EditContactPage() {
   });
 
   const {
+    watch,
+    setError,
     register,
     handleSubmit,
     reset,
@@ -82,7 +87,7 @@ export function EditContactPage() {
       isSubmitting,
     },
   } = useForm<CreateContactFormValues>({
-    resolver: zodResolver(createContactSchema),
+    resolver: zodResolver(createContactSchema.extend({ lastName: z.string().trim().max(120), contactPhone: z.string().trim().max(120), country: z.string().max(120) })),
     defaultValues: {
       name: "",
       lastName: "",
@@ -129,8 +134,9 @@ export function EditContactPage() {
 
     setSubmitError(null);
 
-    const contactPhone =
-      values.contactPhone.trim();
+    const phoneUnchanged = values.contactPhone.trim() === (contact?.phone ?? contact?.whatsapp ?? "").trim();
+    const contactPhone = phoneUnchanged ? values.contactPhone.trim() : normalizePhone(values.contactPhone, values.country);
+    if (!phoneUnchanged && !contactPhone) { setError("contactPhone", { message: "Ingresa un teléfono válido con país o prefijo internacional." }, { shouldFocus: true }); return; }
 
     try {
       await updateContact({
@@ -139,12 +145,11 @@ export function EditContactPage() {
         accessToken: session?.accessToken,
         input: {
           name: values.name.trim(),
-          lastName: values.lastName.trim(),
+          lastName: optionalValue(values.lastName),
 
           // La UI mantiene un único número operativo.
           // El contrato backend todavía conserva ambos campos.
-          phone: contactPhone,
-          whatsapp: contactPhone,
+          ...(phoneUnchanged ? {} : { phone: contactPhone, whatsapp: contactPhone }),
 
           email: optionalValue(values.email),
 
@@ -404,28 +409,7 @@ export function EditContactPage() {
           </div>
 
           <div className="contact-create-fields">
-            <label className="contact-create-field">
-              <span>Teléfono / WhatsApp *</span>
-
-              <input
-                type="tel"
-                autoComplete="tel"
-                maxLength={120}
-                placeholder="Ej. 0981 123 456"
-                aria-invalid={
-                  errors.contactPhone
-                    ? "true"
-                    : "false"
-                }
-                {...register("contactPhone")}
-              />
-
-              {errors.contactPhone && (
-                <small role="alert">
-                  {errors.contactPhone.message}
-                </small>
-              )}
-            </label>
+            <ContactPhoneField country={watch("country")} value={watch("contactPhone")} registration={register("contactPhone")} error={errors.contactPhone?.message} />
 
             <label className="contact-create-field">
               <span>Email</span>
@@ -478,6 +462,7 @@ export function EditContactPage() {
                   Seleccionar país
                 </option>
 
+                {contact?.country && !COUNTRIES.some((country) => country === contact.country) && <option value={contact.country}>{contact.country}</option>}
                 {COUNTRIES.map((country) => (
                   <option
                     key={country}

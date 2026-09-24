@@ -159,8 +159,8 @@ describe("EditContactPage", () => {
       ...contact,
       lastName: "Gómez",
       fullName: "Juan Gómez",
-      phone: "0981555555",
-      whatsapp: "0981555555",
+      phone: "+595981555555",
+      whatsapp: "+595981555555",
       country: "Argentina",
       city: "Buenos Aires",
       updatedAt: "2026-09-10T01:00:00.000Z",
@@ -179,7 +179,7 @@ describe("EditContactPage", () => {
     );
 
     await user.clear(phone);
-    await user.type(phone, "0981555555");
+    await user.type(phone, "+595981555555");
 
     await user.selectOptions(
       screen.getByLabelText("País"),
@@ -207,8 +207,8 @@ describe("EditContactPage", () => {
           input: expect.objectContaining({
             name: "Juan",
             lastName: "Gómez",
-            phone: "0981555555",
-            whatsapp: "0981555555",
+            phone: "+595981555555",
+            whatsapp: "+595981555555",
             country: "Argentina",
             city: "Buenos Aires",
           }),
@@ -251,7 +251,7 @@ describe("EditContactPage", () => {
 
     expect(
       await screen.findByText(
-        "Ingresá un teléfono válido.",
+        "Ingresa un teléfono válido con país o prefijo internacional.",
       ),
     ).toBeInTheDocument();
 
@@ -275,4 +275,23 @@ describe("EditContactPage", () => {
       screen.getByText("Cargando contacto"),
     ).toBeInTheDocument();
   });
+  it("preserva teléfonos históricos distintos al editar otro campo", async () => {
+    const user = userEvent.setup();
+    mockedUseContact.mockReturnValue({ data: { ...contact, phone: "interno 12", whatsapp: "0981999" }, isLoading: false, isError: false, error: null, refetch: vi.fn() } as never);
+    mockedUpdateContact.mockResolvedValue(contact); renderPage();
+    await user.selectOptions(screen.getByLabelText("País"), "Argentina");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    await waitFor(() => expect(mockedUpdateContact).toHaveBeenCalledOnce());
+    expect(mockedUpdateContact.mock.calls[0][0].input).not.toHaveProperty("phone");
+    expect(mockedUpdateContact.mock.calls[0][0].input).not.toHaveProperty("whatsapp");
+  });
+  it("permite editar un contacto legado solo con email sin inventar teléfono", async () => {
+    const user = userEvent.setup(); mockedUseContact.mockReturnValue({ data: { ...contact, lastName: null, phone: null, whatsapp: null }, isLoading: false, isError: false, error: null, refetch: vi.fn() } as never);
+    mockedUpdateContact.mockResolvedValue(contact); renderPage();
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    await waitFor(() => expect(mockedUpdateContact).toHaveBeenCalledOnce());
+    expect(mockedUpdateContact.mock.calls[0][0].input).not.toHaveProperty("phone");
+    expect(mockedUpdateContact.mock.calls[0][0].input).toMatchObject({ lastName: null, email: contact.email });
+  });
+
 });
