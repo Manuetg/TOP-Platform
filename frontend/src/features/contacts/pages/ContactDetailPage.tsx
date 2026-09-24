@@ -201,19 +201,25 @@ export function ContactDetailPage() {
           </div>
         </div>
 
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() =>
-            navigate(`/app/contacts/${contact.id}/edit`)
-          }
-        >
-          <Pencil size={18} aria-hidden="true" />
-          Editar
-        </Button>
+        <div className="contact-detail-header__actions">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => navigate(`/app/contacts/${contact.id}/edit`)}
+          >
+            <Pencil size={18} aria-hidden="true" />
+            Editar
+          </Button>
+          {activeRole && ["OWNER", "ADMIN", "RECEPTIONIST"].includes(activeRole) && (
+            <ArchiveContactAction
+              key={`${session?.user.id}:${activeBusinessId}:${contact.id}`}
+              contact={contact}
+              accessToken={session?.accessToken}
+            />
+          )}
+        </div>
       </header>
 
-      {activeRole && ["OWNER", "ADMIN", "RECEPTIONIST"].includes(activeRole) && <ArchiveContactAction key={`${session?.user.id}:${activeBusinessId}:${contact.id}`} contact={contact} accessToken={session?.accessToken} />}
       <div className="contact-detail-grid">
         <section className="contact-detail-card">
           <div className="contact-detail-card__header">

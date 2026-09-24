@@ -18,7 +18,9 @@ describe("archivo de Contact", () => {
   it("confirma, conserva detalle y actualiza caché con respuesta pública", async () => {
     const user = userEvent.setup(); const archived = { ...contact, status: "ARCHIVED" as const }; vi.mocked(archiveContact).mockResolvedValue(archived);
     const { client } = setup(); const invalidation = vi.spyOn(client, "invalidateQueries");
+    expect(screen.getByRole("button", { name: "Archivar contacto" })).toHaveClass("top-button--warning");
     await user.click(screen.getByRole("button", { name: "Archivar contacto" }));
+    expect(within(screen.getByRole("dialog")).getByRole("button", { name: "Archivar" })).toHaveClass("top-button--warning");
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Archivar" }));
     expect(await screen.findByRole("status")).toHaveTextContent("El contacto se archivó");
     expect(archiveContact).toHaveBeenCalledWith({ businessId: "business-1", contactId: "contact-1", accessToken: "token", signal: expect.any(AbortSignal) });

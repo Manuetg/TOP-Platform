@@ -31,6 +31,14 @@ Evidencia oficial de implementación: feature HEAD `151ee2b9c818379fd0ba1648030a
 
 Self-review técnica (no independiente) siguiendo top-frontend-review: sin bloqueantes conocidos tras corregir foco del shell, preservación de teléfonos legacy y targets tardíos. QA manual/interactiva móvil/desktop: **NOT RUN** por instrucción expresa; no equivale a certificación visual o WCAG. Mutation: **SKIPPED** en pull_request según workflow vigente, nunca PASS. DoD técnica acreditada por pruebas y ambos CI; cierre documental preparado en la misma PR, efectivo en develop solo tras revisión/merge humano. No hay aprobación independiente ni auto-merge. Siguiente épico previsto: B, sin inicio automático.
 
+### Revisión final de PR #96 — correcciones UX y discovery
+
+Continuación sobre `f419789876789a83d9a5e456ca1f18438e5fb8e4`, sin cambios remotos posteriores al comenzar. Contact agrupa País/Teléfono/Email y comparte controles entre alta/edición; Calendar reutiliza el teléfono compuesto. Archivo adopta warning terracota en la acción y confirmación, con etiqueta visible móvil. ConfirmDialog agrega backdrop modal al 40%, portal sobre la aplicación y aislamiento inert del fondo; conserva foco, cierre condicionado y reduced-motion. Decisiones visuales acotadas en [Design Context](design/DESIGN.md).
+
+**POST-A7: DECISION REQUIRED** — precio manual sin Rate Plan pendiente de decisión de Producto. Discovery y comparación A/B/C en [Roadmap](06-Roadmap.md#post-a7--discovery-de-precio-manual-sin-rate-plan-revisión-final-pr-96). Se recomienda evaluar C (híbrido excepcional), pero se conserva A vigente: manual siempre sobre un plan seleccionable. No se modifica backend, contrato, Snapshot ni migraciones en esta revisión. No es un bug del contrato actual.
+
+Validación local: 10 archivos/89 pruebas focalizadas PASS (orden/prefijo/payload, warning, backdrop/foco/inert/carga y regresión de shell/Resources), lint/build y diff check PASS. Contraste calculado de texto warning: 5,77:1 en reposo, 5,34:1 en hover y 4,93:1 en pressed; no sustituye QA visual. Los gates oficiales del HEAD final se registran en el cuerpo de la misma PR. Self-review frontend, sin aprobación independiente; QA interactiva **NOT RUN**. Estado: **DECISION REQUIRED** para el modelo futuro de Pricing; correcciones frontend preparadas para revisión PM/TL. PR #96 permanece abierta, sin merge y sin iniciar B.
+
 ## Handoff histórico — cierre del MVP por épicos
 
 Baseline `develop@4c866cc` con Payments y Calendar/Pricing mergeados. Implementación en ramas nuevas, sin merge directo ni incorporación de infraestructura local. Las PR están encadenadas y deben revisarse/mergearse en orden:

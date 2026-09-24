@@ -97,6 +97,14 @@ El Business activo permanece visible y nunca se cambia silenciosamente. La UI no
 9. Mantener el Business activo visible en operaciones de negocio.
 10. No declarar una pantalla final si depende de un dominio, permiso o flujo aún pendiente.
 
+## Correcciones visuales aprobadas — Épico A / PR #96
+
+La revisión de Producto del 2026-09-24 adopta la opción A para Contact: Información personal → Contacto (País, Teléfono/WhatsApp, Email) → Ubicación (Ciudad). País se guarda una sola vez como residencia y sugiere prefijo; un número internacional explícito sigue prevaleciendo. Alta/edición comparten campos y Foundation; Calendar reutiliza el teléfono compuesto. Grid de una columna móvil y dos desde tablet, alineado al inicio para que ayudas/errores no estiren controles vecinos; controles de 44 px mínimos y texto editable de 16 px.
+
+Se aprueba Button `warning` para archivo Contact: acción secundaria con fondo suave, borde Accent y texto oscurecido derivado del Accent para contraste. Esta decisión específica sustituye la asociación genérica de «Archivar» a Error del Brand Book para esta acción; no cambia otros botones. Conserva icono/etiqueta, foco Foundation, hover donde existe y pressed también táctil. La confirmación usa la misma variante; eliminar imagen sigue destructive. El estilo no promete Restore, que continúa fuera de alcance.
+
+ConfirmDialog usa el fondo modal al 40% definido por Brand Book, derivado de Text Primary mediante tokens Foundation. Se monta en body para escapar de stacking contexts, en la capa compartida `z-index-confirm` (1100, por encima del máximo 1000 existente); el resto del body queda inert durante la confirmación. Conserva scroll interno, botones completos en móvil, Escape/backdrop solo dismissible, carga sin cierre, foco contenido y retorno. Entrada breve heredada (opacidad y desplazamiento de 4 px), anulada con reduced-motion. QA interactiva NOT RUN por instrucción expresa; revisión CSS y pruebas DOM no se presentan como validación visual.
+
 ## Próximos entregables
 
 ### Implementación Foundation Polish (2026-09-23)

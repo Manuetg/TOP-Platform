@@ -1,4 +1,5 @@
-import { normalizePhone, phonePrefix } from "../../contacts/utils/contact-phone";
+import { ContactPhoneField } from "../../contacts/components/ContactPhoneField";
+import { normalizePhone } from "../../contacts/utils/contact-phone";
 import { COUNTRIES } from "../../contacts/constants/countries";
 import { Input } from "../../../shared/ui/Input";
 import { formatPureDate as formatDateForDisplay } from "../../../shared/utils/date-format";
@@ -1026,80 +1027,25 @@ function ContactStep({
       </div>
 
       {creating ? (
-        <div className="booking-wizard-fields booking-wizard-fields--single">
-          <label>
-            Nombre
-            <input
-              value={newContact.name}
-              onChange={(event) =>
-                onNewContact({
-                  ...newContact,
-                  name: event.target.value,
-                })
-              }
-            />
-          </label>
-
-          <label>
-            Apellido
-            <input
-              value={newContact.lastName}
-              onChange={(event) =>
-                onNewContact({
-                  ...newContact,
-                  lastName: event.target.value,
-                })
-              }
-            />
-          </label>
-
-          <label>País<select className="top-input" value={newContact.country} onChange={(event) => onNewContact({ ...newContact, country: event.target.value })}>{COUNTRIES.map((country) => <option key={country}>{country}</option>)}</select></label>
-          <span aria-label="Prefijo internacional">{phonePrefix(newContact.country, newContact.phone)}</span>
-          <label>
-            Teléfono
-            <input
-              type="tel" className="top-input"
-              value={newContact.phone}
-              onChange={(event) =>
-                onNewContact({
-                  ...newContact,
-                  phone: event.target.value,
-                })
-              }
-            />
-          </label>
-
-          <label>
-            Tipo de documento
-            <select
-              value={newContact.documentType}
-              onChange={(event) =>
-                onNewContact({
-                  ...newContact,
-                  documentType: event.target.value,
-                })
-              }
-            >
+        <div className="contact-form-fields contact-form-fields--single">
+          <Input id="quick-contact-name" label="Nombre" autoComplete="given-name" value={newContact.name} onChange={(event) => onNewContact({ ...newContact, name: event.target.value })} />
+          <Input id="quick-contact-last-name" label="Apellido" autoComplete="family-name" value={newContact.lastName} onChange={(event) => onNewContact({ ...newContact, lastName: event.target.value })} />
+          <div className="top-field">
+            <label className="top-field__label" htmlFor="quick-contact-country">País</label>
+            <select id="quick-contact-country" className="top-input" autoComplete="country-name" value={newContact.country} onChange={(event) => onNewContact({ ...newContact, country: event.target.value })}>
+              {COUNTRIES.map((country) => <option key={country}>{country}</option>)}
+            </select>
+          </div>
+          <ContactPhoneField label="Teléfono" country={newContact.country} phone={newContact.phone} value={newContact.phone} onChange={(event) => onNewContact({ ...newContact, phone: event.target.value })} />
+          <div className="top-field">
+            <label className="top-field__label" htmlFor="quick-contact-document-type">Tipo de documento</label>
+            <select id="quick-contact-document-type" className="top-input" value={newContact.documentType} onChange={(event) => onNewContact({ ...newContact, documentType: event.target.value })}>
               <option value="">Seleccionar</option>
               <option value="CI">CI</option>
               <option value="PASSPORT">Pasaporte</option>
             </select>
-          </label>
-
-          <label>
-            Número de documento
-            <input
-              type="text"
-              maxLength={120}
-              value={newContact.documentNumber}
-              onChange={(event) =>
-                onNewContact({
-                  ...newContact,
-                  documentNumber: event.target.value,
-                })
-              }
-            />
-          </label>
+          </div>
+          <Input id="quick-contact-document-number" label="Número de documento" maxLength={120} value={newContact.documentNumber} onChange={(event) => onNewContact({ ...newContact, documentNumber: event.target.value })} />
 
           <div className="booking-wizard-inline-actions">
             <Button

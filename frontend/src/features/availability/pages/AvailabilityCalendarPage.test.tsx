@@ -21,6 +21,7 @@ import {
   vi,
 } from "vitest";
 import { AvailabilityCalendarPage } from "./AvailabilityCalendarPage";
+import { createContact } from "../../contacts/api/create-contact";
 
 const context = vi.hoisted(() => ({ businessId: "business-1", role: "OWNER" }));
 vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeRole: context.role, activeBusinessId: context.businessId, activeBusiness: { id: context.businessId, timezone: "America/Asuncion" } }) }));
@@ -195,6 +196,24 @@ async function goToContactStep() {
 }
 
 describe("AvailabilityCalendarPage", () => {
+  it("crea contacto con país antes del teléfono compuesto y conserva el payload normalizado", async () => {
+    vi.mocked(createContact).mockResolvedValue({ ...contact, status: "ACTIVE" });
+    const user = await goToContactStep();
+    await user.click(screen.getByRole("button", { name: "Crear contacto" }));
+    const country = screen.getByLabelText("País");
+    const phone = screen.getByLabelText("Teléfono");
+    expect(country.compareDocumentPosition(phone) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await user.selectOptions(country, "Argentina");
+    expect(screen.getByLabelText("Prefijo internacional")).toHaveTextContent("+54");
+    await user.type(screen.getByLabelText("Nombre"), "Ana");
+    await user.type(screen.getByLabelText("Apellido"), "Prueba");
+    await user.type(phone, "11 2345 6789");
+    await user.click(screen.getByRole("button", { name: "Crear contacto" }));
+    await waitFor(() => expect(createContact).toHaveBeenCalledWith(expect.objectContaining({
+      businessId: "business-1", input: expect.objectContaining({ name: "Ana", lastName: "Prueba", country: "Argentina", phone: "+541123456789", whatsapp: "+541123456789" }),
+    })));
+  });
+
   beforeEach(() => {
     context.role = "OWNER";
     vi.clearAllMocks();

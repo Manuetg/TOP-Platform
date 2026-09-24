@@ -1,3 +1,4 @@
+import { Archive } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../../shared/ui/Button";
@@ -34,9 +35,9 @@ export function ArchiveContactAction({ contact, accessToken }: { contact: Contac
       if (!controller.signal.aborted) { operation.current = null; setLoading(false); }
     }
   }
-  return <div>
-    <Button ref={trigger} type="button" variant="destructive" aria-disabled={contact.status === "ARCHIVED"} onClick={() => { if (contact.status === "ARCHIVED") return; setError(null); setOpen(true); }}>Archivar contacto</Button>
+  return <div className="contact-archive-action">
+    <Button ref={trigger} type="button" variant="warning" aria-disabled={contact.status === "ARCHIVED"} onClick={() => { if (contact.status === "ARCHIVED") return; setError(null); setOpen(true); }}><Archive size={18} aria-hidden="true" />Archivar contacto</Button>
     {success && <p role="status">El contacto se archivó. Sus reservas e historial se conservan.</p>}
-    <ConfirmDialog open={open} title="Archivar contacto" description={`Vas a archivar a ${contact.fullName}. Sus reservas e historial se conservan.`} confirmLabel="Archivar" destructive triggerRef={trigger} loading={loading} error={error} onCancel={() => setOpen(false)} onConfirm={() => void confirm()} />
+    <ConfirmDialog open={open} title="Archivar contacto" description={`Vas a archivar a ${contact.fullName}. Sus reservas e historial se conservan.`} confirmLabel="Archivar" confirmVariant="warning" triggerRef={trigger} loading={loading} error={error} onCancel={() => setOpen(false)} onConfirm={() => void confirm()} />
   </div>;
 }

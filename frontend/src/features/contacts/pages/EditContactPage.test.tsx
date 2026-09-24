@@ -279,7 +279,13 @@ describe("EditContactPage", () => {
     const user = userEvent.setup();
     mockedUseContact.mockReturnValue({ data: { ...contact, phone: "interno 12", whatsapp: "0981999" }, isLoading: false, isError: false, error: null, refetch: vi.fn() } as never);
     mockedUpdateContact.mockResolvedValue(contact); renderPage();
-    await user.selectOptions(screen.getByLabelText("País"), "Argentina");
+    const country = screen.getByLabelText("País");
+    const phone = screen.getByLabelText(/Teléfono \/ WhatsApp/i);
+    expect(country.compareDocumentPosition(phone) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(country.closest("section")).toBe(phone.closest("section"));
+    await user.selectOptions(country, "Argentina");
+    expect(screen.getByLabelText("Prefijo internacional")).toHaveTextContent("+54");
+    expect(phone).toHaveValue("interno 12");
     await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
     await waitFor(() => expect(mockedUpdateContact).toHaveBeenCalledOnce());
     expect(mockedUpdateContact.mock.calls[0][0].input).not.toHaveProperty("phone");

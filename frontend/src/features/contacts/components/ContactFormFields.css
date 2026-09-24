@@ -1,0 +1,27 @@
+.contact-form-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-5);
+}
+.contact-form-fields > .top-field { min-width: 0; align-content: start; }
+.contact-form-fields .top-input { min-width: 0; font-size: 16px; line-height: 24px; }
+.contact-field-help { color: var(--color-text-secondary); font-size: 12px; line-height: 16px; }
+.contact-phone-control { display: flex; align-items: stretch; gap: var(--space-2); min-width: 0; }
+.contact-phone-control > span {
+  display: inline-flex;
+  align-items: center;
+  padding-inline: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  line-height: 24px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.contact-phone-control > input { min-width: 0; flex: 1; }
+@media (min-width: 768px) {
+  .contact-form-fields:not(.contact-form-fields--single) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

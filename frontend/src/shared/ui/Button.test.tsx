@@ -4,6 +4,18 @@ import { describe, expect, it, vi } from "vitest";
 import { Button } from "./Button";
 
 describe("Button", () => {
+  it("warning conserva activación por teclado y bloquea disabled/loading", async () => {
+    const user = userEvent.setup(); const onClick = vi.fn();
+    const view = render(<Button variant="warning" onClick={onClick}>Archivar</Button>);
+    const button = screen.getByRole("button", { name: "Archivar" });
+    expect(button).toHaveClass("top-button--warning");
+    button.focus(); await user.keyboard("{Enter}"); expect(onClick).toHaveBeenCalledOnce();
+    view.rerender(<Button variant="warning" disabled onClick={onClick}>Archivar</Button>);
+    await user.click(button); expect(onClick).toHaveBeenCalledOnce();
+    view.rerender(<Button variant="warning" loading onClick={onClick}>Archivar</Button>);
+    expect(button).toHaveAttribute("aria-busy", "true"); expect(button).toBeDisabled();
+    await user.click(button); expect(onClick).toHaveBeenCalledOnce();
+  });
   it("renders its label", () => {
     render(<Button>Guardar cambios</Button>);
     expect(

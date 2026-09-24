@@ -1,5 +1,10 @@
-.top-confirm-layer { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: var(--space-4); }
+.top-confirm-layer.top-overlay { z-index: var(--z-index-confirm); display: grid; place-items: center; padding: var(--space-4); }
 .top-confirm-layer[hidden] { display: none; }
-.top-confirm { position: relative; width: min(100%, 480px); max-height: calc(100dvh - 32px); overflow: auto; padding: var(--space-5); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-2); color: var(--color-text-primary); }
+.top-confirm-layer > .top-overlay__backdrop { background: var(--color-modal-backdrop); }
+.top-confirm { position: relative; width: min(100%, 480px); max-height: calc(100dvh - var(--space-6)); overflow: auto; overscroll-behavior: contain; padding: var(--space-5); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-2); color: var(--color-text-primary); animation: top-enter var(--motion-base) var(--motion-enter); }
 .top-confirm h2 { margin: 0 0 var(--space-3); font-size: 20px; }
 .top-confirm__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-3); margin-top: var(--space-5); }
+@media (max-width: 767px) {
+  .top-confirm { padding: var(--space-4); }
+  .top-confirm__actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+}

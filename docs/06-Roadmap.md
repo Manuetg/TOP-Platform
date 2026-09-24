@@ -33,6 +33,30 @@ Un épico activo = una rama = una PR con implementación, pruebas, documentació
 - A7: la consulta contextual backend decide los planes seleccionables. Sin planes: «No hay un tarifario disponible para esta estadía», sin modo configurado funcional. El contrato vigente de ConfirmBooking y ApplyManualPriceOverride **requiere un Rate Plan también para override**; por ello sin planes se bloquea a todos los roles y se explica que debe configurarse una tarifa. Con planes, OWNER/ADMIN conservan override y los demás sus permisos actuales. Probar carga, cero/uno/varios, error, cambios de Resource/fechas/Business, respuestas tardías y teclado.
 - DoD: pruebas de regresión, aislamiento/permisos, estados aplicables, coherencia móvil/desktop, fechas contractuales intactas, documentación y `git diff --check`; Frontend CI y Backend CI SUCCESS. Mutation según política vigente: SKIPPED no equivale a PASS. QA interactiva NOT RUN salvo necesidad concreta o petición expresa. Sin infraestructura accidental ni TODO funcional oculto.
 
+### POST-A7 — Discovery de precio manual sin Rate Plan (revisión final PR #96)
+
+**DECISION REQUIRED: YES.** Precio manual sin Rate Plan pendiente de decisión de Producto. La ausencia de fallback no es un bug del contrato vigente. Esta revisión conserva A7 y no implementa el modelo alternativo.
+
+**Contrato vigente (A).** Domain Bible exige plan seleccionado, desglose, precio sugerido/acordado y motivo en Snapshot; BR-020/022/085 y POST-A7 conservan motivo, inmutabilidad y seleccionabilidad. `CalculatePriceUseCase` valida Business/Resource, plan asignado y activo, vigencia, estadía y moneda. `ApplyManualPriceOverrideUseCase` llama a CalculatePrice y calcula ajuste = acordado − sugerido. ConfirmBooking exige `ratePlanId`, recalcula y persiste Snapshot + confirmación + Timeline atómicamente. OWNER/ADMIN pueden ajustar; RECEPTIONIST confirma calculada. Sin plan aplicable todos quedan bloqueados.
+
+| Alternativa | Beneficio | Costo o riesgo |
+|---|---|---|
+| A — Manual siempre sobre plan | Referencia comercial y comparación de descuentos inequívocas; compatible hoy. | Configurar Pricing es requisito previo para confirmar. |
+| B — Manual independiente | Operación libre aun sin configuración tarifaria. | Pricing puede volverse opcional incluso habiendo planes; pierde referencia y aumenta entrada arbitraria. |
+| C — Híbrido excepcional | Conserva A cuando hay plan y habilitaría operación inicial cuando no hay ninguno aplicable. | Requiere una nueva regla explícita y validación backend de la excepción al confirmar. |
+
+**Recomendación:** C como evolución sujeta a aprobación; mantener A en esta PR. Limitar el eventual fallback a OWNER/ADMIN, ausencia real de planes aplicables al Resource/estadía y motivo obligatorio. No basta comprobar un array vacío en frontend: el backend tendría que volver a validar elegibilidad al confirmar, contemplando cambios concurrentes de asignación/vigencia y conservando autorización, disponibilidad y auditoría. No crear planes ficticios ni usar importes sugeridos iguales a cero para simular una referencia inexistente.
+
+**Impacto técnico comprobado:**
+
+- API/cálculo: los DTO y casos de uso exigen UUID de plan; el endpoint de override también lo recibe por ruta. Permitir ausencia exige definir un contrato distinto y cómo obtener moneda, límites de estadía, importe y motivo sin saltarse validaciones compartidas. No se cambia `ratePlanId` a null en esta PR.
+- Snapshot/persistencia: `PricingSnapshotItem` solo admite CALCULATED/MANUAL_OVERRIDE, plan string y sugerido/ajuste numéricos con desglose calculado. `PricingSnapshot.items` es JSON, no una columna SQL de plan con FK: flexibilizar JSON no resuelve las invariantes de tipos/lectores. Habría que acordar origen explícito, semántica de referencia ausente, desglose, lectura compatible de históricos y auditoría del motivo/actor. La necesidad de migración depende del diseño aprobado; no se presupone ni se reescriben snapshots existentes.
+- Dashboard/pagos: Revenue suma exclusivamente Payments RECORDED por paidAt (BR-084, `PrismaRevenueProjectionReader`); no utiliza plan ni sugerido. PaymentPlan y saldos consumen moneda/total acordado del Snapshot. No requieren inventar nuevas métricas, pero sí regresión si se incorpora otra forma de Snapshot.
+- Reportes futuros: separar precio sin referencia de descuento real; no atribuir ajuste cero, descuento del 100% ni una tarifa ficticia a la excepción. No existe hoy un reporte de descuentos que deba modificarse.
+- Agente TOP/automatización futura: IA sigue fuera del alcance implementado. Una futura operación asistida debería consumir el contrato backend, explicar cuándo falta referencia y respetar motivo/permisos y confirmación humana definida por Producto; no inferir precios ni privilegios. Este discovery no autoriza agentes, workers ni automatizaciones.
+
+**Decisión que falta:** aprobar o rechazar C frente a A y, si se aprueba, definir elegibilidad excepcional y representación del Snapshot sin referencia antes de implementar. La hipótesis inicial del pedido no constituye aprobación. La corrección visual y el bloqueo seguro actual pueden revisarse con independencia de esa decisión.
+
 ### B — Seguridad para producción (Planned)
 
 - B1: auditar rate limiting de signup, login, forgot-password, verify-reset-code, reset-password, resend-verification, verify-email y refresh cuando corresponda. IP + identidad/email normalizada + endpoint + ventana, 429/Retry-After, sin enumeración y con múltiples instancias Cloud Run. Memoria local no basta; comparar alternativas sin elegir Redis automáticamente.
