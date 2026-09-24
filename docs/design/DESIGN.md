@@ -31,7 +31,7 @@ La dirección es **consumer-grade usability + B2B-grade control** y una **modern
 
 - Espaciado, radios, bordes, elevación, foco y movimiento: reutilizar los tokens de Brand Book; no inventar una escala paralela.
 - Controles: `radius-md`; tarjetas y diálogos: `radius-lg`; bordes antes que sombras. Máximo dos niveles de elevación visibles.
-- Motion: 120/180/240 ms según el token aplicable; transiciones rápidas, discretas y respetuosas de movimiento reducido.
+- Motion: 120/180/240 ms según el token aplicable; transiciones rápidas, discretas y respetuosas de movimiento reducido. Las nuevas entradas y transiciones declarativas usan `motion/react`; CSS/tokens siguen siendo la base visual y de layout.
 - Foco: visible, con `focus-ring` verde y separación exterior; nunca eliminarlo.
 - Accesibilidad mínima: WCAG 2.2 AA. No usar color como única señal; asociar errores a campos y conservar labels visibles.
 

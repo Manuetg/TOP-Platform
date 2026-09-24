@@ -109,6 +109,10 @@ Availability ya considera conjuntamente Booking, Block y el estado operativo del
 
 ## Progreso por épica
 
+### Phase 2 — Signup y onboarding inicial
+
+Implementación actual: `POST /api/auth/signup` crea de forma atómica User, LocalCredential, Business, membresía `OWNER`, suscripción `TOP_INITIAL` y token de verificación de correo. `POST /api/auth/verify-email` activa `emailVerifiedAt`; no hay auto-login. `POST /api/auth/resend-verification` rota el enlace con respuesta anti-enumeración y cooldown server-side. Google queda fuera de esta iteración; Terms/Privacy permanecen como deuda pre-lanzamiento.
+
 | Épica | Total | Completed | In Progress | Planned | Blocked |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Business | 5 | 5 | 0 | 0 | 0 |

@@ -14,6 +14,7 @@ const dummyPasswordHash = '$argon2id$v=19$m=65536,p=4,t=3$I7bOK5B/o9469vUd8ePTyA
 export class InvalidLoginInputError extends Error {}
 export class InvalidCredentialsError extends Error {}
 export class UserDisabledError extends Error {}
+export class EmailNotVerifiedError extends Error {}
 
 export interface LoginRequest {
   email: string;
@@ -52,6 +53,9 @@ export class LoginUseCase {
     }
     if (record.user.status !== UserStatus.ACTIVE) {
       throw new UserDisabledError('El usuario está deshabilitado.');
+    }
+    if (record.user.emailVerifiedAt === null) {
+      throw new EmailNotVerifiedError('Verificá tu correo antes de iniciar sesión.');
     }
     if (!await this.passwordHasher.verify(record.passwordHash, request.password)) {
       throw new InvalidCredentialsError(invalidCredentialsMessage);

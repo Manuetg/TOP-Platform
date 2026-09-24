@@ -84,6 +84,7 @@ function renderLogin(initialEntry: string) {
 describe("LoginPage routing", () => {
   beforeEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
     dependencies.login.mockReset();
     dependencies.recovery.mockReset();
   });
@@ -94,7 +95,7 @@ describe("LoginPage routing", () => {
       "/login?next=%2Fapp%2Fresources%2F123%3Ftab%3Dimages%23gallery",
     );
 
-    await screen.findByRole("heading", { name: "Iniciar sesión" });
+    await screen.findByRole("heading", { name: /Bienvenido/ });
     fireEvent.change(screen.getByLabelText("Correo electrónico"), {
       target: { value: "jeni@example.com" },
     });
@@ -116,7 +117,7 @@ describe("LoginPage routing", () => {
     dependencies.login.mockResolvedValue(session);
     const router = renderLogin("/login?next=https%3A%2F%2Fexample.com");
 
-    await screen.findByRole("heading", { name: "Iniciar sesión" });
+    await screen.findByRole("heading", { name: /Bienvenido/ });
     fireEvent.change(screen.getByLabelText("Correo electrónico"), {
       target: { value: "jeni@example.com" },
     });
@@ -158,11 +159,34 @@ describe("LoginPage routing", () => {
     expect(dependencies.login).not.toHaveBeenCalled();
   });
 
+  it("persists the session locally when Mantener sesión iniciada is checked", async () => {
+    dependencies.login.mockResolvedValue(session);
+    renderLogin("/login");
+    fireEvent.click(screen.getByLabelText("Mantener sesión iniciada"));
+    fireEvent.change(screen.getByLabelText("Correo electrónico"), { target: { value: "jeni@example.com" } });
+    fireEvent.change(screen.getByLabelText("Contraseña"), { target: { value: "TopPassword123!" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+    await waitFor(() => expect(localStorage.getItem("top.auth.session.v1")).toContain('"mode":"PERSISTENT"'));
+    expect(sessionStorage.getItem("top.auth.session.v1")).toBeNull();
+  });
+
+  it("allows the password to be revealed without changing the login contract", () => {
+    renderLogin("/login");
+
+    const password = screen.getByLabelText("Contraseña");
+    const toggle = screen.getByRole("button", { name: "Mostrar contraseña" });
+
+    expect(password).toHaveAttribute("type", "password");
+    fireEvent.click(toggle);
+    expect(screen.getByLabelText("Contraseña")).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: "Ocultar contraseña" })).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("allows a corrected submission after client validation fails", async () => {
     dependencies.login.mockResolvedValue(session);
     const router = renderLogin("/login");
     fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
-    expect(await screen.findByText("Ingresa tu correo electrónico.")).toBeVisible();
+    await waitFor(() => expect(screen.getByText("Ingresa tu correo electrónico.")).toBeVisible());
     expect(dependencies.login).not.toHaveBeenCalled();
 
     fireEvent.change(screen.getByLabelText("Correo electrónico"), {

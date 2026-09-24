@@ -8,7 +8,7 @@
 } from "react";
 import type { LoginResponse } from "../types/auth.types";
 import { refreshSession } from "../api/refresh-session";
-import { clearPersistedAuthSession, readPersistedAuthSession, writePersistedAuthSession } from "../storage/auth-session-storage";
+import { clearPersistedAuthSession, readPersistedAuthSession, writePersistedAuthSession, type AuthPersistenceMode } from "../storage/auth-session-storage";
 import { configureUnauthorizedRecovery } from "../../../shared/api/api-client";
 import { logout as revokeSession } from "../api/logout";
 import { QueryClientContext } from "@tanstack/react-query";
@@ -23,7 +23,7 @@ function restore(refreshToken: string) {
 interface AuthContextValue {
   session: LoginResponse | null;
   isAuthenticated: boolean;
-  establishSession: (session: LoginResponse) => void;
+  establishSession: (session: LoginResponse, mode?: AuthPersistenceMode) => void;
   logout: () => Promise<void>;
   isLoggingOut: boolean;
   status: AuthStatus;
@@ -37,6 +37,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const sessionRef = useRef<LoginResponse | null>(null);
   const logoutPromiseRef = useRef<Promise<void> | null>(null);
   const generationRef = useRef(0);
+  const persistenceModeRef = useRef<AuthPersistenceMode>("SESSION");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const queryClient = useContext(QueryClientContext);
   const updateSession = (next: LoginResponse | null) => { sessionRef.current = next; setSession(next); };
@@ -48,7 +49,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     void restore(persisted.refreshToken).then((tokens) => {
       if (!active || generationRef.current !== 0) return;
       const restored = { ...tokens, user: persisted.user, memberships: persisted.memberships };
-      updateSession(restored); writePersistedAuthSession(restored); setStatus("authenticated");
+      persistenceModeRef.current = persisted.mode;
+      updateSession(restored); writePersistedAuthSession(restored, persisted.mode); setStatus("authenticated");
     }).catch(() => { if (!active || generationRef.current !== 0) return; clearPersistedAuthSession(); updateSession(null); setStatus("unauthenticated"); });
     return () => { active = false; };
   }, []);
@@ -64,14 +66,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
         try { tokens = await restore(current.refreshToken); } catch { if (generation === generationRef.current) { clearPersistedAuthSession(); updateSession(null); setStatus("unauthenticated"); } return null; }
         if (generation !== generationRef.current || !sessionRef.current) return null;
         const next = { ...tokens, user: current.user, memberships: current.memberships };
-        updateSession(next); writePersistedAuthSession(next); setStatus("authenticated");
+        updateSession(next); writePersistedAuthSession(next, persistenceModeRef.current); setStatus("authenticated");
         return next.accessToken;
       },
     });
     return () => configureUnauthorizedRecovery(null);
   }, []);
 
-  const establish = (next: LoginResponse) => { updateSession(next); writePersistedAuthSession(next); setStatus("authenticated"); };
+  const establish = (next: LoginResponse, mode: AuthPersistenceMode = "SESSION") => { persistenceModeRef.current = mode; updateSession(next); writePersistedAuthSession(next, mode); setStatus("authenticated"); };
   const logout = () => {
     if (logoutPromiseRef.current) return logoutPromiseRef.current;
     ++generationRef.current;

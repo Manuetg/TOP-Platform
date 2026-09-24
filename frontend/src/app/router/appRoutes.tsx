@@ -1,6 +1,10 @@
 import { lazy, Suspense, type ComponentType } from "react";
 import { Navigate, type RouteObject } from "react-router-dom";
 const LoginPage = lazy(() => import("../../features/auth/pages/LoginPage").then((module) => ({ default: module.LoginPage })));
+const ForgotPasswordPage = lazy(() => import("../../features/auth/pages/ForgotPasswordPage").then((module) => ({ default: module.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import("../../features/auth/pages/ResetPasswordPage").then((module) => ({ default: module.ResetPasswordPage })));
+const SignupPage = lazy(() => import("../../features/auth/pages/SignupPage").then((module) => ({ default: module.SignupPage })));
+const VerifyEmailPage = lazy(() => import("../../features/auth/pages/VerifyEmailPage").then((module) => ({ default: module.VerifyEmailPage })));
 const DashboardPage = lazy(() => import("../../features/dashboard/pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
 import { AppLayout } from "../layout/AppLayout";
 const BusinessProfilePage = lazy(() => import("../../features/business/pages/BusinessProfilePage").then((module) => ({ default: module.BusinessProfilePage })));
@@ -46,6 +50,10 @@ export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general 
     element: <PublicRoute />,
     children: [{ index: true, element: page(LoginPage) }],
   },
+  { path: "/forgot-password", element: <PublicRoute />, children: [{ index: true, element: page(ForgotPasswordPage) }] },
+  { path: "/reset-password", element: <PublicRoute />, children: [{ index: true, element: page(ResetPasswordPage) }] },
+  { path: "/signup", element: <PublicRoute />, children: [{ index: true, element: page(SignupPage) }] },
+  { path: "/verify-email", element: <PublicRoute />, children: [{ index: true, element: page(VerifyEmailPage) }] },
   {
     path: "/app",
     element: <ProtectedRoute><AppLayout /></ProtectedRoute>,
