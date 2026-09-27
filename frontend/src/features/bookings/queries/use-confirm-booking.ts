@@ -20,12 +20,13 @@ export function useConfirmBooking({
 
   return useMutation({
     mutationFn: (
-      input: ConfirmBookingInput,
+      { signal, ...input }: ConfirmBookingInput & { signal?: AbortSignal },
     ) =>
       confirmBooking({
         businessId,
         bookingId,
         input,
+        signal,
         accessToken,
       }),
     onSuccess: async () => {

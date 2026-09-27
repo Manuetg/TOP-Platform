@@ -16,6 +16,7 @@
     "@fontsource/plus-jakarta-sans": "latest",
     "@hookform/resolvers": "^5.9.1",
     "@tanstack/react-query": "^5.102.2",
+    "libphonenumber-js": "1.13.14",
     "lucide-react": "^1.33.0",
     "motion": "^13.4.2",
     "react": "^19.2.8",

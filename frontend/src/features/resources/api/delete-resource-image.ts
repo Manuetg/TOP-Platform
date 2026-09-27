@@ -5,6 +5,7 @@ interface DeleteResourceImageOptions {
   resourceId: string;
   imageId: string;
   accessToken?: string | null;
+  signal?: AbortSignal;
 }
 
 export function deleteResourceImage({
@@ -12,12 +13,14 @@ export function deleteResourceImage({
   resourceId,
   imageId,
   accessToken,
+  signal,
 }: DeleteResourceImageOptions): Promise<void> {
   return apiRequest<void>(
     `/businesses/${businessId}/resources/${resourceId}/images/${imageId}`,
     {
       method: "DELETE",
       accessToken,
+      signal,
     },
   );
 }

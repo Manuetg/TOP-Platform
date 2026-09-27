@@ -1,3 +1,4 @@
+import { formatPureDate } from "../../../shared/utils/date-format";
 import { ArrowRight, Banknote, Search, WalletCards } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -32,7 +33,7 @@ export function PaymentHubPage() {
       <div className="payments-list__head"><span>Huésped</span><span>Estadía</span><span>Estado</span><span /></div>
       {rows.map(({ booking, contact }) => <button key={booking.id} type="button" className="payments-list__row" onClick={() => navigate(`/app/bookings/${booking.id}/payments`)}>
         <span><strong>{contact?.fullName ?? "Contacto no disponible"}</strong><small>Reserva {booking.id.slice(0, 8).toUpperCase()}</small></span>
-        <span>{booking.checkInDate && booking.checkOutDate ? `${booking.checkInDate} → ${booking.checkOutDate}` : "Fechas pendientes"}</span>
+        <span>{booking.checkInDate && booking.checkOutDate ? `${formatPureDate(booking.checkInDate)} → ${formatPureDate(booking.checkOutDate)}` : "Fechas pendientes"}</span>
         <span className={`payments-status payments-status--${booking.status.toLowerCase()}`}>{booking.status === "IN_PROGRESS" ? "En estadía" : booking.status === "COMPLETED" ? "Finalizada" : "Confirmada"}</span>
         <ArrowRight size={18} />
       </button>)}

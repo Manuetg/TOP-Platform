@@ -113,4 +113,17 @@ describe('BusinessAuthorizationGuard', () => {
     request.body = { role: 7 };
     await expect(guard.canActivate(context)).rejects.toMatchObject({ status: 403 });
   });
+  it.each([MembershipRole.OWNER, MembershipRole.ADMIN, MembershipRole.RECEPTIONIST, MembershipRole.VIEWER])('applies override capability to Booking confirmation for %s', async (role) => {
+    configure({ parameter: 'businessId', capabilities: [Capability.BOOKING_WRITE], pricingOverrideCapability: Capability.PRICING_OVERRIDE_CALCULATE });
+    findByUserAndBusiness.mockResolvedValue(membership(role));
+    for (const item of [{ agreedAmountMinor: 0 }, { agreedAmountMinor: null }, { overrideReason: 'Ajuste' }]) {
+      request.body = { pricing: [item] };
+      if (role === MembershipRole.OWNER || role === MembershipRole.ADMIN) await expect(guard.canActivate(context)).resolves.toBe(true);
+      else await expect(guard.canActivate(context)).rejects.toMatchObject({ status: 403 });
+    }
+    request.body = { pricing: [{ ratePlanId: 'plan' }] };
+    if (role === MembershipRole.VIEWER) await expect(guard.canActivate(context)).rejects.toMatchObject({ status: 403 });
+    else await expect(guard.canActivate(context)).resolves.toBe(true);
+  });
+
 });

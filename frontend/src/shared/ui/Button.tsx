@@ -1,9 +1,10 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, Ref } from "react";
 import { LoaderCircle } from "lucide-react";
 
-type ButtonVariant = "primary" | "secondary" | "tertiary" | "destructive" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "tertiary" | "warning" | "destructive" | "ghost" | "danger";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  ref?: Ref<HTMLButtonElement>;
   variant?: ButtonVariant;
   size?: "sm" | "md" | "lg";
   loading?: boolean;

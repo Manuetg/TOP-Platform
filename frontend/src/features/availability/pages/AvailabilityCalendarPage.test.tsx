@@ -8,6 +8,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import {
   MemoryRouter,
+  useLocation,
 } from "react-router-dom";
 import {
   QueryClient,
@@ -21,9 +22,12 @@ import {
   vi,
 } from "vitest";
 import { AvailabilityCalendarPage } from "./AvailabilityCalendarPage";
+import { createContact } from "../../contacts/api/create-contact";
 
-const context = vi.hoisted(() => ({ businessId: "business-1" }));
-vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeBusinessId: context.businessId, activeBusiness: { id: context.businessId, timezone: "America/Asuncion" } }) }));
+function LocationProbe() { const location = useLocation(); return <output aria-label="Ruta actual">{location.pathname} {location.state?.confirmationError}</output>; }
+
+const context = vi.hoisted(() => ({ businessId: "business-1", role: "OWNER" }));
+vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeRole: context.role, activeBusinessId: context.businessId, activeBusiness: { id: context.businessId, timezone: "America/Asuncion" } }) }));
 const useResourcesMock = vi.fn();
 const useBookingsMock = vi.fn();
 const useBlocksMock = vi.fn();
@@ -133,7 +137,7 @@ function renderPage() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/app/calendar"]}>
+      <MemoryRouter initialEntries={["/app/calendar"]}><LocationProbe />
         <AvailabilityCalendarPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -195,29 +199,60 @@ async function goToContactStep() {
 }
 
 describe("AvailabilityCalendarPage", () => {
+  it("crea contacto con país antes del teléfono compuesto y conserva el payload normalizado", async () => {
+    vi.mocked(createContact).mockResolvedValue({ ...contact, status: "ACTIVE" });
+    const user = await goToContactStep();
+    await user.click(screen.getByRole("button", { name: "Crear contacto" }));
+    const country = screen.getByLabelText("País");
+    const phone = screen.getByLabelText("Teléfono");
+    expect(country.compareDocumentPosition(phone) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await user.selectOptions(country, "Argentina");
+    expect(screen.getByLabelText("Prefijo internacional")).toHaveTextContent("+54");
+    await user.type(screen.getByLabelText("Nombre"), "Ana");
+    await user.type(screen.getByLabelText("Apellido"), "Prueba");
+    await user.type(phone, "11 2345 6789");
+    await user.click(screen.getByRole("button", { name: "Crear contacto" }));
+    await waitFor(() => expect(createContact).toHaveBeenCalledWith(expect.objectContaining({
+      businessId: "business-1", input: expect.objectContaining({ name: "Ana", lastName: "Prueba", country: "Argentina", phone: "+541123456789", whatsapp: "+541123456789" }),
+    })));
+  });
+
   beforeEach(() => {
+    context.role = "OWNER";
     vi.clearAllMocks();
 
     useResourcesMock.mockReturnValue({
       data: [resource],
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
       isLoading: false,
       isError: false,
     });
 
     useBookingsMock.mockReturnValue({
       data: [],
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
       isLoading: false,
       isError: false,
     });
 
     useBlocksMock.mockReturnValue({
       data: [],
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
       isLoading: false,
       isError: false,
     });
 
     useContactsMock.mockReturnValue({
       data: [contact],
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
       isLoading: false,
       isError: false,
     });
@@ -241,7 +276,10 @@ describe("AvailabilityCalendarPage", () => {
                 },
               ],
             },
-            isLoading: false,
+            isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+      isLoading: false,
             isError: false,
             error: null,
           };
@@ -256,7 +294,10 @@ describe("AvailabilityCalendarPage", () => {
               },
             ],
           },
-          isLoading: false,
+          isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
+      isLoading: false,
           isError: false,
           error: null,
         };
@@ -272,6 +313,9 @@ describe("AvailabilityCalendarPage", () => {
           baseNightlyAmountMinor: 6500000,
         },
       ],
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
       isLoading: false,
       isError: false,
     });
@@ -355,11 +399,11 @@ describe("AvailabilityCalendarPage", () => {
     );
 
     expect(
-      screen.getByText("17-09-2026"),
+      screen.getByText("17/09/2026"),
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText("18-09-2026"),
+      screen.getByText("18/09/2026"),
     ).toBeInTheDocument();
   });
 
@@ -428,6 +472,9 @@ describe("AvailabilityCalendarPage", () => {
         { id: "rate-plan-1", name: "Tarifa Normal", currency: "PYG", baseNightlyAmountMinor: 6500000 },
         { id: "rate-plan-2", name: "Tarifa Flexible", currency: "PYG", baseNightlyAmountMinor: 7000000 },
       ],
+      isSuccess: true,
+      isFetching: false,
+      refetch: vi.fn(),
       isLoading: false,
       isError: false,
     });
@@ -521,4 +568,68 @@ describe("AvailabilityCalendarPage", () => {
     await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
     await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.not.objectContaining({ agreedAmountMinor: expect.anything(), overrideReason: expect.anything() })] }) })));
   });
+  it.each(["OWNER", "ADMIN", "RECEPTIONIST", "VIEWER"])("no ofrece modos ni permite continuar sin planes para %s", async (role) => {
+    context.role = role;
+    useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
+    await goToRateStep();
+    expect(screen.getByText("No hay un tarifario disponible para esta estadía.")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Configurada" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Manual" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Continuar/i })).toBeDisabled();
+    expect(confirmBookingMock).not.toHaveBeenCalled();
+  });
+  it.each(["RECEPTIONIST", "VIEWER"])("no ofrece override ni descuento a %s", async (role) => {
+    context.role = role; await goToRateStep();
+    expect(screen.queryByRole("button", { name: "Manual" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Aplicar descuento" })).not.toBeInTheDocument();
+  });
+  it("no presenta vacío durante carga ni después de error y permite reintentar", async () => {
+    const retry = vi.fn(); useSelectableRatePlansMock.mockReturnValue({ data: undefined, isSuccess: false, isLoading: true, isFetching: true, isError: false, refetch: retry });
+    const user = await goToRateStep(); expect(screen.getByText("Buscando planes tarifarios…")).toBeVisible();
+    expect(screen.queryByText("No hay un tarifario disponible para esta estadía.")).not.toBeInTheDocument();
+    useSelectableRatePlansMock.mockReturnValue({ data: undefined, isSuccess: false, isLoading: false, isFetching: false, isError: true, refetch: retry });
+    await user.click(screen.getByRole("button", { name: /Atrás/i })); await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    expect(screen.getByText("No pudimos consultar los tarifarios de esta estadía.")).toBeVisible();
+    expect(screen.getByRole("button", { name: /Continuar/i })).toBeDisabled(); await user.click(screen.getByRole("button", { name: "Reintentar tarifarios" })); expect(retry).toHaveBeenCalledOnce();
+  });
+  it("el cambio de fechas descarta una tarifa previamente seleccionada", async () => {
+    const user = await goToRateStep(); expect(screen.getByRole("button", { name: /Tarifa Normal/i })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: /Atrás/i })); await user.click(screen.getByRole("button", { name: /Atrás/i })); await user.click(screen.getByRole("button", { name: /Atrás/i }));
+    useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
+    fireEvent.change(screen.getByLabelText("Entrada"), { target: { value: "2026-09-18" } }); fireEvent.change(screen.getByLabelText("Salida"), { target: { value: "2026-09-20" } });
+    await user.click(screen.getByRole("button", { name: /Buscar disponibilidad/i })); await user.click(screen.getByRole("button", { name: /Habitacion 1/i })); await user.click(screen.getByRole("button", { name: /Continuar/i })); await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    expect(screen.getByText("No hay un tarifario disponible para esta estadía.")).toBeVisible(); expect(screen.getByRole("button", { name: /Continuar/i })).toBeDisabled();
+  });
+
+  it.each(["OWNER", "ADMIN"])("confirma precio excepcional sin tarifario para %s", async (role) => {
+    context.role = role;
+    useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
+    const user = await goToRateStep();
+    fireEvent.change(screen.getByLabelText("Precio final"), { target: { value: "350.000" } });
+    expect(screen.getByRole("button", { name: /Continuar/i })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Motivo del precio manual"), { target: { value: "Acuerdo directo" } });
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    expect(screen.getByText("Precio manual sin tarifario")).toBeVisible(); expect(screen.getByText("Acuerdo directo")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
+    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 350000, overrideReason: "Acuerdo directo" }] } })));
+  });
+
+  it("abre la misma reserva pendiente si el backend rechaza el precio al confirmar", async () => {
+    useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
+    confirmBookingMock.mockRejectedValueOnce(new Error("Hay un tarifario disponible"));
+    const user = await goToRateStep(); fireEvent.change(screen.getByLabelText("Precio final"), { target: { value: "350000" } }); fireEvent.change(screen.getByLabelText("Motivo del precio manual"), { target: { value: "Acuerdo" } });
+    await user.click(screen.getByRole("button", { name: /Continuar/i })); await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
+    await waitFor(() => expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/app/bookings/booking-1/confirm Hay un tarifario disponible"));
+    expect(createBookingMock).toHaveBeenCalledOnce(); expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+  it("descarta la excepción y exige revisar tarifa si aparece un plan en el paso final", async () => {
+    useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
+    const user = await goToRateStep(); fireEvent.change(screen.getByLabelText("Precio final"), { target: { value: "350000" } }); fireEvent.change(screen.getByLabelText("Motivo del precio manual"), { target: { value: "Acuerdo" } });
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    useSelectableRatePlansMock.mockReturnValue({ data: [{ id: "new-plan", name: "Tarifa nueva", currency: "PYG", baseNightlyAmountMinor: 500000 }], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
+    await user.click(screen.getByRole("button", { name: /Atrás/i }));
+    expect(screen.getByRole("button", { name: /Tarifa nueva/i })).toBeVisible(); expect(screen.queryByLabelText("Motivo del precio manual")).not.toBeInTheDocument();
+    expect(confirmBookingMock).not.toHaveBeenCalled();
+  });
+
 });

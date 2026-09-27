@@ -39,4 +39,9 @@ describe("Input", () => {
       "false",
     );
   });
+  it("conserva ayuda y error juntos al usar controles compartidos", () => {
+    render(<Input id="amount" label="Importe" error="Importe inválido" aria-describedby="amount-help" />);
+    expect(screen.getByRole("textbox", { name: "Importe" })).toHaveAttribute("aria-describedby", "amount-help amount-error");
+  });
+
 });

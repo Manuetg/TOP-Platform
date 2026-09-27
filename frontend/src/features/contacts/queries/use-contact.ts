@@ -14,11 +14,12 @@ export function useContact({
 }: UseContactOptions) {
   return useQuery({
     queryKey: ["contacts", businessId, contactId],
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       getContact({
         businessId,
         contactId,
         accessToken,
+        signal,
       }),
     enabled:
       businessId.length > 0 &&

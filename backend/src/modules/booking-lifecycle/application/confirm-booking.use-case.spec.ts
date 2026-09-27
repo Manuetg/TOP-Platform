@@ -54,6 +54,7 @@ describe('ConfirmBookingUseCase', () => {
   const calculatePrice = jest.fn();
   const applyManualPriceOverride = jest.fn();
   const confirm = jest.fn();
+  const prepareManualPrice = jest.fn();
 
   const useCase = new ConfirmBookingUseCase(
     {
@@ -87,6 +88,7 @@ describe('ConfirmBookingUseCase', () => {
     {
       confirm,
     },
+    { execute: prepareManualPrice } as never,
   );
 
   beforeEach(() => {
@@ -980,4 +982,26 @@ describe('ConfirmBookingUseCase', () => {
     }));
     expect(calculatePrice).not.toHaveBeenCalled();
   });
+  it('prepara manual sin plan dentro de la transacción, sin llamar al calculador', async () => {
+    const snapshot = { resourceId, ratePlanId: null, pricingMode: 'MANUAL_NO_RATE_PLAN', suggestedAmountMinor: null, adjustmentAmountMinor: null, agreedAmountMinor: 200000, overrideReason: 'Acuerdo directo', nights: 2, breakdown: [] };
+    prepareManualPrice.mockResolvedValue({ currency: 'PYG', snapshot });
+    confirm.mockImplementation(async ({ prepare }: { prepare: () => Promise<unknown> }) => {
+      expect(prepareManualPrice).not.toHaveBeenCalled();
+      await expect(prepare()).resolves.toEqual({ currency: 'PYG', totalAmountMinor: 200000, items: [snapshot] });
+      return 'CONFIRMED';
+    });
+    await useCase.execute({ businessId, bookingId, pricing: [{ resourceId, pricingMode: 'MANUAL_NO_RATE_PLAN', agreedAmountMinor: 200000, overrideReason: 'Acuerdo directo' }] });
+    expect(prepareManualPrice).toHaveBeenCalledWith({ businessId, resourceId, checkIn: '2026-05-10', checkOut: '2026-05-12', agreedAmountMinor: 200000, overrideReason: 'Acuerdo directo' });
+    expect(calculatePrice).not.toHaveBeenCalled(); expect(applyManualPriceOverride).not.toHaveBeenCalled();
+  });
+  it.each([
+    { pricingMode: 'MANUAL_NO_RATE_PLAN', ratePlanId },
+    { pricingMode: 'MANUAL_NO_RATE_PLAN', ratePlanId: null },
+    { pricingMode: 'UNKNOWN' },
+    { pricingMode: null },
+  ])('rechaza un origen ambiguo %#', async (item) => {
+    await expect(useCase.execute({ businessId, bookingId, pricing: [{ resourceId, ...item, agreedAmountMinor: 0, overrideReason: 'Acuerdo' }] })).rejects.toBeInstanceOf(InvalidBookingPricingInputError);
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
 });

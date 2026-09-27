@@ -1,6 +1,16 @@
 # TOP — Backlog del MVP
 
-## Convenciones
+## POST-MVP / PRODUCTION READINESS — separado del MVP
+
+Épico A implementado y validado por ambos CI SUCCESS en [PR #96](https://github.com/Manuetg/TOP-Platform/pull/96); **Completed preparado, efectivo al merge humano**. Todavía sin integrar en develop. Evidencia y limitaciones en [Estado actual](00-Current-Status.md). Sin modificación de los conteos MVP.
+
+Backend MVP histórico permanece **53/53 Completed**. El roadmap A–D/E y sus criterios están en [06-Roadmap.md](06-Roadmap.md). Épico A con cierre efectivo al merge, sobre `cb9eddc`, una única rama/PR junto al frontend.
+
+- **POST-A3 — Teléfono internacional Contact. Completed efectivo al merge.** Normalización/validación backend para POST/PATCH existentes; compatible con E.164 y país, conserva teléfonos históricos sin cambios, sin migración automática de valores ambiguos. Swagger, tests y consumidores incluidos en la misma PR.
+- **POST-A4 — Archive Contact. Completed efectivo al merge.** `PATCH /api/businesses/:businessId/contacts/:contactId/archive`, `contact.write`, Business ACTIVE; ACTIVE/INACTIVE → ARCHIVED, repetición idempotente con contrato Contact público. Sin borrado ni Restore, reservas preservadas y auditoría actor/fecha. Pruebas unitarias, PostgreSQL, E2E y aceptación, aislamiento/permisos/concurrencia cuando aplique. Completed efectivo al merge y CI aprobado.
+- A7, opción C aprobada el 24/09/2026: con planes se mantiene cálculo/override; sin plan seleccionable, OWNER/ADMIN pueden confirmar un precio manual excepcional con motivo. Backend revalida elegibilidad, permiso y disponibilidad; Snapshot identifica MANUAL_NO_RATE_PLAN sin referencia ni descuento ficticio. No crea tarifarios, no reescribe históricos ni requiere migración adicional. La misma capability de override protege confirmación. Se contabiliza post-MVP y no modifica las 53/53 capacidades históricas.
+
+## Convenciones del MVP histórico
 
 Estados permitidos: Planned, In Progress, Completed y Blocked.
 

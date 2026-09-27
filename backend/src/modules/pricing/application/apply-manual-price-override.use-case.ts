@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { NightlyPriceBreakdown } from '../domain/pricing-calculator';
 import { CalculatePriceUseCase } from './calculate-price.use-case';
-import { InvalidManualPriceOverrideInputError } from './manual-price-override.errors';
+import { manualAgreedAmount, manualPriceReason } from './manual-price-input';
 
 export interface ApplyManualPriceOverrideInput {
   businessId: string;
@@ -34,8 +34,8 @@ export class ApplyManualPriceOverrideUseCase {
   constructor(private readonly calculatePrice: CalculatePriceUseCase) {}
 
   async execute(input: ApplyManualPriceOverrideInput): Promise<ManualPriceOverride> {
-    const agreedAmountMinor = this.agreedAmount(input.agreedAmountMinor);
-    const overrideReason = this.reason(input.overrideReason);
+    const agreedAmountMinor = manualAgreedAmount(input.agreedAmountMinor);
+    const overrideReason = manualPriceReason(input.overrideReason);
     const suggested = await this.calculatePrice.execute({
       businessId: input.businessId,
       ratePlanId: input.ratePlanId,
@@ -61,21 +61,4 @@ export class ApplyManualPriceOverrideUseCase {
     };
   }
 
-  private agreedAmount(value: unknown): number {
-    if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
-      throw new InvalidManualPriceOverrideInputError('El importe acordado debe ser un entero seguro no negativo.');
-    }
-    return value;
-  }
-
-  private reason(value: unknown): string {
-    if (typeof value !== 'string') {
-      throw new InvalidManualPriceOverrideInputError('El motivo del precio personalizado es obligatorio.');
-    }
-    const trimmed = value.trim();
-    if (trimmed.length < 2 || trimmed.length > 500) {
-      throw new InvalidManualPriceOverrideInputError('El motivo del precio personalizado debe tener entre 2 y 500 caracteres.');
-    }
-    return trimmed;
-  }
 }

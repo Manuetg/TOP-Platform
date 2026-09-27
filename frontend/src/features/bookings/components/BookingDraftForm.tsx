@@ -1,3 +1,4 @@
+import { Input } from "../../../shared/ui/Input";
 import {
   BedDouble,
   CalendarDays,
@@ -348,7 +349,7 @@ export function BookingDraftForm({
               Contacto
             </label>
 
-            <select
+            <select className="top-input" disabled={isPending}
               id="booking-contact"
               value={contactId}
               onChange={(event) =>
@@ -406,7 +407,7 @@ export function BookingDraftForm({
               Alojamiento
             </label>
 
-            <select
+            <select className="top-input" disabled={isPending}
               id="booking-resource"
               value={resourceId}
               onChange={(event) => {
@@ -476,8 +477,10 @@ export function BookingDraftForm({
                 Entrada
               </label>
 
-              <input
+              <Input disabled={isPending}
                 id="booking-check-in"
+                aria-invalid={Boolean(validationErrors.dates)}
+                aria-describedby={validationErrors.dates ? "booking-dates-error" : undefined}
                 type="date"
                 value={checkInDate}
                 onChange={(event) => {
@@ -499,8 +502,10 @@ export function BookingDraftForm({
                 Salida
               </label>
 
-              <input
+              <Input disabled={isPending}
                 id="booking-check-out"
+                aria-invalid={Boolean(validationErrors.dates)}
+                aria-describedby={validationErrors.dates ? "booking-dates-error" : undefined}
                 type="date"
                 value={checkOutDate}
                 onChange={(event) => {
@@ -519,7 +524,7 @@ export function BookingDraftForm({
           </div>
 
           {validationErrors.dates && (
-            <p
+            <p id="booking-dates-error"
               className="create-booking-error"
               role="alert"
             >
@@ -551,8 +556,10 @@ export function BookingDraftForm({
                 Adultos
               </label>
 
-              <input
+              <Input disabled={isPending}
                 id="booking-adults"
+                aria-invalid={Boolean(validationErrors.adults || validationErrors.capacity)}
+                aria-describedby={[validationErrors.adults && "booking-adults-error", validationErrors.capacity && "booking-capacity-error"].filter(Boolean).join(" ") || undefined}
                 type="number"
                 min="0"
                 step="1"
@@ -574,7 +581,7 @@ export function BookingDraftForm({
               />
 
               {validationErrors.adults && (
-                <p
+                <p id="booking-adults-error"
                   className="create-booking-error"
                   role="alert"
                 >
@@ -588,8 +595,10 @@ export function BookingDraftForm({
                 Niños
               </label>
 
-              <input
+              <Input disabled={isPending}
                 id="booking-children"
+                aria-invalid={Boolean(validationErrors.children || validationErrors.childrenCapacity || validationErrors.capacity)}
+                aria-describedby={[validationErrors.children && "booking-children-error", validationErrors.childrenCapacity && "booking-children-capacity-error", validationErrors.capacity && "booking-capacity-error"].filter(Boolean).join(" ") || undefined}
                 type="number"
                 min="0"
                 step="1"
@@ -612,7 +621,7 @@ export function BookingDraftForm({
               />
 
               {validationErrors.children && (
-                <p
+                <p id="booking-children-error"
                   className="create-booking-error"
                   role="alert"
                 >
@@ -623,7 +632,7 @@ export function BookingDraftForm({
           </div>
 
           {validationErrors.childrenCapacity && (
-            <p
+            <p id="booking-children-capacity-error"
               className="create-booking-error"
               role="alert"
             >
@@ -632,7 +641,7 @@ export function BookingDraftForm({
           )}
 
           {validationErrors.capacity && (
-            <p
+            <p id="booking-capacity-error"
               className="create-booking-error"
               role="alert"
             >
@@ -663,8 +672,10 @@ export function BookingDraftForm({
               Notas
             </label>
 
-            <textarea
+            <textarea className="top-input" disabled={isPending}
               id="booking-notes"
+                aria-invalid={Boolean(validationErrors.notes)}
+                aria-describedby={validationErrors.notes ? "booking-notes-error" : undefined}
               rows={5}
               maxLength={1000}
               value={notes}

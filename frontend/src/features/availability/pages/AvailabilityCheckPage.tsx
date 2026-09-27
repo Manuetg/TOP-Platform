@@ -1,3 +1,4 @@
+import { formatPureDate } from "../../../shared/utils/date-format";
 import {
   AlertCircle,
   CalendarDays,
@@ -407,14 +408,14 @@ export function AvailabilityCheckPage() {
                   <div>
                     <span>Entrada</span>
                     <strong>
-                      {result.from}
+                      {formatPureDate(result.from)}
                     </strong>
                   </div>
 
                   <div>
                     <span>Salida</span>
                     <strong>
-                      {result.to}
+                      {formatPureDate(result.to)}
                     </strong>
                   </div>
                 </div>

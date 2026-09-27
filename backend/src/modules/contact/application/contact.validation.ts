@@ -1,3 +1,4 @@
+import { normalizeContactPhone } from './contact-phone';
 import { InvalidContactInputError } from './contact.errors';
 
 export const contactUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -13,7 +14,14 @@ export function contactFields(input: ContactFieldInput, current?: ContactFields)
   if (typeof candidateName !== 'string' || candidateName.length < 2) throw new InvalidContactInputError('El nombre es obligatorio.');
   const name = candidateName;
   const fields: ContactFields = { name, lastName: valueOrCurrent(input.lastName, previous.lastName, 'El apellido'), phone: valueOrCurrent(input.phone, previous.phone, 'El teléfono'), whatsapp: valueOrCurrent(input.whatsapp, previous.whatsapp, 'El WhatsApp'), email: valueOrCurrent(input.email, previous.email, 'El email'), documentType: valueOrCurrent(input.documentType, previous.documentType, 'El tipo de documento'), documentNumber: valueOrCurrent(input.documentNumber, previous.documentNumber, 'El número de documento'), country: valueOrCurrent(input.country, previous.country, 'El país'), city: valueOrCurrent(input.city, previous.city, 'La ciudad') };
+  normalizeEditedPhones(input, fields, current);
   if (fields.email !== null && !email.test(fields.email)) throw new InvalidContactInputError('El email es inválido.');
   if (fields.phone === null && fields.whatsapp === null && fields.email === null) throw new InvalidContactInputError('Se requiere al menos un medio de contacto válido.');
   return fields;
+}
+
+function normalizeEditedPhones(input: ContactFieldInput, fields: ContactFields, current?: ContactFields): void {
+  for (const field of ['phone', 'whatsapp'] as const) {
+    if (input[field] !== undefined && fields[field] !== current?.[field]) fields[field] = normalizeContactPhone(fields[field], fields.country);
+  }
 }

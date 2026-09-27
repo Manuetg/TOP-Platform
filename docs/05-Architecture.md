@@ -163,7 +163,25 @@ La UI usa `apiRequest` y QueryClient con clave `subscription/userId/businessId`,
 
 Operación MVP: el registro persistido es el destino real de «Solicitar ampliación». El operador autorizado puede consultar pendientes con `SELECT "businessId", "upgradeRequestedAt", "upgradeRequestedBy" FROM "BusinessSubscription" WHERE "upgradeRequestedAt" IS NOT NULL ORDER BY "upgradeRequestedAt";` dentro del entorno administrativo protegido. No se exporta esta información al cliente ni se inventa un contacto comercial. La resolución comercial y un eventual cambio de plan requieren decisión y procedimiento administrativo auditado; no son un cobro o upgrade automático de este MVP.
 
-## 25. Quality gate frontend del MVP
+## POST-MVP A — contratos y consumidores (2026-09-24)
+
+ArchiveContactUseCase valida Business activo e identificadores; `ContactRepository.archive` realiza la transición tenant-scoped e idempotente y su auditoría en una transacción PostgreSQL. La migración aditiva `20260924000000_contact_archive_audit` incorpora `Contact.archivedAt`, `archivedBy` y `archivedFromStatus`, sin backfill ni cambios en FK/Bookings. Un update ordinario ya no escribe status; evita restauraciones por una edición concurrente. Auditoría interna no se añade al DTO público.
+
+`PATCH /api/businesses/:businessId/contacts/:contactId/archive`: sin body; `contact.write`, JWT/membresía vigente, actor desde principal. Respuesta 200 ContactResponseDto (también al repetir), 400 identificadores inválidos, 401/403 autenticación/autorización, 404 Business/Contact ausente o Contact cruzado y 409 Business no activo. No expone Restore. Contact Detail permanece abierto con éxito, invalida detalle/listado/búsqueda y aborta al desmontarse/cambiar contexto. Abortar el cliente no implica rollback backend.
+
+POST/PATCH Contact mantienen campos públicos. `libphonenumber-js/min` con versión fija en ambos lockfiles proporciona metadatos de país/prefijos y longitud posible, evitando un catálogo mundial manual y sin añadir un paquete UI. Es una dependencia acotada justificada por A3 ([documentación primaria](https://github.com/catamphetamine/libphonenumber-js)); carga con las rutas consumidoras. País usa labels españoles/ISO y aliases del catálogo existente. Nuevos valores con contexto se normalizan a E.164; el contrato legado sin país y valores históricos no editados se preservan según Business Rules. WhatsApp solo genera enlace para un número internacional inequívoco.
+
+ConfirmBooking conserva los requests basados en Rate Plan y agrega la variante explícita `pricingMode: MANUAL_NO_RATE_PLAN`, sin `ratePlanId`, con `agreedAmountMinor` y `overrideReason` obligatorios. El guard exige `pricing.override.calculate` (OWNER/ADMIN) ante modo, monto o motivo, aun si están vacíos o nulos. La ausencia implícita de plan no habilita la excepción. No cambia el endpoint de override sobre plan.
+
+`PrepareManualPriceUseCase` comparte validación monetaria/motivo y reutiliza `ListRatePlansUseCase` con Business, Resource y fechas completos dentro del callback de preparación de la confirmación. Revalida estados, tenant, estadía de 1..365 noches y ausencia de planes aplicables inmediatamente antes de persistir; devuelve 409 si aparece alguno. Se mantienen locks de Booking/Resource, validación de disponibilidad y transacción atómica de Snapshot, estado y Timeline. La decisión se basa en la consulta backend al confirmar, nunca en un array enviado por el cliente.
+
+`PricingSnapshotItem` es una unión discriminada compatible con históricos: CALCULATED/MANUAL_OVERRIDE conservan su forma; MANUAL_NO_RATE_PLAN tiene `ratePlanId`, `suggestedAmountMinor` y `adjustmentAmountMinor` nulos, `breakdown: []`, noches reales, monto acordado y motivo. Actor en BOOKING_CONFIRMED y fecha en Snapshot/Timeline. `items` ya es JSON: no requiere migración SQL ni reescritura histórica. PaymentPlan, Payments y saldos usan moneda/total; Revenue sigue sumando pagos registrados, sin convertir la excepción en descuento.
+
+Calendar y Confirm Booking muestran el precio excepcional solo tras una selección contextual exitosa y vacía para OWNER/ADMIN. Carga/error no habilitan la excepción; cambiar contexto descarta entrada/precio anterior y la aparición de planes exige referencia. Si Calendar ya envió la reserva a PENDING y falla la confirmación, abre la confirmación de esa misma reserva con el error; no crea otra al reintentar.
+
+Presentación frontend: helper puro `formatPureDate` (dd/mm/yyyy) separado de `formatBusinessInstant` (timezone IANA explícita). ISO permanece en API, inputs nativos y atributos dateTime. Calendar conserva encabezados de mes/día como navegación parcial. ConfirmDialog reutiliza OverlayPanel y Foundation; carga bloquea cierre/duplicados, error queda en el diálogo y el cierre devuelve foco sin desplazar una navegación del shell.
+
+## 25. Quality gate frontend del MVP (histórico)
 
 Las páginas operativas y Login usan `React.lazy`/`Suspense` por ruta; el shell y los guards permanecen disponibles y la espera expone un status accesible. Se conserva el respaldo por página y general; errores de importación no exponen detalles internos. No se elevó el umbral de 500 kB.
 

@@ -463,12 +463,12 @@ Pricing no:
 
 #### Pricing Snapshot
 
-- Plan o lista seleccionada.
-- Precio por noche.
-- Desglose por fecha.
+- Origen: CALCULATED, MANUAL_OVERRIDE o MANUAL_NO_RATE_PLAN.
+- Plan o lista seleccionada para CALCULATED/MANUAL_OVERRIDE; referencia nula para MANUAL_NO_RATE_PLAN.
+- Precio por noche y desglose por fecha en precios basados en plan; total por concepto «precio manual sin tarifario» en la excepción, sin repartir noches artificialmente.
 - Descuentos aplicados.
 - Ajustes aplicados.
-- Precio sugerido.
+- Precio sugerido y ajuste numéricos cuando existe referencia; ambos nulos en MANUAL_NO_RATE_PLAN.
 - Precio acordado.
 - Motivo del precio personalizado, cuando corresponda.
 - Moneda.
@@ -485,6 +485,8 @@ Pricing no:
 - El catálogo tarifario del Negocio incluye planes activos y archivados para lectura administrativa e histórica. Para seleccionar una tarifa de Booking, Pricing filtra únicamente planes activos, asignados al Resource activo solicitado y cuya vigencia cubre completamente la estadía; las tarifas estacionales afectan el cálculo posterior, no la seleccionabilidad.
 - Siempre debe existir una opción de precio personalizado cuando el Negocio la tenga habilitada.
 - Todo precio personalizado requiere motivo.
+- POST-A7, opción C aprobada el 24/09/2026: si no hay ningún plan seleccionable para el Resource y la estadía, OWNER/ADMIN pueden acordar un precio manual excepcional sin crear Rate Plan. El backend revalida esta ausencia al confirmar; si hay un plan aplicable exige usarlo, incluso para override. Recepción no puede confirmar la excepción.
+- El importe excepcional es un entero seguro no negativo, con moneda del Business y motivo de 2 a 500 caracteres tras quitar espacios extremos. Conserva Business/Resource activos, fechas válidas (1 a 365 noches), contacto, disponibilidad y auditoría. No equivale a descuento, ni modifica snapshots históricos.
 - El precio acordado debe congelarse al confirmar la reserva.
 - Los cambios posteriores en listas o reglas no modifican reservas confirmadas.
 - Un cambio de fechas o Resource puede requerir recalcular el precio.
@@ -983,7 +985,7 @@ No se definen aún las cardinalidades técnicas de base de datos.
 ### 12. Pendientes
 
 - Campos mínimos exactos para crear un Contact.
-- Normalización y validación de teléfonos.
+- Normalización y validación de teléfonos: definida por POST-A3 en Business Rules; se conserva compatibilidad histórica sin inferir prefijos ausentes.
 - Tipos de documento iniciales.
 - Reglas exactas para detectar duplicados.
 - Proceso de fusión manual de duplicados.

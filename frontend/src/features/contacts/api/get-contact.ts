@@ -5,18 +5,21 @@ interface GetContactOptions {
   businessId: string;
   contactId: string;
   accessToken?: string | null;
+  signal?: AbortSignal;
 }
 
 export function getContact({
   businessId,
   contactId,
   accessToken,
+  signal,
 }: GetContactOptions): Promise<Contact> {
   return apiRequest<Contact>(
     `/businesses/${businessId}/contacts/${contactId}`,
     {
       method: "GET",
       accessToken,
+      signal,
     },
   );
 }

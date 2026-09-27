@@ -1,3 +1,5 @@
+import { ManualPriceRatePlanAvailableError } from '../../pricing/application/prepare-manual-price.use-case';
+import { InvalidListRatePlansInputError, ListRatePlansBusinessNotFoundError, ListRatePlansBusinessArchivedError, ListRatePlansResourceNotFoundError, ListRatePlansResourceUnavailableError } from '../../pricing/application/list-rate-plans.use-case';
 import {
   BadRequestException,
   Body,
@@ -53,7 +55,7 @@ import { ConfirmBookingUseCase } from '../application/confirm-booking.use-case';
 import { CancelBookingUseCase } from '../application/cancel-booking.use-case';
 import { SubmitBookingUseCase } from '../application/submit-booking.use-case';
 import { ConfirmBookingRequestDto } from './dto/confirm-booking.request.dto';
-import { BusinessAccess } from '../../../shared/security/security.decorators';
+import { BusinessAccess, BusinessAccessWithPricingOverride } from '../../../shared/security/security.decorators';
 import { Capability } from '../../../shared/application/authorization-policy';
 import type { AuthenticatedRequest } from '../../../shared/security/authenticated-principal';
 import { CancelBookingRequestDto } from './dto/cancel-booking.request.dto';
@@ -101,7 +103,7 @@ export class BookingLifecycleController {
   }
 
   @Post(':bookingId/confirm')
-  @BusinessAccess('businessId', Capability.BOOKING_WRITE)
+  @BusinessAccessWithPricingOverride('businessId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
@@ -196,6 +198,7 @@ export class BookingLifecycleController {
       InvalidBookingPricingInputError,
       InvalidCalculatePriceInputError,
       InvalidManualPriceOverrideInputError,
+      InvalidListRatePlansInputError,
     ].some(
       (type) => error instanceof type,
     );
@@ -206,6 +209,8 @@ export class BookingLifecycleController {
   ): error is Error {
     return [
       BookingBusinessNotFoundError,
+      ListRatePlansBusinessNotFoundError,
+      ListRatePlansResourceNotFoundError,
       BookingContactNotFoundError,
       BookingNotFoundError,
       CalculatePriceBusinessNotFoundError,
@@ -221,6 +226,9 @@ export class BookingLifecycleController {
   ): error is Error {
     return [
       BookingBusinessUnavailableError,
+      ManualPriceRatePlanAvailableError,
+      ListRatePlansBusinessArchivedError,
+      ListRatePlansResourceUnavailableError,
       BookingNotDraftError,
       BookingNotPendingError,
       BookingCancellationNotAllowedError,

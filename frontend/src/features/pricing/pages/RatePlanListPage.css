@@ -526,30 +526,8 @@
     width: 100%;
   }
 }
-.rate-plan-edit-link {
-  display: inline-flex;
-  min-height: 40px;
-  align-items: center;
-  justify-content: center;
-  margin-top: auto;
-  padding: 0 12px;
-  border: 1px solid #d5dfdc;
-  border-radius: 9px;
-  background: #ffffff;
-  color: #155c4c;
-  font-size: 0.74rem;
-  font-weight: 800;
-  text-decoration: none;
-}
 
-.rate-plan-edit-link:hover {
-  background: #f4f8f7;
-}
 
-.rate-plan-edit-link:focus-visible {
-  outline: 3px solid rgba(21, 92, 76, 0.16);
-  outline-offset: 3px;
-}
 .rate-plan-card__actions {
   display: grid;
   margin-top: auto;
@@ -558,58 +536,16 @@
   gap: 7px;
 }
 
-.rate-plan-seasons-link {
-  display: inline-flex;
-  min-height: 40px;
-  align-items: center;
-  justify-content: center;
-  padding: 0 12px;
-  border: 1px solid #d5dfdc;
-  border-radius: 9px;
-  background: #f6f9f8;
-  color: #52676d;
-  font-size: 0.74rem;
-  font-weight: 800;
-  text-decoration: none;
-}
 
-.rate-plan-seasons-link:hover {
-  background: #eef4f2;
-}
 
-.rate-plan-seasons-link:focus-visible {
-  outline: 3px solid rgba(21, 92, 76, 0.16);
-  outline-offset: 3px;
-}
 
 @media (max-width: 680px) {
   .rate-plan-card__actions {
     grid-template-columns: 1fr;
   }
 }
-.rate-plan-preview-link {
-  display: inline-flex;
-  min-height: 40px;
-  align-items: center;
-  justify-content: center;
-  padding: 0 12px;
-  border: 1px solid #d5dfdc;
-  border-radius: 9px;
-  background: #ffffff;
-  color: #155c4c;
-  font-size: 0.74rem;
-  font-weight: 800;
-  text-decoration: none;
-}
 
-.rate-plan-preview-link:hover {
-  background: #f4f8f7;
-}
 
-.rate-plan-preview-link:focus-visible {
-  outline: 3px solid rgba(21, 92, 76, 0.16);
-  outline-offset: 3px;
-}
 @media (max-width: 680px) {
   .rate-plan-filter-toggle {
     display: flex;
@@ -736,3 +672,15 @@
     scroll-behavior: auto;
   }
 }
+
+/* Foundation conserva interacción común para búsqueda, tarjetas y acciones. */
+.rate-plan-search__control { border-color: var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+.rate-plan-search__control:focus-within { outline: 3px solid var(--color-brand-primary); outline-offset: 2px; }
+.rate-plan-search__control input.top-input { min-height: 44px; font-size: 16px; }
+.rate-plan-status-filter select.top-input { border-color: var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); font-size: 16px; }
+.rate-plan-card:focus-within { border-color: var(--color-brand-primary); }
+.rate-plan-card__actions .top-button { min-height: 44px; transition: background-color var(--motion-fast) var(--motion-state), border-color var(--motion-fast) var(--motion-state); }
+@media (prefers-reduced-motion: reduce) { .rate-plan-card__actions .top-button { transition: none; } }
+
+.rate-plan-card__actions .top-button { text-decoration: none; }
+@media (max-width: 767px) { .rate-plan-deck-item--active .rate-plan-card { border-color: var(--color-brand-primary); } }

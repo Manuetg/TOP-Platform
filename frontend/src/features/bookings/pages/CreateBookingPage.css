@@ -140,30 +140,12 @@
   font-weight: 700;
 }
 
-.create-booking-field input,
-.create-booking-field select,
-.create-booking-field textarea {
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
-  border: 1px solid #cbd7d3;
-  border-radius: 10px;
-  background: #ffffff;
-  color: #29434a;
-  font: inherit;
-}
 
 .create-booking-field textarea {
   resize: vertical;
   line-height: 1.5;
 }
 
-.create-booking-field input:focus,
-.create-booking-field select:focus,
-.create-booking-field textarea:focus {
-  border-color: #155c4c;
-  outline: 3px solid rgba(21, 92, 76, 0.12);
-}
 
 .create-booking-hint {
   color: #849196;
@@ -373,3 +355,5 @@
     transition: none;
   }
 }
+.create-booking-field .top-input { font: inherit; font-size: 16px; }
+.create-booking-field textarea.top-input { padding-block: var(--space-3); }

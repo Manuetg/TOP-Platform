@@ -61,12 +61,19 @@ export interface BookingTimelineResponse {
     hasNextPage: boolean;
   };
 }
-export interface ConfirmBookingPricingItem {
+export type ConfirmBookingPricingItem = {
   resourceId: string;
   ratePlanId: string;
+  pricingMode?: never;
   agreedAmountMinor?: number;
   overrideReason?: string;
-}
+} | {
+  resourceId: string;
+  ratePlanId?: never;
+  pricingMode: 'MANUAL_NO_RATE_PLAN';
+  agreedAmountMinor: number;
+  overrideReason: string;
+};
 
 export interface ConfirmBookingInput {
   pricing: ConfirmBookingPricingItem[];

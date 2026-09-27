@@ -1,3 +1,4 @@
+import { formatPureDate } from "../../../shared/utils/date-format";
 import { formatMoney } from "../../../shared/utils/money";
 import {
   BadgeDollarSign,
@@ -37,23 +38,8 @@ const STATUS_LABELS: Record<
 
 
 
-function formatDate(value: string | null) {
-  if (!value) {
-    return "Sin límite";
-  }
 
-  const [year, month, day] = value
-    .split("-")
-    .map(Number);
-
-  return new Intl.DateTimeFormat("es-PY", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(
-    new Date(year, month - 1, day),
-  );
-}
+const formatDate = (value: string | null) => formatPureDate(value, "Sin límite");
 
 function matchesSearch(
   plan: RatePlan,
@@ -362,7 +348,7 @@ if (isLoading) {
         </div>
         <Link
           to="/app/pricing/new"
-          className="rate-plan-create-button"
+          className="top-button top-button--primary rate-plan-create-button"
         >
           Crear plan
         </Link>
@@ -370,7 +356,7 @@ if (isLoading) {
 
       <button
         type="button"
-        className="rate-plan-filter-toggle"
+        className="top-choice rate-plan-filter-toggle"
         aria-expanded={filtersOpen}
         aria-controls="rate-plan-filters"
         onClick={() =>
@@ -416,6 +402,7 @@ if (isLoading) {
             />
 
             <input
+              className="top-input"
               type="search"
               value={search}
               onChange={(event) =>
@@ -431,7 +418,7 @@ if (isLoading) {
             Estado
           </span>
 
-          <select
+          <select className="top-input"
             value={status}
             onChange={(event) =>
               setStatus(
@@ -487,7 +474,7 @@ if (isLoading) {
                     : ""
                 }`}
               >
-                <article className="top-surface rate-plan-card">
+                <article className="top-surface top-interactive-surface rate-plan-card">
                 <div className="rate-plan-card__top">
                   <div>
                     <span className="rate-plan-card__label">
@@ -582,20 +569,20 @@ if (isLoading) {
                   <div className="rate-plan-card__actions">
                     <Link
                       to={`/app/pricing/${plan.id}/preview`}
-                      className="rate-plan-preview-link"
+                      className="top-button top-button--secondary rate-plan-preview-link"
                     >
                       Calcular
                     </Link>
                     <Link
                       to={`/app/pricing/${plan.id}/seasons`}
-                      className="rate-plan-seasons-link"
+                      className="top-button top-button--secondary rate-plan-seasons-link"
                     >
                       Temporadas
                     </Link>
 
                     <Link
                       to={`/app/pricing/${plan.id}/edit`}
-                      className="rate-plan-edit-link"
+                      className="top-button top-button--secondary rate-plan-edit-link"
                     >
                       Editar plan
                     </Link>

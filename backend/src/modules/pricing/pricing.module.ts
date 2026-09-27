@@ -1,3 +1,4 @@
+import { PrepareManualPriceUseCase } from './application/prepare-manual-price.use-case';
 import { Module } from '@nestjs/common';
 import { BusinessModule } from '../business/business.module';
 import {
@@ -80,10 +81,12 @@ import { PricingController } from './presentation/pricing.controller';
     ListRatePlansUseCase,
     CalculatePriceUseCase,
     ApplyManualPriceOverrideUseCase,
+    PrepareManualPriceUseCase,
   ],
   exports: [
     CalculatePriceUseCase,
     ApplyManualPriceOverrideUseCase,
+    PrepareManualPriceUseCase,
     PRICING_SNAPSHOT_REPOSITORY,
   ],
 })

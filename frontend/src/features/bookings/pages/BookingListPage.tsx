@@ -1,3 +1,4 @@
+import { formatPureDate } from "../../../shared/utils/date-format";
 import {
   CalendarDays,
   ChevronDown,
@@ -79,18 +80,7 @@ function formatStay(
     return "Fechas pendientes";
   }
 
-  const formatCompact = (value: string) => {
-    const [year, month, day] = value
-      .split("-")
-      .map(Number);
-
-    return new Intl.DateTimeFormat("es-PY", {
-      day: "2-digit",
-      month: "short",
-    }).format(
-      new Date(year, month - 1, day),
-    );
-  };
+  const formatCompact = formatPureDate;
 
   return `${formatCompact(
     checkInDate,

@@ -7,6 +7,8 @@ import {
   ArrayMinSize,
   IsArray,
   IsInt,
+  IsIn,
+  ValidateIf,
   IsOptional,
   IsString,
   IsUUID,
@@ -21,11 +23,15 @@ export class ConfirmBookingPricingItemRequestDto {
   @IsUUID('4')
   resourceId!: string;
 
-  @ApiProperty({
-    format: 'uuid',
-  })
+  @ApiPropertyOptional({ format: 'uuid', description: 'Obligatorio salvo en MANUAL_NO_RATE_PLAN; en ese modo debe omitirse.' })
+  @ValidateIf((item: ConfirmBookingPricingItemRequestDto) => item.pricingMode !== 'MANUAL_NO_RATE_PLAN' || item.ratePlanId !== undefined)
   @IsUUID('4')
-  ratePlanId!: string;
+  ratePlanId?: string;
+
+  @ApiPropertyOptional({ enum: ['MANUAL_NO_RATE_PLAN'], description: 'Precio excepcional sin tarifario aplicable. Requiere monto, motivo y permiso de ajuste.' })
+  @ValidateIf((_item: unknown, value: unknown) => value !== undefined)
+  @IsIn(['MANUAL_NO_RATE_PLAN'])
+  pricingMode?: 'MANUAL_NO_RATE_PLAN';
 
   @ApiPropertyOptional({
     example: 450000,

@@ -14,6 +14,18 @@ export class PrismaContactRepository implements ContactRepository {
     const where = query === null ? { businessId } : { businessId, OR: [{ name: { contains: query, mode: 'insensitive' as const } }, { lastName: { contains: query, mode: 'insensitive' as const } }, { phone: { contains: query, mode: 'insensitive' as const } }, { whatsapp: { contains: query, mode: 'insensitive' as const } }, { email: { contains: query, mode: 'insensitive' as const } }, { documentNumber: { contains: query, mode: 'insensitive' as const } }] };
     return (await this.prisma.contact.findMany({ where, orderBy: [{ name: 'asc' }, { lastName: 'asc' }, { id: 'asc' }] })).map((row) => this.map(row));
   }
-  async update(contact: Contact): Promise<Contact> { return this.map(await this.prisma.contact.update({ where: { id: contact.id }, data: { name: contact.name, lastName: contact.lastName, phone: contact.phone, whatsapp: contact.whatsapp, email: contact.email, documentType: contact.documentType, documentNumber: contact.documentNumber, country: contact.country, city: contact.city, status: contact.status } })); }
+  async update(contact: Contact): Promise<Contact> { return this.map(await this.prisma.contact.update({ where: { id: contact.id, businessId: contact.businessId }, data: { name: contact.name, lastName: contact.lastName, phone: contact.phone, whatsapp: contact.whatsapp, email: contact.email, documentType: contact.documentType, documentNumber: contact.documentNumber, country: contact.country, city: contact.city } })); }
+  async archive(id: string, businessId: string, actorUserId: string): Promise<Contact | null> {
+    // El predicado hace que concurrentes/reintentos conserven la primera auditoría.
+    return this.prisma.$transaction(async (tx) => {
+      for (const status of [ContactStatus.ACTIVE, ContactStatus.INACTIVE]) {
+        await tx.contact.updateMany({ where: { id, businessId, status }, data: {
+          status: ContactStatus.ARCHIVED, archivedAt: new Date(), archivedBy: actorUserId, archivedFromStatus: status,
+        } });
+      }
+      const row = await tx.contact.findFirst({ where: { id, businessId } });
+      return row ? this.map(row) : null;
+    });
+  }
   private map(row: PrismaContact): Contact { return Contact.create({ ...row, status: row.status as ContactStatus }); }
 }

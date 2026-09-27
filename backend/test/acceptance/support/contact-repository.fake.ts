@@ -4,6 +4,7 @@ import type { ContactRepository, CreateContactData } from '../../../src/modules/
 
 const contacts = new Map<string, Contact>();
 export const contactRepositoryFake: ContactRepository = {
+  archive: (id, businessId) => { const contact = contacts.get(id); if (!contact || contact.businessId !== businessId) return Promise.resolve(null); const archived = contact.archive(); contacts.set(id, archived); return Promise.resolve(archived); },
   create: (data: CreateContactData) => { const contact = Contact.create({ id: `c0000000-0000-4000-8000-${String(contacts.size + 1).padStart(12, '0')}`, ...data, status: ContactStatus.ACTIVE, createdAt: new Date(), updatedAt: new Date() }); contacts.set(contact.id, contact); return Promise.resolve(contact); },
   findByIdAndBusinessId: (id, businessId) => Promise.resolve(contacts.get(id)?.businessId === businessId ? contacts.get(id) ?? null : null),
   searchByBusinessId: (businessId, query) => Promise.resolve([...contacts.values()].filter((contact) => contact.businessId === businessId && (query === null || [contact.name, contact.lastName, contact.phone, contact.whatsapp, contact.email, contact.documentNumber].some((value) => value?.toLowerCase().includes(query.toLowerCase())))).sort((left, right) => left.name.localeCompare(right.name) || (left.lastName ?? '').localeCompare(right.lastName ?? '') || left.id.localeCompare(right.id))),

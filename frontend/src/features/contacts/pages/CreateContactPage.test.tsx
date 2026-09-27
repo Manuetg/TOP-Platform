@@ -94,6 +94,21 @@ describe("CreateContactPage", () => {
     );
   });
 
+  it("presenta país antes del teléfono y actualiza el prefijo sin alterar la entrada", async () => {
+    const user = userEvent.setup(); renderPage();
+    const country = screen.getByLabelText("País");
+    const phone = screen.getByLabelText(/Teléfono \/ WhatsApp/i);
+    expect(country.compareDocumentPosition(phone) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(country.closest("section")).toBe(phone.closest("section"));
+    expect(screen.getByLabelText("Prefijo internacional")).toHaveTextContent("+595");
+    await user.selectOptions(country, "Argentina");
+    expect(screen.getByLabelText("Prefijo internacional")).toHaveTextContent("+54");
+    await user.type(phone, "+595981123456");
+    expect(screen.getByLabelText("Prefijo internacional")).toHaveTextContent("+595");
+    expect(phone).toHaveValue("+595981123456");
+    expect(phone).toHaveAccessibleDescription(/país seleccionado/);
+  });
+
   it("validates required name, last name and phone", async () => {
     const user = userEvent.setup();
 
@@ -206,8 +221,8 @@ describe("CreateContactPage", () => {
           input: {
             name: "Juan",
             lastName: "Pérez",
-            phone: "0981123456",
-            whatsapp: "0981123456",
+            phone: "+595981123456",
+            whatsapp: "+595981123456",
             email: "juan@example.com",
             documentType: "CI",
             documentNumber: "1234567",
