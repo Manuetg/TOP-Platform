@@ -1,3 +1,4 @@
+import { ManualPriceFields } from "../../pricing/components/ManualPriceFields";
 import { ContactPhoneField } from "../../contacts/components/ContactPhoneField";
 import { normalizePhone } from "../../contacts/utils/contact-phone";
 import { COUNTRIES } from "../../contacts/constants/countries";
@@ -81,7 +82,7 @@ interface WizardState {
   resourceId: string;
   contactId: string;
   ratePlanId: string;
-  mode: "CONFIGURED" | "MANUAL";
+  mode: "CONFIGURED" | "MANUAL" | "MANUAL_NO_RATE_PLAN";
   agreedAmountMinor: string;
   overrideReason: string;
   discountPercent: string;
@@ -206,14 +207,21 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
   const selectedContact = contactsQuery.data?.find((item) => item.id === wizard.contactId);
   const selectedRate = ratePlans.data?.find((item) => item.id === wizard.ratePlanId);
 
+  const manualWithoutPlan = canOverride && ratePlans.isSuccess && !ratePlans.isFetching && !ratePlans.isError && ratePlans.data?.length === 0;
+  const validManualReason = wizard.overrideReason.trim().length >= 2 && wizard.overrideReason.trim().length <= 500;
+  const pricingReady = ratePlans.isSuccess && !ratePlans.isFetching && !ratePlans.isError &&
+    (wizard.mode === "MANUAL_NO_RATE_PLAN" ? manualWithoutPlan && validManualReason : Boolean(selectedRate));
+
   useEffect(() => {
-    if (!ratePlans.isSuccess) return;
+    if (!ratePlans.isSuccess || ratePlans.isFetching) return;
+    if (ratePlans.data?.length === 0 && canOverride && wizard.mode !== "MANUAL_NO_RATE_PLAN") update("mode", "MANUAL_NO_RATE_PLAN");
+    if (ratePlans.data?.length && wizard.mode === "MANUAL_NO_RATE_PLAN") { update("mode", "CONFIGURED"); if (step === 5) setStep(4); }
     const plans = ratePlans.data ?? [];
     if (!plans.some((plan) => plan.id === wizard.ratePlanId)) {
       const next = plans.length === 1 ? plans[0].id : "";
       if (next !== wizard.ratePlanId) update("ratePlanId", next);
     }
-  }, [ratePlans.data, ratePlans.isSuccess, wizard.ratePlanId]);
+  }, [ratePlans.data, ratePlans.isSuccess, ratePlans.isFetching, wizard.ratePlanId, wizard.mode, canOverride, step]);
 
   const monthOptions = Array.from({ length: 12 }, (_, index) => ({
     value: index,
@@ -315,7 +323,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
       operations.current.clear();
       setSaving(false);
     }
-    setWizard((current) => ({ ...current, [key]: value, ...(["resourceId", "checkIn", "checkOut"].includes(key) ? { ratePlanId: "" } : {}) }));
+    setWizard((current) => ({ ...current, [key]: value, ...(["resourceId", "checkIn", "checkOut"].includes(key) ? { ratePlanId: "", agreedAmountMinor: "", overrideReason: "", mode: "CONFIGURED" } : {}), ...(key === "mode" ? { overrideReason: "", agreedAmountMinor: "" } : {}) }));
     setError(null);
     if (key === "resourceId" || key === "checkIn" || key === "checkOut" || key === "ratePlanId" || key === "mode") {
       setPreview(null);
@@ -361,12 +369,12 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
       return;
     }
     if (step === 4) {
-      if (ratePlans.isFetching || ratePlans.isError || !selectedRate) {
+      if (!pricingReady) {
         setError("Selecciona un tarifario disponible para esta estadía.");
         return;
       }
-      if ((wizard.mode === "MANUAL" || selectedDiscountPercent(wizard) > 0) && !canOverride) { setError("No tienes permiso para ajustar el precio."); return; }
-      if (wizard.mode === "MANUAL") {
+      if ((wizard.mode !== "CONFIGURED" || selectedDiscountPercent(wizard) > 0) && !canOverride) { setError("No tienes permiso para ajustar el precio."); return; }
+      if (wizard.mode !== "CONFIGURED") {
         const amountMinor = guaraniesToMinor(wizard.agreedAmountMinor);
 
         if (amountMinor === null || !Number.isSafeInteger(amountMinor)) {
@@ -453,10 +461,11 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
   }
 
   async function finishBooking() {
-    if (savingLock.current || !businessId || ratePlans.isFetching || ratePlans.isError || !selectedRate || ((wizard.mode === "MANUAL" || selectedDiscountPercent(wizard) > 0) && !canOverride) || (wizard.mode === "CONFIGURED" && !preview)) return;
+    if (savingLock.current || !businessId || !pricingReady || ((wizard.mode !== "CONFIGURED" || selectedDiscountPercent(wizard) > 0) && !canOverride) || (wizard.mode === "CONFIGURED" && !preview)) return;
     savingLock.current = true;
     const controller = operation();
     const discount = selectedDiscountPercent(wizard);
+    let pendingBookingId: string | null = null;
     setSaving(true);
     setError(null);
     try {
@@ -476,6 +485,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
       if (controller.signal.aborted) return;
       await submitBooking({ businessId: businessId, bookingId: booking.id, accessToken, signal: controller.signal });
       if (controller.signal.aborted) return;
+      pendingBookingId = booking.id;
       await confirmBooking({
         businessId: businessId,
         bookingId: booking.id,
@@ -484,7 +494,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
         input: {
           pricing: [{
             resourceId: wizard.resourceId,
-            ratePlanId: wizard.ratePlanId,
+            ...(wizard.mode === "MANUAL_NO_RATE_PLAN" ? { pricingMode: "MANUAL_NO_RATE_PLAN" as const, agreedAmountMinor: guaraniesToMinor(wizard.agreedAmountMinor)!, overrideReason: wizard.overrideReason.trim() } : { ratePlanId: wizard.ratePlanId,
             ...(wizard.mode === "MANUAL"
               ? {
                   agreedAmountMinor: guaraniesToMinor(wizard.agreedAmountMinor) ?? 0,
@@ -496,6 +506,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
                     overrideReason: `Descuento del ${discount}% aplicado desde calendario`,
                   }
                 : {}),
+            }),
           }],
         },
       });
@@ -506,7 +517,13 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
       navigate(`/app/bookings/${booking.id}`);
     } catch (cause) {
       if (controller.signal.aborted) return;
-      setError(cause instanceof Error ? cause.message : "No pudimos confirmar la reserva.");
+      const message = cause instanceof Error ? cause.message : "No pudimos confirmar la reserva.";
+      if (pendingBookingId) {
+        await queryClient.invalidateQueries({ queryKey: ["bookings", businessId] });
+        if (controller.signal.aborted) return;
+        setWizardOpen(false);
+        navigate(`/app/bookings/${pendingBookingId}/confirm`, { state: { confirmationError: message } });
+      } else setError(message);
     } finally {
       operations.current.delete(controller);
       if (!controller.signal.aborted) { savingLock.current = false; setSaving(false); }
@@ -767,7 +784,7 @@ function BusinessCalendar({ businessId, timezone }: { businessId: string; timezo
               ) : (
                 <span aria-hidden="true" />
               )}
-              {step < 5 ? <Button type="button" disabled={saving || (step === 1 && stayAvailability.isLoading) || (step === 4 && (ratePlans.isFetching || ratePlans.isError || !selectedRate || (wizard.mode === "MANUAL" && guaraniesToMinor(wizard.agreedAmountMinor) === null) || (wizard.mode === "CONFIGURED" && (wizard.discountPercent === "OTHER" && (!Number.isInteger(Number(wizard.customDiscountPercent)) || Number(wizard.customDiscountPercent) < 1 || Number(wizard.customDiscountPercent) > 100)))))} onClick={() => void nextStep()}>{step === 1 ? "Buscar disponibilidad" : "Continuar"}<ArrowRight size={16} /></Button> : <Button type="button" disabled={saving} onClick={() => void finishBooking()}>{saving ? "Confirmando…" : "Confirmar reserva"}<Check size={16} /></Button>}
+              {step < 5 ? <Button type="button" disabled={saving || (step === 1 && stayAvailability.isLoading) || (step === 4 && (!pricingReady || (wizard.mode !== "CONFIGURED" && guaraniesToMinor(wizard.agreedAmountMinor) === null) || (wizard.mode === "CONFIGURED" && (wizard.discountPercent === "OTHER" && (!Number.isInteger(Number(wizard.customDiscountPercent)) || Number(wizard.customDiscountPercent) < 1 || Number(wizard.customDiscountPercent) > 100)))))} onClick={() => void nextStep()}>{step === 1 ? "Buscar disponibilidad" : "Continuar"}<ArrowRight size={16} /></Button> : <Button type="button" disabled={saving || !pricingReady || (wizard.mode === "CONFIGURED" && !preview)} onClick={() => void finishBooking()}>{saving ? "Confirmando…" : "Confirmar reserva"}<Check size={16} /></Button>}
             </footer>
       </OverlayPanel>
     </section>
@@ -1126,7 +1143,11 @@ function RateStep({ wizard, ratePlans, loading, failed, retry, canOverride, prev
   const configuredTotal = preview ? Math.round(preview.totalAmountMinor * (100 - discount) / 100) : null;
   if (loading) return <p role="status">Buscando planes tarifarios…</p>;
   if (failed) return <div role="alert"><p>No pudimos consultar los tarifarios de esta estadía.</p><Button type="button" variant="secondary" onClick={retry}>Reintentar tarifarios</Button></div>;
-  if (!ratePlans.length) return <div className="booking-wizard-empty" role="status"><h3>No hay un tarifario disponible para esta estadía.</h3><p>Se requiere configurar una tarifa para este alojamiento y estas fechas antes de continuar. El precio manual también necesita un tarifario de referencia.</p>{canOverride ? <a href="/app/pricing" target="_blank" rel="noreferrer">Configurar tarifas (nueva pestaña)</a> : <p>Solicita la configuración al propietario o administrador.</p>}<Button type="button" variant="secondary" onClick={retry}>Volver a consultar</Button></div>;
+  if (!ratePlans.length) return <div className="booking-wizard-manual-pricing"><div className="booking-wizard-empty" role="status"><h3>No hay un tarifario disponible para esta estadía.</h3>{canOverride ? <p>Podés continuar con un precio manual excepcional o configurar una tarifa.</p> : <p>Solicitá al propietario o administrador que defina un precio o configure una tarifa.</p>}</div>
+    {canOverride && <ManualPriceFields amount={wizard.agreedAmountMinor} reason={wizard.overrideReason} onAmountChange={(value) => update("agreedAmountMinor", value)} onReasonChange={(value) => update("overrideReason", value)} />}
+    {canOverride && <a href="/app/pricing" target="_blank" rel="noreferrer">Configurar tarifas (nueva pestaña)</a>}
+    <Button type="button" variant="secondary" onClick={retry}>Volver a consultar</Button>
+  </div>;
   return <>
     <div className="booking-wizard-heading"><span className="booking-wizard-currency">₲</span><div><h3>Definí la tarifa</h3><p>Elegí un plan válido para esta estadía.</p></div></div>
     <div className="booking-wizard-segments" role="group" aria-label="Modo de precio">
@@ -1154,6 +1175,6 @@ function RateStep({ wizard, ratePlans, loading, failed, retry, canOverride, prev
 
 function ReviewStep({ wizard, resourceName, contactName, rateName, preview }: { wizard: WizardState; resourceName?: string; contactName?: string; rateName?: string; preview: CalculatePriceResult | null }) {
   const discount = selectedDiscountPercent(wizard);
-  const total = wizard.mode === "MANUAL" ? guaraniesToMinor(wizard.agreedAmountMinor) ?? 0 : preview ? Math.round(preview.totalAmountMinor * (100 - discount) / 100) : 0;
-  return <><div className="booking-wizard-heading"><Check size={22} /><div><h3>Revisá y confirmá</h3><p>TOP volverá a validar disponibilidad y precio al confirmar.</p></div></div><dl className="booking-wizard-review"><div><dt>Contacto</dt><dd>{contactName}</dd></div><div><dt>Alojamiento</dt><dd>{resourceName}</dd></div><div><dt>Estadía</dt><dd>{formatDateForDisplay(wizard.checkIn)} → {formatDateForDisplay(wizard.checkOut)}</dd></div><div><dt>Huéspedes</dt><dd>{wizard.adults} adultos · {wizard.children} niños</dd></div><div><dt>Tarifa</dt><dd>{rateName}{wizard.mode === "MANUAL" ? " · ajuste manual" : ""}</dd></div><div className="is-total"><dt>Total acordado</dt><dd>{formatMoney(total, preview?.currency)}</dd></div></dl></>;
+  const total = wizard.mode !== "CONFIGURED" ? guaraniesToMinor(wizard.agreedAmountMinor) ?? 0 : preview ? Math.round(preview.totalAmountMinor * (100 - discount) / 100) : 0;
+  return <><div className="booking-wizard-heading"><Check size={22} /><div><h3>Revisá y confirmá</h3><p>TOP volverá a validar disponibilidad y precio al confirmar.</p></div></div><dl className="booking-wizard-review"><div><dt>Contacto</dt><dd>{contactName}</dd></div><div><dt>Alojamiento</dt><dd>{resourceName}</dd></div><div><dt>Estadía</dt><dd>{formatDateForDisplay(wizard.checkIn)} → {formatDateForDisplay(wizard.checkOut)}</dd></div><div><dt>Huéspedes</dt><dd>{wizard.adults} adultos · {wizard.children} niños</dd></div><div><dt>Tarifa</dt><dd>{wizard.mode === "MANUAL_NO_RATE_PLAN" ? "Precio manual sin tarifario" : rateName}{wizard.mode === "MANUAL" ? " · ajuste manual" : ""}</dd></div>{wizard.mode === "MANUAL_NO_RATE_PLAN" && <div><dt>Motivo</dt><dd>{wizard.overrideReason.trim()}</dd></div>}<div className="is-total"><dt>Total acordado</dt><dd>{formatMoney(total, preview?.currency)}</dd></div></dl></>;
 }

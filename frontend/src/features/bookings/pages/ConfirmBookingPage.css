@@ -217,3 +217,5 @@
     width: 100%;
   }
 }
+.confirm-booking-empty { display: grid; gap: 12px; }
+.confirm-booking-price p { overflow-wrap: anywhere; }

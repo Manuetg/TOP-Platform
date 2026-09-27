@@ -1,3 +1,4 @@
+import { PrepareManualPriceUseCase } from '../../pricing/application/prepare-manual-price.use-case';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   AVAILABILITY_OVERBOOKING_VALIDATOR,
@@ -51,7 +52,7 @@ export interface ConfirmBookingInput {
 
 interface ConfirmBookingPricingInput {
   resourceId: string;
-  ratePlanId: string;
+  ratePlanId: string | null;
   agreedAmountMinor?: unknown;
   overrideReason?: unknown;
 }
@@ -73,6 +74,7 @@ export class ConfirmBookingUseCase {
     @Inject(BOOKING_CONFIRMATION_TRANSACTION)
     private readonly confirmation:
       BookingConfirmationTransaction,
+    private readonly prepareManualPrice: PrepareManualPriceUseCase,
   ) {}
 
   async execute(
@@ -325,10 +327,7 @@ export class ConfirmBookingUseCase {
       'El identificador del recurso no es válido.',
     );
 
-    const ratePlanId = requireBookingUuid(
-      item.ratePlanId,
-      'El identificador de la tarifa no es válido.',
-    );
+    const ratePlanId = this.ratePlanReference(item);
 
     if (!expectedResources.has(resourceId)) {
       throw new InvalidBookingPricingInputError(
@@ -352,6 +351,20 @@ export class ConfirmBookingUseCase {
       overrideReason:
         item.overrideReason,
     };
+  }
+
+  private ratePlanReference(item: Record<string, unknown>): string | null {
+    const manualWithoutPlan = item.pricingMode === 'MANUAL_NO_RATE_PLAN';
+    if (item.pricingMode !== undefined && !manualWithoutPlan) {
+      throw new InvalidBookingPricingInputError('El origen del precio no es válido.');
+    }
+    if (manualWithoutPlan && item.ratePlanId !== undefined) {
+      throw new InvalidBookingPricingInputError('El precio manual sin tarifario no admite un plan de referencia.');
+    }
+    return manualWithoutPlan ? null : requireBookingUuid(
+      item.ratePlanId,
+      'El identificador de la tarifa no es válido.',
+    );
   }
 
   private async prepareSnapshot(
@@ -431,6 +444,13 @@ export class ConfirmBookingUseCase {
     const checkOut = this.date(
       range.checkOutDate,
     );
+
+    if (item.ratePlanId === null) {
+      return this.prepareManualPrice.execute({
+        businessId, resourceId: item.resourceId, checkIn, checkOut,
+        agreedAmountMinor: item.agreedAmountMinor, overrideReason: item.overrideReason,
+      });
+    }
 
     const hasManualOverride =
       item.agreedAmountMinor !== undefined ||

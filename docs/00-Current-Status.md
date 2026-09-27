@@ -1,6 +1,6 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-09-24
+Última actualización: 2026-09-27
 
 ## Handoff vigente — POST-MVP / PRODUCTION READINESS
 
@@ -10,11 +10,11 @@ Baseline remoto verificado: `develop@cb9eddcb5eb9fcd55008555a29bb478d71f6009a`, 
 
 Gaps del baseline resueltos: fechas de presentación inconsistentes, selector Pricing sin estados Foundation completos, teléfonos sin normalización backend, ausencia de archivo explícito Contact, window.confirm en Resources, inputs Booking ad-hoc y modo configurado visible sin planes. OverlayPanel, consulta contextual Rate Plans y permisos backend ya existen.
 
-A7: el contrato actual exige Rate Plan incluso para precio manual; sin planes se explica el bloqueo para todos los roles. No se inventa un tarifario ni se amplía Pricing. A3/A4 son cambios backend post-MVP explícitamente aprobados; su contrato y evidencia se registran en el backlog separado. QA interactiva: NOT RUN por instrucción de esta ejecución. CI propios del nuevo épico: ambos SUCCESS; evidencia debajo.
+A7: opción C aprobada el 24/09/2026. Sin planes aplicables, OWNER/ADMIN pueden ingresar precio manual excepcional con motivo; con planes se conserva referencia. Backend revalida elegibilidad y Snapshot identifica MANUAL_NO_RATE_PLAN. A3/A4 y la opción C de A7 son cambios backend post-MVP explícitamente aprobados; su contrato y evidencia se registran en el backlog separado. QA interactiva: NOT RUN por instrucción de esta ejecución. CI propios del nuevo épico: ambos SUCCESS; evidencia debajo.
 
 ### Implementación y verificación del Épico A
 
-Implementados A1–A7 en esta rama: helper de fechas puro y formatter de instantes por Business; interacción Foundation en Pricing; teléfono internacional en alta/edición/alta contextual y WhatsApp; archivo Contact auditado; ConfirmDialog en Contact/Resources; inputs Booking; cero tarifas con bloqueo explícito, cancelación contextual y permiso de override también en confirmación backend. La API de fechas permanece intacta.
+Implementados A1–A7 en esta rama: helper de fechas puro y formatter de instantes por Business; interacción Foundation en Pricing; teléfono internacional en alta/edición/alta contextual y WhatsApp; archivo Contact auditado; ConfirmDialog en Contact/Resources; inputs Booking; cero tarifas con excepción manual explícita para OWNER/ADMIN, cancelación contextual y permiso de override también en confirmación backend. La API de fechas permanece intacta.
 
 Migración aditiva pendiente de despliegue: `20260924000000_contact_archive_audit`. Sin cambios de infraestructura, sin migraciones sobre datos locales/reales, sin B/C/D/E implementados. `libphonenumber-js/min` se declara explícitamente (ya existía transitivamente en backend), fijada en ambos lockfiles; chunk diferido aproximado 121 kB / 30 kB gzip.
 
@@ -35,9 +35,11 @@ Self-review técnica (no independiente) siguiendo top-frontend-review: sin bloqu
 
 Continuación sobre `f419789876789a83d9a5e456ca1f18438e5fb8e4`, sin cambios remotos posteriores al comenzar. Contact agrupa País/Teléfono/Email y comparte controles entre alta/edición; Calendar reutiliza el teléfono compuesto. Archivo adopta warning terracota en la acción y confirmación, con etiqueta visible móvil. ConfirmDialog agrega backdrop modal al 40%, portal sobre la aplicación y aislamiento inert del fondo; conserva foco, cierre condicionado y reduced-motion. Decisiones visuales acotadas en [Design Context](design/DESIGN.md).
 
-**POST-A7: DECISION REQUIRED** — precio manual sin Rate Plan pendiente de decisión de Producto. Discovery y comparación A/B/C en [Roadmap](06-Roadmap.md#post-a7--discovery-de-precio-manual-sin-rate-plan-revisión-final-pr-96). Se recomienda evaluar C (híbrido excepcional), pero se conserva A vigente: manual siempre sobre un plan seleccionable. No se modifica backend, contrato, Snapshot ni migraciones en esta revisión. No es un bug del contrato actual.
+**POST-A7: opción C aprobada e implementada en esta rama (24/09/2026).** Calendar y Confirm Booking aceptan monto/motivo sin Rate Plan cuando la selección contextual no devuelve ninguno y el rol es OWNER/ADMIN. Backend revalida ausencia al preparar confirmación; un plan que pasa a ser aplicable produce 409, sin confirmar ni persistir Snapshot. Se conserva la reserva PENDING para resolverla. Snapshot MANUAL_NO_RATE_PLAN con referencia/sugerido/ajuste nulos, sin tarifa ficticia ni modificación histórica. Misma moneda, disponibilidad, tenant y auditoría. No requiere migración adicional. Comparación y decisión en [Roadmap](06-Roadmap.md#post-a7--discovery-de-precio-manual-sin-rate-plan-revisión-final-pr-96).
 
-Validación local: 10 archivos/90 pruebas focalizadas PASS (orden/prefijo/payload, warning, backdrop/foco/inert/carga y regresión de shell/Resources, incluido retorno de foco cuando el navegador ya lo movió al body), lint/build y diff check PASS. Contraste calculado de texto warning: 5,77:1 en reposo, 5,34:1 en hover y 4,93:1 en pressed; no sustituye QA visual. Los gates oficiales del HEAD final se registran en el cuerpo de la misma PR. Self-review frontend, sin aprobación independiente; QA interactiva **NOT RUN**. Estado: **DECISION REQUIRED** para el modelo futuro de Pricing; correcciones frontend preparadas para revisión PM/TL. PR #96 permanece abierta, sin merge y sin iniciar B.
+Validación local de opción C: builds/lint frontend/backend, arquitectura, Prisma y diff check PASS; frontend completo con 91 archivos/524 pruebas, 100 pruebas focalizadas backend, 8 de integración PostgreSQL (incluidos pagos/saldo/Revenue) y aceptación completa de 195 escenarios/771 pasos PASS. Las suites completas de frontend y backend, cobertura y ambos CI del HEAD publicado se registran con sus runs en el cuerpo de PR #96. La cobertura completa local fue interrumpida por consumo de recursos; no se presenta como PASS. QA interactiva NOT RUN según instrucción vigente; mutation según política de PR (SKIPPED, no PASS). Los resultados anteriores de esta sección son históricos de los commits previos a opción C.
+
+Validación local: 10 archivos/90 pruebas focalizadas PASS (orden/prefijo/payload, warning, backdrop/foco/inert/carga y regresión de shell/Resources, incluido retorno de foco cuando el navegador ya lo movió al body), lint/build y diff check PASS. Contraste calculado de texto warning: 5,77:1 en reposo, 5,34:1 en hover y 4,93:1 en pressed; no sustituye QA visual. Los gates oficiales del HEAD final se registran en el cuerpo de la misma PR. Self-review frontend, sin aprobación independiente; QA interactiva **NOT RUN**. La decisión de Pricing queda resuelta por opción C; cambios preparados para revisión PM/TL tras finalizar los gates. PR #96 permanece abierta, sin merge y sin iniciar B.
 
 ## Handoff histórico — cierre del MVP por épicos
 

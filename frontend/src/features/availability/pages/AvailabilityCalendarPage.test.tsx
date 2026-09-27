@@ -8,6 +8,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import {
   MemoryRouter,
+  useLocation,
 } from "react-router-dom";
 import {
   QueryClient,
@@ -22,6 +23,8 @@ import {
 } from "vitest";
 import { AvailabilityCalendarPage } from "./AvailabilityCalendarPage";
 import { createContact } from "../../contacts/api/create-contact";
+
+function LocationProbe() { const location = useLocation(); return <output aria-label="Ruta actual">{location.pathname} {location.state?.confirmationError}</output>; }
 
 const context = vi.hoisted(() => ({ businessId: "business-1", role: "OWNER" }));
 vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeRole: context.role, activeBusinessId: context.businessId, activeBusiness: { id: context.businessId, timezone: "America/Asuncion" } }) }));
@@ -134,7 +137,7 @@ function renderPage() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/app/calendar"]}>
+      <MemoryRouter initialEntries={["/app/calendar"]}><LocationProbe />
         <AvailabilityCalendarPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -596,6 +599,37 @@ describe("AvailabilityCalendarPage", () => {
     fireEvent.change(screen.getByLabelText("Entrada"), { target: { value: "2026-09-18" } }); fireEvent.change(screen.getByLabelText("Salida"), { target: { value: "2026-09-20" } });
     await user.click(screen.getByRole("button", { name: /Buscar disponibilidad/i })); await user.click(screen.getByRole("button", { name: /Habitacion 1/i })); await user.click(screen.getByRole("button", { name: /Continuar/i })); await user.click(screen.getByRole("button", { name: /Continuar/i }));
     expect(screen.getByText("No hay un tarifario disponible para esta estadía.")).toBeVisible(); expect(screen.getByRole("button", { name: /Continuar/i })).toBeDisabled();
+  });
+
+  it.each(["OWNER", "ADMIN"])("confirma precio excepcional sin tarifario para %s", async (role) => {
+    context.role = role;
+    useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
+    const user = await goToRateStep();
+    fireEvent.change(screen.getByLabelText("Precio final"), { target: { value: "350.000" } });
+    expect(screen.getByRole("button", { name: /Continuar/i })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Motivo del precio manual"), { target: { value: "Acuerdo directo" } });
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    expect(screen.getByText("Precio manual sin tarifario")).toBeVisible(); expect(screen.getByText("Acuerdo directo")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
+    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 350000, overrideReason: "Acuerdo directo" }] } })));
+  });
+
+  it("abre la misma reserva pendiente si el backend rechaza el precio al confirmar", async () => {
+    useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
+    confirmBookingMock.mockRejectedValueOnce(new Error("Hay un tarifario disponible"));
+    const user = await goToRateStep(); fireEvent.change(screen.getByLabelText("Precio final"), { target: { value: "350000" } }); fireEvent.change(screen.getByLabelText("Motivo del precio manual"), { target: { value: "Acuerdo" } });
+    await user.click(screen.getByRole("button", { name: /Continuar/i })); await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
+    await waitFor(() => expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/app/bookings/booking-1/confirm Hay un tarifario disponible"));
+    expect(createBookingMock).toHaveBeenCalledOnce(); expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+  it("descarta la excepción y exige revisar tarifa si aparece un plan en el paso final", async () => {
+    useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
+    const user = await goToRateStep(); fireEvent.change(screen.getByLabelText("Precio final"), { target: { value: "350000" } }); fireEvent.change(screen.getByLabelText("Motivo del precio manual"), { target: { value: "Acuerdo" } });
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    useSelectableRatePlansMock.mockReturnValue({ data: [{ id: "new-plan", name: "Tarifa nueva", currency: "PYG", baseNightlyAmountMinor: 500000 }], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
+    await user.click(screen.getByRole("button", { name: /Atrás/i }));
+    expect(screen.getByRole("button", { name: /Tarifa nueva/i })).toBeVisible(); expect(screen.queryByLabelText("Motivo del precio manual")).not.toBeInTheDocument();
+    expect(confirmBookingMock).not.toHaveBeenCalled();
   });
 
 });

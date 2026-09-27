@@ -1,5 +1,6 @@
+import { ManualPriceFields } from "../../pricing/components/ManualPriceFields";
 import { formatPureDate as formatDate } from "../../../shared/utils/date-format";
-import { formatMoney } from "../../../shared/utils/money";
+import { formatMoney, parseGuaranies } from "../../../shared/utils/money";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -14,6 +15,7 @@ import {
 } from "react";
 import {
   useNavigate,
+  useLocation,
   useParams,
 } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
@@ -38,10 +40,12 @@ export function ConfirmBookingPage() {
 
 function ConfirmBookingContent() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const confirmationError = typeof location.state?.confirmationError === "string" ? location.state.confirmationError : null;
   const { bookingId = "" } = useParams();
   const { session } = useAuth();
 
-  const { activeBusinessId: businessId } = useBusinessContext();
+  const { activeBusinessId: businessId, activeRole } = useBusinessContext();
 
   const {
     data: booking,
@@ -106,6 +110,13 @@ function ConfirmBookingContent() {
       null,
     );
 
+  const [manualAmount, setManualAmount] = useState("");
+  const [manualReason, setManualReason] = useState("");
+  const canOverride = activeRole === "OWNER" || activeRole === "ADMIN";
+  const manualWithoutPlan = canOverride && ratePlansReady && !isFetchingRatePlans && !isRatePlansError && ratePlans?.length === 0;
+  const amountMinor = parseGuaranies(manualAmount, true);
+  const manualReady = manualWithoutPlan && amountMinor !== null && manualReason.trim().length >= 2 && manualReason.trim().length <= 500;
+
   const [pageError, setPageError] =
     useState<string | null>(null);
 
@@ -134,13 +145,17 @@ function ConfirmBookingContent() {
 
   const operation = useRef<AbortController | null>(null);
   useEffect(() => {
-    setPreview(null); setPageError(null);
+    setPreview(null); setPageError(null); setManualAmount(""); setManualReason("");
     return () => { operation.current?.abort(); operation.current = null; };
   }, [resourceId, checkIn, checkOut, ratePlanId]);
   useEffect(() => {
     if (!ratePlansReady) return;
     if (!(ratePlans ?? []).some((plan) => plan.id === ratePlanId)) setRatePlanId(ratePlans?.length === 1 ? ratePlans[0].id : "");
   }, [ratePlans, ratePlansReady, ratePlanId]);
+
+  useEffect(() => {
+    if (!manualWithoutPlan) { setManualAmount(""); setManualReason(""); }
+  }, [manualWithoutPlan]);
 
   async function handlePreview() {
     setPageError(null);
@@ -178,7 +193,7 @@ function ConfirmBookingContent() {
   async function handleConfirm() {
     setPageError(null);
 
-    if (operation.current || !selectedRatePlan || isFetchingRatePlans || isRatePlansError || !preview) {
+    if (operation.current || isFetchingRatePlans || isRatePlansError || (!manualReady && (!selectedRatePlan || !preview))) {
       setPageError(
         "Calculá el precio antes de confirmar.",
       );
@@ -192,7 +207,7 @@ function ConfirmBookingContent() {
         pricing: [
           {
             resourceId,
-            ratePlanId,
+            ...(manualReady ? { pricingMode: "MANUAL_NO_RATE_PLAN" as const, agreedAmountMinor: amountMinor!, overrideReason: manualReason.trim() } : { ratePlanId }),
           },
         ],
       });
@@ -311,6 +326,8 @@ function ConfirmBookingContent() {
         </p>
       </header>
 
+      {confirmationError && <p role="alert">La reserva quedó pendiente. {confirmationError}</p>}
+
       <div className="confirm-booking-summary">
         <div>
           <Home
@@ -366,7 +383,9 @@ function ConfirmBookingContent() {
           </div>
         ) : !ratePlans?.length ? (
           <div className="confirm-booking-empty">
-            No hay un tarifario disponible para esta estadía. Se requiere configurar una tarifa antes de confirmar.
+            <p>No hay un tarifario disponible para esta estadía.</p>
+            {manualWithoutPlan ? <ManualPriceFields amount={manualAmount} reason={manualReason} onAmountChange={setManualAmount} onReasonChange={setManualReason} disabled={confirmMutation.isPending} /> : <p>Solicitá al propietario o administrador que defina un precio o configure una tarifa.</p>}
+            <Button type="button" variant="secondary" disabled={confirmMutation.isPending} onClick={() => void retryRatePlans()}>Volver a consultar</Button>
           </div>
         ) : (
           <label className="confirm-booking-field">
@@ -431,6 +450,8 @@ function ConfirmBookingContent() {
         </Button>
       </section>
 
+      {manualReady && <section className="confirm-booking-price"><div><span>Total manual acordado</span><strong>{formatMoney(amountMinor)}</strong><p>{manualReason.trim()}</p></div></section>}
+
       {preview && (
         <section className="confirm-booking-price">
           <div className="confirm-booking-price__icon">
@@ -490,7 +511,7 @@ function ConfirmBookingContent() {
         <Button
           type="button"
           disabled={
-            !preview || !selectedRatePlan || isRatePlansError || isFetchingRatePlans ||
+            (!manualReady && (!preview || !selectedRatePlan)) || isRatePlansError || isFetchingRatePlans ||
             confirmMutation.isPending
           }
           onClick={() =>

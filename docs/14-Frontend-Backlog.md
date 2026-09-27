@@ -16,7 +16,7 @@ Bloque separado: no altera las 52 historias ni sus conteos históricos. Baseline
 | POST-A4 | Completed efectivo al merge | Archivar Contact desde detalle con ConfirmDialog, permisos, cancelación, caché y estados. |
 | POST-A5 | Completed efectivo al merge | ConfirmDialog accesible compartido; adopción en Resources y Contact. |
 | POST-A6 | Completed efectivo al merge | Inputs Booking coherentes con shared forms sin megarefactor. |
-| POST-A7 | Completed efectivo al merge | Sin planes seleccionables no se ofrece modo configurado ni continuación. El contrato exige plan también para manual: se explica que debe configurarse tarifa. Con planes se preservan override OWNER/ADMIN y selección backend. |
+| POST-A7 | Completed efectivo al merge | Opción C aprobada: con planes se preservan cálculo/override; sin planes, Calendar y Confirm Booking permiten precio manual excepcional a OWNER/ADMIN con monto y motivo obligatorio. Backend revalida ausencia y permiso. Carga/error/recepción no habilitan excepción; cambios de contexto invalidan datos; conflicto abre la misma reserva pendiente para resolverla. |
 
 DoD y riesgos en Roadmap. QA interactiva NOT RUN por instrucción expresa; pruebas de regresión y gates finales oficiales en la PR. Completed efectivo al merge; no se declara production readiness.
 
