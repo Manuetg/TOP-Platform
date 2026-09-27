@@ -33,7 +33,7 @@ Self-review técnica (no independiente) siguiendo top-frontend-review: sin bloqu
 
 ### Revisión final de PR #96 — correcciones UX y discovery
 
-Reanudación del 27/09/2026: sincronizada la rama con `origin/develop@5cfbbf9ef127a4e28f6c3685f28af5487ff69222` (Dashboard operativo). Se conserva el nuevo selector mensual y su etiqueta de mes; ya no presenta el antiguo rango de fechas que formateaba A1. Las suites oficiales del HEAD final validan esta combinación.
+Reanudación del 27/09/2026: sincronizada la rama con `origin/develop@5cfbbf9ef127a4e28f6c3685f28af5487ff69222` (Dashboard operativo). Se conserva el nuevo selector mensual y su etiqueta de mes; ya no presenta el antiguo rango de fechas que formateaba A1. Se actualizan también las expectativas de integración del lector de ocupación al contrato ampliado: se conservan todas las comprobaciones de totales, aislamiento/fechas/estados y se verifica el resultado completo vacío y con actividad (serie diaria y fines de semana). Las suites oficiales del HEAD final validan esta combinación.
 
 Continuación sobre `f419789876789a83d9a5e456ca1f18438e5fb8e4`, sin cambios remotos posteriores al comenzar. Contact agrupa País/Teléfono/Email y comparte controles entre alta/edición; Calendar reutiliza el teléfono compuesto. Archivo adopta warning terracota en la acción y confirmación, con etiqueta visible móvil. ConfirmDialog agrega backdrop modal al 40%, portal sobre la aplicación y aislamiento inert del fondo; conserva foco, cierre condicionado y reduced-motion. Decisiones visuales acotadas en [Design Context](design/DESIGN.md).
 
