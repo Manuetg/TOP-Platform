@@ -113,7 +113,10 @@ function ConfirmBookingContent() {
   const [manualAmount, setManualAmount] = useState("");
   const [manualReason, setManualReason] = useState("");
   const canOverride = activeRole === "OWNER" || activeRole === "ADMIN";
-  const manualWithoutPlan = canOverride && ratePlansReady && !isFetchingRatePlans && !isRatePlansError && ratePlans?.length === 0;
+  // La caché conserva el último resultado de este contexto durante refetch y error.
+  // Ese resultado mantiene la edición visible; solo una consulta vigente permite confirmar.
+  const manualWithoutPlan = canOverride && ratePlans?.length === 0;
+  const ratePlansCurrent = ratePlansReady && !isFetchingRatePlans && !isRatePlansError;
   const amountMinor = parseGuaranies(manualAmount, true);
   const manualReady = manualWithoutPlan && amountMinor !== null && manualReason.trim().length >= 2 && manualReason.trim().length <= 500;
 
@@ -145,7 +148,7 @@ function ConfirmBookingContent() {
 
   const operation = useRef<AbortController | null>(null);
   useEffect(() => {
-    setPreview(null); setPageError(null); setManualAmount(""); setManualReason("");
+    setPreview(null); setPageError(null);
     return () => { operation.current?.abort(); operation.current = null; };
   }, [resourceId, checkIn, checkOut, ratePlanId]);
   useEffect(() => {
@@ -154,14 +157,20 @@ function ConfirmBookingContent() {
   }, [ratePlans, ratePlansReady, ratePlanId]);
 
   useEffect(() => {
-    if (!manualWithoutPlan) { setManualAmount(""); setManualReason(""); }
-  }, [manualWithoutPlan]);
+    setManualAmount(""); setManualReason("");
+  }, [resourceId, checkIn, checkOut]);
+
+  useEffect(() => {
+    if (!canOverride || (ratePlansReady && Boolean(ratePlans?.length))) {
+      setManualAmount(""); setManualReason("");
+    }
+  }, [canOverride, ratePlansReady, ratePlans]);
 
   async function handlePreview() {
     setPageError(null);
     setPreview(null);
 
-    if (operation.current || !selectedRatePlan || isFetchingRatePlans || isRatePlansError) {
+    if (operation.current || !selectedRatePlan || !ratePlansCurrent) {
       setPageError(
         "Seleccioná un plan tarifario.",
       );
@@ -193,7 +202,7 @@ function ConfirmBookingContent() {
   async function handleConfirm() {
     setPageError(null);
 
-    if (operation.current || isFetchingRatePlans || isRatePlansError || (!manualReady && (!selectedRatePlan || !preview))) {
+    if (operation.current || !ratePlansCurrent || (!manualReady && (!selectedRatePlan || !preview))) {
       setPageError(
         "Calculá el precio antes de confirmar.",
       );
@@ -371,7 +380,8 @@ function ConfirmBookingContent() {
           </p>
         </div>
 
-        {isRatePlansError ? (
+        {isFetchingRatePlans && <p role="status">Actualizando tarifarios...</p>}
+        {isRatePlansError && (
           <div
             className="confirm-booking-error"
             role="alert"
@@ -379,15 +389,14 @@ function ConfirmBookingContent() {
             {ratePlansError instanceof Error
               ? ratePlansError.message
               : "No pudimos cargar los planes tarifarios."}
-            <Button type="button" variant="secondary" onClick={() => void retryRatePlans()}>Reintentar tarifarios</Button>
           </div>
-        ) : !ratePlans?.length ? (
+        )}
+        {ratePlans?.length === 0 ? (
           <div className="confirm-booking-empty">
             <p>No hay un tarifario disponible para esta estadía.</p>
             {manualWithoutPlan ? <ManualPriceFields amount={manualAmount} reason={manualReason} onAmountChange={setManualAmount} onReasonChange={setManualReason} disabled={confirmMutation.isPending} /> : <p>Solicitá al propietario o administrador que defina un precio o configure una tarifa.</p>}
-            <Button type="button" variant="secondary" disabled={confirmMutation.isPending} onClick={() => void retryRatePlans()}>Volver a consultar</Button>
           </div>
-        ) : (
+        ) : ratePlans?.length ? (
           <label className="confirm-booking-field">
             <span>
               Plan tarifario
@@ -419,6 +428,11 @@ function ConfirmBookingContent() {
               )}
             </select>
           </label>
+        ) : null}
+        {(isRatePlansError || ratePlans?.length === 0) && (
+          <Button type="button" variant="secondary" disabled={confirmMutation.isPending} onClick={() => void retryRatePlans()}>
+            {isRatePlansError ? "Reintentar tarifarios" : "Volver a consultar"}
+          </Button>
         )}
 
         {selectedRatePlan && (
@@ -437,7 +451,7 @@ function ConfirmBookingContent() {
           type="button"
           variant="secondary"
           disabled={
-            !selectedRatePlan || isRatePlansError || isFetchingRatePlans ||
+            !selectedRatePlan || !ratePlansCurrent ||
             calculateMutation.isPending
           }
           onClick={() =>
@@ -511,7 +525,7 @@ function ConfirmBookingContent() {
         <Button
           type="button"
           disabled={
-            (!manualReady && (!preview || !selectedRatePlan)) || isRatePlansError || isFetchingRatePlans ||
+            (!manualReady && (!preview || !selectedRatePlan)) || !ratePlansCurrent ||
             confirmMutation.isPending
           }
           onClick={() =>

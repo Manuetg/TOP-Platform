@@ -26,7 +26,7 @@ describe("confirmación con selección contextual", () => {
     const user = userEvent.setup(); state.data = []; const page = render(view());
     expect(screen.getByText(/No hay un tarifario disponible/)).toBeVisible(); expect(screen.getByRole("button", { name: "Calcular precio" })).toBeDisabled();
     state.error = true; page.rerender(view()); await user.click(screen.getByRole("button", { name: "Reintentar tarifarios" })); expect(state.retry).toHaveBeenCalledOnce();
-    expect(screen.queryByText(/No hay un tarifario disponible/)).not.toBeInTheDocument();
+    expect(screen.getByText(/No hay un tarifario disponible/)).toBeVisible(); expect(screen.getByRole("alert")).toBeVisible();
   });
   it.each(["business", "resource"] as const)("descarta una respuesta tardía al cambiar %s", async (field) => {
     const user = userEvent.setup(); let resolve!: (value: unknown) => void; state.calculate.mockReturnValue(new Promise((done) => { resolve = done; }));
