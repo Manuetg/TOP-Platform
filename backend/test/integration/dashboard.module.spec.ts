@@ -86,11 +86,12 @@ describeWithPostgres('DashboardModule', () => {
     const business = await createBusiness('Dashboard');
     await createActivity(business.id, 750_000);
 
-    await expect(execute(business.id)).resolves.toEqual({
+    await expect(execute(business.id)).resolves.toMatchObject({
       occupancy: {
         occupiedResourceNights: 1,
         sellableResourceNights: 1,
         occupancyRateBasisPoints: 10_000,
+        daily: [{ date: '2026-09-10', occupiedResourceNights: 1, sellableResourceNights: 1, availableResourceNights: 0, occupancyRateBasisPoints: 10_000 }],
       },
       revenue: { currency: 'PYG', amountMinor: 750_000 },
       reservations: {

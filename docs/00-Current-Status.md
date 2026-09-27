@@ -33,6 +33,8 @@ Self-review técnica (no independiente) siguiendo top-frontend-review: sin bloqu
 
 ### Revisión final de PR #96 — correcciones UX y discovery
 
+Reanudación del 27/09/2026: sincronizada la rama con `origin/develop@5cfbbf9ef127a4e28f6c3685f28af5487ff69222` (Dashboard operativo). Se conserva el nuevo selector mensual y su etiqueta de mes; ya no presenta el antiguo rango de fechas que formateaba A1. Las suites oficiales del HEAD final validan esta combinación.
+
 Continuación sobre `f419789876789a83d9a5e456ca1f18438e5fb8e4`, sin cambios remotos posteriores al comenzar. Contact agrupa País/Teléfono/Email y comparte controles entre alta/edición; Calendar reutiliza el teléfono compuesto. Archivo adopta warning terracota en la acción y confirmación, con etiqueta visible móvil. ConfirmDialog agrega backdrop modal al 40%, portal sobre la aplicación y aislamiento inert del fondo; conserva foco, cierre condicionado y reduced-motion. Decisiones visuales acotadas en [Design Context](design/DESIGN.md).
 
 **POST-A7: opción C aprobada e implementada en esta rama (24/09/2026).** Calendar y Confirm Booking aceptan monto/motivo sin Rate Plan cuando la selección contextual no devuelve ninguno y el rol es OWNER/ADMIN. Backend revalida ausencia al preparar confirmación; un plan que pasa a ser aplicable produce 409, sin confirmar ni persistir Snapshot. Se conserva la reserva PENDING para resolverla. Snapshot MANUAL_NO_RATE_PLAN con referencia/sugerido/ajuste nulos, sin tarifa ficticia ni modificación histórica. Misma moneda, disponibilidad, tenant y auditoría. No requiere migración adicional. Comparación y decisión en [Roadmap](06-Roadmap.md#post-a7--discovery-de-precio-manual-sin-rate-plan-revisión-final-pr-96).

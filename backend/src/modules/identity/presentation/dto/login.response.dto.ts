@@ -6,6 +6,7 @@ import { UserStatus } from '../../domain/user-status.enum';
 class LoginUserResponseDto {
   @ApiProperty() id!: string;
   @ApiProperty() email!: string;
+  @ApiProperty({ nullable: true }) displayName!: string | null;
   @ApiProperty({ enum: UserStatus }) status!: UserStatus;
 }
 

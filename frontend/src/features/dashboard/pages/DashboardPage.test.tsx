@@ -30,6 +30,11 @@ const data: DashboardResponse = {
     occupiedResourceNights: 18,
     sellableResourceNights: 25,
     occupancyRateBasisPoints: 7200,
+    daily: [
+      { date: "2026-09-01", occupiedResourceNights: 1, sellableResourceNights: 2, availableResourceNights: 1, occupancyRateBasisPoints: 5000 },
+      { date: "2026-09-02", occupiedResourceNights: 2, sellableResourceNights: 2, availableResourceNights: 0, occupancyRateBasisPoints: 10000 },
+    ],
+    weekends: { total: 2, full: 1, partial: 0, available: 1, items: [{ from: "2026-09-05", to: "2026-09-07", totalResources: 2, availableResources: 2, status: "AVAILABLE" }] },
   },
   revenue: { currency: "PYG", amountMinor: 12500000 },
   reservations: {
@@ -110,7 +115,7 @@ describe("DashboardPage", () => {
     show();
     expect(screen.getByText("72%")).toBeVisible();
     expect(screen.getByText("₲ 12.500.000")).toBeVisible();
-    expect(screen.getByText(/8 reservas creadas/)).toBeVisible();
+    expect(screen.getByText(/Reservas creadas en septiembre de 2026/)).toBeVisible();
     expect(
       within(
         screen.getByRole("region", { name: "Reservas por estado" }),
@@ -126,9 +131,9 @@ describe("DashboardPage", () => {
       "No show",
     ])
       expect(screen.getByText(label)).toBeVisible();
-    expect(screen.getByRole("link", { name: "Ver reservas" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Crear reserva" })).toHaveAttribute(
       "href",
-      "/app/bookings",
+      "/app/bookings/new",
     );
     expect(query).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -168,7 +173,7 @@ describe("DashboardPage", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Aún no hay actividad",
     );
-    expect(screen.getAllByText("Sin inventario vendible")).toHaveLength(1);
+    expect(screen.getByText("No hay datos diarios para este mes.")).toBeVisible();
     expect(screen.queryByText("0%")).not.toBeInTheDocument();
     expect(screen.getByText("₲ 0")).toBeVisible();
     expect(
@@ -209,41 +214,20 @@ describe("DashboardPage", () => {
       screen.queryByText("sensitive internal detail"),
     ).not.toBeInTheDocument();
   });
-  it("does not apply draft dates until submit", async () => {
+  it("maps a selected month immediately to an exact backend range", async () => {
     show();
-    const original = query.mock.lastCall?.[0];
-    fireEvent.change(screen.getByLabelText("Desde"), {
-      target: { value: "2026-09-01" },
-    });
-    fireEvent.change(screen.getByLabelText("Hasta"), {
-      target: { value: "2026-10-02" },
-    });
-    expect(query.mock.lastCall?.[0]).toEqual(original);
-    await userEvent.click(screen.getByRole("button", { name: "Aplicar" }));
-    expect(query.mock.lastCall?.[0]).toEqual(
-      expect.objectContaining({ from: "2026-09-01", to: "2026-10-02" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Mes anterior" }));
+    expect(query.mock.lastCall?.[0]).toEqual(expect.objectContaining({ from: "2026-08-01", to: "2026-09-01" }));
+    await userEvent.click(screen.getByRole("button", { name: "Mes siguiente" }));
+    expect(query.mock.lastCall?.[0]).toEqual(expect.objectContaining({ from: "2026-09-01", to: "2026-10-01" }));
   });
-  it.each([
-    ["", "2026-09-02"],
-    ["2026-09-02", "2026-09-02"],
-    ["2026-09-03", "2026-09-02"],
-    ["2026-09-01", "2026-10-03"],
-  ])("rejects invalid period without refreshing", async (from, to) => {
+  it("uses the native month picker and returns to the current month", async () => {
     show();
-    const original = query.mock.lastCall?.[0];
-    fireEvent.change(screen.getByLabelText("Desde"), {
-      target: { value: from },
-    });
-    fireEvent.change(screen.getByLabelText("Hasta"), { target: { value: to } });
-    await userEvent.click(screen.getByRole("button", { name: "Aplicar" }));
-    expect(screen.getByRole("alert")).not.toBeEmptyDOMElement();
-    expect(screen.getByLabelText("Desde")).toHaveAttribute(
-      "aria-invalid",
-      "true",
-    );
-    expect(query.mock.lastCall?.[0]).toEqual(original);
-    expect(retry).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("Seleccionar mes"), { target: { value: "2026-12" } });
+    expect(query.mock.lastCall?.[0]).toEqual(expect.objectContaining({ from: "2026-12-01", to: "2027-01-01" }));
+    expect(screen.getByRole("button", { name: "Este mes" })).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "Este mes" }));
+    expect(screen.queryByRole("button", { name: "Este mes" })).not.toBeInTheDocument();
   });
   it("explains missing business configuration", () => {
     show("");
@@ -260,28 +244,21 @@ describe("DashboardPage", () => {
     expect(useResources).toHaveBeenCalledWith(
       expect.objectContaining({ businessId: "" }),
     );
-    await userEvent.click(screen.getByRole("button", { name: "Aplicar" }));
+    await userEvent.click(screen.getByRole("button", { name: "Mes anterior" }));
     expect(retry).not.toHaveBeenCalled();
   });
   it("uses real catalog counts, tables and detail links", () => {
     show();
-    expect(
-      within(
-        screen.getByRole("article", { name: "Recursos activos" }),
-      ).getByText("1"),
-    ).toBeVisible();
-    expect(
-      within(
-        screen.getByRole("article", { name: "Recursos activos" }),
-      ).getByText("de 2 totales"),
-    ).toBeVisible();
+    expect(screen.getByText("1 de 2 activos")).toBeVisible();
+    expect(screen.getByText("1 activas")).toBeVisible();
     expect(screen.getByRole("link", { name: /Recurso real/ })).toHaveAttribute(
       "href",
       "/app/resources/r1",
     );
     expect(screen.getByText("Tarifa real")).toBeVisible();
     expect(screen.getByText("₲ 650.000")).toBeVisible();
-    expect(screen.getAllByRole("table")).toHaveLength(2);
+    const catalogs = screen.getByRole("region", { name: "Catálogos operativos" });
+expect(within(catalogs).getAllByRole("table")).toHaveLength(2);
     expect(
       screen.getByRole("link", { name: "Ver todas las tarifas" }),
     ).toHaveAttribute("href", "/app/pricing");
@@ -323,7 +300,8 @@ describe("DashboardPage", () => {
     expect(
       screen.getByText("Todavía no hay tarifas configuradas."),
     ).toBeVisible();
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    const catalogs = screen.getByRole("region", { name: "Catálogos operativos" });
+expect(within(catalogs).queryByRole("table")).not.toBeInTheDocument();
     expect(screen.getByText("₲ 12.500.000")).toBeVisible();
   });
   it("isolates catalog loading and errors and retries only the failed source", async () => {

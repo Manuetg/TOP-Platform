@@ -63,12 +63,14 @@ export function ResourcesPreview({
   covers,
   loading,
   error,
+  summary,
   onRetry,
 }: {
   resources?: Resource[];
   covers?: ResourceImageCover[];
   loading: boolean;
   error: boolean;
+  summary?: string;
   onRetry: () => void;
 }) {
   const coverMap = new Map(
@@ -76,12 +78,15 @@ export function ResourcesPreview({
   );
   return (
     <section
-      className="top-surface dashboard-card dashboard-catalog dashboard-resources"
+      className="dashboard-catalog dashboard-resources"
       aria-labelledby="dashboard-resources-title"
       data-source="REAL"
     >
       <header>
-        <h2 id="dashboard-resources-title">Recursos</h2>
+        <div className="dashboard-catalog-heading">
+          <h2 id="dashboard-resources-title">Recursos</h2>
+          {summary ? <span>{summary}</span> : null}
+        </div>
         <Link to="/app/resources">
           Ver todos los recursos <ArrowRight size={16} aria-hidden="true" />
         </Link>
@@ -155,21 +160,26 @@ export function PricingPreview({
   plans,
   loading,
   error,
+  summary,
   onRetry,
 }: {
   plans?: RatePlan[];
   loading: boolean;
   error: boolean;
+  summary?: string;
   onRetry: () => void;
 }) {
   return (
     <section
-      className="top-surface dashboard-card dashboard-catalog dashboard-pricing"
+      className="dashboard-catalog dashboard-pricing"
       aria-labelledby="dashboard-pricing-title"
       data-source="REAL"
     >
       <header>
-        <h2 id="dashboard-pricing-title">Precios</h2>
+        <div className="dashboard-catalog-heading">
+          <h2 id="dashboard-pricing-title">Precios</h2>
+          {summary ? <span>{summary}</span> : null}
+        </div>
         <Link to="/app/pricing">
           Ver todas las tarifas <ArrowRight size={16} aria-hidden="true" />
         </Link>

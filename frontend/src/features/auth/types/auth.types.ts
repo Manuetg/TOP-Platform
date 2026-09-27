@@ -9,6 +9,7 @@ export type UserStatus = "ACTIVE" | "DISABLED";
 export interface AuthUser {
   id: string;
   email: string;
+  displayName?: string | null;
   status: UserStatus;
 }
 
