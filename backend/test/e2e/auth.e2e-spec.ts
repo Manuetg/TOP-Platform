@@ -81,7 +81,7 @@ describe('Auth endpoint', () => {
   it('inicia sesión y no expone datos sensibles ni contexto activo', async () => {
     memberships = [membership('business-a', MembershipRole.OWNER), membership('business-b', MembershipRole.VIEWER)];
     await request(app.getHttpServer()).post('/api/auth/login').send({ email: ' USER@EXAMPLE.COM ', password: 'contraseña' }).expect(200).expect(({ body }) => {
-      expect(body).toEqual({ accessToken: 'access-token', refreshToken: 'refresh-token-1', tokenType: 'Bearer', expiresIn: 900, user: { id: userId, email: 'user@example.com', status: 'ACTIVE' }, memberships: [{ businessId: 'business-a', role: 'OWNER' }, { businessId: 'business-b', role: 'VIEWER' }] });
+      expect(body).toEqual({ accessToken: 'access-token', refreshToken: 'refresh-token-1', tokenType: 'Bearer', expiresIn: 900, user: { id: userId, email: 'user@example.com', displayName: null, status: 'ACTIVE' }, memberships: [{ businessId: 'business-a', role: 'OWNER' }, { businessId: 'business-b', role: 'VIEWER' }] });
       ['password', 'passwordHash', 'tokenHash', 'permissions', 'businessId', 'activeBusiness'].forEach((property) => expect(body).not.toHaveProperty(property));
     });
   });
