@@ -1,11 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { BUSINESS_REPOSITORY, BusinessStatus, type BusinessRepository } from '../../business/business.contract';
+import { BUSINESS_REPOSITORY, type BusinessRepository } from '../../business/business.contract';
 import { pricingDateDaysBetween } from '../domain/pricing-date';
 import type { ManualPricingSnapshotItem } from '../domain/pricing-snapshot.repository';
-import { ListRatePlansBusinessArchivedError, ListRatePlansBusinessNotFoundError, ListRatePlansUseCase } from './list-rate-plans.use-case';
+import { PRICING_RESOURCE_LOOKUP, type PricingResourceLookup } from '../domain/resource.lookup';
 import { manualAgreedAmount, manualPriceReason } from './manual-price-input';
-
-export class ManualPriceRatePlanAvailableError extends Error {}
+import { validatePricingContext } from './validate-pricing-context';
 
 export interface PrepareManualPriceInput {
   businessId: string;
@@ -19,23 +18,16 @@ export interface PrepareManualPriceInput {
 @Injectable()
 export class PrepareManualPriceUseCase {
   constructor(
-    private readonly listRatePlans: ListRatePlansUseCase,
     @Inject(BUSINESS_REPOSITORY) private readonly businesses: BusinessRepository,
+    @Inject(PRICING_RESOURCE_LOOKUP) private readonly resources: PricingResourceLookup,
   ) {}
 
   async execute(input: PrepareManualPriceInput): Promise<{ currency: string; snapshot: ManualPricingSnapshotItem }> {
     const agreedAmountMinor = manualAgreedAmount(input.agreedAmountMinor);
     const overrideReason = manualPriceReason(input.overrideReason);
-    // Reutiliza la selección contextual: tenant, estado, fechas, asignación y vigencia.
-    const plans = await this.listRatePlans.execute(input);
-    if (plans.length > 0) {
-      throw new ManualPriceRatePlanAvailableError('Hay un tarifario disponible para esta estadía. Volvé a consultar y seleccioná un plan de referencia.');
-    }
-    const business = await this.businesses.findById(input.businessId);
-    if (!business) throw new ListRatePlansBusinessNotFoundError('El negocio no existe.');
-    if (business.status !== BusinessStatus.ACTIVE) throw new ListRatePlansBusinessArchivedError('El negocio está archivado.');
+    const { currency } = await validatePricingContext(input, this.businesses, this.resources, true);
     return {
-      currency: business.currency,
+      currency,
       snapshot: {
         resourceId: input.resourceId,
         ratePlanId: null,

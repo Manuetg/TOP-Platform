@@ -27,7 +27,7 @@ import { createContact } from "../../contacts/api/create-contact";
 function LocationProbe() { const location = useLocation(); return <output aria-label="Ruta actual">{location.pathname} {location.state?.confirmationError}</output>; }
 
 const context = vi.hoisted(() => ({ businessId: "business-1", role: "OWNER" }));
-vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeRole: context.role, activeBusinessId: context.businessId, activeBusiness: { id: context.businessId, timezone: "America/Asuncion" } }) }));
+vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeRole: context.role, activeBusinessId: context.businessId, activeBusiness: { id: context.businessId, timezone: "America/Asuncion", currency: "PYG" } }) }));
 const useResourcesMock = vi.fn();
 const useBookingsMock = vi.fn();
 const useBlocksMock = vi.fn();
@@ -456,6 +456,7 @@ describe("AvailabilityCalendarPage", () => {
     await user.click(screen.getByRole("button", { name: "Manual" }));
     const input = screen.getByLabelText("Precio final");
     await user.type(input, "600000");
+    await user.tab();
     expect(input).toHaveValue("600.000");
   });
 
@@ -466,7 +467,7 @@ describe("AvailabilityCalendarPage", () => {
     expect(screen.queryByLabelText("Plan de referencia")).not.toBeInTheDocument();
   });
 
-  it("shows a compact reference-plan select for multiple plans in manual mode", async () => {
+  it("no muestra referencia con varios planes en modo Manual", async () => {
     useSelectableRatePlansMock.mockReturnValue({
       data: [
         { id: "rate-plan-1", name: "Tarifa Normal", currency: "PYG", baseNightlyAmountMinor: 6500000 },
@@ -481,7 +482,8 @@ describe("AvailabilityCalendarPage", () => {
     const user = await goToRateStep();
     await user.click(screen.getByRole("button", { name: "Manual" }));
     expect(screen.queryByRole("button", { name: /Tarifa Normal/i })).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Plan de referencia")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Plan de referencia")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Manual" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("keeps configured rate-plan cards visible in configured mode", async () => {
@@ -494,17 +496,19 @@ describe("AvailabilityCalendarPage", () => {
     const calculate = useCalculatePriceMock.mock.results[0]?.value.mutateAsync as ReturnType<typeof vi.fn>;
     await user.click(screen.getByRole("button", { name: "Manual" }));
     await user.type(screen.getByLabelText("Precio final"), "600000");
+    await user.type(screen.getByLabelText("Motivo del precio manual"), "Acuerdo directo");
     await user.click(screen.getByRole("button", { name: /Continuar/i }));
     expect(calculate).not.toHaveBeenCalled();
   });
 
-  it("confirms manual pricing in minor units with the automatic reason", async () => {
+  it("confirms manual pricing in minor units with the entered reason", async () => {
     const user = await goToRateStep();
     await user.click(screen.getByRole("button", { name: "Manual" }));
     await user.type(screen.getByLabelText("Precio final"), "600000");
+    await user.type(screen.getByLabelText("Motivo del precio manual"), "Acuerdo directo");
     await user.click(screen.getByRole("button", { name: /Continuar/i }));
     await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
-    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.objectContaining({ agreedAmountMinor: 600000, overrideReason: "Precio manual desde calendario" })] }) })));
+    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 600000, overrideReason: "Acuerdo directo" }] } })));
   });
 
   it("keeps configured pricing unchanged without a discount", async () => {
@@ -568,12 +572,23 @@ describe("AvailabilityCalendarPage", () => {
     await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
     await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.not.objectContaining({ agreedAmountMinor: expect.anything(), overrideReason: expect.anything() })] }) })));
   });
-  it.each(["OWNER", "ADMIN", "RECEPTIONIST", "VIEWER"])("no ofrece modos ni permite continuar sin planes para %s", async (role) => {
+  it("no mezcla descuento configurado con el payload Manual al alternar", async () => {
+    const user = await goToRateStep();
+    await user.click(screen.getByRole("button", { name: "Aplicar descuento" }));
+    await user.click(screen.getByRole("button", { name: "10%" }));
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    expect(screen.queryByRole("button", { name: "Aplicar descuento" })).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Precio final"), "450000");
+    await user.type(screen.getByLabelText("Motivo del precio manual"), "Acuerdo directo");
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
+    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 450000, overrideReason: "Acuerdo directo" }] } })));
+  });
+  it.each(["RECEPTIONIST", "VIEWER"])("no ofrece Manual ni permite continuar sin planes para %s", async (role) => {
     context.role = role;
     useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
     await goToRateStep();
     expect(screen.getByText("No hay un tarifario disponible para esta estadía.")).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Configurada" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Manual" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Continuar/i })).toBeDisabled();
     expect(confirmBookingMock).not.toHaveBeenCalled();
@@ -605,31 +620,83 @@ describe("AvailabilityCalendarPage", () => {
     context.role = role;
     useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
     const user = await goToRateStep();
+    await user.click(screen.getByRole("button", { name: "Manual" }));
     fireEvent.change(screen.getByLabelText("Precio final"), { target: { value: "350.000" } });
     expect(screen.getByRole("button", { name: /Continuar/i })).toBeDisabled();
     fireEvent.change(screen.getByLabelText("Motivo del precio manual"), { target: { value: "Acuerdo directo" } });
     await user.click(screen.getByRole("button", { name: /Continuar/i }));
-    expect(screen.getByText("Precio manual sin tarifario")).toBeVisible(); expect(screen.getByText("Acuerdo directo")).toBeVisible();
+    expect(screen.getByText("Precio manual")).toBeVisible(); expect(screen.getByText("Acuerdo directo")).toBeVisible();
     await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
     await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 350000, overrideReason: "Acuerdo directo" }] } })));
+  });
+  it.each([1, 2])("confirma Manual con %s tarifario(s) sin ratePlanId", async (count) => {
+    useSelectableRatePlansMock.mockReturnValue({ data: Array.from({ length: count }, (_, index) => ({ id: `plan-${index + 1}`, name: `Tarifa ${index + 1}`, currency: "PYG", baseNightlyAmountMinor: 500000 })), isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
+    const user = await goToRateStep();
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    expect(screen.queryByLabelText("Plan de referencia")).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Precio final"), "450.000");
+    await user.type(screen.getByLabelText("Motivo del precio manual"), "Acuerdo directo");
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
+    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 450000, overrideReason: "Acuerdo directo" }] } })));
+  });
+  it.each(["carga", "error", "refetch"])("Manual sigue disponible durante %s de tarifarios", async (status) => {
+    useSelectableRatePlansMock.mockReturnValue({ data: status === "refetch" ? [{ id: "plan-1", name: "Tarifa", currency: "PYG", baseNightlyAmountMinor: 500000 }] : undefined, isSuccess: status === "refetch", isLoading: status === "carga", isFetching: status !== "error", isError: status === "error", refetch: vi.fn() });
+    const user = await goToRateStep();
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    const input = screen.getByLabelText("Precio final");
+    expect(input.parentElement?.querySelector(".top-input-prefix__value")).toHaveTextContent("₲");
+    expect(input).toHaveAccessibleDescription(/guaraníes \(PYG\)/);
+    await user.type(input, "450.000");
+    await user.type(screen.getByLabelText("Motivo del precio manual"), "Acuerdo directo");
+    expect(screen.getByRole("button", { name: /Continuar/i })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
+    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 450000, overrideReason: "Acuerdo directo" }] } })));
+  });
+  it("rechaza montos inválidos sin borrar signos ni separadores y permite cero", async () => {
+    const user = await goToRateStep(); await user.click(screen.getByRole("button", { name: "Manual" }));
+    const input = screen.getByLabelText("Precio final");
+    await user.type(screen.getByLabelText("Motivo del precio manual"), "Acuerdo directo");
+    expect(screen.getByRole("button", { name: /Continuar/i })).toBeDisabled();
+    for (const value of ["-1", "1,5", "1.5", "9007199254740992"]) {
+      await user.clear(input); await user.type(input, value);
+      expect(input).toHaveValue(value);
+      expect(screen.getByRole("button", { name: /Continuar/i })).toBeDisabled();
+    }
+    await user.clear(input); await user.type(input, "0");
+    expect(screen.getByRole("button", { name: /Continuar/i })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
+    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 0, overrideReason: "Acuerdo directo" }] } })));
   });
 
   it("abre la misma reserva pendiente si el backend rechaza el precio al confirmar", async () => {
     useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
-    confirmBookingMock.mockRejectedValueOnce(new Error("Hay un tarifario disponible"));
-    const user = await goToRateStep(); fireEvent.change(screen.getByLabelText("Precio final"), { target: { value: "350000" } }); fireEvent.change(screen.getByLabelText("Motivo del precio manual"), { target: { value: "Acuerdo" } });
+    confirmBookingMock.mockRejectedValueOnce(new Error("Alojamiento no disponible"));
+    const user = await goToRateStep(); await user.click(screen.getByRole("button", { name: "Manual" })); fireEvent.change(screen.getByLabelText("Precio final"), { target: { value: "350000" } }); fireEvent.change(screen.getByLabelText("Motivo del precio manual"), { target: { value: "Acuerdo" } });
     await user.click(screen.getByRole("button", { name: /Continuar/i })); await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
-    await waitFor(() => expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/app/bookings/booking-1/confirm Hay un tarifario disponible"));
+    await waitFor(() => expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/app/bookings/booking-1/confirm Alojamiento no disponible"));
     expect(createBookingMock).toHaveBeenCalledOnce(); expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
-  it("descarta la excepción y exige revisar tarifa si aparece un plan en el paso final", async () => {
+  it("conserva la edición manual si aparece un plan", async () => {
     useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
-    const user = await goToRateStep(); fireEvent.change(screen.getByLabelText("Precio final"), { target: { value: "350000" } }); fireEvent.change(screen.getByLabelText("Motivo del precio manual"), { target: { value: "Acuerdo" } });
-    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    const user = await goToRateStep(); await user.click(screen.getByRole("button", { name: "Manual" }));
+    fireEvent.change(screen.getByLabelText("Precio final"), { target: { value: "350000" } });
+    const reason = screen.getByLabelText("Motivo del precio manual");
+    fireEvent.change(reason, { target: { value: "Acuerdo" } });
+    const amount = screen.getByLabelText("Precio final");
     useSelectableRatePlansMock.mockReturnValue({ data: [{ id: "new-plan", name: "Tarifa nueva", currency: "PYG", baseNightlyAmountMinor: 500000 }], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
-    await user.click(screen.getByRole("button", { name: /Atrás/i }));
-    expect(screen.getByRole("button", { name: /Tarifa nueva/i })).toBeVisible(); expect(screen.queryByLabelText("Motivo del precio manual")).not.toBeInTheDocument();
+    await user.click(reason); await user.type(reason, " directo");
+    expect(screen.getByLabelText("Precio final")).toBe(amount);
+    expect(reason).toHaveValue("Acuerdo directo");
+    expect(reason).toHaveFocus();
+    expect(screen.queryByRole("button", { name: /Tarifa nueva/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Plan de referencia")).not.toBeInTheDocument();
     expect(confirmBookingMock).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: /Continuar/i }));
+    await user.click(screen.getByRole("button", { name: /Confirmar reserva/i }));
+    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 350000, overrideReason: "Acuerdo directo" }] } })));
   });
 
 });

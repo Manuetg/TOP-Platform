@@ -6,7 +6,7 @@ import { PrismaPaymentPlanRepository } from '../../src/modules/payment/infrastru
 import { PrismaPaymentRepository } from '../../src/modules/payment/infrastructure/prisma-payment.repository';
 import { PrismaOutstandingBalanceRepository } from '../../src/modules/payment/infrastructure/prisma-outstanding-balance.repository';
 import { PrismaRevenueProjectionReader } from '../../src/modules/payment/infrastructure/prisma-revenue-projection.reader';
-import { PrepareManualPriceUseCase, ManualPriceRatePlanAvailableError } from '../../src/modules/pricing/application/prepare-manual-price.use-case';
+import { PrepareManualPriceUseCase } from '../../src/modules/pricing/application/prepare-manual-price.use-case';
 import { ListRatePlansUseCase } from '../../src/modules/pricing/application/list-rate-plans.use-case';
 import { PrismaClient } from '@prisma/client';
 import { ConfirmBookingUseCase } from '../../src/modules/booking-lifecycle/application/confirm-booking.use-case';
@@ -34,7 +34,7 @@ describeWithPostgres('ConfirmBookingUseCase', () => {
   const prisma = new PrismaClient(); const businesses = new PrismaBusinessRepository(prisma); const contacts = new PrismaContactRepository(prisma); const resources = new PrismaResourceRepository(prisma); const bookings = new PrismaBookingRepository(prisma); const blocks = new PrismaBlockRepository(prisma); const rules = new PrismaAvailabilityRulesRepository(prisma); const rates = new PrismaRatePlanRepository(prisma); const seasons = new PrismaSeasonalRateRepository(prisma);
   const availability = new ValidateOverbookingUseCase(new CheckAvailabilityUseCase(businesses, resources, bookings, blocks, rules));
   const calculate = new CalculatePriceUseCase(businesses, resources, rates, rates, seasons, new PricingCalculator());
-  const confirm = new ConfirmBookingUseCase(businesses, contacts, bookings, availability, calculate, new ApplyManualPriceOverrideUseCase(calculate), new PrismaBookingConfirmationTransaction(prisma), new PrepareManualPriceUseCase(new ListRatePlansUseCase(businesses, resources, rates), businesses));
+  const confirm = new ConfirmBookingUseCase(businesses, contacts, bookings, availability, calculate, new ApplyManualPriceOverrideUseCase(calculate), new PrismaBookingConfirmationTransaction(prisma), new PrepareManualPriceUseCase(businesses, resources));
   beforeAll(async () => prisma.$connect()); beforeEach(async () => cleanTestDatabase(prisma, databaseUrl)); afterEach(async () => cleanTestDatabase(prisma, databaseUrl)); afterAll(async () => { await cleanTestDatabase(prisma, databaseUrl); await prisma.$disconnect(); });
   async function fixture(name: string) { const business = await prisma.business.create({ data: { name } }); const contact = await prisma.contact.create({ data: { businessId: business.id, name: 'Guest', email: `${name.replaceAll(' ', '')}@test.local` } }); const resource = await prisma.resource.create({ data: { businessId: business.id, name: 'Room', internalCode: `${name.replaceAll(' ', '').toUpperCase()}R`, capacityMaximum: 2 } }); const ratePlan = await prisma.ratePlan.create({ data: { businessId: business.id, name: 'Base', baseNightlyAmountMinor: 150000, resources: { create: { resourceId: resource.id } } } }); const booking = await bookings.create({ businessId: business.id, contactId: contact.id, resourceIds: [resource.id], checkInDate: new Date('2026-06-10'), checkOutDate: new Date('2026-06-12'), adults: null, children: null, notes: null }); await bookings.markPending(booking.id, business.id, null); return { business, resource, ratePlan, booking }; }
   const pricing = (value: { resource: { id: string }; ratePlan: { id: string } }) => [{ resourceId: value.resource.id, ratePlanId: value.ratePlan.id }];
@@ -44,15 +44,14 @@ describeWithPostgres('ConfirmBookingUseCase', () => {
   it('rolls back status and snapshot when pricing fails', async () => { const value = await fixture('Pricing failure'); await expect(confirm.execute({ businessId: value.business.id, bookingId: value.booking.id, pricing: [{ resourceId: value.resource.id, ratePlanId: '11111111-1111-4111-8111-111111111111' }] })).rejects.toThrow(); await expect(prisma.booking.findUnique({ where: { id: value.booking.id } })).resolves.toMatchObject({ status: BookingStatus.PENDING }); await expect(prisma.pricingSnapshot.count({ where: { bookingId: value.booking.id } })).resolves.toBe(0); });
   it('hides a pending booking from another tenant', async () => { const owner = await fixture('Owner'); const other = await fixture('Other'); await expect(confirm.execute({ businessId: other.business.id, bookingId: owner.booking.id, pricing: pricing(owner) })).rejects.toBeInstanceOf(BookingNotFoundError); });
   it('allows exactly one concurrent confirmation for conflicting pending bookings', async () => { const value = await fixture('Race'); await prisma.availabilityRule.create({ data: { businessId: value.business.id, pendingBlocksAvailability: false, bufferBeforeDays: 0, bufferAfterDays: 0 } }); const second = await bookings.create({ businessId: value.business.id, contactId: (await prisma.contact.findFirst({ where: { businessId: value.business.id } }))!.id, resourceIds: [value.resource.id], checkInDate: new Date('2026-06-10'), checkOutDate: new Date('2026-06-12'), adults: null, children: null, notes: null }); await bookings.markPending(second.id, value.business.id, null); const outcomes = await Promise.allSettled([confirm.execute({ businessId: value.business.id, bookingId: value.booking.id, pricing: pricing(value) }), confirm.execute({ businessId: value.business.id, bookingId: second.id, pricing: pricing(value) })]); expect(outcomes.filter((outcome) => outcome.status === 'fulfilled')).toHaveLength(1); await expect(prisma.booking.count({ where: { id: { in: [value.booking.id, second.id] }, status: BookingStatus.CONFIRMED } })).resolves.toBe(1); await expect(prisma.pricingSnapshot.count({ where: { bookingId: { in: [value.booking.id, second.id] } } })).resolves.toBe(1); });
-  it('persiste sin plan, conserva el histórico tras configurar tarifa y audita al actor', async () => {
-    const value = await fixture('Sin tarifa');
-    await prisma.ratePlan.update({ where: { id: value.ratePlan.id }, data: { status: 'ARCHIVED' } });
+  it('persiste manual con tarifa aplicable y conserva importes financieros e histórico', async () => {
+    const value = await fixture('Manual financiera');
     const actor = await prisma.user.create({ data: { email: 'manual@test.local' } });
     await confirm.execute({ businessId: value.business.id, bookingId: value.booking.id, actorUserId: actor.id, pricing: [{ resourceId: value.resource.id, pricingMode: 'MANUAL_NO_RATE_PLAN', agreedAmountMinor: 123456, overrideReason: '  Acuerdo directo  ' }] });
     const snapshot = await prisma.pricingSnapshot.findUniqueOrThrow({ where: { bookingId: value.booking.id } });
     expect(snapshot).toMatchObject({ currency: 'PYG', totalAmountMinor: 123456n, items: [{ resourceId: value.resource.id, ratePlanId: null, pricingMode: 'MANUAL_NO_RATE_PLAN', suggestedAmountMinor: null, adjustmentAmountMinor: null, agreedAmountMinor: 123456, overrideReason: 'Acuerdo directo', nights: 2, breakdown: [] }] });
     expect(await prisma.bookingTimelineEvent.findFirst({ where: { bookingId: value.booking.id, type: 'BOOKING_CONFIRMED' } })).toMatchObject({ actorUserId: actor.id });
-    await prisma.ratePlan.update({ where: { id: value.ratePlan.id }, data: { status: 'ACTIVE' } });
+    await prisma.ratePlan.update({ where: { id: value.ratePlan.id }, data: { status: 'ARCHIVED' } });
     expect(await prisma.pricingSnapshot.findUnique({ where: { bookingId: value.booking.id } })).toEqual(snapshot);
     const snapshots = new PrismaPricingSnapshotRepository(prisma);
     const paymentPlans = new PaymentPlanUseCases(new PrismaPaymentPlanRepository(prisma), bookings, snapshots, businesses);
@@ -64,16 +63,58 @@ describeWithPostgres('ConfirmBookingUseCase', () => {
     await expect(new PrismaRevenueProjectionReader(prisma).read({ businessId: value.business.id, from: '2026-01-01', to: '2026-01-02', timeZone: 'America/Asuncion' })).resolves.toEqual({ amounts: [{ currency: 'PYG', amountMinor: 50000 }] });
     expect(await prisma.pricingSnapshot.findUnique({ where: { bookingId: value.booking.id } })).toEqual(snapshot);
   });
-  it('consulta planes nuevamente y revierte confirmación, Snapshot y Timeline cuando aparece uno', async () => {
+  it.each([0, 1, 3])('confirma manual con %i planes aplicables sin referencia', async (planCount) => {
+    const value = await fixture(`Planes ${planCount}`);
+    if (planCount === 0) {
+      await prisma.ratePlan.update({ where: { id: value.ratePlan.id }, data: { status: 'ARCHIVED' } });
+    }
+    for (let index = 1; index < planCount; index += 1) {
+      await prisma.ratePlan.create({ data: { businessId: value.business.id, name: `Adicional ${index}`, baseNightlyAmountMinor: 200000, resources: { create: { resourceId: value.resource.id } } } });
+    }
+    const selection = new ListRatePlansUseCase(businesses, resources, rates);
+    expect(await selection.execute({ businessId: value.business.id, resourceId: value.resource.id, checkIn: '2026-06-10', checkOut: '2026-06-12' })).toHaveLength(planCount);
+    await expect(confirm.execute({ businessId: value.business.id, bookingId: value.booking.id, pricing: [{ resourceId: value.resource.id, pricingMode: 'MANUAL_NO_RATE_PLAN', agreedAmountMinor: 100000, overrideReason: 'Acuerdo directo' }] })).resolves.toMatchObject({ status: BookingStatus.CONFIRMED });
+    expect(await prisma.pricingSnapshot.findUniqueOrThrow({ where: { bookingId: value.booking.id } })).toMatchObject({ currency: 'PYG', totalAmountMinor: 100000n, items: [{ ratePlanId: null, pricingMode: 'MANUAL_NO_RATE_PLAN', suggestedAmountMinor: null, adjustmentAmountMinor: null, agreedAmountMinor: 100000, breakdown: [] }] });
+  });
+  it('permite confirmar manual si un plan aparece después de iniciar la edición', async () => {
     const value = await fixture('Nuevo plan');
     await prisma.ratePlan.update({ where: { id: value.ratePlan.id }, data: { status: 'ARCHIVED' } });
     const selection = new ListRatePlansUseCase(businesses, resources, rates);
     expect(await selection.execute({ businessId: value.business.id, resourceId: value.resource.id, checkIn: '2026-06-10', checkOut: '2026-06-12' })).toEqual([]);
     await prisma.ratePlan.update({ where: { id: value.ratePlan.id }, data: { status: 'ACTIVE' } });
-    await expect(confirm.execute({ businessId: value.business.id, bookingId: value.booking.id, pricing: [{ resourceId: value.resource.id, pricingMode: 'MANUAL_NO_RATE_PLAN', agreedAmountMinor: 100000, overrideReason: 'Acuerdo directo' }] })).rejects.toBeInstanceOf(ManualPriceRatePlanAvailableError);
+    await expect(confirm.execute({ businessId: value.business.id, bookingId: value.booking.id, pricing: [{ resourceId: value.resource.id, pricingMode: 'MANUAL_NO_RATE_PLAN', agreedAmountMinor: 100000, overrideReason: 'Acuerdo directo' }] })).resolves.toMatchObject({ status: BookingStatus.CONFIRMED });
+    expect(await prisma.pricingSnapshot.findUniqueOrThrow({ where: { bookingId: value.booking.id } })).toMatchObject({ totalAmountMinor: 100000n, items: [{ ratePlanId: null, pricingMode: 'MANUAL_NO_RATE_PLAN', suggestedAmountMinor: null, adjustmentAmountMinor: null, agreedAmountMinor: 100000 }] });
+    expect(await prisma.bookingTimelineEvent.count({ where: { bookingId: value.booking.id, type: 'BOOKING_CONFIRMED' } })).toBe(1);
+  });
+  it('revierte confirmación manual, Snapshot y Timeline ante un importe inválido', async () => {
+    const value = await fixture('Manual inválida');
+    await expect(confirm.execute({ businessId: value.business.id, bookingId: value.booking.id, pricing: [{ resourceId: value.resource.id, pricingMode: 'MANUAL_NO_RATE_PLAN', agreedAmountMinor: -1, overrideReason: 'Acuerdo directo' }] })).rejects.toThrow();
     expect(await prisma.booking.findUnique({ where: { id: value.booking.id } })).toMatchObject({ status: BookingStatus.PENDING });
     expect(await prisma.pricingSnapshot.count({ where: { bookingId: value.booking.id } })).toBe(0);
     expect(await prisma.bookingTimelineEvent.count({ where: { bookingId: value.booking.id, type: 'BOOKING_CONFIRMED' } })).toBe(0);
+  });
+  it('mantiene disponibilidad al confirmar manual', async () => {
+    const value = await fixture('Conflicto manual');
+    const contact = await prisma.contact.findFirstOrThrow({ where: { businessId: value.business.id } });
+    const other = await bookings.create({ businessId: value.business.id, contactId: contact.id, resourceIds: [value.resource.id], checkInDate: new Date('2026-06-11'), checkOutDate: new Date('2026-06-13'), adults: null, children: null, notes: null });
+    await bookings.markPending(other.id, value.business.id, null);
+    await expect(confirm.execute({ businessId: value.business.id, bookingId: value.booking.id, pricing: [{ resourceId: value.resource.id, pricingMode: 'MANUAL_NO_RATE_PLAN', agreedAmountMinor: 100000, overrideReason: 'Acuerdo directo' }] })).rejects.toBeInstanceOf(BookingAvailabilityConflictError);
+    expect(await prisma.booking.findUnique({ where: { id: value.booking.id } })).toMatchObject({ status: BookingStatus.PENDING });
+    expect(await prisma.pricingSnapshot.count({ where: { bookingId: value.booking.id } })).toBe(0);
+    expect(await prisma.bookingTimelineEvent.count({ where: { bookingId: value.booking.id, type: 'BOOKING_CONFIRMED' } })).toBe(0);
+  });
+  it('permite solo una confirmación manual concurrente para un recurso', async () => {
+    const value = await fixture('Carrera manual');
+    await prisma.availabilityRule.create({ data: { businessId: value.business.id, pendingBlocksAvailability: false, bufferBeforeDays: 0, bufferAfterDays: 0 } });
+    const contact = await prisma.contact.findFirstOrThrow({ where: { businessId: value.business.id } });
+    const second = await bookings.create({ businessId: value.business.id, contactId: contact.id, resourceIds: [value.resource.id], checkInDate: new Date('2026-06-10'), checkOutDate: new Date('2026-06-12'), adults: null, children: null, notes: null });
+    await bookings.markPending(second.id, value.business.id, null);
+    const manual = [{ resourceId: value.resource.id, pricingMode: 'MANUAL_NO_RATE_PLAN', agreedAmountMinor: 100000, overrideReason: 'Acuerdo directo' }];
+    const outcomes = await Promise.allSettled([confirm.execute({ businessId: value.business.id, bookingId: value.booking.id, pricing: manual }), confirm.execute({ businessId: value.business.id, bookingId: second.id, pricing: manual })]);
+    expect(outcomes.filter((outcome) => outcome.status === 'fulfilled')).toHaveLength(1);
+    expect(await prisma.booking.count({ where: { id: { in: [value.booking.id, second.id] }, status: BookingStatus.CONFIRMED } })).toBe(1);
+    expect(await prisma.pricingSnapshot.count({ where: { bookingId: { in: [value.booking.id, second.id] } } })).toBe(1);
+    expect(await prisma.bookingTimelineEvent.count({ where: { bookingId: { in: [value.booking.id, second.id] }, type: 'BOOKING_CONFIRMED' } })).toBe(1);
   });
 
 });

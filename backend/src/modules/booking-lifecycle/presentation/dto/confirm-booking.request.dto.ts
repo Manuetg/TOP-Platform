@@ -28,7 +28,7 @@ export class ConfirmBookingPricingItemRequestDto {
   @IsUUID('4')
   ratePlanId?: string;
 
-  @ApiPropertyOptional({ enum: ['MANUAL_NO_RATE_PLAN'], description: 'Precio excepcional sin tarifario aplicable. Requiere monto, motivo y permiso de ajuste.' })
+  @ApiPropertyOptional({ enum: ['MANUAL_NO_RATE_PLAN'], description: 'Precio manual sin tarifario referenciado, aunque existan planes aplicables. Requiere importe total, motivo y permiso de ajuste.' })
   @ValidateIf((_item: unknown, value: unknown) => value !== undefined)
   @IsIn(['MANUAL_NO_RATE_PLAN'])
   pricingMode?: 'MANUAL_NO_RATE_PLAN';

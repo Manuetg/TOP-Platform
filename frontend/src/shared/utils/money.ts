@@ -13,3 +13,10 @@ export function parseGuaranies(value: string, allowZero = false): number | null 
   const amount = Number(input.replace(/\./g, ""));
   return Number.isSafeInteger(amount) && amount >= (allowZero ? 0 : 1) ? amount : null;
 }
+
+/** Da separadores a importes válidos; conserva entradas inválidas para mostrar su error. */
+export function formatGuaraniesInput(value: string): string {
+  if (value === "") return value;
+  const amount = parseGuaranies(value, true);
+  return amount === null ? value : new Intl.NumberFormat("es-PY", { maximumFractionDigits: 0 }).format(amount);
+}

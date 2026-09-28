@@ -10,13 +10,14 @@ El backlog de implementación del Backend MVP está completado: 53 de 53 capacid
 
 ## POST-MVP / PRODUCTION READINESS — roadmap aprobado (2026-09-24)
 
-Baseline verificado con `git fetch`: `origin/develop@cb9eddcb5eb9fcd55008555a29bb478d71f6009a`, sin PR abiertas al iniciar. Backend MVP histórico: **53/53 Completed**, inalterado. El frontend conserva su recuento histórico de 52 historias (51 Completed y FE-SUB-001 con decisión comercial pendiente). Este roadmap se contabiliza por separado y no declara Product Ready ni Production Ready.
+El baseline del Épico A, verificado al iniciarlo, fue `origin/develop@cb9eddcb5eb9fcd55008555a29bb478d71f6009a`. El trabajo posterior sobre precio manual libre parte de `origin/develop@ea0c373ee3c5e9d0bed87dcc0133b330ccdc5a22` (28/09/2026). Backend MVP histórico: **53/53 Completed**, inalterado. El frontend conserva su recuento histórico de 52 historias (51 Completed y FE-SUB-001 con decisión comercial pendiente). Este roadmap se contabiliza por separado y no declara Product Ready ni Production Ready.
 
-Un épico activo = una rama = una PR con implementación, pruebas, documentación y correcciones de revisión. Secuencia A → B → C → D; E es discovery separado. Solo A se implementa en esta ejecución. Estados: Planned, In Progress, Completed, Blocked, Discovery. Completed es efectivo al merge, después de cumplir la DoD y ambos CI.
+Plan histórico del 24/09/2026: un épico activo = una rama = una PR con implementación, pruebas, documentación y correcciones de revisión. Secuencia A → B → C → D; E es discovery separado. Solo A se implementaba en aquella ejecución. El precio manual libre es un seguimiento independiente de A y B. Estados: Planned, In Progress, Completed, Blocked, Discovery. Completed es efectivo al merge, después de cumplir la DoD y ambos CI.
 
 | Iniciativa | Estado | Alcance y evidencia requerida |
 |---|---|---|
 | A — Refinamiento funcional y UX | Completed efectivo al merge de PR #96 | A1 fechas; A2 selector/buscador Pricing; A3 teléfono internacional Contact; A4 archivo Contact; A5 ConfirmDialog; A6 inputs Booking; A7 estadía sin Rate Plan. Una PR `POST-MVP: UX & Functional Refinement` desde `post-mvp/ux-functional-refinement`. |
+| Precio manual libre y moneda visible — decisión posterior a A7 | In Progress | Manual sin referencia disponible con cualquier cantidad de planes en Calendar y Confirm Booking; prefijo monetario visible; regresiones frontend/backend y contratos actualizados. Conserva las invariantes de confirmación y el historial de A7. |
 | B — Seguridad para producción | Planned | B1–B10 siguientes; decisiones sustentadas en riesgos reales. |
 | C — Escalabilidad de API y base de datos | Planned | C1–C6 siguientes; medición antes de optimizar. |
 | D — Assets y performance | Planned | D1–D10 siguientes; conservar capacidades ya integradas. |
@@ -30,24 +31,32 @@ Un épico activo = una rama = una PR con implementación, pruebas, documentació
 - A4: `PATCH /api/businesses/:businessId/contacts/:contactId/archive`, tenant-scoped, `contact.write`, Business activo, respuesta pública, archivo idempotente desde ACTIVE/INACTIVE y repetición sin duplicar auditoría. Preservar reservas e historial; sin Restore. Confirmación TOP, permisos, loading/error/success e invalidación de caché en detalle.
 - A5: ConfirmDialog compartido sobre OverlayPanel, título/descripción, confirmar/cancelar, variante sensible, loading/disabled, foco/Tab/Escape/retorno, aria-modal y reduced motion. Aplicar en acciones sensibles existentes, incluido Resources.
 - A6: inputs Booking alineados a shared forms conservando labels, ayuda/error, foco, disabled, responsive y RHF/Zod donde existen. Sin rediseño masivo.
-- A7: opción C aprobada el 24/09/2026. La consulta contextual backend decide los planes seleccionables. Con planes, cálculo/override conserva referencia; sin ninguno para Resource/estadía, OWNER/ADMIN pueden confirmar precio manual excepcional con importe y motivo obligatorio. RECEPTIONIST no puede usar la excepción y VIEWER conserva solo lectura. Backend revalida elegibilidad, permiso, disponibilidad y auditoría; Snapshot explícito sin plan/sugerido/ajuste ficticios. Probar carga, cero/uno/varios, error, cambios de Resource/fechas/Business, respuestas tardías y aparición de planes al confirmar.
-- DoD: pruebas de regresión, aislamiento/permisos, estados aplicables, coherencia móvil/desktop, fechas contractuales intactas, documentación y `git diff --check`; Frontend CI y Backend CI SUCCESS. Mutation según política vigente: SKIPPED no equivale a PASS. QA interactiva NOT RUN salvo necesidad concreta o petición expresa. Sin infraestructura accidental ni TODO funcional oculto.
+- A7 (implementación histórica de PR #96): opción C aprobada el 24/09/2026. La consulta contextual backend decidía los planes seleccionables. Con planes, cálculo/override conservaba referencia; sin ninguno para Resource/estadía, OWNER/ADMIN podían confirmar precio manual excepcional con importe y motivo obligatorio. RECEPTIONIST no podía usar la excepción y VIEWER conservaba solo lectura. Esa restricción de ausencia de planes fue sustituida el 28/09/2026; el resto de las invariantes se conserva.
+- DoD histórica de A: pruebas de regresión, aislamiento/permisos, estados aplicables, coherencia móvil/desktop, fechas contractuales intactas, documentación y `git diff --check`; Frontend CI y Backend CI SUCCESS. Mutation según política de aquella PR: SKIPPED no equivale a PASS. QA interactiva de PR #96 fue NOT RUN; esa excepción no se aplica a la decisión del 28/09/2026. Sin infraestructura accidental ni TODO funcional oculto.
 
-### POST-A7 — Discovery de precio manual sin Rate Plan (revisión final PR #96)
+### POST-A7 — Discovery histórico de precio manual sin Rate Plan (revisión final PR #96)
 
-**DECISIÓN APROBADA: C (24/09/2026).** Producto solicita implementar el híbrido excepcional en la misma PR #96. Sustituye el bloqueo de todos los roles ante cero planes; no inicia el épico B.
+**DECISIÓN HISTÓRICA: C (24/09/2026).** Producto aprobó el híbrido excepcional en PR #96 para superar el bloqueo de todos los roles ante cero planes. La restricción de ausencia de planes quedó sustituida por la decisión del 28/09/2026 registrada debajo; esta comparación se conserva como historial de la decisión anterior.
 
 | Alternativa evaluada | Beneficio | Costo o riesgo |
 |---|---|---|
 | A — Manual siempre sobre plan | Referencia comercial y comparación de descuentos inequívocas. | Configurar Pricing es requisito previo para confirmar. |
 | B — Manual independiente | Operación libre aun sin configuración tarifaria. | Pricing se vuelve opcional incluso habiendo planes y pierde referencia. |
-| C — Híbrido excepcional (elegida) | Conserva la referencia cuando hay plan y permite operar cuando no hay ninguno aplicable. | Exige verificar elegibilidad, permiso y motivo en backend al confirmar. |
+| C — Híbrido excepcional (elegida en PR #96) | Conserva la referencia cuando hay plan y permite operar cuando no hay ninguno aplicable. | Exige verificar elegibilidad, permiso y motivo en backend al confirmar. |
 
-Implementación aprobada: `MANUAL_NO_RATE_PLAN` solo para OWNER/ADMIN, monto entero seguro no negativo en moneda del Business y motivo obligatorio de 2..500 caracteres. El request omite `ratePlanId`; sin el modo explícito sigue siendo obligatorio. Si la consulta contextual backend encuentra algún plan aplicable en la preparación de la confirmación, rechaza con 409 y permite resolver la misma reserva PENDING. Conserva aislamiento, estados activos, estadía máxima de 365 noches, disponibilidad y transacción/auditoría.
+Implementación histórica: `MANUAL_NO_RATE_PLAN` solo para OWNER/ADMIN, monto entero seguro no negativo en moneda del Business y motivo obligatorio de 2..500 caracteres. El request omitía `ratePlanId`; sin el modo explícito seguía siendo obligatorio. La aparición de un plan aplicable en la preparación de la confirmación producía 409 y permitía resolver la misma reserva PENDING. Ese 409 por catálogo es obsoleto; se conservan aislamiento, estados activos, estadía máxima de 365 noches, disponibilidad y transacción/auditoría.
 
 Snapshot: origen discriminado, plan/sugerido/ajuste nulos, desglose vacío y total acordado. Los precios históricos CALCULATED/MANUAL_OVERRIDE permanecen intactos. `items` ya es JSON; no hace falta migración SQL adicional. Se prueba la lectura con PaymentPlan, Payments, saldo y Revenue. No se crean planes ficticios ni se cuenta la excepción como descuento.
 
 Reportes futuros deberán distinguir precio sin referencia de descuento. No existe hoy un reporte de descuentos que modificar. Agente TOP/automatización futura siguen fuera del alcance: deberán consumir permisos/contratos backend y no inferir precios ni privilegios. Esta decisión no autoriza agentes, workers ni automatizaciones.
+
+### Decisión vigente — precio manual libre y moneda visible (2026-09-28)
+
+Producto sustituye la condición de opción C que exigía ausencia de tarifarios. OWNER/ADMIN pueden elegir Manual y confirmar el total acordado para la estadía con cero, uno o varios planes aplicables. `MANUAL_NO_RATE_PLAN` significa que el precio registrado carece de plan referenciado; no demuestra ausencia de planes en el catálogo. El request declara `pricingMode`, `resourceId`, `agreedAmountMinor` y `overrideReason`, omite `ratePlanId` por completo y rechaza combinaciones contradictorias. El importe es entero seguro no negativo, incluido cero; el motivo obligatorio tiene 2..500 caracteres tras trim. La moneda procede del Business; PYG mantiene escala 1:1.
+
+Calendar y Confirm Booking muestran Configurada y Manual a usuarios autorizados. Configurada conserva selección, cálculo y descuentos; Manual no necesita selector ni preview, y permanece operable durante carga, error o refetch del catálogo sin perder foco ni valores. Cambios reales de identidad, Business, Booking, Resource o fechas invalidan el borrador anterior. El símbolo monetario permanece dentro del borde del input, separado del valor editable y accesible por nombre/ayuda; `₲ 450.000` se envía como `450000` PYG. Se conservan permisos, estados activos, Contact y Resources válidos, fechas, disponibilidad, no doble reserva, Snapshot/Timeline atómicos, historial y reglas de PaymentPlan, Payments, saldo y Revenue. No se añade endpoint, tabla, migración ni estado de Booking por esta decisión.
+
+La entrega requiere corregir las pruebas que asumían referencia obligatoria o 409 por aparición de planes, mantener regresiones de conflictos reales y cubrir cero/uno/varios planes, refetch, cambios de contexto, PYG y roles. Backend exige lint, build, unitarias, integración PostgreSQL, E2E, aceptación, cobertura, arquitectura y Prisma; frontend exige build, lint y test. QA móvil y desktop de ambos flujos, `git diff --check` y ambos CI del HEAD final si se publica. Mutation SKIPPED no equivale a PASS.
 
 ### B — Seguridad para producción (Planned)
 

@@ -464,11 +464,11 @@ Pricing no:
 #### Pricing Snapshot
 
 - Origen: CALCULATED, MANUAL_OVERRIDE o MANUAL_NO_RATE_PLAN.
-- Plan o lista seleccionada para CALCULATED/MANUAL_OVERRIDE; referencia nula para MANUAL_NO_RATE_PLAN.
-- Precio por noche y desglose por fecha en precios basados en plan; total por concepto «precio manual sin tarifario» en la excepción, sin repartir noches artificialmente.
+- Plan o lista seleccionada para CALCULATED/MANUAL_OVERRIDE; referencia nula para MANUAL_NO_RATE_PLAN. Este último origen indica que el precio registrado no referencia un plan; no indica que el catálogo carezca de tarifarios aplicables.
+- Precio por noche y desglose por fecha en precios basados en plan; total acordado para la estadía en MANUAL_NO_RATE_PLAN, sin repartir noches artificialmente.
 - Descuentos aplicados.
 - Ajustes aplicados.
-- Precio sugerido y ajuste numéricos cuando existe referencia; ambos nulos en MANUAL_NO_RATE_PLAN.
+- Precio sugerido y ajuste numéricos cuando existe referencia; ambos nulos, con desglose vacío, en MANUAL_NO_RATE_PLAN.
 - Precio acordado.
 - Motivo del precio personalizado, cuando corresponda.
 - Moneda.
@@ -485,8 +485,10 @@ Pricing no:
 - El catálogo tarifario del Negocio incluye planes activos y archivados para lectura administrativa e histórica. Para seleccionar una tarifa de Booking, Pricing filtra únicamente planes activos, asignados al Resource activo solicitado y cuya vigencia cubre completamente la estadía; las tarifas estacionales afectan el cálculo posterior, no la seleccionabilidad.
 - Siempre debe existir una opción de precio personalizado cuando el Negocio la tenga habilitada.
 - Todo precio personalizado requiere motivo.
-- POST-A7, opción C aprobada el 24/09/2026: si no hay ningún plan seleccionable para el Resource y la estadía, OWNER/ADMIN pueden acordar un precio manual excepcional sin crear Rate Plan. El backend revalida esta ausencia al confirmar; si hay un plan aplicable exige usarlo, incluso para override. Recepción no puede confirmar la excepción.
-- El importe excepcional es un entero seguro no negativo, con moneda del Business y motivo de 2 a 500 caracteres tras quitar espacios extremos. Conserva Business/Resource activos, fechas válidas (1 a 365 noches), contacto, disponibilidad y auditoría. No equivale a descuento, ni modifica snapshots históricos.
+- La opción C de POST-A7 (24/09/2026) permitía MANUAL_NO_RATE_PLAN solo cuando no había planes seleccionables. Es una decisión histórica sustituida el 28/09/2026.
+- Desde la decisión de Producto del 28/09/2026, OWNER/ADMIN pueden acordar un precio manual sin plan referenciado aunque existan cero, uno o varios tarifarios aplicables. El modo MANUAL_NO_RATE_PLAN no depende de consultar ni calcular el catálogo. El precio configurado conserva selección de plan, cálculo y ajustes existentes; RECEPTIONIST y VIEWER no adquieren permiso de precio manual.
+- El importe manual es el total acordado para la estadía del Resource: entero seguro no negativo, incluido cero, en moneda autoritativa del Business. El motivo es obligatorio, de 2 a 500 caracteres tras quitar espacios extremos. Se conservan Business/Resource activos, fechas válidas (1 a 365 noches), Contact y Resources válidos de Booking, disponibilidad, autorización y auditoría. No equivale a descuento ni modifica snapshots históricos.
+- Al confirmar MANUAL_NO_RATE_PLAN, el request omite `ratePlanId` y declara el modo, importe y motivo explícitamente. El Snapshot conserva noches reales, moneda, actor y fecha; `ratePlanId`, sugerido y ajuste son nulos, y `breakdown` es vacío. La aparición de un tarifario no invalida ese precio manual.
 - El precio acordado debe congelarse al confirmar la reserva.
 - Los cambios posteriores en listas o reglas no modifican reservas confirmadas.
 - Un cambio de fechas o Resource puede requerir recalcular el precio.

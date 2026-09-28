@@ -1,12 +1,12 @@
 # TOP — Frontend Backlog
 
-Última actualización: 2026-09-24
+Última actualización: 2026-09-28
 
 ## POST-MVP / PRODUCTION READINESS (2026-09-24)
 
-Épico A implementado y validado por ambos CI SUCCESS en [PR #96](https://github.com/Manuetg/TOP-Platform/pull/96); **Completed preparado, efectivo al merge humano**. Todavía sin integrar en develop. Evidencia y limitaciones en [Estado actual](00-Current-Status.md). Sin modificación de los conteos MVP.
+Épico A integrado en develop mediante [PR #96](https://github.com/Manuetg/TOP-Platform/pull/96). Evidencia y limitaciones históricas en [Estado actual](00-Current-Status.md). Sin modificación de los conteos MVP.
 
-Bloque separado: no altera las 52 historias ni sus conteos históricos. Baseline remoto `cb9eddc`; la cadena #90–95 ya está integrada. Épico A — Completed efectivo al merge, una rama/PR junto a sus capacidades backend. Roadmap completo B/C/D Planned y E Discovery en [06-Roadmap.md](06-Roadmap.md).
+Bloque separado: no altera las 52 historias ni sus conteos históricos. Baseline histórico del Épico A `cb9eddc`; la cadena #90–96 ya está integrada. Roadmap completo B/C/D Planned y E Discovery en [06-Roadmap.md](06-Roadmap.md).
 
 | Punto | Estado | Alcance aprobado |
 |---|---|---|
@@ -16,9 +16,10 @@ Bloque separado: no altera las 52 historias ni sus conteos históricos. Baseline
 | POST-A4 | Completed efectivo al merge | Archivar Contact desde detalle con ConfirmDialog, permisos, cancelación, caché y estados. |
 | POST-A5 | Completed efectivo al merge | ConfirmDialog accesible compartido; adopción en Resources y Contact. |
 | POST-A6 | Completed efectivo al merge | Inputs Booking coherentes con shared forms sin megarefactor. |
-| POST-A7 | Completed efectivo al merge | Opción C aprobada: con planes se preservan cálculo/override; sin planes, Calendar y Confirm Booking permiten precio manual excepcional a OWNER/ADMIN con monto y motivo obligatorio. Backend revalida ausencia y permiso. Carga/error/recepción no habilitan excepción; cambios de contexto invalidan datos; conflicto abre la misma reserva pendiente para resolverla. |
+| POST-A7 (histórico) | Completed | Opción C de PR #96: con planes se preservaba cálculo/override; sin planes, Calendar y Confirm Booking permitían precio manual excepcional a OWNER/ADMIN. La condición de ausencia fue sustituida el 28/09/2026. |
+| Precio manual libre + moneda visible (decisión 28/09/2026) | In Progress | Calendar y Confirm Booking ofrecen Manual a OWNER/ADMIN con cero, uno o varios tarifarios, sin selector ni referencia oculta. Carga/error/refetch del catálogo no bloquean Manual ni descartan importe, motivo o foco. El campo muestra el símbolo del Business dentro del borde; PYG conserva escala 1:1. Configurada mantiene selección, cálculo y descuentos. Cambios reales de contexto invalidan el borrador; se conservan cancelación, doble submit y recuperación de la misma Booking PENDING. |
 
-DoD y riesgos en Roadmap. QA interactiva NOT RUN por instrucción expresa; pruebas de regresión y gates finales oficiales en la PR. Completed efectivo al merge; no se declara production readiness.
+DoD y riesgos en Roadmap. La QA interactiva NOT RUN de PR #96 es evidencia histórica y no aplica como excepción al trabajo actual. Build, lint y suite frontend completa pasaron localmente (94 archivos/551 pruebas); QA Edge de Calendar y Confirm Booking en móvil y desktop con API real confirmó cinco reservas manuales y sus Snapshots, incluida una posterior al ajuste final. Evidencia detallada en [Estado actual](00-Current-Status.md). Quedan pendientes revisión PM/TL y CI del commit publicado. No se declara production readiness.
 
 ## Objetivo
 
@@ -1376,6 +1377,8 @@ Contrato backend principal:
 
 Implementado:
 
+Los puntos de implementación y validación de FE-AVL-002 siguientes registran el cierre histórico del MVP y sus refinamientos anteriores. Para el comportamiento vigente de precio manual en Calendar y Confirm Booking, rige la decisión del 28/09/2026 del bloque post-MVP superior.
+
 - Calendar como área operativa visible, separado conceptualmente de la pantalla de consulta puntual de Availability;
 - consumo business-scoped del endpoint `availability/calendar`;
 - backend permanece como fuente de verdad para disponibilidad;
@@ -1416,9 +1419,9 @@ Implementado:
 - pricing manual se simplifica a definir únicamente el precio final acordado;
 - el precio manual se ingresa en guaraníes con separadores de miles `es-PY` y se convierte a minor units únicamente al enviar;
 - pricing manual no depende de una cotización previa ni muestra precio sugerido, diferencias o motivo de ajuste;
-- el motivo contractual del override manual se genera automáticamente y no se expone como carga operativa al usuario;
-- un único Rate Plan válido continúa seleccionándose automáticamente en modo Manual;
-- con múltiples Rate Plans válidos y sin selección previa, Manual muestra solamente un selector compacto de plan de referencia;
+- en el refinamiento histórico sobre tarifario, el motivo contractual del override manual se generaba automáticamente; la decisión del 28/09/2026 exige motivo ingresado por el usuario en el modo Manual sin referencia;
+- en ese refinamiento histórico, un único Rate Plan válido se seleccionaba automáticamente en modo Manual; el modo Manual vigente no selecciona plan;
+- en ese refinamiento histórico, múltiples Rate Plans válidos mostraban un selector compacto de referencia en Manual; el modo Manual vigente no muestra selector de referencia;
 - las tarjetas de Rate Plans permanecen visibles únicamente en modo Configurada;
 - confirmación reutiliza el flujo contractual `create → submit → confirm`;
 - después de confirmar, navegación a Booking Detail;
@@ -1455,7 +1458,7 @@ Validación técnica:
 
 - suite específica `AvailabilityCalendarPage` aprobada;
 - refinamiento 2026-09-22: 13/13 tests focalizados de Calendar aprobados;
-- cobertura focalizada incluye formato monetario manual, ausencia de cálculo previo en Manual, conversión exacta a minor units, motivo automático, pricing configurado sin descuento, descuento del 10%, eliminación del descuento y visibilidad/selección de Rate Plans según modo;
+- la cobertura focalizada histórica incluyó formato monetario manual, ausencia de cálculo previo en Manual, conversión exacta a minor units, motivo automático de aquel override sobre plan, pricing configurado sin descuento, descuento del 10%, eliminación del descuento y visibilidad/selección de Rate Plans según modo; esas expectativas de Manual se sustituyen por la regresión del 28/09/2026;
 - navegación Calendar → Booking Detail → Calendar validada manualmente;
 - comportamiento mobile con agenda diaria validado manualmente;
 - build productivo aprobado;
@@ -1736,13 +1739,14 @@ Endpoint:
 
 - `POST /api/businesses/{businessId}/bookings/{bookingId}/confirm`
 
-Dependencia contractual:
+Dependencia contractual del MVP histórico y actualización post-A7:
 
-- Confirm requiere `pricing[]` con `resourceId` y `ratePlanId`;
+- Confirm requiere `pricing[]` con `resourceId`; las variantes CALCULATED/MANUAL_OVERRIDE conservan `ratePlanId`. En MANUAL_NO_RATE_PLAN el request incluye `pricingMode`, `agreedAmountMinor` y `overrideReason`, y omite `ratePlanId` por completo;
 - Booking MVP es single-resource;
 - `GET /api/businesses/{businessId}/rate-plans?resourceId=...&checkIn=...&checkOut=...` devuelve únicamente Rate Plans seleccionables;
 - frontend no decide por su cuenta estado, asignación ni vigencia del Rate Plan;
 - PricingSnapshot permanece interno y no es necesario para completar Confirm.
+- Desde la decisión del 28/09/2026, Manual está disponible para OWNER/ADMIN con cualquier cantidad de planes, sin selección automática ni referencia oculta; no depende de la consulta de catálogo. El prefijo monetario se toma del Business activo y permanece visible dentro del input, separado del valor. La validación exige total entero seguro no negativo y motivo de 2..500 caracteres; PYG `₲ 450.000` envía `450000` sin factor 100. Configurada conserva sus restricciones y el catálogo sigue siendo autoritativo para seleccionar planes.
 
 Contrato backend resuelto:
 
