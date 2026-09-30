@@ -1,4 +1,3 @@
-import { ManualPriceRatePlanAvailableError } from '../../pricing/application/prepare-manual-price.use-case';
 import { InvalidListRatePlansInputError, ListRatePlansBusinessNotFoundError, ListRatePlansBusinessArchivedError, ListRatePlansResourceNotFoundError, ListRatePlansResourceUnavailableError } from '../../pricing/application/list-rate-plans.use-case';
 import {
   BadRequestException,
@@ -226,7 +225,6 @@ export class BookingLifecycleController {
   ): error is Error {
     return [
       BookingBusinessUnavailableError,
-      ManualPriceRatePlanAvailableError,
       ListRatePlansBusinessArchivedError,
       ListRatePlansResourceUnavailableError,
       BookingNotDraftError,

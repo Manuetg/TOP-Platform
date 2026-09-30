@@ -59,10 +59,29 @@ import { occupancyProjectionReaderFake, resetOccupancyProjectionReaderFake } fro
 import { REVENUE_PROJECTION_READER } from '../../../src/modules/payment/payment.contract';
 import { resetRevenueProjectionReaderFake, revenueProjectionReaderFake } from './revenue-projection-reader.fake';
 import { resetReservationsProjectionReaderFake, reservationsProjectionReaderFake } from './reservations-projection-reader.fake';
+import { PrismaService } from '../../../src/modules/business/business.contract';
+import { assertTestDatabase, cleanTestDatabase } from '../../integration/support/clean-test-database';
 
 export const acceptanceFileStorage = new InMemoryFileStorage();
 
 Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
+  const accessTokens = {
+    issue: (payload: { sub: string }) => Promise.resolve({ token: `token:${payload.sub}`, expiresIn: 900 }),
+    verify: (token: string) => token.startsWith('token:') ? Promise.resolve({ sub: token.slice(6) }) : Promise.reject(new Error('Token inválido')),
+  };
+  if (scenario.pickle.tags.some((tag) => tag.name === '@postgres')) {
+    assertTestDatabase(process.env.DATABASE_URL);
+    const module = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(JwtAccessTokenIssuer).useValue(accessTokens)
+      .compile();
+    this.app = module.createNestApplication();
+    this.app.use((request: AuthenticatedRequest, _response: Response, next: NextFunction) => { request.authenticatedPrincipal = { userId: '11111111-1111-4111-8111-111111111111' }; next(); });
+    configureApplication(this.app, { security: false });
+    await this.app.init();
+    await cleanTestDatabase(this.app.get(PrismaService), process.env.DATABASE_URL);
+    return;
+  }
+
   resetBusinessRepositoryFake();
   resetUserRepositoryFake();
   resetMembershipFakes();
@@ -81,10 +100,6 @@ Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
   resetRevenueProjectionReaderFake();
   resetReservationsProjectionReaderFake();
   const refreshSessions = new Map<string, RefreshSession>();
-  const accessTokens = {
-    issue: (payload: { sub: string }) => Promise.resolve({ token: `token:${payload.sub}`, expiresIn: 900 }),
-    verify: (token: string) => token.startsWith('token:') ? Promise.resolve({ sub: token.slice(6) }) : Promise.reject(new Error('Token inválido')),
-  };
   const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(BUSINESS_REPOSITORY).useValue(businessRepositoryFake)
     .overrideProvider(RESOURCE_REPOSITORY).useValue(resourceRepositoryFake)
@@ -145,6 +160,12 @@ Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
   await this.app.init();
 });
 
-After(async function (this: TopWorld) {
-  await this.app?.close();
+After(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
+  try {
+    if (this.app && scenario.pickle.tags.some((tag) => tag.name === '@postgres')) {
+      await cleanTestDatabase(this.app.get(PrismaService), process.env.DATABASE_URL);
+    }
+  } finally {
+    await this.app?.close();
+  }
 });

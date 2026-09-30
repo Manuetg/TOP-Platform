@@ -44,4 +44,15 @@ describe("Input", () => {
     expect(screen.getByRole("textbox", { name: "Importe" })).toHaveAttribute("aria-describedby", "amount-help amount-error");
   });
 
+  it("muestra el prefijo dentro del campo sin incorporarlo al valor editable", () => {
+    const { rerender } = render(<Input id="amount" label="Precio final" prefix="₲" value="" readOnly />);
+    const input = screen.getByRole("textbox", { name: "Precio final" });
+    expect(screen.getByText("₲")).toBeVisible();
+    expect(screen.getByText("₲")).toHaveAttribute("aria-hidden", "true");
+    expect(input).toHaveValue("");
+    rerender(<Input id="amount" label="Precio final" prefix="₲" value="450.000" disabled readOnly />);
+    expect(screen.getByText("₲")).toBeVisible();
+    expect(input).toHaveValue("450.000");
+  });
+
 });

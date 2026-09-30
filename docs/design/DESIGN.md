@@ -78,7 +78,9 @@ Breakpoints vigentes: mobile 0–767, tablet 768–1023, desktop 1024–1439 y w
 
 Precios debe usar lenguaje comercial. Los importes se muestran en moneda del Business, con cifras tabulares y estados explícitos. La calculadora es una capacidad contextual de Precios; no requiere ítem de navegación propio. Un override manual y una temporada son capacidades dentro de Planes tarifarios/Precios, no módulos separados.
 
-No diseñar como definitivo el flujo de Booking, la congelación de PricingSnapshot, Availability o Payments mientras los dominios correspondientes sigan pendientes. Pricing no crea reservas ni modifica reservas confirmadas.
+Para ingresar el total acordado de un precio manual en Calendar y Confirm Booking, el símbolo de la moneda del Business activo aparece como prefijo fijo dentro del borde visual del campo: `₲ [importe editable]` para PYG. Se ve con el campo vacío, lleno, enfocado o deshabilitado; no depende del placeholder ni se incorpora al valor o al payload. El nombre o la descripción accesible comunica «guaraníes / PYG». Reutilizar Input/Foundation y los helpers monetarios existentes, con `type=text`, teclado numérico apropiado, cifras tabulares, foco y error del sistema. Permitir enteros y separadores de miles `es-PY` admitidos por el parser; vacío, negativos, decimales y overflow se rechazan sin transformar silenciosamente su significado. `₲ 450.000` representa `450000` PYG, sin factor 100. No añadir selector de moneda ni patrones visuales nuevos.
+
+En ambos flujos, la opción Configurada conserva selección de tarifario, cálculo y descuentos. La opción Manual presenta «Precio manual», «Precio final», «Total acordado para esta estadía» y «Motivo del precio manual» según el contexto; no muestra selector de referencia ni precio sugerido. El estado de consulta de tarifarios afecta a Configurada y no desmonta los campos de Manual. Pricing no crea reservas ni modifica reservas confirmadas.
 
 ## Contexto de Business y tono
 

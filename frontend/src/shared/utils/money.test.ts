@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMoney, parseGuaranies } from "./money";
+import { formatGuaraniesInput, formatMoney, parseGuaranies } from "./money";
 
 describe("contrato de unidades menores y presentación monetaria", () => {
   it.each([0, 1, 450000, 600000])("PYG %s no multiplica ni divide por cien", (amount) => {
@@ -11,5 +11,10 @@ describe("contrato de unidades menores y presentación monetaria", () => {
   });
   it.each(["", " ", "0", "-1", "1,50", "1.50", "NaN", "1e5", "9007199254740992"])("rechaza %s sin redondear o truncar", (input) => expect(parseGuaranies(input)).toBeNull());
   it("solo admite cero cuando el flujo permite importe acordado cero", () => expect(parseGuaranies("0", true)).toBe(0));
+  it("separa miles sin convertir entradas inválidas en otros importes", () => {
+    expect(formatGuaraniesInput("450000")).toBe("450.000");
+    expect(formatGuaraniesInput("0")).toBe("0");
+    for (const input of ["", "-1", "1,50", "1.50", "9007199254740992"]) expect(formatGuaraniesInput(input)).toBe(input);
+  });
   it("el formato no aplica una escala universal a otras monedas", () => expect(formatMoney(12345, "USD")).toContain("123,45"));
 });

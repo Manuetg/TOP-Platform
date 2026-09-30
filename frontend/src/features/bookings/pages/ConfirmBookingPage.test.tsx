@@ -4,17 +4,17 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConfirmBookingPage } from "./ConfirmBookingPage";
 
-const state = vi.hoisted(() => ({ business: "business-1", role: "RECEPTIONIST", resource: "resource-1", data: [{ id: "plan-1", name: "Normal", currency: "PYG", baseNightlyAmountMinor: 100000 }], error: false, loading: false, calculate: vi.fn(), confirm: vi.fn(), retry: vi.fn() }));
+const state = vi.hoisted(() => ({ business: "business-1", businessStatus: "ACTIVE", role: "RECEPTIONIST", resource: "resource-1", resourceStatus: "ACTIVE", data: [{ id: "plan-1", name: "Normal", currency: "PYG", baseNightlyAmountMinor: 100000 }], error: false, loading: false, calculate: vi.fn(), confirm: vi.fn(), retry: vi.fn() }));
 vi.mock("../../auth/context/AuthContext", () => ({ useAuth: () => ({ session: { user: { id: "user-1" }, accessToken: "token" } }) }));
-vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeBusinessId: state.business, activeRole: state.role }) }));
-vi.mock("../queries/use-booking", () => ({ useBooking: () => ({ data: { id: "booking-1", status: "PENDING", resourceIds: [state.resource], checkInDate: "2026-09-24", checkOutDate: "2026-09-26" }, isLoading: false, isError: false }) }));
-vi.mock("../../resources/queries/use-resources", () => ({ useResources: () => ({ data: [{ id: state.resource, name: "Cabaña" }], isLoading: false, isError: false }) }));
+vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeBusinessId: state.business, activeBusiness: { id: state.business, status: state.businessStatus, currency: "PYG" }, activeRole: state.role }) }));
+vi.mock("../queries/use-booking", () => ({ useBooking: () => ({ data: { id: "booking-1", businessId: state.business, status: "PENDING", resourceIds: [state.resource], checkInDate: "2026-09-24", checkOutDate: "2026-09-26" }, isLoading: false, isError: false }) }));
+vi.mock("../../resources/queries/use-resources", () => ({ useResources: () => ({ data: [{ id: state.resource, businessId: state.business, name: "Cabaña", status: state.resourceStatus }], isLoading: false, isError: false }) }));
 vi.mock("../../pricing/queries/use-selectable-rate-plans", () => ({ useSelectableRatePlans: () => ({ data: state.data, isLoading: state.loading, isFetching: state.loading, isSuccess: !state.error && !state.loading, isError: state.error, refetch: state.retry }) }));
 vi.mock("../../pricing/queries/use-calculate-price", () => ({ useCalculatePrice: () => ({ mutateAsync: state.calculate, isPending: false }) }));
 vi.mock("../queries/use-confirm-booking", () => ({ useConfirmBooking: () => ({ mutateAsync: state.confirm, isPending: false }) }));
 const view = () => <MemoryRouter><ConfirmBookingPage /></MemoryRouter>;
 describe("confirmación con selección contextual", () => {
-  beforeEach(() => { vi.clearAllMocks(); state.role = "RECEPTIONIST"; state.business = "business-1"; state.resource = "resource-1"; state.loading = false; state.error = false; state.data = [{ id: "plan-1", name: "Normal", currency: "PYG", baseNightlyAmountMinor: 100000 }]; });
+  beforeEach(() => { vi.clearAllMocks(); state.role = "RECEPTIONIST"; state.business = "business-1"; state.businessStatus = "ACTIVE"; state.resource = "resource-1"; state.resourceStatus = "ACTIVE"; state.loading = false; state.error = false; state.data = [{ id: "plan-1", name: "Normal", currency: "PYG", baseNightlyAmountMinor: 100000 }]; });
   it("presenta fechas y autoselecciona el único plan sin modificar ISO enviado", async () => {
     const user = userEvent.setup(); state.calculate.mockResolvedValue({ nights: 2, totalAmountMinor: 200000, currency: "PYG" }); render(view());
     expect(screen.getByText("24/09/2026 → 26/09/2026")).toBeVisible(); expect(screen.getByRole("combobox")).toHaveValue("plan-1");
@@ -35,26 +35,110 @@ describe("confirmación con selección contextual", () => {
     await act(async () => resolve({ nights: 2, totalAmountMinor: 200000, currency: "PYG" }));
     expect(screen.queryByText("Total calculado")).not.toBeInTheDocument(); expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeDisabled();
   });
-  it.each(["OWNER", "ADMIN"])("confirma sin tarifario con motivo obligatorio para %s", async (role) => {
+  it.each(["OWNER", "ADMIN"])("confirma precio manual con motivo obligatorio para %s", async (role) => {
     state.role = role; state.data = []; const user = userEvent.setup(); render(view());
+    await user.click(screen.getByRole("button", { name: "Manual" }));
     expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeDisabled();
-    await user.type(screen.getByLabelText("Precio final"), "450.000");
+    const input = screen.getByLabelText("Precio final");
+    expect(screen.getByText("₲")).toBeVisible();
+    expect(input).toHaveAccessibleDescription(/guaraníes \(PYG\)/);
+    await user.type(input, "450.000");
     expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeDisabled();
     await user.type(screen.getByLabelText("Motivo del precio manual"), "Acuerdo directo");
     await user.click(screen.getByRole("button", { name: "Confirmar reserva" }));
     expect(state.confirm).toHaveBeenCalledWith({ signal: expect.any(AbortSignal), pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 450000, overrideReason: "Acuerdo directo" }] });
     expect(state.calculate).not.toHaveBeenCalled();
   });
-  it("descarta el precio excepcional cuando aparecen planes", async () => {
+  it.each([1, 2])("confirma Manual con %s tarifario(s) sin referencia ni cálculo", async (count) => {
+    state.role = "OWNER";
+    state.data = Array.from({ length: count }, (_, index) => ({ id: `plan-${index + 1}`, name: `Tarifa ${index + 1}`, currency: "PYG", baseNightlyAmountMinor: 100000 }));
+    const user = userEvent.setup(); render(view());
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    expect(screen.queryByRole("combobox", { name: "Plan tarifario" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Plan de referencia")).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Precio final"), "450.000");
+    await user.type(screen.getByLabelText("Motivo del precio manual"), "Acuerdo directo");
+    await user.click(screen.getByRole("button", { name: "Confirmar reserva" }));
+    expect(state.confirm).toHaveBeenCalledWith({ signal: expect.any(AbortSignal), pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 450000, overrideReason: "Acuerdo directo" }] });
+    expect(state.calculate).not.toHaveBeenCalled();
+  });
+  it("evita doble confirmación Manual mientras la primera solicitud sigue pendiente", async () => {
+    state.role = "OWNER";
+    let resolve!: () => void;
+    state.confirm.mockReturnValue(new Promise<void>((done) => { resolve = done; }));
+    const user = userEvent.setup(); render(view());
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    await user.type(screen.getByLabelText("Precio final"), "450000");
+    await user.type(screen.getByLabelText("Motivo del precio manual"), "Acuerdo directo");
+    await user.dblClick(screen.getByRole("button", { name: "Confirmar reserva" }));
+    expect(state.confirm).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await act(async () => resolve());
+  });
+  it.each(["pendiente", "fallida"])('permite Manual con consulta de tarifarios %s', async (status) => {
+    state.role = "ADMIN"; state.data = []; state.loading = status === "pendiente"; state.error = status === "fallida";
+    const user = userEvent.setup(); render(view());
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    await user.type(screen.getByLabelText("Precio final"), "450000");
+    await user.type(screen.getByLabelText("Motivo del precio manual"), "Acuerdo directo");
+    expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeEnabled();
+    expect(state.confirm).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Confirmar reserva" }));
+    expect(state.confirm).toHaveBeenCalledWith({ signal: expect.any(AbortSignal), pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 450000, overrideReason: "Acuerdo directo" }] });
+  });
+  it("rechaza vacío, negativos, decimales y overflow sin convertirlos; acepta cero", async () => {
+    state.role = "OWNER"; const user = userEvent.setup(); render(view());
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    const input = screen.getByLabelText("Precio final");
+    await user.type(screen.getByLabelText("Motivo del precio manual"), "Acuerdo directo");
+    expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeDisabled();
+    for (const value of ["-1", "1,5", "1.5", "9007199254740992"]) {
+      await user.clear(input); await user.type(input, value);
+      expect(input).toHaveValue(value);
+      expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeDisabled();
+    }
+    await user.clear(input); await user.type(input, "0");
+    expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Confirmar reserva" }));
+    expect(state.confirm).toHaveBeenCalledWith({ signal: expect.any(AbortSignal), pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 0, overrideReason: "Acuerdo directo" }] });
+  });
+  it("mantiene Configurada y no mezcla su cálculo con Manual al alternar", async () => {
+    state.role = "OWNER"; state.calculate.mockResolvedValue({ nights: 2, totalAmountMinor: 200000, currency: "PYG" });
+    const user = userEvent.setup(); render(view());
+    await user.click(screen.getByRole("button", { name: "Calcular precio" }));
+    expect(await screen.findByText("Total calculado")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    expect(screen.queryByText("Total calculado")).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Precio final"), "450000");
+    await user.type(screen.getByLabelText("Motivo del precio manual"), "Acuerdo directo");
+    await user.click(screen.getByRole("button", { name: "Configurada" }));
+    expect(screen.queryByLabelText("Precio final")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Calcular precio" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar reserva" }));
+    expect(state.confirm).toHaveBeenCalledWith({ signal: expect.any(AbortSignal), pricing: [{ resourceId: "resource-1", ratePlanId: "plan-1" }] });
+  });
+  it("conserva el precio manual cuando aparecen planes", async () => {
     state.role = "OWNER"; state.data = []; const user = userEvent.setup(); const page = render(view());
+    await user.click(screen.getByRole("button", { name: "Manual" }));
     await user.type(screen.getByLabelText("Precio final"), "500"); await user.type(screen.getByLabelText("Motivo del precio manual"), "Acuerdo");
     expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeEnabled();
     state.data = [{ id: "new-plan", name: "Nueva tarifa", currency: "PYG", baseNightlyAmountMinor: 200 }]; page.rerender(view());
-    expect(screen.queryByLabelText("Motivo del precio manual")).not.toBeInTheDocument(); expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeDisabled();
-    state.data = []; page.rerender(view()); expect(screen.getByLabelText("Precio final")).toHaveValue("");
+    expect(screen.getByLabelText("Motivo del precio manual")).toHaveValue("Acuerdo"); expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeEnabled();
+    expect(screen.getByLabelText("Precio final")).toHaveValue("500");
+    await user.click(screen.getByRole("button", { name: "Confirmar reserva" }));
+    expect(state.confirm).toHaveBeenCalledWith({ signal: expect.any(AbortSignal), pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 500, overrideReason: "Acuerdo" }] });
   });
   it.each(["RECEPTIONIST", "VIEWER"])("no habilita el precio manual sin plan a %s", (role) => {
     state.role = role; state.data = []; render(view()); expect(screen.queryByLabelText("Precio final")).not.toBeInTheDocument(); expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeDisabled();
+  });
+  it.each(["businessStatus", "resourceStatus"] as const)("bloquea Manual si %s deja de estar activo", async (field) => {
+    state.role = "OWNER"; state[field] = "ARCHIVED";
+    const user = userEvent.setup(); render(view());
+    await user.click(screen.getByRole("button", { name: "Manual" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("No se pudo validar el negocio y alojamiento");
+    expect(screen.getByLabelText("Precio final")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeDisabled();
   });
 
 });

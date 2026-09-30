@@ -45,11 +45,13 @@ function ConfirmBookingContent() {
   const { bookingId = "" } = useParams();
   const { session } = useAuth();
 
-  const { activeBusinessId: businessId, activeRole } = useBusinessContext();
+  const { activeBusinessId: businessId, activeBusiness, activeRole } = useBusinessContext();
+  const currency = activeBusiness?.currency ?? "";
 
   const {
     data: booking,
     isLoading: isLoadingBooking,
+    isFetching: isFetchingBooking,
     isError: isBookingError,
     error: bookingError,
   } = useBooking({
@@ -61,6 +63,7 @@ function ConfirmBookingContent() {
   const {
     data: resources,
     isLoading: isLoadingResources,
+    isFetching: isFetchingResources,
     isError: isResourcesError,
     error: resourcesError,
   } = useResources({
@@ -110,15 +113,19 @@ function ConfirmBookingContent() {
       null,
     );
 
-  const [manualAmount, setManualAmount] = useState("");
-  const [manualReason, setManualReason] = useState("");
+  const [pricingMode, setPricingMode] = useState<"CONFIGURED" | "MANUAL_NO_RATE_PLAN">("CONFIGURED");
   const canOverride = activeRole === "OWNER" || activeRole === "ADMIN";
-  // La caché conserva el último resultado de este contexto durante refetch y error.
-  // Ese resultado mantiene la edición visible; solo una consulta vigente permite confirmar.
-  const manualWithoutPlan = canOverride && ratePlans?.length === 0;
+  const contextRefetching = Boolean(isFetchingBooking || isFetchingResources);
+  const manualContextKey = JSON.stringify([session?.user.id, businessId, bookingId, booking?.contactId, resourceId, checkIn, checkOut, currency, activeRole, activeBusiness?.status, resource?.status]);
+  const [manualDraft, setManualDraft] = useState({ contextKey: manualContextKey, amount: "", reason: "" });
+  const manualAmount = manualDraft.contextKey === manualContextKey ? manualDraft.amount : "";
+  const manualReason = manualDraft.contextKey === manualContextKey ? manualDraft.reason : "";
+  const setManualAmount = (amount: string) => setManualDraft((current) => ({ contextKey: manualContextKey, amount, reason: current.contextKey === manualContextKey ? current.reason : "" }));
+  const setManualReason = (reason: string) => setManualDraft((current) => ({ contextKey: manualContextKey, amount: current.contextKey === manualContextKey ? current.amount : "", reason }));
   const ratePlansCurrent = ratePlansReady && !isFetchingRatePlans && !isRatePlansError;
   const amountMinor = parseGuaranies(manualAmount, true);
-  const manualReady = manualWithoutPlan && amountMinor !== null && manualReason.trim().length >= 2 && manualReason.trim().length <= 500;
+  const manualContextReady = Boolean(businessId && activeBusiness?.status === "ACTIVE" && currency && booking?.businessId === businessId && booking.status === "PENDING" && resource?.businessId === businessId && resource.status === "ACTIVE" && booking.resourceIds.length === 1 && checkIn && checkOut);
+  const manualReady = pricingMode === "MANUAL_NO_RATE_PLAN" && canOverride && manualContextReady && !contextRefetching && amountMinor !== null && manualReason.trim().length >= 2 && manualReason.trim().length <= 500;
 
   const [pageError, setPageError] =
     useState<string | null>(null);
@@ -150,27 +157,31 @@ function ConfirmBookingContent() {
   useEffect(() => {
     setPreview(null); setPageError(null);
     return () => { operation.current?.abort(); operation.current = null; };
-  }, [resourceId, checkIn, checkOut, ratePlanId]);
+  }, [manualContextKey, ratePlanId]);
   useEffect(() => {
     if (!ratePlansReady) return;
-    if (!(ratePlans ?? []).some((plan) => plan.id === ratePlanId)) setRatePlanId(ratePlans?.length === 1 ? ratePlans[0].id : "");
-  }, [ratePlans, ratePlansReady, ratePlanId]);
+    if (pricingMode === "CONFIGURED" && !(ratePlans ?? []).some((plan) => plan.id === ratePlanId)) setRatePlanId(ratePlans?.length === 1 ? ratePlans[0].id : "");
+  }, [ratePlans, ratePlansReady, ratePlanId, pricingMode]);
 
   useEffect(() => {
-    setManualAmount(""); setManualReason("");
-  }, [resourceId, checkIn, checkOut]);
+    setManualDraft({ contextKey: manualContextKey, amount: "", reason: "" });
+    setPricingMode("CONFIGURED");
+  }, [manualContextKey]);
 
-  useEffect(() => {
-    if (!canOverride || (ratePlansReady && Boolean(ratePlans?.length))) {
-      setManualAmount(""); setManualReason("");
-    }
-  }, [canOverride, ratePlansReady, ratePlans]);
+  function changePricingMode(mode: "CONFIGURED" | "MANUAL_NO_RATE_PLAN") {
+    if (mode === pricingMode || confirmMutation.isPending) return;
+    operation.current?.abort(); operation.current = null;
+    setPricingMode(mode);
+    setRatePlanId("");
+    setPreview(null);
+    setPageError(null);
+  }
 
   async function handlePreview() {
     setPageError(null);
     setPreview(null);
 
-    if (operation.current || !selectedRatePlan || !ratePlansCurrent) {
+    if (operation.current || contextRefetching || pricingMode !== "CONFIGURED" || !selectedRatePlan || !ratePlansCurrent) {
       setPageError(
         "Seleccioná un plan tarifario.",
       );
@@ -200,9 +211,10 @@ function ConfirmBookingContent() {
   }
 
   async function handleConfirm() {
+    if (operation.current) return;
     setPageError(null);
 
-    if (operation.current || !ratePlansCurrent || (!manualReady && (!selectedRatePlan || !preview))) {
+    if (contextRefetching || (pricingMode === "MANUAL_NO_RATE_PLAN" ? !manualReady : !ratePlansCurrent || !selectedRatePlan || !preview)) {
       setPageError(
         "Calculá el precio antes de confirmar.",
       );
@@ -216,7 +228,7 @@ function ConfirmBookingContent() {
         pricing: [
           {
             resourceId,
-            ...(manualReady ? { pricingMode: "MANUAL_NO_RATE_PLAN" as const, agreedAmountMinor: amountMinor!, overrideReason: manualReason.trim() } : { ratePlanId }),
+            ...(pricingMode === "MANUAL_NO_RATE_PLAN" ? { pricingMode: "MANUAL_NO_RATE_PLAN" as const, agreedAmountMinor: amountMinor!, overrideReason: manualReason.trim() } : { ratePlanId }),
           },
         ],
       });
@@ -235,10 +247,7 @@ function ConfirmBookingContent() {
     } finally { if (operation.current === controller) operation.current = null; }
   }
 
-  const loading =
-    isLoadingBooking ||
-    isLoadingResources ||
-    isLoadingRatePlans;
+  const loading = isLoadingBooking || isLoadingResources;
 
   if (loading) {
     return (
@@ -331,7 +340,7 @@ function ConfirmBookingContent() {
         <span>Reserva pendiente</span>
         <h1>Confirmar reserva</h1>
         <p>
-          Seleccioná la tarifa aplicable y revisá el precio antes de confirmar.
+          Elige cómo fijar el precio y revisa el total antes de confirmar.
         </p>
       </header>
 
@@ -374,13 +383,20 @@ function ConfirmBookingContent() {
 
       <section className="confirm-booking-card">
         <div className="confirm-booking-card__heading">
-          <h2>Plan tarifario</h2>
-          <p>
-            Solo se muestran planes válidos para este alojamiento y estas fechas.
-          </p>
+          <h2>Precio de la estadía</h2>
+          <p>Elige una tarifa configurada o ingresa un precio manual.</p>
         </div>
 
-        {isFetchingRatePlans && <p role="status">Actualizando tarifarios...</p>}
+        <div className="confirm-booking-modes" role="group" aria-label="Modo de precio">
+          <Button type="button" variant="secondary" aria-pressed={pricingMode === "CONFIGURED"} disabled={confirmMutation.isPending} onClick={() => changePricingMode("CONFIGURED")}>Configurada</Button>
+          {canOverride && <Button type="button" variant="secondary" aria-pressed={pricingMode === "MANUAL_NO_RATE_PLAN"} disabled={confirmMutation.isPending} onClick={() => changePricingMode("MANUAL_NO_RATE_PLAN")}>Manual</Button>}
+        </div>
+
+        {pricingMode === "MANUAL_NO_RATE_PLAN" ? <>
+          {contextRefetching ? <p role="status">Verificando la reserva y el alojamiento...</p> : !manualContextReady && <p role="alert">No se pudo validar el negocio y alojamiento de esta reserva.</p>}
+          <ManualPriceFields amount={manualAmount} reason={manualReason} currency={currency} onAmountChange={setManualAmount} onReasonChange={setManualReason} disabled={confirmMutation.isPending || !manualContextReady} />
+        </> : <>
+        {isLoadingRatePlans ? <p role="status">Buscando planes tarifarios...</p> : isFetchingRatePlans && <p role="status">Actualizando tarifarios...</p>}
         {isRatePlansError && (
           <div
             className="confirm-booking-error"
@@ -391,12 +407,12 @@ function ConfirmBookingContent() {
               : "No pudimos cargar los planes tarifarios."}
           </div>
         )}
-        {ratePlans?.length === 0 ? (
+        {!isLoadingRatePlans && ratePlans?.length === 0 ? (
           <div className="confirm-booking-empty">
             <p>No hay un tarifario disponible para esta estadía.</p>
-            {manualWithoutPlan ? <ManualPriceFields amount={manualAmount} reason={manualReason} onAmountChange={setManualAmount} onReasonChange={setManualReason} disabled={confirmMutation.isPending} /> : <p>Solicitá al propietario o administrador que defina un precio o configure una tarifa.</p>}
+            <p>{canOverride ? "Puedes elegir Precio manual o configurar una tarifa." : "Solicita al propietario o administrador que defina un precio o configure una tarifa."}</p>
           </div>
-        ) : ratePlans?.length ? (
+        ) : !isLoadingRatePlans && ratePlans?.length ? (
           <label className="confirm-booking-field">
             <span>
               Plan tarifario
@@ -451,7 +467,7 @@ function ConfirmBookingContent() {
           type="button"
           variant="secondary"
           disabled={
-            !selectedRatePlan || !ratePlansCurrent ||
+            contextRefetching || !selectedRatePlan || !ratePlansCurrent ||
             calculateMutation.isPending
           }
           onClick={() =>
@@ -462,11 +478,12 @@ function ConfirmBookingContent() {
             ? "Calculando..."
             : "Calcular precio"}
         </Button>
+        </>}
       </section>
 
-      {manualReady && <section className="confirm-booking-price"><div><span>Total manual acordado</span><strong>{formatMoney(amountMinor)}</strong><p>{manualReason.trim()}</p></div></section>}
+      {manualReady && <section className="confirm-booking-price"><div><span>Total manual acordado</span><strong>{formatMoney(amountMinor!, currency)}</strong><p>{manualReason.trim()}</p></div></section>}
 
-      {preview && (
+      {pricingMode === "CONFIGURED" && preview && (
         <section className="confirm-booking-price">
           <div className="confirm-booking-price__icon">
             <BadgeCheck
@@ -524,10 +541,7 @@ function ConfirmBookingContent() {
 
         <Button
           type="button"
-          disabled={
-            (!manualReady && (!preview || !selectedRatePlan)) || !ratePlansCurrent ||
-            confirmMutation.isPending
-          }
+          disabled={contextRefetching || (pricingMode === "MANUAL_NO_RATE_PLAN" ? !manualReady : !preview || !selectedRatePlan || !ratePlansCurrent) || confirmMutation.isPending}
           onClick={() =>
             void handleConfirm()
           }
