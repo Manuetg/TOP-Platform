@@ -64,10 +64,14 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
+      NODE_ENV: development
       DATABASE_URL: postgresql://top:top@postgres:5432/top?schema=public
       PORT: 3000
       CORS_ORIGIN: http://localhost:3001
+      APP_PUBLIC_URL: http://localhost:3001
       JWT_ACCESS_SECRET: top-local-development-secret-change-in-production
+      PASSWORD_RESET_OTP_SECRET: top-local-development-password-reset-secret-change-in-production
+      EMAIL_DELIVERY_MODE: console
       REFRESH_TOKEN_TTL_SECONDS: 2592000
 
       S3_ENDPOINT: http://minio:9000

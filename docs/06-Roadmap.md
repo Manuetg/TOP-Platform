@@ -16,9 +16,9 @@ Plan histórico del 24/09/2026: un épico activo = una rama = una PR con impleme
 
 | Iniciativa | Estado | Alcance y evidencia requerida |
 |---|---|---|
-| A — Refinamiento funcional y UX | Completed efectivo al merge de PR #96 | A1 fechas; A2 selector/buscador Pricing; A3 teléfono internacional Contact; A4 archivo Contact; A5 ConfirmDialog; A6 inputs Booking; A7 estadía sin Rate Plan. Una PR `POST-MVP: UX & Functional Refinement` desde `post-mvp/ux-functional-refinement`. |
-| Precio manual libre y moneda visible — decisión posterior a A7 | In Progress | Manual sin referencia disponible con cualquier cantidad de planes en Calendar y Confirm Booking; prefijo monetario visible; regresiones frontend/backend y contratos actualizados. Conserva las invariantes de confirmación y el historial de A7. |
-| B — Seguridad para producción | Planned | B1–B10 siguientes; decisiones sustentadas en riesgos reales. |
+| A — Refinamiento funcional y UX | Completed, PR #96 integrada | A1 fechas; A2 selector/buscador Pricing; A3 teléfono internacional Contact; A4 archivo Contact; A5 ConfirmDialog; A6 inputs Booking; A7 estadía sin Rate Plan. Evidencia histórica conservada. |
+| Precio manual libre y moneda visible — decisión posterior a A7 | Completed, PR #97 integrada en `7737b2b` | Manual sin referencia con cualquier cantidad de planes; prefijo monetario visible. Ambos CI SUCCESS; mutation SKIPPED; revisión PM/TL informada APPROVE WITH NOTES, evidencia y límites en Current Status. |
+| B — Seguridad para producción | In Progress (primer corte) | POST-B-STARTUP: B3/B4/B6 y configuración/empaquetado de B2; B restante pendiente. |
 | C — Escalabilidad de API y base de datos | Planned | C1–C6 siguientes; medición antes de optimizar. |
 | D — Assets y performance | Planned | D1–D10 siguientes; conservar capacidades ya integradas. |
 | E — Automatización del ciclo de Booking | Discovery | Resolver semántica operativa antes de implementar automatización. |
@@ -58,7 +58,9 @@ Calendar y Confirm Booking muestran Configurada y Manual a usuarios autorizados.
 
 La entrega requiere corregir las pruebas que asumían referencia obligatoria o 409 por aparición de planes, mantener regresiones de conflictos reales y cubrir cero/uno/varios planes, refetch, cambios de contexto, PYG y roles. Backend exige lint, build, unitarias, integración PostgreSQL, E2E, aceptación, cobertura, arquitectura y Prisma; frontend exige build, lint y test. QA móvil y desktop de ambos flujos, `git diff --check` y ambos CI del HEAD final si se publica. Mutation SKIPPED no equivale a PASS.
 
-### B — Seguridad para producción (Planned)
+### B — Seguridad para producción (In Progress, primer corte)
+
+**POST-B-STARTUP (30/09/2026), In Progress preparado para re-revisión:** desde develop `7737b2b`, una única rama `codex/production-startup-hardening` y PR con implementación/documentación juntas, autorizada el 30/09/2026. Configuración crítica validada antes de listen, límites técnicos de los cuatro TTL compatibles con Date/Prisma, CORS explícito, Swagger ausente en producción, SMTP TLS y S3 obligatorio, imagen production/Compose development, exclusión de secretos y `.env` fuera del índice conservado localmente. No completa B2 cloud ni el épico; B1/B5/B7/B8/B9/B10 permanecen Planned. Sin cambios de dominio/schema, frontend, migraciones nuevas, deploy ni infraestructura. Gates locales y limitaciones en [Estado actual](00-Current-Status.md); feature HEAD y ambos CI oficiales en el cuerpo de la misma PR. Completed solo tras revisión/merge y CI del HEAD publicado.
 
 - B1: auditar rate limiting de signup, login, forgot-password, verify-reset-code, reset-password, resend-verification, verify-email y refresh cuando corresponda. IP + identidad/email normalizada + endpoint + ventana, 429/Retry-After, sin enumeración y con múltiples instancias Cloud Run. Memoria local no basta; comparar alternativas sin elegir Redis automáticamente.
 - B2: DATABASE_URL, claves JWT, SMTP, storage y terceros fuera de repositorio/imágenes; evaluar Secret Manager y Workload Identity. Nunca secretos VITE_*.
@@ -91,6 +93,7 @@ La entrega requiere corregir las pruebas que asumían referencia obligatoria o 4
 - D7: debounce solo para búsquedas remotas (Global Search, Contact y futuros autocomplete), nunca inputs normales.
 - D8: skeletons donde reduzcan saltos de layout o mejoren percepción, no por estética.
 - D9: auditar dependencias sin uso; verificar consumidores/build/tests antes de retirarlas.
+- Hallazgo de instalación de POST-B-STARTUP (30/09/2026): `npm ci` informó 16 vulnerabilidades en el árbol vigente (7 moderadas, 9 altas). No se modificaron dependencias ni lockfiles en ese corte. Evaluar remediación y compatibilidad en el quality gate posterior, sin `audit fix` automático ni presentar este hallazgo como resuelto.
 - D10: baseline Lighthouse Login/Dashboard/Calendar/Resources/Booking Detail, desktop y móvil; LCP, CLS, INP, assets dominantes y recursos bloqueantes. Objetivos orientativos: accesibilidad/buenas prácticas ≥95, performance móvil ≥85/desktop ≥90; no gates hasta medir, no perseguir 100 artificialmente.
 
 ### E — Ciclo de Booking (Discovery)

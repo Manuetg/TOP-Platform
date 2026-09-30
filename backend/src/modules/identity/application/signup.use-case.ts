@@ -1,10 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { PrismaIdentityService } from '../infrastructure/prisma-identity.service';
 import { PASSWORD_HASHER, type PasswordHasher } from '../domain/password-hasher';
 import { EMAIL_SENDER, type EmailSender } from '../domain/email-sender';
 import { CryptoEmailVerificationTokenService } from '../infrastructure/crypto-email-verification-token.service';
 import { SignupRateLimiter } from './signup-rate-limiter';
+import { readAppPublicUrl } from '../../../config/environment';
 
 export interface SignupRequest { displayName: unknown; email: unknown; password: unknown; businessName: unknown; timezone: unknown; }
 export interface SignupResponse { status: 'EMAIL_VERIFICATION_REQUIRED'; email: string; }
@@ -14,7 +16,10 @@ export class SignupEmailConflictError extends Error {}
 @Injectable()
 export class SignupUseCase {
   private readonly logger = new Logger(SignupUseCase.name);
-  constructor(private readonly prisma: PrismaIdentityService, @Inject(PASSWORD_HASHER) private readonly passwordHasher: PasswordHasher, @Inject(EMAIL_SENDER) private readonly email: EmailSender, private readonly tokenService: CryptoEmailVerificationTokenService, private readonly limiter: SignupRateLimiter) {}
+  private readonly publicUrl: string;
+  constructor(private readonly prisma: PrismaIdentityService, @Inject(PASSWORD_HASHER) private readonly passwordHasher: PasswordHasher, @Inject(EMAIL_SENDER) private readonly email: EmailSender, private readonly tokenService: CryptoEmailVerificationTokenService, private readonly limiter: SignupRateLimiter, config: ConfigService = new ConfigService()) {
+    this.publicUrl = readAppPublicUrl(config);
+  }
   async execute(input: SignupRequest): Promise<SignupResponse> {
     const data = this.validate(input);
     if (!this.limiter.allow(data.email)) throw new InvalidSignupInputError('Demasiados intentos. Esperá unos minutos e intentá nuevamente.');
@@ -34,10 +39,9 @@ export class SignupUseCase {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') throw new SignupEmailConflictError('Ya existe una cuenta con este correo. Iniciá sesión o recuperá tu contraseña.');
       throw error;
     }
-    const publicUrl = process.env.APP_PUBLIC_URL ?? 'http://localhost:3001';
     if (this.email.sendEmailVerification) {
-      try { await this.email.sendEmailVerification({ to: data.email, verificationUrl: `${publicUrl}/verify-email?token=${encodeURIComponent(token)}`, expiresAt: this.tokenService.expiresAt(now) }); }
-      catch (error: unknown) { this.logger.error('No se pudo entregar el correo de verificación.', error instanceof Error ? error.stack : undefined); }
+      try { await this.email.sendEmailVerification({ to: data.email, verificationUrl: `${this.publicUrl}/verify-email?token=${encodeURIComponent(token)}`, expiresAt: this.tokenService.expiresAt(now) }); }
+      catch { this.logger.error('No se pudo entregar el correo de verificación.'); }
     }
     return { status: 'EMAIL_VERIFICATION_REQUIRED', email: data.email };
   }

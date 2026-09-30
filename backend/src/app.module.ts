@@ -1,3 +1,4 @@
+import { runtimeNodeEnvironment, validateApplicationEnvironment } from './config/environment';
 import { SearchModule } from './modules/search/search.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { Module } from '@nestjs/common';
@@ -20,7 +21,12 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
-  imports: [SubscriptionModule, SearchModule, ConfigModule.forRoot({ isGlobal: true }), BusinessModule, IdentityModule, ResourceModule, PricingModule, ContactModule, BlockModule, BookingModule, AvailabilityModule, BookingLifecycleModule, PaymentModule, DashboardModule],
+  imports: [SubscriptionModule, SearchModule, ConfigModule.forRoot({
+    isGlobal: true,
+    ignoreEnvFile: runtimeNodeEnvironment() !== 'development',
+    skipProcessEnv: true,
+    validate: validateApplicationEnvironment,
+  }), BusinessModule, IdentityModule, ResourceModule, PricingModule, ContactModule, BlockModule, BookingModule, AvailabilityModule, BookingLifecycleModule, PaymentModule, DashboardModule],
   controllers: [HealthController],
   providers: [HealthService, AuthenticationGuard, AuthorizationPolicy, BusinessAuthorizationGuard],
 })

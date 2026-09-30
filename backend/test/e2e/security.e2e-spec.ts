@@ -3,6 +3,8 @@ import { Contact } from '../../src/modules/contact/domain/contact.entity';
 import { ContactStatus } from '../../src/modules/contact/domain/contact-status.enum';
 import { Controller, Get, type INestApplication, ParseUUIDPipe, Param, Patch, Post } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { JwtAccessTokenIssuer } from '../../src/modules/identity/infrastructure/jwt-access-token-issuer';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
@@ -58,8 +60,8 @@ describe('Protección JWT y membresía', () => {
   );
 
   beforeAll(async () => {
-    process.env.JWT_ACCESS_SECRET = secret;
     const module = await Test.createTestingModule({ imports: [AppModule], controllers: [SecurityProbeController] })
+      .overrideProvider(JwtAccessTokenIssuer).useFactory({ factory: () => new JwtAccessTokenIssuer(new JwtService(), new ConfigService({ JWT_ACCESS_SECRET: secret })) })
       .overrideProvider(USER_BY_ID_LOOKUP).useValue({ findById: (id: string) => Promise.resolve(id === userId ? User.create({ id: userId, email: userEmail, status: userStatus, createdAt: new Date(), updatedAt: new Date() }) : null) })
       .overrideProvider(USER_REPOSITORY).useValue({ findByEmail: () => Promise.resolve(null), create: jest.fn(), updateEmail: (user: User) => { userEmail = user.email; return Promise.resolve(user); } })
       .overrideProvider(MEMBERSHIP_REPOSITORY).useValue({

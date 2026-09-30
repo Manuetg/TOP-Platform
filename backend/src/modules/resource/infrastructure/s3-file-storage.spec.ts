@@ -26,9 +26,9 @@ import { S3FileStorage } from './s3-file-storage';
 
 describe('S3FileStorage', () => {
   const config = (
-    values: Record<string, string | undefined>,
+    values: Record<string, string | boolean | undefined>,
   ) => ({
-    get: (key: string): string | undefined =>
+    get: (key: string): string | boolean | undefined =>
       values[key],
   });
 
@@ -69,9 +69,7 @@ describe('S3FileStorage', () => {
               [missing]: undefined,
             }) as never,
           ),
-      ).toThrow(
-        'La configuración S3 es obligatoria.',
-      );
+      ).toThrow(missing);
     },
   );
 
@@ -199,5 +197,48 @@ describe('S3FileStorage', () => {
         forcePathStyle: false,
       }),
     );
+  });
+
+  it.each([true, false])('consume el booleano validado para path style: %s', (forcePathStyle) => {
+    new S3FileStorage(config({ ...completeConfig, S3_FORCE_PATH_STYLE: forcePathStyle }) as never);
+    expect(s3ClientConstructor).toHaveBeenCalledWith(expect.objectContaining({ forcePathStyle }));
+  });
+
+  it.each(['TRUE', '1', '', 'yes'])('rechaza booleano S3 inválido antes de crear clientes: %s', (value) => {
+    expect(() => new S3FileStorage(config({ ...completeConfig, S3_FORCE_PATH_STYLE: value }) as never)).toThrow(/S3_FORCE_PATH_STYLE/);
+    expect(s3ClientConstructor).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { S3_ENDPOINT: 'not-a-url' }, { S3_ENDPOINT: 'https://user:synthetic-marker@storage.top.test' },
+    { S3_PUBLIC_ENDPOINT: 'https://storage.top.test?secret=synthetic-marker' },
+    { S3_PUBLIC_ENDPOINT: 'https://storage.top.test#synthetic-marker' },
+    { S3_REGION: '' }, { S3_BUCKET: '' }, { S3_ACCESS_KEY: '' }, { S3_SECRET_KEY: '' },
+  ])('rechaza configuración inválida sin exponer sus valores: %j', (overrides) => {
+    expect(() => new S3FileStorage(config({ ...completeConfig, ...overrides }) as never)).toThrow(/S3_/);
+    try { new S3FileStorage(config({ ...completeConfig, ...overrides }) as never); }
+    catch (error: unknown) { expect(String(error)).not.toContain('synthetic-marker'); }
+    expect(s3ClientConstructor).not.toHaveBeenCalled();
+  });
+
+  it.each(['S3_ENDPOINT', 'S3_PUBLIC_ENDPOINT'])('exige HTTPS en producción para %s', (key) => {
+    expect(() => new S3FileStorage(config({
+      ...completeConfig, NODE_ENV: 'production', S3_ENDPOINT: 'https://storage.top.test',
+      S3_PUBLIC_ENDPOINT: 'https://public.top.test', [key]: 'http://storage.top.test',
+    }) as never)).toThrow(key);
+    expect(s3ClientConstructor).not.toHaveBeenCalled();
+  });
+
+  it('utiliza HTTPS efectivo y el fallback público en producción', async () => {
+    const storage = new S3FileStorage(config({
+      ...completeConfig, NODE_ENV: 'production', S3_ENDPOINT: 'https://storage.top.test',
+      S3_PUBLIC_ENDPOINT: undefined,
+    }) as never);
+    await storage.createSignedReadUrl('businesses/b1/resources/r1/synthetic image.jpg');
+    expect(s3ClientConstructor).toHaveBeenCalledTimes(1);
+    expect(s3ClientConstructor).toHaveBeenCalledWith(expect.objectContaining({ endpoint: 'https://storage.top.test' }));
+    expect(getSignedUrl).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      input: { Bucket: 'private', Key: 'businesses/b1/resources/r1/synthetic image.jpg' },
+    }), { expiresIn: 3600 });
   });
 });

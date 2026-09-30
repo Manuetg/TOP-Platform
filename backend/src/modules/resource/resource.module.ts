@@ -22,7 +22,7 @@ import { UpdateResourceUseCase } from './application/update-resource.use-case';
 import { UploadResourceImageUseCase } from './application/upload-resource-image.use-case';
 import { AMENITY_REPOSITORY } from './domain/amenity.repository';
 import { BUSINESS_AMENITY_REPOSITORY } from './domain/business-amenity.repository';
-import { FILE_STORAGE } from './domain/file-storage.port';
+import { FILE_STORAGE, type FileStoragePort } from './domain/file-storage.port';
 import { RESOURCE_AMENITY_REPOSITORY } from './domain/resource-amenity.repository';
 import { RESOURCE_IMAGE_REPOSITORY } from './domain/resource-image.repository';
 import { RESOURCE_REPOSITORY } from './domain/resource.repository';
@@ -35,12 +35,20 @@ import { S3FileStorage } from './infrastructure/s3-file-storage';
 import { AmenityController } from './presentation/amenity.controller';
 import { BusinessAmenityController } from './presentation/business-amenity.controller';
 import { ResourceController } from './presentation/resource.controller';
+import { readNodeEnvironment } from '../../config/environment';
+
+export function createFileStorage(config: ConfigService, memory: InMemoryFileStorage): FileStoragePort {
+  if (readNodeEnvironment(config) === 'production' || config.get<string>('S3_BUCKET')) {
+    return new S3FileStorage(config);
+  }
+  return memory;
+}
 
 @Module({ imports: [BusinessModule, SubscriptionCoreModule], controllers: [ResourceController, AmenityController, BusinessAmenityController], providers: [PrismaResourceSearchReader, { provide: RESOURCE_SEARCH_READER, useExisting: PrismaResourceSearchReader },
   PrismaResourceRepository, { provide: RESOURCE_USAGE_READER, useExisting: PrismaResourceRepository }, PrismaResourceImageRepository, PrismaAmenityRepository, PrismaResourceAmenityRepository, InMemoryFileStorage,
   { provide: RESOURCE_REPOSITORY, useExisting: PrismaResourceRepository }, { provide: RESOURCE_IMAGE_REPOSITORY, useExisting: PrismaResourceImageRepository },
   { provide: AMENITY_REPOSITORY, useExisting: PrismaAmenityRepository }, { provide: BUSINESS_AMENITY_REPOSITORY, useExisting: PrismaAmenityRepository }, { provide: RESOURCE_AMENITY_REPOSITORY, useExisting: PrismaResourceAmenityRepository },
-  { provide: FILE_STORAGE, inject: [ConfigService, InMemoryFileStorage], useFactory: (config: ConfigService, memory: InMemoryFileStorage) => config.get<string>('S3_BUCKET') ? new S3FileStorage(config) : memory },
+  { provide: FILE_STORAGE, inject: [ConfigService, InMemoryFileStorage], useFactory: createFileStorage },
   CreateResourceUseCase, GetResourceUseCase, ListResourcesUseCase, ListAmenitiesUseCase, ListBusinessAmenitiesUseCase, CreateBusinessAmenityUseCase,
   SetResourceAmenitiesUseCase, UpdateResourceUseCase, DisableResourceUseCase, ReactivateResourceUseCase, UploadResourceImageUseCase, ListResourceImageCoversUseCase, ListResourceImagesUseCase, DeleteResourceImageUseCase, ReorderResourceImagesUseCase,
 ], exports: [RESOURCE_SEARCH_READER, RESOURCE_USAGE_READER, RESOURCE_REPOSITORY] })

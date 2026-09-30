@@ -1,8 +1,63 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-09-28
+Última actualización: 2026-09-30
 
-## Handoff vigente — precio manual libre y moneda visible
+## Handoff vigente — primer corte B: arranque y configuración segura
+
+Baseline y `origin/develop` verificados: `7737b2bbda04ee2a9f2a97585e4a0c672f295a43`. [PR #97](https://github.com/Manuetg/TOP-Platform/pull/97) integrada el 30/09/2026; ninguna PR abierta ni merge posterior al iniciar. Rama de trabajo `codex/production-startup-hardening`. El usuario autorizó commit, push y apertura de una única PR contra develop el 30/09/2026, con toda la documentación en esa misma PR. El feature HEAD y los runs oficiales se registran en el cuerpo de la PR al publicar; no hay merge ni deploy autorizado.
+
+POST-B-STARTUP cubre B3, B4, B6 y configuración/empaquetado de B2. Valida configuración antes de HTTP; producción exige secretos JWT/OTP independientes, URL pública/CORS HTTPS, SMTP con TLS y storage S3 completo. Swagger no se genera ni registra. Desarrollo/test conservan defaults, console y memoria sin bucket; Compose declara development. `.env` retirado del índice preservando archivo local; revisión sin reproducir valores encontró configuración local, sin indicios de credencial real. Imagen/ignore excluyen env y credenciales. Matriz de variables en [README backend](../backend/README.md).
+
+Estado: **In Progress, corrección de la revisión CHANGES REQUIRED implementada; gates y smoke finales completos, preparada para re-revisión PM/TL**. Ambos CI de este corte se verificarán sobre el HEAD publicado; resultados y runs por SHA en el cuerpo de la misma PR. Mutation local de este corte: **NOT RUN**, diferido al quality gate preproducción según política; no equivale a PASS. El workflow pull_request omite mutation (**SKIPPED**, nunca PASS). La self-review y revisión técnica entre agentes no reemplazan la re-revisión independiente PM/TL. No hay cambios frontend, reglas comerciales, schema, migraciones nuevas ni infraestructura cloud; no se ejecutaron migraciones sobre datos existentes. No hubo merge ni deploy. Épico B sigue abierto y MVP histórico 53/53 permanece intacto.
+
+Revisión recibida en el chat el 30/09/2026: **CHANGES REQUIRED**, finding MEDIUM por cuatro TTL que admitían `Number.MAX_SAFE_INTEGER` y producían Invalid Date. Corregido en `environment.ts`: conversión a milisegundos enteros seguros, suma con el instante de validación dentro de Date/TimeClip y DateTime del motor Prisma vigente (año hasta 9999). Este último límite se verificó adicionalmente mediante SELECT parametrizado sobre PostgreSQL tmpfs propio, sin escrituras: fin de 9999 hace roundtrip y año 10000, aunque válido para JavaScript, es rechazado por Prisma 6.19.3. Los cuatro servicios reales conservan defaults/contratos y las pruebas cubren frontera, siguiente segundo y rechazo del valor reproducido antes de Prisma/listen. README y Architecture precisan que el guard del artefacto Prisma corresponde al bootstrap HTTP por defecto, sin extender la garantía a CLI/imports directos. Corrección preparada para re-revisión; no se emite READY_TO_MERGE sin CI del HEAD publicado y revisión humana.
+
+### Evidencia local final de POST-B-STARTUP (30/09/2026)
+
+Ejecutada tras la corrección TTL sobre el código final en Node **22.23.3**, con PostgreSQL 16 en tmpfs, red/contenedores propios, sin puertos publicados ni volúmenes persistentes. Se aplicaron exclusivamente las 25 migraciones vigentes a la base desechable `top_test`. Las corridas anteriores (incluida la parcial Date/Number con fallo de complejidad lint, corregido mediante helper) se conservan solo como historia, no como gates finales. No se eliminaron pruebas, redujeron umbrales ni ampliaron timeouts.
+
+| Gate | Resultado / evidencia |
+|---|---|
+| Build y lint backend | PASS |
+| Unitarias | PASS: 126 suites / 1397 pruebas |
+| Integración PostgreSQL | PASS: 34 suites / 186 pruebas |
+| E2E | PASS: 24 suites / 314 pruebas, incluidas 27 de arranque/CORS/Swagger |
+| Aceptación | PASS: 196 escenarios / 777 pasos; proceso aislado NODE_ENV=test |
+| Cobertura conjunta | PASS: 184 suites / 1897 pruebas; sentencias 96,53%, ramas 90,59%, funciones 96,91%, líneas 97,61% |
+| Arquitectura | PASS: 328 módulos / 748 dependencias, sin violaciones |
+| Prisma validate | PASS; sin cambios de schema/migraciones |
+| Configuración y artefacto Prisma | PASS: 145 pruebas focales incluidas en unitarias; ausencia/vacío/placeholder/formato, bytes, independencia, fronteras TTL con consumidores reales y errores sin valores |
+| Build Docker y smoke final tras TTL | PASS: Node production por defecto, 24 fixtures sensibles fuera del filesystem/capas OCI, `.env` físico no utilizado, logs sin markers; los cuatro TTL MAX_SAFE_INTEGER abortan antes de listen directamente en imagen final |
+| HTTP/adaptadores/desarrollo | PASS: CORS exacto/ajeno/preflight/sin Origin y guards; Swagger UI/JSON/YAML ausentes en producción con guards desactivados (404 y spies), presentes en desarrollo/test; SMTP TLS/pareja/console, S3 persistente/MinIO/upload/delete/firma real offline. Smoke development sin SMTP y con memoria; Compose config conserva bucket/volúmenes |
+| git diff --check | PASS (working tree e índice) |
+| Backend CI / Frontend CI del corte | Verificar ambos sobre el HEAD publicado; SHA, resultados y runs oficiales en el cuerpo de la misma PR |
+| Mutation del corte | Local NOT RUN; job pull_request SKIPPED según workflow; diferido al quality gate preproducción, nunca PASS |
+
+Logs, estado, cobertura y probe Prisma finales de la corrección en `backend/reports/production-startup-gates/ttl-review/`, ignorados por Git/Docker. El snapshot final de 605 archivos src/test/scripts/package.json se copió el `2026-09-30T19:25:47.720Z`, después del último ajuste de código/pruebas; SHA256 agregado `323ba50f88437f7b15163f05437dcbe9f2e6c64eb8c65357afaf7b0edd5dedb1`. Las verificaciones before-gates, after-gates, after-image-build y el manifest de la imagen acreditan hashes idénticos del checkout, runner e imagen final, y cada gate registra ese hash. La imagen de dependencias recibió exclusivamente esos archivos, nunca `.env`. Esta evidencia mejora la trazabilidad local y no valida un commit publicado. El snapshot/evidencia anteriores quedan como historia bajo `backend/reports/production-startup-gates/`, incluida la imagen previa `top-production-startup-smoke:d82e9be848934f71a6ed6239f345e7b2`.
+
+Imagen final tras TTL: `top-production-startup-smoke:1eca144cd318427fbc950bbb4e8b147c`, digest `sha256:4bf6c9a7bcd88998970891ef33d4da03b00a179f0bf9a73fbd266161bef2d2de`. Build/smoke completo PASS, más los cuatro rechazos TTL reales; evidencia `smoke-final.log`, `image-ttl-range.log` y verificación de los 605 archivos dentro de la imagen en el mismo directorio ttl-review. Contenedores, PostgreSQL tmpfs y redes propios eliminados; imágenes y evidencia conservadas. `.env` local preservado e ignorado. No se enviaron correos reales ni se conectó a storage/cloud.
+
+La revisión técnica inicial corrigió tres hallazgos: autoload `.env` de Prisma local (snapshot/prevalidación y guard del artefacto antes del import), origins con paths/formato normalizados y múltiples remitentes SMTP. La imagen real de Prisma omite `schemaEnvPath` cuando está ausente: el guard acepta ausencia/null y rechaza rutas o metadatos desconocidos. La regresión default-bootstrap HTTP con configuración completa y autoload simulado acredita rechazo antes de importar Prisma o leer `.env`. La re-revisión PM/TL del ajuste TTL sigue pendiente.
+
+PR #97: feature HEAD `c57d6e48ce02159c6e30731ce4ad0978ad7db8c7`, merge `7737b2b`. [Backend CI 36380678728](https://github.com/Manuetg/TOP-Platform/actions/runs/36380678728) y [Frontend CI 36380678777](https://github.com/Manuetg/TOP-Platform/actions/runs/36380678777) SUCCESS; mutation SKIPPED. El encargo informa revisión PM/TL **APPROVE WITH NOTES — READY_TO_MERGE**; la consulta GitHub no devolvió reviews formales ni comentarios, por lo que se distingue esa evidencia suministrada de un registro formal de GitHub. Se conservan debajo sus resultados locales y límites de QA; no se reutilizan como validación de POST-B-STARTUP.
+
+### Archivos del primer corte B
+
+- Configuración/arranque: `backend/src/main.ts`, `src/app.module.ts`, `src/config/configure-application.ts`, nuevos `src/config/bootstrap.ts`, `environment.ts`, `environment.spec.ts`, `prisma-environment.ts` y `prisma-environment.spec.ts` (rutas `src` relativas a backend).
+- Persistencia: `backend/src/modules/business/infrastructure/prisma.service.ts` y `identity/infrastructure/prisma-identity.service.ts`.
+- Correo/identidad: `backend/src/modules/identity/identity.module.ts`, nuevo `identity.module.spec.ts`; `infrastructure/smtp-email-sender.ts` y nuevo spec; `infrastructure/crypto-password-reset-otp.service.ts` y spec; `application/signup.use-case.ts` y spec; `application/resend-verification.use-case.ts` y spec. Las rutas internas corresponden al mismo módulo Identity.
+- Storage: `backend/src/modules/resource/resource.module.ts` y nuevo spec; `infrastructure/s3-file-storage.ts` y spec.
+- E2E: nuevo `backend/test/e2e/production-startup.e2e-spec.ts`; adaptación de `security`, `payment-history`, `outstanding-balance`, `manual-pricing` y `dashboard` E2E para inyectar JWT sin mutar el entorno global.
+- Ejecución/paquete: `backend/package.json`, nuevo `scripts/run-acceptance.cjs`, nuevo `test/packaging/production-image.smoke.mjs`, `backend/Dockerfile`, `docker-compose.yml`, `.dockerignore`, `.env.example`, nuevo `.gitignore` raíz y retirada del índice de `backend/.env` conservado localmente.
+- Documentación existente: `backend/README.md` y `docs/00-Current-Status.md`, `05-Architecture.md`, `06-Roadmap.md`, `07-Backlog.md`. Sin archivos frontend, lockfiles, schema ni migraciones modificados.
+
+Supuestos de compatibilidad: Node 22, PostgreSQL/Prisma y SDK S3 vigentes; producción usa el artefacto limpio del Dockerfile. El guard de metadatos Prisma rechaza clientes generados con autoload env y debe revisarse al actualizar Prisma. No se presume conectividad SMTP/storage por superar validación local; no se probaron envíos reales ni infraestructura cloud.
+
+Decisiones pendientes: re-revisión independiente PM/TL e integración humana tras verificar ambos CI del HEAD publicado. Mutation queda para el quality gate preproducción. El proveedor productivo de correo/storage, B restante y la decisión comercial FE-SUB-001 siguen fuera de este corte. No se declara Production Ready.
+
+## Handoff histórico — precio manual libre / PR #97 antes de su integración
+
+Las referencias a In Progress y revisión pendiente en los párrafos siguientes describen el handoff previo al merge. El estado integrado vigente y la evidencia oficial están arriba.
 
 PR #96 del Épico A está integrada en develop. El baseline de trabajo para esta decisión es `origin/develop@ea0c373ee3c5e9d0bed87dcc0133b330ccdc5a22` (28/09/2026), según el encargo y el checkout de trabajo. Este seguimiento es independiente del Épico B y no cambia los recuentos históricos del MVP.
 
@@ -126,7 +181,7 @@ Dashboard:
 - 4 / 4 completadas (100%)
 
 Capacidad backend actualmente en desarrollo:
-- Ninguna.
+- POST-B-STARTUP — primer corte de arranque y configuración segura, separado del MVP; preparado para revisión en rama local.
 
 Siguiente capacidad backend:
 - Ninguna dentro del backlog MVP aprobado.
