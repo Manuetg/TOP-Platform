@@ -1,0 +1,25 @@
+# Configuración y credenciales locales; solo los ejemplos seguros se versionan.
+.env
+.env.*
+.env-*
+.envrc
+!.env.example
+!.env.*.example
+.npmrc
+.netrc
+.aws/
+.azure/
+.ssh/
+**/.config/gcloud/
+**/credentials*.json
+**/service-account*.json
+**/service_account*.json
+**/*credentials*.json
+**/secrets/
+*.key
+*.pem
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore

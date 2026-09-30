@@ -1,5 +1,7 @@
 import { type INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { JwtAccessTokenIssuer } from '../../src/modules/identity/infrastructure/jwt-access-token-issuer';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
@@ -31,9 +33,10 @@ describe('Confirmación de precio manual HTTP con autorización real', () => {
   let bookingResourceId: string; let checkInDate: Date; let checkOutDate: Date;
   const listPlans = jest.fn(() => Promise.resolve(plans));
   beforeAll(async () => {
-    const secret = 'manual-pricing-e2e-secret'; process.env.JWT_ACCESS_SECRET = secret;
+    const secret = 'manual-pricing-e2e-secret';
     token = await new JwtService().signAsync({ sub: userId }, { secret });
     const module = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(JwtAccessTokenIssuer).useFactory({ factory: () => new JwtAccessTokenIssuer(new JwtService(), new ConfigService({ JWT_ACCESS_SECRET: secret })) })
       .overrideProvider(USER_BY_ID_LOOKUP).useValue({ findById: () => Promise.resolve({ id: userId, status: 'ACTIVE' }) })
       .overrideProvider(MEMBERSHIP_REPOSITORY).useValue({ findByUserAndBusiness: (_user: string, owner: string) => Promise.resolve(owner === businessId ? { role } : null) })
       .overrideProvider(BUSINESS_REPOSITORY).useValue({ findById: () => Promise.resolve({ id: businessId, status: businessStatus, currency: 'PYG' }) })

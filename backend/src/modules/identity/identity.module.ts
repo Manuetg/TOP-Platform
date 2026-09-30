@@ -34,7 +34,7 @@ import { ResetPasswordUseCase } from './application/reset-password.use-case';
 import { PASSWORD_RESET_TOKEN_REPOSITORY } from './domain/password-reset-token.repository';
 import { PrismaPasswordResetTokenRepository } from './infrastructure/prisma-password-reset-token.repository';
 import { CryptoPasswordResetTokenService } from './infrastructure/crypto-password-reset-token.service';
-import { EMAIL_SENDER } from './domain/email-sender';
+import { EMAIL_SENDER, type EmailSender } from './domain/email-sender';
 import { ConsoleEmailSender } from './infrastructure/console-email-sender';
 import { SmtpEmailSender } from './infrastructure/smtp-email-sender';
 import { PASSWORD_RESET_CHALLENGE_REPOSITORY } from './domain/password-reset-challenge.repository';
@@ -45,6 +45,13 @@ import { VerifyEmailUseCase } from './application/verify-email.use-case';
 import { SignupRateLimiter } from './application/signup-rate-limiter';
 import { CryptoEmailVerificationTokenService } from './infrastructure/crypto-email-verification-token.service';
 import { ResendVerificationUseCase } from './application/resend-verification.use-case';
+import { readEmailDeliveryMode } from '../../config/environment';
+
+export function createEmailSender(config: ConfigService): EmailSender {
+  return readEmailDeliveryMode(config) === 'smtp'
+    ? new SmtpEmailSender(config)
+    : new ConsoleEmailSender();
+}
 
 @Module({
   imports: [ConfigModule, JwtModule.register({})],
@@ -58,9 +65,7 @@ import { ResendVerificationUseCase } from './application/resend-verification.use
     CryptoPasswordResetTokenService,
     CryptoPasswordResetOtpService,
     CryptoEmailVerificationTokenService,
-    ConsoleEmailSender,
-    SmtpEmailSender,
-    { provide: EMAIL_SENDER, inject: [ConfigService, ConsoleEmailSender, SmtpEmailSender], useFactory: (config: ConfigService, consoleSender: ConsoleEmailSender, smtpSender: SmtpEmailSender) => { const mode = config.get<string>('EMAIL_DELIVERY_MODE', 'console'); if (config.get<string>('NODE_ENV') === 'production' && mode !== 'smtp') throw new Error('EMAIL_DELIVERY_MODE=smtp es obligatorio en producción.'); return mode === 'smtp' ? smtpSender : consoleSender; } },
+    { provide: EMAIL_SENDER, inject: [ConfigService], useFactory: createEmailSender },
     { provide: PASSWORD_RESET_TOKEN_REPOSITORY, useExisting: PrismaPasswordResetTokenRepository },
     { provide: PASSWORD_RESET_CHALLENGE_REPOSITORY, useExisting: PrismaPasswordResetTokenRepository },
     JwtAccessTokenIssuer,

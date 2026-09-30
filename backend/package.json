@@ -14,7 +14,7 @@
     "test:unit": "jest --selectProjects unit",
     "test:integration": "jest --selectProjects integration --runInBand",
     "test:e2e": "jest --selectProjects e2e",
-    "test:acceptance": "cucumber-js --config test/acceptance/cucumber.json",
+    "test:acceptance": "node scripts/run-acceptance.cjs",
     "test:coverage": "jest --selectProjects unit integration e2e --coverage --runInBand",
     "test:mutation": "stryker run",
     "create:admin-user": "ts-node src/modules/identity/presentation/create-user.cli.ts",

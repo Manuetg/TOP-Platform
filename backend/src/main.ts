@@ -1,10 +1,8 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { configureApplication } from './config/configure-application';
+import { Logger } from '@nestjs/common';
+import { bootstrap } from './config/bootstrap';
+import { EnvironmentConfigurationError } from './config/environment';
 
-async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
-  configureApplication(app);
-  await app.listen(process.env.PORT ?? 3000);
-}
-void bootstrap();
+void bootstrap().catch((error: unknown) => {
+  new Logger('Bootstrap').error(error instanceof EnvironmentConfigurationError ? error.message : 'No se pudo iniciar la aplicación.');
+  process.exitCode = 1;
+});

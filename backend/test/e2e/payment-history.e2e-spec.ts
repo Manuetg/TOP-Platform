@@ -1,5 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { JwtAccessTokenIssuer } from '../../src/modules/identity/infrastructure/jwt-access-token-issuer';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
@@ -85,8 +87,8 @@ describe('Payment History API', () => {
   const jwt = new JwtService();
 
   beforeAll(async () => {
-    process.env.JWT_ACCESS_SECRET = secret;
     const module = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(JwtAccessTokenIssuer).useFactory({ factory: () => new JwtAccessTokenIssuer(new JwtService(), new ConfigService({ JWT_ACCESS_SECRET: secret })) })
       .overrideProvider(BUSINESS_REPOSITORY)
       .useValue({ findById: (id: string) => Promise.resolve(id === businessId ? currentBusiness : null) })
       .overrideProvider(BOOKING_REPOSITORY)

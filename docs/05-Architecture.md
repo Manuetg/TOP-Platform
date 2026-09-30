@@ -120,6 +120,18 @@ API HTTP versionada, orientada a recursos y casos de uso. Autentica usuarios, re
 
 Autenticación, autorización por rol, aislamiento por Negocio, validación en backend, mínimos privilegios y protección de secretos. No se almacenan credenciales bancarias ni datos sensibles de tarjetas.
 
+### POST-B — primer corte de arranque seguro (2026-09-30)
+
+Configuración central en `backend/src/config/environment.ts`, integrada con ConfigModule antes de crear el servidor HTTP. Se aceptan development/test/production; sin NODE_ENV de runtime se usa development y solo allí se carga `.env`. ConfigModule ignora archivos env en test/producción. El bootstrap HTTP por defecto (`main.ts`) captura/valida runtime antes de importar Prisma; en producción inspecciona los metadatos del cliente generado sin importarlo y rechaza rutas de autoload env o formato desconocido. Esa protección corresponde al bootstrap HTTP, no a CLI ni imports directos de AppModule. La imagen genera ese cliente en contexto limpio; no se parchea SDK ni schema. Los errores indican variable/requisito sin valores; el proceso termina con error antes de listen. ConfigService conserva el snapshot validado (`skipProcessEnv`) y los clientes Prisma reciben explícitamente DATABASE_URL, preservando sus parámetros. La comprobación del artefacto debe revisarse al actualizar Prisma.
+
+Los cuatro TTL de autenticación conservan sus defaults y exigen conversión exacta a milisegundos y expiración dentro del rango Date y DateTime de Prisma vigente (año hasta 9999) al sumar el instante de validación. El máximo técnico se calcula una vez por validación con el reloj actual; no introduce un techo comercial ni cambia algoritmos/contratos. Fórmula y alcance temporal de la comprobación en README backend.
+
+Producción exige JWT y OTP independientes de al menos 32 bytes, URL pública y CORS HTTPS explícitos, SMTP y almacenamiento S3 completo. SMTP usa TLS directo en puerto 465 y STARTTLS obligatorio en los demás, con certificados validados; se construye únicamente el adaptador seleccionado. No hay pruebas remotas obligatorias de SMTP/storage al arrancar. S3 conserva SDK, upload/delete/paths, URLs firmadas y fallback opcional del endpoint público; memoria solo en desarrollo/test sin bucket. Defaults y matriz completa en [README backend](../backend/README.md).
+
+CORS compara orígenes completos, sin comodines ni fallback abierto. Orígenes ajenos no reciben permiso ni producen 500; preflight conserva autenticación e idempotencia. Guards y aislamiento por Business siguen siendo la autoridad, también sin Origin. Swagger UI/JSON/YAML no se generan ni registran en producción. La auditoría de controladores registrados no encontró rutas HTTP exclusivas debug/test/seed; seed y aprovisionamiento siguen siendo CLI controladas.
+
+Imagen con NODE_ENV=production después de instalación/build; Compose declara development y conserva volúmenes. Ignore Git/Docker excluye env y credenciales; `.env` local se preserva fuera del índice. Este corte cubre B3/B4/B6 y configuración/empaquetado de B2: no modifica dominio, contratos, esquema ni proveedor cloud y no acredita todo B ni Production Ready.
+
 ## 19. Testing
 
 Priorizar pruebas de dominio y aplicación para reglas de negocio, integración para persistencia/transacciones y pruebas de API para contratos críticos. Casos de doble reserva, auditoría y aislamiento son obligatorios.
