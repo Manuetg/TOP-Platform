@@ -119,6 +119,19 @@ Las reglas de autorización y el detalle operativo de cada capacidad están **Pe
 
 El registro público de cuenta se realiza exclusivamente mediante `POST /api/auth/signup` y crea atómicamente User, LocalCredential, Business, membresía `OWNER`, suscripción `TOP_INITIAL` y un `EmailVerificationToken`. El registro no inicia sesión ni devuelve tokens. `User.displayName` es opcional para usuarios legacy pero obligatorio en Signup; `emailVerifiedAt` se backfillea para usuarios existentes durante la migración y queda nulo en nuevas cuentas hasta verificar el correo. La verificación usa token opaco de alta entropía, hash-only, TTL de 24 horas y single-use mediante `POST /api/auth/verify-email`. Google queda fuera de Phase 2 y Terms/Privacy son deuda pre-lanzamiento.
 
+### Perfil personal — contrato aditivo autorizado (2026-10-01)
+
+El encargo de configuración y perfil autoriza consultar la identidad propia y editar exclusivamente `User.displayName` mediante un contrato separado de IAM-005. Estado de implementación: **In Progress**, con contrato de nombre cerrado e implementación integrada en el snapshot local ee038ce, con gates locales registrados en Estado actual; esta nota no declara la capacidad Completed ni aprobación de PR.
+
+- `GET /api/users/:id/profile` y `PATCH /api/users/:id/profile` tienen scope `SELF`: exigen autenticación, User `ACTIVE` y coincidencia del actor autenticado con el UUID del path. No dependen del Business activo ni conceden autoridad sobre terceros mediante roles tenant-scoped.
+- PATCH recibe `displayName`, `reason` y `expectedUpdatedAt`. El nombre es string, con `trim` y longitud final de 1 a 120 caracteres; el motivo lo ingresa el usuario, se recorta y no puede quedar vacío. La versión es el `updatedAt` exacto leído, en ISO UTC con milisegundos. Un nombre vacío, ausente o nulo se rechaza. GET representa como `null` el nombre ausente de usuarios legacy; no completa sus nombres automáticamente.
+- Ambas respuestas exponen solo `id`, `email`, `displayName`, `status` y `updatedAt`, con `Cache-Control: no-store`. No exponen credenciales, hashes, tokens, sesiones, membresías, auditoría ni datos internos de verificación.
+- La implementación integrada usa una transacción con bloqueo `User FOR UPDATE`: obtiene la fila actual, comprueba `SELF`, `ACTIVE` y versión exacta, y conserva el valor anterior real. Una versión obsoleta produce `409`, también cuando el nombre solicitado coincide. Un cambio efectivo modifica únicamente `displayName` y avanza `updatedAt`, conservando correo, `emailVerifiedAt`, estado, contraseña, credenciales, membresías, roles y sesiones.
+- `UserDisplayNameAudit` conserva sujeto, actor autenticado, fecha/hora, nombre anterior nullable, nombre nuevo y motivo real, conforme a BR-056. Nombre, versión y auditoría se confirman o revierten juntos. Si el nombre normalizado ya coincide y la versión es vigente, no hay escritura ni auditoría, la versión se conserva y no se rotan tokens.
+- La migración aditiva crea `UserDisplayNameAudit`, con relaciones al sujeto y actor mediante FK `RESTRICT`; no reescribe nombres ni crea auditorías retrospectivas de usuarios legacy.
+
+La protección ante deshabilitación concurrente, el rollback y BR-063 se verifican sobre el commit integrado mediante los gates correspondientes; resultados y límites en Estado actual. IAM-005 y sus reglas de correo/sesiones se conservan; la UI de perfil presenta el correo solo para lectura. El flujo seguro de cambio de correo y el tratamiento de tokens de verificación vinculados a User, sin email de destino congelado, permanecen pendientes según [Business Rules](04-Business-Rules.md).
+
 ### 1. Propósito
 
 Administrar la identidad global de los usuarios, sus credenciales locales y sus membresías con Negocios para habilitar autenticación y autorización en TOP.

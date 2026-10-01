@@ -1,5 +1,9 @@
 # TOP — Roadmap
 
+Actualización operativa del 01/10/2026: `develop@835b2a4` incluye PR #98 y #100. El primer corte de seguridad B está integrado; B restante y el quality gate preproducción permanecen abiertos. Las referencias fechadas inferiores conservan el seguimiento histórico. Los refinamientos de estados, configuración, perfil, Resources y almacenamiento web se validan solo en la rama local de integración, según [Estado actual](00-Current-Status.md), sin publicación o merge autorizado.
+
+Decisiones pendientes derivadas de este encargo: el cambio seguro de correo requiere definir revalidación de la dirección, asociación/invalidez de tokens de verificación previos y reautenticación, conservando o revisando expresamente la regla aprobada de sesiones de IAM-005; no se implementa ese flujo. Antes de publicar documentación jurídica completa deben confirmarse operador/responsable, contacto, jurisdicción, proveedores, retención y condiciones del servicio. El inventario técnico de cookies/storage no acredita cumplimiento legal.
+
 ## Propósito
 
 Este documento registra la secuencia de evolución del MVP y las iniciativas futuras aprobadas. El backlog operativo y el estado de las capacidades se mantienen en [07-Backlog.md](07-Backlog.md).

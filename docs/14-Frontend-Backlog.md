@@ -1,6 +1,22 @@
 # TOP — Frontend Backlog
 
-Última actualización: 2026-09-28
+Última actualización: 2026-10-01
+
+## Refinamientos locales de configuración, estados, Resources y web (2026-10-01)
+
+Base vigente verificada: `develop@835b2a4`, con PR #97, #98 y #100 integradas. Los apartados siguientes conservan sus fechas y evidencias históricas; sus referencias a revisiones o merges pendientes no describen el remoto vigente. El precio manual libre ya está integrado. Se preservan los conteos históricos del MVP y la definición comercial pendiente de FE-SUB-001.
+
+Trabajo autorizado **In Progress**, exclusivamente local en `codex/night-integration-20261001`, integrado localmente con gates y QA del conjunto completos. Permanece pendiente la revisión humana; no hay push, aprobación de reviews de PR, merge ni despliegue autorizado.
+
+| Frente | Criterio de aceptación |
+|---|---|
+| Etiquetas de Booking | Los siete códigos, filtros HTTP, transiciones e historial se conservan; listas, detalles, pagos, búsqueda, Dashboard y calendarios usan el mismo catálogo visible. |
+| Configuración y cuenta | Design system vigente; nombre personal editable por SELF ACTIVE con motivo real, versión exacta y auditoría atómica; correo de lectura; permisos de Business y respuestas de sesiones anteriores protegidos; cuenta y borrador personal accesibles sin Business activo y al cambiar de establecimiento. |
+| Detalle de Resources | Refinamiento sobre PR #100; permisos contractuales, fotos con carga/error/vacío separados, nombres largos, teclado y móviles; agenda diferenciada de Availability autoritativa. |
+| Cookies y almacenamiento | Ruta pública y enlaces reales; inventario de storage basado en implementación, expiración/eliminación precisas y pendientes legales explícitos, sin afirmar cumplimiento ni inventar proveedores o consentimiento. |
+| Validación del conjunto | Build, lint y suite completa sobre código integrado; navegador móvil/tablet/desktop; distinguir API real de fixtures/mocks y registrar PASS, FAIL, NOT RUN o BLOCKED. |
+
+El contrato de nombre y sus límites están en [Domain Bible](03-Domain-Bible.md), [Business Rules](04-Business-Rules.md) y [Architecture](05-Architecture.md). Resultados y dudas en [Estado actual](00-Current-Status.md); el cambio seguro de correo y los requisitos jurídicos permanecen pendientes.
 
 ## POST-MVP / PRODUCTION READINESS (2026-09-24)
 
