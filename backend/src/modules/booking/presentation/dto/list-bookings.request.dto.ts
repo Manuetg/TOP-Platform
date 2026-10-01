@@ -1,2 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-export class ListBookingsRequestDto { @ApiPropertyOptional() status?: string; @ApiPropertyOptional() contactId?: string; @ApiPropertyOptional() resourceId?: string; }
+import { IsOptional } from 'class-validator';
+
+export class ListBookingsRequestDto {
+  @IsOptional() @ApiPropertyOptional() status?: string;
+  @IsOptional() @ApiPropertyOptional() contactId?: string;
+  @IsOptional() @ApiPropertyOptional() resourceId?: string;
+}
