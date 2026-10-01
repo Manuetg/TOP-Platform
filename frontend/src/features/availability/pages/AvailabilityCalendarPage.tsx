@@ -36,23 +36,14 @@ import { confirmBooking } from "../../bookings/api/confirm-booking";
 import { useSelectableRatePlans } from "../../pricing/queries/use-selectable-rate-plans";
 import { useCalculatePrice } from "../../pricing/queries/use-calculate-price";
 import type { CalculatePriceResult } from "../../pricing/types/pricing.types";
-import type { Booking, BookingStatus } from "../../bookings/types/booking.types";
+import type { Booking } from "../../bookings/types/booking.types";
+import { bookingStatusLabels as bookingLabels } from "../../bookings/booking-status";
 import type { Block } from "../../blocks/types/block.types";
 import { useAvailabilityCalendar } from "../queries/use-availability-calendar";
 import "./AvailabilityCalendarPage.css";
 
 
 const DAY_MS = 86_400_000;
-
-const bookingLabels: Record<BookingStatus, string> = {
-  DRAFT: "Borrador",
-  PENDING: "Pendiente",
-  CONFIRMED: "Confirmada",
-  IN_PROGRESS: "En estadía",
-  COMPLETED: "Finalizada",
-  CANCELLED: "Cancelada",
-  NO_SHOW: "No presentada",
-};
 
 /** Soporte UTC para aritmética y etiquetas de fecha pura; nunca un instante del Business. */
 function calendarDateFromCarrier(date: Date) {
@@ -736,7 +727,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
               })}
             </div>
           </div>
-          <footer className="availability-calendar-legend"><span><i className="is-confirmed" />Confirmada</span><span><i className="is-pending" />Pendiente</span><span><i className="is-stay" />En estadía</span><span><i className="is-block" />Bloqueo</span><small>Seleccioná un día libre para iniciar una reserva.</small></footer>
+          <footer className="availability-calendar-legend"><span><i className="is-confirmed" />{bookingLabels.CONFIRMED}</span><span><i className="is-pending" />{bookingLabels.PENDING}</span><span><i className="is-stay" />{bookingLabels.IN_PROGRESS}</span><span><i className="is-block" />Bloqueo</span><small>Seleccioná un día libre para iniciar una reserva.</small></footer>
         </div>
         </div>
         </>

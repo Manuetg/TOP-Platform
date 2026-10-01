@@ -3,12 +3,11 @@ import { Search } from "lucide-react";
 import { useGlobalSearch } from "../queries/use-global-search";
 import { entityPaths, groupNames, moduleOptions, type ModuleTarget } from "../navigation";
 import type { SearchType } from "../types";
+import { getBookingStatusLabel, isBookingStatus } from "../../bookings/booking-status";
 import "./GlobalSearch.css";
 
 const statusLabels: Record<string, string> = {
   ACTIVE: "Activo", INACTIVE: "Inactivo", ARCHIVED: "Archivado", OUT_OF_SERVICE: "Fuera de servicio",
-  DRAFT: "Borrador", PENDING: "Pendiente", CONFIRMED: "Confirmada", IN_PROGRESS: "En curso",
-  COMPLETED: "Completada", CANCELLED: "Cancelada", NO_SHOW: "No show",
 };
 
 type Option = { key: string; label: string; subtitle?: string | null; status?: string; group: string; activate: () => void };
@@ -121,7 +120,7 @@ export function GlobalSearch({ onModuleNavigate, onEntityNavigate, onOpen, onCha
               {entries.map((option) => <div role="option" id={optionId(option.key)} aria-selected={active?.key === option.key} key={option.key}
                 className="top-global-search__option" onMouseDown={(event) => event.preventDefault()}
                 onClick={option.activate}>
-                <span>{option.label}</span>{option.subtitle && <small>{option.subtitle}</small>}{option.status && <small>{statusLabels[option.status] ?? option.status}</small>}
+                <span>{option.label}</span>{option.subtitle && <small>{option.subtitle}</small>}{option.status && <small>{isBookingStatus(option.status) ? getBookingStatusLabel(option.status) : statusLabels[option.status] ?? option.status}</small>}
               </div>)}
             </div>;
           })}

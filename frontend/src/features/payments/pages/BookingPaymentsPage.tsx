@@ -13,12 +13,14 @@ import {
   ReceiptText,
   X,
 } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
+import { OverlayPanel } from "../../../shared/ui/OverlayPanel";
 import { useAuth } from "../../auth/context/AuthContext";
 import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useBooking } from "../../bookings/queries/use-booking";
+import { getBookingStatusLabel } from "../../bookings/booking-status";
 import { useContacts } from "../../contacts/queries/use-contacts";
 import {
   useBookingFinances,
@@ -40,16 +42,6 @@ const installmentLabels = {
   PARTIALLY_PAID: "Pago parcial",
   PAID: "Pagada",
   OVERDUE: "Vencida",
-} as const;
-
-const bookingStatusLabels = {
-  DRAFT: "Borrador",
-  PENDING: "Pendiente",
-  CONFIRMED: "Confirmada",
-  IN_PROGRESS: "En estadía",
-  COMPLETED: "Finalizada",
-  CANCELLED: "Cancelada",
-  NO_SHOW: "No se presentó",
 } as const;
 
 
@@ -134,8 +126,11 @@ interface DraftInstallment {
 export function BookingPaymentsPage() {
   const navigate = useNavigate();
   const { bookingId = "" } = useParams();
-  const { session } = useAuth();
-  const { activeBusinessId, activeBusiness } = useBusinessContext();
+  const { session, status: authStatus } = useAuth();
+  const { activeBusinessId, activeBusiness, activeRole, status: businessStatus } = useBusinessContext();
+  const canRecordPayments = authStatus === "authenticated" && businessStatus === "ready" && activeBusinessId.length > 0 && ["OWNER", "ADMIN", "RECEPTIONIST"].includes(activeRole ?? "");
+  const modalTrigger = useRef<HTMLElement | null>(null);
+  const financialInFlight = useRef(false);
 
   const booking = useBooking({
     businessId: activeBusinessId,
@@ -230,6 +225,7 @@ export function BookingPaymentsPage() {
   );
 
   const canManagePlan =
+    canRecordPayments &&
     Boolean(booking.data) &&
     ["CONFIRMED", "IN_PROGRESS"].includes(booking.data!.status) &&
     !planLocked;
@@ -347,6 +343,8 @@ export function BookingPaymentsPage() {
   }
 
   function openPayment(amountOverride?: number) {
+    if (!canRecordPayments || financialInFlight.current || register.isPending || savePlan.isPending) return;
+    modalTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setFormError(null);
     setShowPaymentDetails(false);
 
@@ -370,7 +368,8 @@ export function BookingPaymentsPage() {
   }
 
   function openPlan() {
-    if (!canManagePlan) return;
+    if (!canManagePlan || financialInFlight.current || register.isPending || savePlan.isPending) return;
+    modalTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     setFormError(null);
 
@@ -457,7 +456,8 @@ export function BookingPaymentsPage() {
   }
 
   function openReschedule(index: number) {
-    if (!plan.data || !canManagePlan) return;
+    if (!plan.data || !canManagePlan || financialInFlight.current || register.isPending || savePlan.isPending) return;
+    modalTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     setFormError(null);
     setRescheduleIndex(index);
@@ -468,6 +468,7 @@ export function BookingPaymentsPage() {
   }
 
   async function submitReschedule() {
+    if (!canManagePlan || financialInFlight.current || savePlan.isPending || register.isPending) return;
     if (
       !plan.data ||
       rescheduleIndex === null ||
@@ -488,6 +489,7 @@ export function BookingPaymentsPage() {
     );
 
     setFormError(null);
+    financialInFlight.current = true;
 
     try {
       await savePlan.mutateAsync({
@@ -503,10 +505,13 @@ export function BookingPaymentsPage() {
           ? error.message
           : "No pudimos cambiar el vencimiento.",
       );
+    } finally {
+      financialInFlight.current = false;
     }
   }
 
   async function submitPayment() {
+    if (!canRecordPayments || financialInFlight.current || register.isPending || savePlan.isPending) return;
     const amountMinor = Number(payment.amount);
 
     if (
@@ -549,6 +554,7 @@ export function BookingPaymentsPage() {
     }
 
     setFormError(null);
+    financialInFlight.current = true;
 
     try {
       await register.mutateAsync({
@@ -567,10 +573,13 @@ export function BookingPaymentsPage() {
           ? error.message
           : "No pudimos registrar el pago.",
       );
+    } finally {
+      financialInFlight.current = false;
     }
   }
 
   async function submitPlan() {
+    if (!canManagePlan || financialInFlight.current || savePlan.isPending || register.isPending) return;
     const parsed = installments.map((item) => ({
       amountMinor: Number(item.amount),
       dueDate: item.dueDate || null,
@@ -605,6 +614,7 @@ export function BookingPaymentsPage() {
     }
 
     setFormError(null);
+    financialInFlight.current = true;
 
     try {
       await savePlan.mutateAsync({
@@ -619,6 +629,8 @@ export function BookingPaymentsPage() {
           ? error.message
           : "No pudimos guardar el plan.",
       );
+    } finally {
+      financialInFlight.current = false;
     }
   }
 
@@ -668,11 +680,7 @@ export function BookingPaymentsPage() {
 
   const currency = balance.data.currency;
 
-  const bookingStatus =
-    bookingStatusLabels[
-      booking.data
-        .status as keyof typeof bookingStatusLabels
-    ] ?? booking.data.status;
+  const bookingStatus = getBookingStatusLabel(booking.data.status);
 
   const accountStatus =
     outstandingAmountMinor === 0
@@ -765,14 +773,14 @@ export function BookingPaymentsPage() {
             )}
           </div>
 
-          <Button
+          {canRecordPayments && <Button
             type="button"
-            disabled={outstandingAmountMinor === 0}
+            disabled={outstandingAmountMinor === 0 || register.isPending || savePlan.isPending}
             onClick={() => openPayment()}
           >
             <Plus size={16} />
             Registrar pago
-          </Button>
+          </Button>}
         </div>
 
         <div className="payments-invoice__progress">
@@ -963,10 +971,11 @@ export function BookingPaymentsPage() {
                     </div>
 
                     <div className="payments-schedule-actions">
-                      {item.outstandingAmountMinor > 0 && (
+                      {canRecordPayments && item.outstandingAmountMinor > 0 && (
                         <button
                           type="button"
                           className="payments-schedule-pay"
+                          disabled={register.isPending || savePlan.isPending}
                           onClick={() =>
                             openPayment(item.outstandingAmountMinor)
                           }
@@ -1092,9 +1101,10 @@ export function BookingPaymentsPage() {
         )}
       </section>
 
-      {showPayment && (
+      {showPayment && canRecordPayments && (
         <FinancialModal
           title="Registrar pago"
+          triggerRef={modalTrigger}
           onClose={() => setShowPayment(false)}
         >
           <div className="payments-payment-form">
@@ -1285,10 +1295,12 @@ export function BookingPaymentsPage() {
       )}
 
       {showReschedule &&
+        canManagePlan &&
         rescheduleIndex !== null &&
         plan.data && (
           <FinancialModal
             title="Reprogramar vencimiento"
+            triggerRef={modalTrigger}
             onClose={() =>
               setShowReschedule(false)
             }
@@ -1378,8 +1390,9 @@ export function BookingPaymentsPage() {
           </FinancialModal>
         )}
 
-      {showPlan && (
+      {showPlan && canManagePlan && (
         <FinancialModal
+          triggerRef={modalTrigger}
           title={
             plan.data
               ? "Editar plan de cobro"
@@ -1735,53 +1748,44 @@ export function BookingPaymentsPage() {
 
 function FinancialModal({
   title,
+  triggerRef,
   onClose,
   children,
 }: {
   title: string;
+  triggerRef: RefObject<HTMLElement | null>;
   onClose: () => void;
   children: ReactNode;
 }) {
   return (
-    <div
-      className="payments-modal-layer"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
+    <OverlayPanel
+      open
+      portal
+      label={title}
+      className="payments-modal"
+      layerClassName="payments-modal-layer"
+      closeLabel={`Cerrar ${title}`}
+      triggerRef={triggerRef}
+      onClose={onClose}
     >
-      <section
-        className="payments-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            onClose();
-          }
-        }}
-      >
-        <header>
-          <div>
-            <span>Gestión financiera</span>
-            <h2>{title}</h2>
-          </div>
-
-          <button
-            type="button"
-            aria-label="Cerrar"
-            onClick={onClose}
-          >
-            <X size={18} />
-          </button>
-        </header>
-
-        <div className="payments-modal__body">
-          {children}
+      <header>
+        <div>
+          <span>Gestión financiera</span>
+          <h2>{title}</h2>
         </div>
-      </section>
-    </div>
+
+        <button
+          type="button"
+          aria-label="Cerrar"
+          onClick={onClose}
+        >
+          <X size={18} />
+        </button>
+      </header>
+
+      <div className="payments-modal__body">
+        {children}
+      </div>
+    </OverlayPanel>
   );
 }

@@ -253,7 +253,7 @@ export function EditBookingPage({
           <h1>Editar borrador</h1>
 
           <p>
-            Modificá los datos antes de enviar
+            Modificá los datos antes de pasar a pendiente
             la reserva.
           </p>
         </div>

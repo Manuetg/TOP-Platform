@@ -50,6 +50,10 @@ describe("DashboardKpiStrip", () => {
     const reservations = screen.getByRole("article", { name: "Reservas confirmadas" });
     await waitFor(() => expect(within(reservations).getByText("16")).toBeVisible());
     expect(within(reservations).getByText("59% de 27 reservas")).toBeVisible();
+    for (const label of ["Borrador", "Pendiente", "Confirmada", "En curso", "Finalizada", "Cancelada", "No show"]) {
+      expect(within(reservations).getByTitle(label)).toBeInTheDocument();
+    }
+    expect(within(reservations).queryByTitle("COMPLETED")).not.toBeInTheDocument();
 
     const revenue = screen.getByRole("article", { name: "Ingresos" });
     await waitFor(() => expect(within(revenue).getByText("₲ 6.696.950")).toBeVisible());

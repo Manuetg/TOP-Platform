@@ -1,4 +1,5 @@
 import { formatMoney } from "../../../shared/utils/money";
+import { getBookingStatusLabel } from "../../bookings/booking-status";
 import {
   reservationStatuses,
   type DashboardResponse,
@@ -75,15 +76,6 @@ export function OccupancyOverview({
   );
 }
 
-const labels = {
-  DRAFT: "Borrador",
-  PENDING: "Pendiente",
-  CONFIRMED: "Confirmada",
-  IN_PROGRESS: "En curso",
-  COMPLETED: "Completada",
-  CANCELLED: "Cancelada",
-  NO_SHOW: "No show",
-};
 export function ReservationsBreakdown({
   reservations,
 }: {
@@ -107,7 +99,7 @@ export function ReservationsBreakdown({
             key={status}
             className={`dashboard-status dashboard-status--${status}`}
           >
-            <span className="dashboard-status__label">{labels[status]}</span>
+            <span className="dashboard-status__label">{getBookingStatusLabel(status)}</span>
             <div className="dashboard-status__track" aria-hidden="true">
               <span
                 style={{

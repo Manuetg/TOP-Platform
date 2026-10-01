@@ -24,7 +24,7 @@ const EVENT_LABELS: Record<
   string
 > = {
   BOOKING_CREATED: "Reserva creada",
-  BOOKING_SUBMITTED: "Reserva enviada",
+  BOOKING_SUBMITTED: "Reserva pasó a pendiente",
   BOOKING_CONFIRMED: "Reserva confirmada",
   BOOKING_CANCELLED: "Reserva cancelada",
 };

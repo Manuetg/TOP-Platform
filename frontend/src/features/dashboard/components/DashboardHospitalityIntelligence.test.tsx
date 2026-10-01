@@ -78,6 +78,11 @@ describe("DashboardHospitalityIntelligence", () => {
     expect(screen.queryByText("Ocupación según tipo de día")).not.toBeInTheDocument();
     expect(within(occupancy as HTMLElement).getByText("0%")).toBeVisible();
     const health = screen.getByRole("region", { name: "Reservas por estado" });
+    for (const label of ["Borrador", "Pendiente", "Confirmada", "En curso", "Finalizada", "Cancelada", "No show"]) {
+      expect(within(health).getByText(label)).toBeVisible();
+    }
+    expect(within(health).getAllByRole("listitem")).toHaveLength(7);
+    expect(within(health).queryByText("Completada")).not.toBeInTheDocument();
     expect(within(health).getByText("91%")).toBeVisible();
     expect(within(health).getByText("9%")).toBeVisible();
     expect(within(health).getByText("11")).toBeVisible();

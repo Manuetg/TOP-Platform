@@ -51,6 +51,23 @@ it("muestra orientación sin HTTP y módulos inmediatos antes del debounce", asy
   expect(fetchMock.mock.calls[0][0]).toContain("/businesses/business-1/search?q=Re");
   expect(fetchMock.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
 });
+it.each([
+  ["DRAFT", "Borrador"], ["PENDING", "Pendiente"], ["CONFIRMED", "Confirmada"],
+  ["IN_PROGRESS", "En curso"], ["COMPLETED", "Finalizada"], ["CANCELLED", "Cancelada"], ["NO_SHOW", "No show"],
+])("traduce la reserva %s y conserva los estados de contactos y recursos", async (status, label) => {
+  const value: SearchResponse = { groups: [
+    { type: "booking", hasMore: false, items: [{ type: "booking", id: "booking-1", title: "Reserva", subtitle: null, status }] },
+    { type: "resource", hasMore: false, items: [{ type: "resource", id: "resource-1", title: "Cabaña", subtitle: null, status: "OUT_OF_SERVICE" }] },
+    { type: "contact", hasMore: false, items: [{ type: "contact", id: "contact-1", title: "Contacto", subtitle: null, status: "INACTIVE" }] },
+  ] };
+  fetchMock.mockImplementation(() => Promise.resolve(response(value)));
+  const { input } = mount(); type(input, "consulta"); await advance();
+  expect(screen.getByText(label)).toBeVisible();
+  expect(screen.getByText("Fuera de servicio")).toBeVisible();
+  expect(screen.getByText("Inactivo")).toBeVisible();
+  fireEvent.click(screen.getByRole("option", { name: new RegExp(`Reserva.*${label}`) }));
+  expect(navigate).toHaveBeenCalledWith("/app/bookings/booking-1");
+});
 it.each(["a", "a".repeat(121), "   "])("no consulta fuera del umbral: %s", async (query) => {
   const { input } = mount(); type(input, query); await advance(); expect(fetchMock).not.toHaveBeenCalled();
 });

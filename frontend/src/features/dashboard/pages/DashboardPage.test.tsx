@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DashboardPage } from "./DashboardPage";
 import { useDashboard } from "../queries/use-dashboard";
 import { useAuth } from "../../auth/context/AuthContext";
@@ -67,6 +67,8 @@ function result(overrides = {}) {
   } as never);
 }
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-16T15:00:00.000Z"));
   vi.clearAllMocks();
   auth.mockReturnValue({ session: { accessToken: "access-token" } } as never);
   vi.mocked(useResources).mockReturnValue({
@@ -110,6 +112,9 @@ beforeEach(() => {
   } as never);
   result();
 });
+afterEach(() => {
+  vi.useRealTimers();
+});
 describe("DashboardPage", () => {
   it("presents real KPI values, seven statuses and navigation", () => {
     show();
@@ -126,7 +131,7 @@ describe("DashboardPage", () => {
       "Pendiente",
       "Confirmada",
       "En curso",
-      "Completada",
+      "Finalizada",
       "Cancelada",
       "No show",
     ])
