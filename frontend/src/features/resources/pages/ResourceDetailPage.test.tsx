@@ -5,6 +5,8 @@ import {
 } from "@tanstack/react-query";
 import {
   render,
+  act,
+  fireEvent,
   screen,
   waitFor,
 } from "@testing-library/react";
@@ -21,7 +23,6 @@ import {
   it,
   vi,
 } from "vitest";
-import { AuthProvider } from "../../auth/context/AuthContext";
 import { deleteResourceImage } from "../api/delete-resource-image";
 import { disableResource } from "../api/disable-resource";
 import { reactivateResource } from "../api/reactivate-resource";
@@ -33,6 +34,32 @@ import type {
   ResourceImage,
 } from "../types/resource.types";
 import { ResourceDetailPage } from "./ResourceDetailPage";
+
+const { businessContext } = vi.hoisted(() => ({
+  businessContext: {
+    activeBusinessId: "business-1",
+    activeBusiness: null,
+    activeRole: "OWNER" as string | null,
+  },
+}));
+vi.mock("../../business/context/BusinessContext", () => ({
+  useBusinessContext: () => businessContext,
+}));
+vi.mock("../../auth/context/AuthContext", () => ({
+  useAuth: () => ({
+    status: "authenticated",
+    session: {
+      accessToken: "resource-detail-test-access",
+      user: { id: "user-1", email: "owner@example.test", status: "ACTIVE" },
+    },
+  }),
+}));
+vi.mock("../../bookings/queries/use-bookings", () => ({
+  useBookings: () => ({ data: [], isLoading: false, isError: false, refetch: vi.fn() }),
+}));
+vi.mock("../../blocks/queries/use-blocks", () => ({
+  useBlocks: () => ({ data: [], isLoading: false, isError: false, refetch: vi.fn() }),
+}));
 
 vi.mock("../queries/use-resource", () => ({
   useResource: vi.fn(),
@@ -108,7 +135,6 @@ function renderPage() {
 
   const result = render(
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
         <MemoryRouter
           initialEntries={["/app/resources/resource-1"]}
         >
@@ -119,7 +145,6 @@ function renderPage() {
             />
           </Routes>
         </MemoryRouter>
-      </AuthProvider>
     </QueryClientProvider>,
   );
 
@@ -131,6 +156,8 @@ function renderPage() {
 
 describe("ResourceDetailPage", () => {
   beforeEach(() => {
+    businessContext.activeRole = "OWNER";
+    businessContext.activeBusinessId = "business-1";
     vi.restoreAllMocks();
     mockedUseResource.mockReset();
     mockedUseResourceImages.mockReset();
@@ -198,7 +225,7 @@ describe("ResourceDetailPage", () => {
     const actions = screen.getByRole("article", { name: "Acciones" });
     expect(
       within(actions).getByRole("link", {
-        name: "Hacer una reserva",
+        name: "Crear reserva",
       }),
     ).toBeInTheDocument();
     expect(
@@ -208,12 +235,12 @@ describe("ResourceDetailPage", () => {
     ).toBeInTheDocument();
     expect(
       within(actions).getByRole("link", {
-        name: "Agregar bloqueo",
+        name: "Crear bloqueo",
       }),
     ).toBeInTheDocument();
     expect(
       within(actions).getByRole("link", {
-        name: "Agregar pago",
+        name: "Ver pagos por reserva",
       }),
     ).toBeInTheDocument();
 
@@ -278,7 +305,7 @@ describe("ResourceDetailPage", () => {
       expect(mockedDisableResource).toHaveBeenCalledWith({
         businessId: expect.any(String),
         resourceId: "resource-1",
-        accessToken: undefined,
+        accessToken: "resource-detail-test-access",
       });
     });
 
@@ -352,7 +379,7 @@ describe("ResourceDetailPage", () => {
       expect(mockedReactivateResource).toHaveBeenCalledWith({
         businessId: expect.any(String),
         resourceId: "resource-1",
-        accessToken: undefined,
+        accessToken: "resource-detail-test-access",
       });
     });
 
@@ -534,7 +561,8 @@ describe("ResourceDetailPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("keeps the fallback when image loading fails", () => {
+  it("distinguishes an album request error from an empty album and offers retry", async () => {
+    const retryImages = vi.fn();
     mockResource(activeResource);
 
     mockedUseResourceImages.mockReturnValue({
@@ -542,16 +570,16 @@ describe("ResourceDetailPage", () => {
       isLoading: false,
       isError: true,
       error: new Error("No pudimos cargar las imágenes."),
-      refetch: vi.fn(),
+      refetch: retryImages,
     } as never);
 
     renderPage();
 
-    expect(
-      screen.getByRole("img", {
-        name: `Imagen de ${activeResource.name} no configurada`,
-      }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("No pudimos cargar las fotos.");
+    expect(screen.queryByText("Imagen del recurso no configurada")).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Reintentar fotos" }));
+    expect(retryImages).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Agregar imagen" })).toBeDisabled();
   });
 
   it("shows a neutral loading state while images are loading", () => {
@@ -620,7 +648,7 @@ describe("ResourceDetailPage", () => {
         businessId: expect.any(String),
         resourceId: activeResource.id,
         file,
-        accessToken: undefined,
+        accessToken: "resource-detail-test-access",
       });
     });
 
@@ -828,7 +856,7 @@ describe("ResourceDetailPage", () => {
         businessId: expect.any(String),
         resourceId: activeResource.id,
         imageId: "image-2",
-        accessToken: undefined,
+        accessToken: "resource-detail-test-access",
         signal: expect.any(AbortSignal),
       });
     });
@@ -901,7 +929,7 @@ describe("ResourceDetailPage", () => {
     expect(mockedDeleteResourceImage).not.toHaveBeenCalled();
   });
 
-  it("disables image management for an archived Resource", () => {
+  it("keeps archived resources readable without mutation controls", () => {
     mockResource({
       ...activeResource,
       status: "ARCHIVED",
@@ -941,22 +969,22 @@ describe("ResourceDetailPage", () => {
     renderPage();
 
     expect(
-      screen.getByRole("switch", {
+      screen.queryByRole("switch", {
         name: "Recurso archivado",
       }),
-    ).toBeDisabled();
+    ).not.toBeInTheDocument();
 
     expect(
-      screen.getByRole("button", {
+      screen.queryByRole("button", {
         name: "Eliminar imagen",
       }),
-    ).toBeDisabled();
+    ).not.toBeInTheDocument();
 
     expect(
-      screen.getByRole("button", {
+      screen.queryByRole("button", {
         name: "Agregar imagen",
       }),
-    ).toBeDisabled();
+    ).not.toBeInTheDocument();
   });
   it("does not offer operational transitions for an archived resource", () => {
     mockResource({
@@ -981,5 +1009,100 @@ describe("ResourceDetailPage", () => {
         name: "Reactivar recurso",
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it.each(["RECEPTIONIST", "VIEWER", null])("hides Resource mutations for role %s", (role) => {
+    businessContext.activeRole = role;
+    mockResource(activeResource);
+    renderPage();
+    expect(screen.getByRole("heading", { name: activeResource.name })).toBeInTheDocument();
+    expect(screen.getByText("Activo")).toBeInTheDocument();
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Editar recurso" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Gestionar amenidades" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Agregar imagen" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Consultar disponibilidad" })).toHaveAttribute("href", "/app/availability");
+    expect(screen.getByRole("link", { name: "Ver pagos por reserva" })).toHaveAttribute("href", "/app/payments");
+    if (role === "RECEPTIONIST") {
+      expect(screen.getByRole("link", { name: "Crear reserva" })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Crear bloqueo" })).toBeInTheDocument();
+    } else {
+      expect(screen.queryByRole("link", { name: "Crear reserva" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Crear bloqueo" })).not.toBeInTheDocument();
+    }
+    expect(mockedDisableResource).not.toHaveBeenCalled();
+    expect(mockedUploadResourceImage).not.toHaveBeenCalled();
+  });
+
+  it("separates a broken image from an empty album and offers retry", async () => {
+    mockResource(activeResource);
+    const retryImages = vi.fn();
+    const image: ResourceImage = {
+      id: "image-1", resourceId: activeResource.id, url: "https://signed.test/broken.jpg",
+      mimeType: "image/jpeg", sizeBytes: 100, sortOrder: 0,
+      createdAt: activeResource.createdAt, updatedAt: activeResource.updatedAt,
+    };
+    mockedUseResourceImages.mockReturnValue({ data: [image], isLoading: false, isError: false, refetch: retryImages } as never);
+    renderPage();
+    fireEvent.error(screen.getByRole("img", { name: activeResource.name }));
+    expect(screen.getByText("Esta imagen no está disponible.")).toBeInTheDocument();
+    expect(screen.queryByText("Imagen del recurso no configurada")).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Reintentar imagen" }));
+    expect(retryImages).toHaveBeenCalledOnce();
+    expect(screen.getByRole("img", { name: activeResource.name })).toHaveAttribute("src", image.url);
+  });
+
+  it("keeps the modal keyboard focus contained and returns it on Escape", async () => {
+    mockResource(activeResource);
+    const user = userEvent.setup();
+    renderPage();
+    const trigger = screen.getByRole("button", { name: "Editar recurso" });
+    await user.click(trigger);
+    const dialog = screen.getByRole("dialog", { name: "Editar recurso" });
+    await user.tab();
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+    await user.click(trigger);
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancelar" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+  });
+
+  it("does not duplicate a status operation and ignores its late response after unmount", async () => {
+    mockResource(activeResource);
+    let complete!: (resource: Resource) => void;
+    mockedDisableResource.mockReturnValue(new Promise((resolve) => { complete = resolve; }));
+    const { unmount, queryClient } = renderPage();
+    const cacheWrite = vi.spyOn(queryClient, "setQueryData");
+    const toggle = screen.getByRole("switch", { name: "Poner fuera de servicio" });
+    fireEvent.click(toggle);
+    fireEvent.click(toggle);
+    expect(mockedDisableResource).toHaveBeenCalledOnce();
+    expect(toggle).toBeDisabled();
+    unmount();
+    await act(async () => { complete({ ...activeResource, status: "OUT_OF_SERVICE" }); });
+    expect(cacheWrite).not.toHaveBeenCalled();
+  });
+
+  it("does not duplicate image deletion before the confirmation rerenders", async () => {
+    mockResource(activeResource);
+    const image: ResourceImage = {
+      id: "image-1", resourceId: activeResource.id, url: "https://signed.test/image-1.jpg",
+      mimeType: "image/jpeg", sizeBytes: 100, sortOrder: 0,
+      createdAt: activeResource.createdAt, updatedAt: activeResource.updatedAt,
+    };
+    mockedUseResourceImages.mockReturnValue({ data: [image], isLoading: false, isError: false } as never);
+    let complete!: () => void;
+    mockedDeleteResourceImage.mockReturnValue(new Promise((resolve) => { complete = resolve; }));
+    renderPage();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Eliminar imagen" }));
+    const confirm = within(screen.getByRole("dialog")).getByRole("button", { name: "Eliminar imagen" });
+    act(() => { confirm.click(); confirm.click(); });
+    expect(mockedDeleteResourceImage).toHaveBeenCalledOnce();
+    expect(confirm).toBeDisabled();
+    await act(async () => { complete(); });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
