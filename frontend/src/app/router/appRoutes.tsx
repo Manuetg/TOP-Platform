@@ -5,6 +5,7 @@ const ForgotPasswordPage = lazy(() => import("../../features/auth/pages/ForgotPa
 const ResetPasswordPage = lazy(() => import("../../features/auth/pages/ResetPasswordPage").then((module) => ({ default: module.ResetPasswordPage })));
 const SignupPage = lazy(() => import("../../features/auth/pages/SignupPage").then((module) => ({ default: module.SignupPage })));
 const VerifyEmailPage = lazy(() => import("../../features/auth/pages/VerifyEmailPage").then((module) => ({ default: module.VerifyEmailPage })));
+const SaasLaunchShowcasePage = lazy(() => import("../../features/marketing/pages/SaasLaunchShowcasePage").then((module) => ({ default: module.SaasLaunchShowcasePage })));
 const DashboardPage = lazy(() => import("../../features/dashboard/pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
 import { AppLayout } from "../layout/AppLayout";
 const BusinessProfilePage = lazy(() => import("../../features/business/pages/BusinessProfilePage").then((module) => ({ default: module.BusinessProfilePage })));
@@ -54,6 +55,7 @@ export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general 
   { path: "/reset-password", element: <PublicRoute />, children: [{ index: true, element: page(ResetPasswordPage) }] },
   { path: "/signup", element: <PublicRoute />, children: [{ index: true, element: page(SignupPage) }] },
   { path: "/verify-email", element: <PublicRoute />, children: [{ index: true, element: page(VerifyEmailPage) }] },
+  { path: "/showcase/saas-launch", element: page(SaasLaunchShowcasePage) },
   {
     path: "/app",
     element: <ProtectedRoute><AppLayout /></ProtectedRoute>,
