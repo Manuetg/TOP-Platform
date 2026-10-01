@@ -2,6 +2,12 @@
 
 Última actualización: 2026-10-01
 
+## Publicación autorizada — 2026-10-01 12:06 UTC
+
+El usuario autorizó publicar codex/night-integration-20261001 y abrir PR DRAFT hacia develop. No autorizó aprobación de reviews, asignación de reviewers, merge/auto-merge ni despliegue. El código validado ee038ce y los árboles backend/frontend siguen sin cambios; la publicación añade documentación de proceso y guía. Los límites y resultados del corte local inferior permanecen como evidencia fechada. El CI del HEAD publicado debe revisarse por separado; no se hereda un PASS de otro HEAD.
+
+Proceso, antes/después, bugs, fuentes, inventario, comandos, cuentas sintéticas y matriz de revisión en [Refinamiento nocturno y guía](15-Night-Refinement-Review.md). La PR es draft y los refinamientos permanecen In Progress, sujetos a revisión humana y gates preproducción.
+
 ## Handoff vigente — refinamientos locales de estados, configuración, recursos y web
 
 Base verificada: `develop@835b2a4397bb3e6f04480386e62b11c86a74e8a5`. PR #98 integrada el 30/09/2026 en `26ba478`; PR #100 integrada el 01/10/2026 e incluye sidebar, detalle de Resources, agenda mensual y showcase. Los handoffs inferiores son antecedentes fechados. El primer corte de B está integrado; B restante, el quality gate preproducción y la definición comercial de FE-SUB-001 siguen pendientes.

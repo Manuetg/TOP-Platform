@@ -6,7 +6,7 @@
 
 Base vigente verificada: `develop@835b2a4`, con PR #97, #98 y #100 integradas. Los apartados siguientes conservan sus fechas y evidencias históricas; sus referencias a revisiones o merges pendientes no describen el remoto vigente. El precio manual libre ya está integrado. Se preservan los conteos históricos del MVP y la definición comercial pendiente de FE-SUB-001.
 
-Trabajo autorizado **In Progress**, exclusivamente local en `codex/night-integration-20261001`, integrado localmente con gates y QA del conjunto completos. Permanece pendiente la revisión humana; no hay push, aprobación de reviews de PR, merge ni despliegue autorizado.
+Trabajo autorizado **In Progress**, en `codex/night-integration-20261001`, integrado con gates y QA locales completos. Publicación y PR DRAFT autorizadas el 01/10/2026 a las 12:06 UTC; revisión humana pendiente. No hay aprobación de reviews de PR, merge ni despliegue autorizado.
 
 | Frente | Criterio de aceptación |
 |---|---|
