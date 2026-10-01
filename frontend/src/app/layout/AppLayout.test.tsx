@@ -2,12 +2,28 @@ import { QueryProvider } from "../providers/QueryProvider";
 import type { ReactElement } from "react";
 import { render as rtlRender, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { afterEach, vi } from "vitest";
+import * as authContext from "../../features/auth/context/AuthContext";
 import {
   MemoryRouter,
   Route,
   Routes,
 } from "react-router-dom";
 import { AppLayout } from "./AppLayout";
+
+afterEach(() => vi.restoreAllMocks());
+
+function signedIn(displayName: string | null) {
+  vi.spyOn(authContext, "useAuth").mockReturnValue({
+    status: "authenticated", isAuthenticated: true, isLoggingOut: false,
+    establishSession: vi.fn(), updateUserProfile: vi.fn(), logout: async () => undefined,
+    session: {
+      accessToken: "test-access", refreshToken: "test-refresh", tokenType: "Bearer", expiresIn: 900,
+      user: { id: "user-1", email: "jeni@example.test", displayName, status: "ACTIVE" },
+      memberships: [],
+    },
+  });
+}
 
 function renderApp(initialEntry = "/app") {
   return render(
@@ -31,6 +47,20 @@ function renderApp(initialEntry = "/app") {
 }
 
 describe("AppLayout", () => {
+  it("shows the personal name in navigation and retains the account email", async () => {
+    signedIn("Jeni González");
+    renderApp();
+    expect(screen.getAllByText("Jeni González").length).toBeGreaterThan(0);
+    await userEvent.click(screen.getAllByRole("button", { name: "Abrir perfil" })[0]);
+    expect(screen.getByText("jeni@example.test")).toBeInTheDocument();
+  });
+
+  it("uses the email for legacy accounts without a personal name", () => {
+    signedIn(null);
+    renderApp();
+    expect(screen.getAllByText("jeni@example.test").length).toBeGreaterThan(0);
+  });
+
   it("renders the section associated with a deep link", () => {
     renderApp("/app/pricing");
 

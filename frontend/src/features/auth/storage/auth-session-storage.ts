@@ -11,6 +11,7 @@ function isSnapshot(value: unknown): value is PersistedAuthSession {
   const item = value as Partial<PersistedAuthSession>;
   return typeof item.refreshToken === "string" && item.refreshToken.length > 0 &&
     !!item.user && typeof item.user.id === "string" && typeof item.user.email === "string" &&
+    (item.user.displayName === undefined || item.user.displayName === null || typeof item.user.displayName === "string") &&
     (item.user.status === "ACTIVE" || item.user.status === "DISABLED") &&
     (item.mode === undefined || item.mode === "SESSION" || item.mode === "PERSISTENT") && Array.isArray(item.memberships) &&
     item.memberships.every((m) => !!m && typeof m.businessId === "string" && ["OWNER", "ADMIN", "RECEPTIONIST", "VIEWER"].includes(m.role));

@@ -110,7 +110,7 @@ function getBreadcrumbItems(pathname: string): readonly TopBreadcrumbItem[] | nu
 
   const terminal = parts[parts.length - 1];
   const labels: Record<string, string> = {
-    new: `Nuevo ${parts[0] === "bookings" ? "reserva" : parts[0] === "resources" ? "recurso" : parts[0] === "contacts" ? "contacto" : parts[0] === "blocks" ? "bloqueo" : "plan"}`,
+    new: parts[0] === "bookings" ? "Nueva reserva" : `Nuevo ${parts[0] === "resources" ? "recurso" : parts[0] === "contacts" ? "contacto" : parts[0] === "blocks" ? "bloqueo" : "plan"}`,
     edit: `Editar ${parts[0] === "bookings" ? "reserva" : parts[0] === "resources" ? "recurso" : parts[0] === "contacts" ? "contacto" : "plan"}`,
     rules: "Reglas de disponibilidad",
     payments: "Pagos de la reserva",
@@ -134,6 +134,7 @@ export function AppLayout() {
   const navigate = useNavigate();
   const { session, logout, isLoggingOut } = useAuth();
   const { activeBusiness, activeRole, status } = useBusinessContext();
+  const userDisplayName = typeof session?.user.displayName === "string" ? session.user.displayName.trim() : "";
 
   const activeSection = getActiveSection(location.pathname);
   const rail = status === "ready" ? getContextRailContent(location.pathname) : null;
@@ -161,7 +162,8 @@ export function AppLayout() {
       renderBusinessMenu={(close) => <BusinessSelector onSelected={() => { close(); void navigate("/app", { replace: true }); }} />}
       contextRail={rail ? <ContextRail title="Para tener en cuenta" blocks={rail} /> : null}
       businessName={activeBusiness?.name ?? (status === "empty" ? "Sin negocio activo" : status === "error" ? "No disponible" : "Seleccioná un negocio")}
-      userName={session?.user.email ?? "Usuario"}
+      userName={userDisplayName || session?.user.email || "Usuario"}
+      userEmail={session?.user.email}
       userRole={activeRole ?? "Sin rol"}
       onNavigate={handleNavigate}
       onSearchNavigate={(path) => { void navigate(path); }}

@@ -1,8 +1,20 @@
 # TOP — Estado actual y handoff
 
-Última actualización: 2026-09-30
+Última actualización: 2026-10-01
 
-## Handoff vigente — primer corte B: arranque y configuración segura
+## Handoff vigente — refinamientos locales de estados, configuración, recursos y web
+
+Base verificada: `develop@835b2a4397bb3e6f04480386e62b11c86a74e8a5`. PR #98 integrada el 30/09/2026 en `26ba478`; PR #100 integrada el 01/10/2026 e incluye sidebar, detalle de Resources, agenda mensual y showcase. Las referencias inferiores a PR abiertas, revisión pendiente y ramas anteriores son antecedentes fechados, no el estado remoto actual. El primer corte de B está integrado; B restante, el quality gate preproducción y la definición comercial de FE-SUB-001 siguen pendientes.
+
+Encargo actual autorizado para implementación local y commits en worktrees aislados: unificar etiquetas sin cambiar los siete códigos/transiciones de Booking; mejorar configuración y perfil; pulir el detalle de Resources existente; revisar funcionalidad, estados visuales y almacenamiento web. Integración en `codex/night-integration-20261001`, separada de develop. Prohibición expresa para TOP: sin push, aprobación de reviews de PR, merge/auto-merge a develop ni despliegue. La autorización de otros proyectos no aplica.
+
+Router, layout, AuthContext, shared UI, estilos/tokens globales y documentación tienen un único integrador. Cada worker modifica su feature y entrega commits locales. La edición aditiva del nombre personal está autorizada con validación y autorización SELF conservadas. No se amplía la edición de email: IAM-005 conserva sesiones por decisión aprobada, pero su interacción con `emailVerifiedAt` y Phase 2 requiere definición antes de una interfaz nueva. La agenda de Resource no se presenta como disponibilidad autoritativa. La política web se fundamenta en cookies/storage observados, sin inventar entidad responsable, proveedores, banners ni cumplimiento jurídico.
+
+Validación de esta rama local: **pendiente de integración y ejecución**. Runtime disponible Node 24.19.0/npm 10.2.0; Node 22 sigue siendo la versión de CI. QA prevista en navegador a 390×844, 1024×900 y 1440×900. Las evidencias históricas inferiores no acreditan este trabajo y ninguna implementación local se declara Completed por intención.
+
+Notas de revisión: los backlogs conservan referencias históricas de merges ya realizados; ADR-001 y apartados iniciales de Identity preceden al signup/refresh de Phase 2; Block usa `FINISHED` en su contrato real frente a `COMPLETED` en apartados generales; Rate Plan vigente solo admite ACTIVE/ARCHIVED; existen IDs BR repetidos y una discrepancia aritmética en la tabla frontend (filas 50 Completed frente a total 51). Se preservan los recuentos históricos hasta reconciliación. TOP Inicial/10 Resources permanece provisional.
+
+## Handoff histórico — primer corte B: arranque y configuración segura
 
 Baseline y `origin/develop` verificados: `7737b2bbda04ee2a9f2a97585e4a0c672f295a43`. [PR #97](https://github.com/Manuetg/TOP-Platform/pull/97) integrada el 30/09/2026; ninguna PR abierta ni merge posterior al iniciar. Rama `codex/production-startup-hardening`; [PR #98](https://github.com/Manuetg/TOP-Platform/pull/98) abierta contra develop, con implementación y documentación completas en esa misma PR. Publicación autorizada por el usuario el 30/09/2026; commit de implementación `24022215daa49eca0c7d76155b76c23efd56fcb7`. El feature HEAD final y los runs oficiales de cada SHA están en el cuerpo de PR #98, que se actualiza tras los checks; ningún CI de un HEAD anterior acredita el HEAD final. No hay merge ni deploy autorizado.
 

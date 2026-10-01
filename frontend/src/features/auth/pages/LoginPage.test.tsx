@@ -236,10 +236,11 @@ describe("LoginPage routing", () => {
   it.each([
     { status: 400, message: "Revisa los datos ingresados." },
     { status: 401, message: "El correo o la contraseña no son correctos." },
-    { status: 403, message: "Tu usuario está deshabilitado." },
+    { status: 403, message: "El usuario está deshabilitado.", detail: "El usuario está deshabilitado." },
+    { status: 403, message: "Verificá tu correo antes de iniciar sesión.", detail: "Verificá tu correo antes de iniciar sesión." },
     { status: 500, message: "No pudimos iniciar sesión. Intenta nuevamente." },
-  ])("shows the expected user-facing message for HTTP $status", async ({ status, message }) => {
-    dependencies.login.mockRejectedValue(new ApiError(status, "backend detail"));
+  ])("shows the expected user-facing message for HTTP $status", async ({ status, message, detail }) => {
+    dependencies.login.mockRejectedValue(new ApiError(status, detail ?? "backend detail"));
     const router = renderLogin("/login");
     fireEvent.change(screen.getByLabelText("Correo electrónico"), {
       target: { value: "jeni@example.com" },

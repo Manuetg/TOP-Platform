@@ -50,6 +50,7 @@ interface AppShellProps extends PropsWithChildren {
   activeSection: AppSection;
   businessName: string;
   userName: string;
+  userEmail?: string;
   userRole: string;
   onNavigate?: (target: AppNavigationTarget) => void;
   onBusinessMenuOpen?: () => void;
@@ -100,6 +101,7 @@ export function AppShell({
   renderBusinessMenu,
   businessName,
   userName,
+  userEmail,
   userRole,
   onNavigate,
   onBusinessMenuOpen,
@@ -444,6 +446,7 @@ export function AppShell({
 
                   <div>
                     <strong>{userName}</strong>
+                    {userEmail && userEmail !== userName ? <span>{userEmail}</span> : null}
                     <span>{userRole}</span>
                   </div>
                 </div>

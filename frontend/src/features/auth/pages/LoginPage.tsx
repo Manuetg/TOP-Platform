@@ -130,7 +130,7 @@ function getLoginErrorMessage(error: ApiError): string {
     case 401:
       return "El correo o la contraseña no son correctos.";
     case 403:
-      return "Tu usuario está deshabilitado.";
+      return error.message;
     default:
       return "No pudimos iniciar sesión. Intenta nuevamente.";
   }

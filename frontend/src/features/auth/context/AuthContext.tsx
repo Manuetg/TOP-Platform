@@ -6,7 +6,7 @@
   useState,
   type PropsWithChildren,
 } from "react";
-import type { LoginResponse } from "../types/auth.types";
+import type { AuthUser, LoginResponse } from "../types/auth.types";
 import { refreshSession } from "../api/refresh-session";
 import { clearPersistedAuthSession, readPersistedAuthSession, writePersistedAuthSession, type AuthPersistenceMode } from "../storage/auth-session-storage";
 import { configureUnauthorizedRecovery } from "../../../shared/api/api-client";
@@ -14,16 +14,22 @@ import { logout as revokeSession } from "../api/logout";
 import { QueryClientContext } from "@tanstack/react-query";
 
 export type AuthStatus = "restoring" | "authenticated" | "unauthenticated";
-let restorePromise: ReturnType<typeof refreshSession> | null = null;
+const restores = new Map<string, ReturnType<typeof refreshSession>>();
 function restore(refreshToken: string) {
-  if (!restorePromise) restorePromise = refreshSession(refreshToken).finally(() => { restorePromise = null; });
-  return restorePromise;
+  const pending = restores.get(refreshToken);
+  if (pending) return pending;
+  const promise = refreshSession(refreshToken).finally(() => {
+    if (restores.get(refreshToken) === promise) restores.delete(refreshToken);
+  });
+  restores.set(refreshToken, promise);
+  return promise;
 }
 
 interface AuthContextValue {
   session: LoginResponse | null;
   isAuthenticated: boolean;
   establishSession: (session: LoginResponse, mode?: AuthPersistenceMode) => void;
+  updateUserProfile: (user: AuthUser) => boolean;
   logout: () => Promise<void>;
   isLoggingOut: boolean;
   status: AuthStatus;
@@ -64,8 +70,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
         let tokens;
         const generation = generationRef.current;
         try { tokens = await restore(current.refreshToken); } catch { if (generation === generationRef.current) { clearPersistedAuthSession(); updateSession(null); setStatus("unauthenticated"); } return null; }
-        if (generation !== generationRef.current || !sessionRef.current) return null;
-        const next = { ...tokens, user: current.user, memberships: current.memberships };
+        const latest = sessionRef.current;
+        if (generation !== generationRef.current || !latest) return null;
+        const next = { ...tokens, user: latest.user, memberships: latest.memberships };
         updateSession(next); writePersistedAuthSession(next, persistenceModeRef.current); setStatus("authenticated");
         return next.accessToken;
       },
@@ -73,7 +80,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => configureUnauthorizedRecovery(null);
   }, []);
 
-  const establish = (next: LoginResponse, mode: AuthPersistenceMode = "SESSION") => { persistenceModeRef.current = mode; updateSession(next); writePersistedAuthSession(next, mode); setStatus("authenticated"); };
+  const establish = (next: LoginResponse, mode: AuthPersistenceMode = "SESSION") => { ++generationRef.current; persistenceModeRef.current = mode; updateSession(next); writePersistedAuthSession(next, mode); setStatus("authenticated"); };
+  // Keep the callback captured before an asynchronous profile request. A new
+  // login, even for the same user, must not accept that request's old response.
+  const profileGeneration = generationRef.current;
+  const updateUserProfile = (user: AuthUser): boolean => {
+    const current = sessionRef.current;
+    if (!current || current.user.id !== user.id || profileGeneration !== generationRef.current || user.displayName === undefined) return false;
+    const next = { ...current, user: { ...current.user, displayName: user.displayName } };
+    updateSession(next);
+    writePersistedAuthSession(next, persistenceModeRef.current);
+    return true;
+  };
   const logout = () => {
     if (logoutPromiseRef.current) return logoutPromiseRef.current;
     ++generationRef.current;
@@ -97,6 +115,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     session,
     isAuthenticated: session !== null,
     establishSession: establish,
+    updateUserProfile,
     status,
     logout,
     isLoggingOut,
@@ -109,7 +128,7 @@ export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
 
   if (!context) {
-    return { session: null, isAuthenticated: false, establishSession: () => undefined, logout: async () => undefined, isLoggingOut: false, status: "unauthenticated" };
+    return { session: null, isAuthenticated: false, establishSession: () => undefined, updateUserProfile: () => false, logout: async () => undefined, isLoggingOut: false, status: "unauthenticated" };
   }
 
   return context;

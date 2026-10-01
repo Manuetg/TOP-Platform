@@ -9,4 +9,14 @@ describe("auth session storage", () => {
   it("switches mode without leaving a conflicting snapshot", () => { writePersistedAuthSession(session, "PERSISTENT"); writePersistedAuthSession(session, "SESSION"); expect(localStorage.getItem(AUTH_SESSION_STORAGE_KEY)).toBeNull(); expect(readPersistedAuthSession()?.mode).toBe("SESSION"); });
   it("clears malformed JSON and invalid shapes", () => { sessionStorage.setItem(AUTH_SESSION_STORAGE_KEY, "{"); expect(readPersistedAuthSession()).toBeNull(); expect(sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY)).toBeNull(); sessionStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify({ refreshToken: "" })); expect(readPersistedAuthSession()).toBeNull(); });
   it("clears both storage modes explicitly", () => { writePersistedAuthSession(session, "PERSISTENT"); writePersistedAuthSession(session, "SESSION"); clearPersistedAuthSession(); expect(readPersistedAuthSession()).toBeNull(); expect(sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY)).toBeNull(); expect(localStorage.getItem(AUTH_SESSION_STORAGE_KEY)).toBeNull(); });
+  it.each([42, { name: "incorrecto" }])("rejects a malformed personal name without restoring a broken shell", (displayName) => {
+    sessionStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify({ ...session, user: { ...session.user, displayName }, mode: "SESSION" }));
+    expect(readPersistedAuthSession()).toBeNull();
+    expect(sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY)).toBeNull();
+  });
+
+  it.each([null, "Jeni González"])("restores valid nullable personal names", (displayName) => {
+    writePersistedAuthSession({ ...session, user: { ...session.user, displayName } });
+    expect(readPersistedAuthSession()?.user.displayName).toBe(displayName);
+  });
 });
