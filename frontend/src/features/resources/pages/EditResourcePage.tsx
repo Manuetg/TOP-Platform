@@ -113,6 +113,8 @@ function EditResourceContent({ embedded, onClose }: EditResourcePageProps) {
       return;
     }
 
+    // El refetch actualiza los campos limpios sin reemplazar el borrador del usuario.
+    // Un cambio de recurso, negocio, usuario o rol remonta este formulario por su key.
     reset({
       name: resource.name,
       internalCode: resource.internalCode,
@@ -122,7 +124,7 @@ function EditResourceContent({ embedded, onClose }: EditResourcePageProps) {
       capacityMaximumChildren:
         resource.capacityMaximumChildren,
       sortOrder: resource.sortOrder,
-    });
+    }, { keepDirtyValues: true });
   }, [resource, reset]);
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {

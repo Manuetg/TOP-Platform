@@ -128,6 +128,79 @@ describe("EditResourcePage request lifetime and permissions", () => {
     await act(async () => { pending.resolve(resource()); await pending.promise; });
   });
 
+  it("refreshes clean fields when the resource is refetched", async () => {
+    const view = show();
+    await waitFor(() => expect(screen.getByLabelText("Nombre")).toHaveValue(resource().name));
+    const refreshed = { ...resource(), name: "Nombre del servidor", internalCode: "CAB-02", description: null, capacityMaximum: 6 };
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce(new Response(JSON.stringify(refreshed)));
+    await act(async () => { await view.client.refetchQueries({ queryKey: ["resources", "business-1", "resource-1"], exact: true }); });
+    await waitFor(() => expect(screen.getByLabelText("Nombre")).toHaveValue(refreshed.name));
+    expect(screen.getByLabelText(/Código interno/)).toHaveValue(refreshed.internalCode);
+    expect(screen.getByLabelText("Descripción")).toHaveValue("");
+    expect(screen.getByLabelText("Máximo", { exact: true })).toHaveValue(6);
+  });
+
+  it("preserves edited fields across repeated refetches and submits refreshed clean fields", async () => {
+    const user = userEvent.setup();
+    const view = show();
+    await waitFor(() => expect(screen.getByLabelText("Nombre")).toHaveValue(resource().name));
+    await user.clear(screen.getByLabelText("Nombre"));
+    await user.type(screen.getByLabelText("Nombre"), "Nombre manual");
+    await user.clear(screen.getByLabelText("Descripción"));
+    await user.type(screen.getByLabelText("Descripción"), "Descripción manual");
+    await user.clear(screen.getByLabelText("Máximo", { exact: true }));
+    await user.type(screen.getByLabelText("Máximo", { exact: true }), "8");
+    for (const suffix of [2, 3]) {
+      const refreshed = { ...resource(), name: `Nombre remoto ${suffix}`, description: `Descripción remota ${suffix}`, internalCode: `CAB-0${suffix}`, capacityMaximum: 6, sortOrder: suffix };
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce(new Response(JSON.stringify(refreshed)));
+      await act(async () => { await view.client.refetchQueries({ queryKey: ["resources", "business-1", "resource-1"], exact: true }); });
+      await waitFor(() => expect(screen.getByLabelText(/Código interno/)).toHaveValue(refreshed.internalCode));
+      expect(screen.getByLabelText("Nombre")).toHaveValue("Nombre manual");
+      expect(screen.getByLabelText("Descripción")).toHaveValue("Descripción manual");
+      expect(screen.getByLabelText("Máximo", { exact: true })).toHaveValue(8);
+    }
+    saveResource.mockResolvedValue(resource());
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    await waitFor(() => expect(saveResource).toHaveBeenCalledOnce());
+    expect(saveResource.mock.calls[0][0].input).toEqual({
+      name: "Nombre manual", internalCode: "CAB-03", description: "Descripción manual",
+      capacityMinimum: 1, capacityMaximum: 8, capacityMaximumChildren: 2, sortOrder: 3,
+    });
+  });
+
+  it("preserves a cleared dirty field during refetch and validates it before saving", async () => {
+    const user = userEvent.setup();
+    const view = show();
+    await waitFor(() => expect(screen.getByLabelText("Nombre")).toHaveValue(resource().name));
+    await user.clear(screen.getByLabelText("Nombre"));
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce(new Response(JSON.stringify({ ...resource(), name: "Cambio remoto" })));
+    await act(async () => { await view.client.refetchQueries({ queryKey: ["resources", "business-1", "resource-1"], exact: true }); });
+    expect(screen.getByLabelText("Nombre")).toHaveValue("");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("El nombre debe tener al menos 2 caracteres.");
+    expect(saveResource).not.toHaveBeenCalled();
+  });
+
+  it.each(["business", "resource", "identity", "role"] as const)("discards the draft when the form scope changes %s", async (change) => {
+    const user = userEvent.setup();
+    const view = show();
+    await waitFor(() => expect(screen.getByLabelText("Nombre")).toHaveValue(resource().name));
+    await user.clear(screen.getByLabelText("Nombre"));
+    await user.type(screen.getByLabelText("Nombre"), "Borrador anterior");
+    if (change === "resource") await user.click(screen.getByRole("link", { name: "Otro recurso" }));
+    else act(() => {
+      if (change === "business") context.businessId = "business-2";
+      if (change === "identity") context.userId = "user-2";
+      if (change === "role") context.role = "ADMIN";
+      view.refresh();
+    });
+    await waitFor(() => expect(screen.getByLabelText("Nombre")).toHaveValue(
+      resource(context.businessId, change === "resource" ? "resource-2" : "resource-1").name,
+    ));
+    expect(screen.getByLabelText("Nombre")).not.toHaveValue("Borrador anterior");
+    expect(saveResource).not.toHaveBeenCalled();
+  });
+
   it.each([400, 403, 409])("keeps fields and reports a current backend %s error", async (status) => {
     saveResource.mockRejectedValue(new ApiError(status, "No se pudo guardar este recurso."));
     const view = show();
