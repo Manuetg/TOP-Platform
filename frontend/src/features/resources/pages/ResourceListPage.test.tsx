@@ -158,7 +158,7 @@ describe("ResourceListPage", () => {
       }),
     ).toBeInTheDocument();
 
-    expect(screen.getByText(/CAB-01/)).toBeInTheDocument();
+    expect(screen.queryByText(/CAB-01/)).not.toBeInTheDocument();
     expect(screen.getByText(/4 huéspedes/)).toBeInTheDocument();
 
     expect(
@@ -166,6 +166,40 @@ describe("ResourceListPage", () => {
         selector: ".resource-list-card__status",
       }),
     ).toBeInTheDocument();
+  });
+
+  it("keeps the status and navigation control in every card footer", () => {
+    mockedUseResources.mockReturnValue({
+      data: filterableResources,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    const { container } = renderResourceListPage({
+      businessId: "business-1",
+    });
+
+    const cards = container.querySelectorAll(
+      ".resource-list-card",
+    );
+
+    expect(cards).toHaveLength(filterableResources.length);
+
+    cards.forEach((card) => {
+      const footer = card.querySelector(
+        ".resource-list-card__footer",
+      );
+
+      expect(footer).not.toBeNull();
+      expect(
+        footer?.querySelector(".resource-list-card__status"),
+      ).not.toBeNull();
+      expect(
+        footer?.querySelector(".resource-list-card__chevron"),
+      ).not.toBeNull();
+    });
   });
 
   it("renders the persisted Resource cover when one exists", () => {

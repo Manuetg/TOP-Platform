@@ -1,11 +1,52 @@
 import { QueryProvider } from "../providers/QueryProvider";
 import type { ReactElement } from "react";
-import { act, render as rtlRender, screen, within } from "@testing-library/react";
+import { act, render as rtlRender, screen, waitForElementToBeRemoved, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { vi } from "vitest";
+import { afterEach, beforeEach, vi } from "vitest";
 import { AppShell } from "./AppShell";
 
 describe("AppShell", () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
+
+  it("starts with an expanded desktop sidebar when no preference exists", () => {
+    render(<AppShell activeSection="home" businessName="Tobera" userName="Jeni" userRole="Propietaria"><div /></AppShell>);
+
+    expect(document.querySelector(".top-sidebar")).not.toHaveClass("is-collapsed");
+    expect(screen.getByRole("button", { name: "Contraer barra lateral" })).toBeVisible();
+  });
+
+  it("toggles and persists the desktop sidebar preference", async () => {
+    const user = userEvent.setup();
+    render(<AppShell activeSection="home" businessName="Tobera" userName="Jeni" userRole="Propietaria"><div /></AppShell>);
+
+    await user.click(screen.getByRole("button", { name: "Contraer barra lateral" }));
+    expect(document.querySelector(".top-sidebar")).toHaveClass("is-collapsed");
+    expect(localStorage.getItem("top.sidebar.collapsed.v1")).toBe("true");
+    expect(screen.getByRole("button", { name: "Expandir barra lateral" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Expandir barra lateral" }));
+    expect(document.querySelector(".top-sidebar")).not.toHaveClass("is-collapsed");
+    expect(localStorage.getItem("top.sidebar.collapsed.v1")).toBe("false");
+  });
+
+  it("restores a collapsed sidebar from localStorage without losing accessible navigation names", () => {
+    localStorage.setItem("top.sidebar.collapsed.v1", "true");
+    render(<AppShell activeSection="bookings" businessName="Tobera" userName="Jeni" userRole="Propietaria"><div /></AppShell>);
+
+    const sidebar = document.querySelector(".top-sidebar") as HTMLElement;
+    expect(sidebar).toHaveClass("is-collapsed");
+    expect(within(sidebar).getByRole("button", { name: "Calendario" })).toBeInTheDocument();
+    expect(within(sidebar).getByRole("button", { name: "Reservas", current: "page" })).toBeInTheDocument();
+  });
+
+  it("removes the hospitality promo from the collapsed sidebar", () => {
+    localStorage.setItem("top.sidebar.collapsed.v1", "true");
+    render(<AppShell activeSection="home" businessName="Tobera" userName="Jeni" userRole="Propietaria"><div /></AppShell>);
+
+    expect(screen.queryByText("Haz crecer tu alojamiento con TOP")).not.toBeInTheDocument();
+  });
+
   it("shows business and user context", () => {
     render(
       <AppShell
@@ -42,6 +83,91 @@ describe("AppShell", () => {
     });
 
     expect(currentItems.length).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ["home", "Inicio"],
+    ["calendar", "Calendario"],
+    ["bookings", "Reservas"],
+  ] as const)("keeps %s current in the mobile bottom navigation", (activeSection, label) => {
+    render(
+      <AppShell
+        activeSection={activeSection}
+        businessName="Tobera"
+        userName="Jeni"
+        userRole="Propietaria"
+      >
+        <div />
+      </AppShell>,
+    );
+
+    const bottomNavigation = document.querySelector(".top-bottom-nav") as HTMLElement;
+
+    expect(
+      within(bottomNavigation).getByRole("button", {
+        name: label,
+        current: "page",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    "availability",
+    "resources",
+    "contacts",
+    "pricing",
+    "payments",
+    "blocks",
+    "settings",
+  ] as const)("keeps Más current for the %s section", (activeSection) => {
+    render(
+      <AppShell
+        activeSection={activeSection}
+        businessName="Tobera"
+        userName="Jeni"
+        userRole="Propietaria"
+      >
+        <div />
+      </AppShell>,
+    );
+
+    const bottomNavigation = document.querySelector(".top-bottom-nav") as HTMLElement;
+
+    expect(
+      within(bottomNavigation).getByRole("button", {
+        name: "Más",
+        current: "page",
+      }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("keeps mobile navigation and Más expansion behavior", async () => {
+    const user = userEvent.setup();
+    const onNavigate = vi.fn();
+
+    render(
+      <AppShell
+        activeSection="home"
+        businessName="Tobera"
+        userName="Jeni"
+        userRole="Propietaria"
+        onNavigate={onNavigate}
+      >
+        <div />
+      </AppShell>,
+    );
+
+    const bottomNavigation = document.querySelector(".top-bottom-nav") as HTMLElement;
+    const calendar = within(bottomNavigation).getByRole("button", { name: "Calendario" });
+    const more = within(bottomNavigation).getByRole("button", { name: "Más" });
+
+    await user.click(calendar);
+    expect(onNavigate).toHaveBeenCalledWith("calendar");
+
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    await user.click(more);
+    expect(more).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("dialog", { name: "Más opciones" })).toBeInTheDocument();
   });
 
   it("reports navigation intent without owning routing", async () => {
@@ -97,9 +223,7 @@ describe("AppShell", () => {
       screen.getByRole("button", { name: "Cerrar menú Más" }),
     );
 
-    expect(
-      screen.queryByRole("dialog", { name: "Más opciones" }),
-    ).not.toBeInTheDocument();
+    await waitForElementToBeRemoved(() => screen.queryByRole("dialog", { name: "Más opciones" }));
   });
 
   it("navigates from Más and closes the menu", async () => {
@@ -130,9 +254,7 @@ describe("AppShell", () => {
 
     expect(onNavigate).toHaveBeenCalledWith("pricing");
 
-    expect(
-      screen.queryByRole("dialog", { name: "Más opciones" }),
-    ).not.toBeInTheDocument();
+    await waitForElementToBeRemoved(() => screen.queryByRole("dialog", { name: "Más opciones" }));
   });
   it("searches modules and reports navigation intent", async () => {
     const user = userEvent.setup();
@@ -294,7 +416,7 @@ describe("AppShell", () => {
     await user.tab();
     expect(screen.getByRole("button", { name: "Cerrar menú Más" })).toHaveFocus();
     await user.keyboard("{Escape}");
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitForElementToBeRemoved(() => screen.queryByRole("dialog"));
     expect(more).toHaveFocus();
   });
 
@@ -323,7 +445,7 @@ describe("AppShell", () => {
       await user.click(screen.getByRole("button", { name: "Más" }));
       expect(screen.getByRole("dialog")).toHaveFocus();
       act(() => { media.matches = true; listeners.forEach((listener) => listener()); });
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      await waitForElementToBeRemoved(() => screen.queryByRole("dialog"));
       expect(screen.getByRole("main")).toHaveFocus();
       expect(document.body.style.overflow).toBe("");
     } finally {

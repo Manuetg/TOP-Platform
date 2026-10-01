@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
@@ -20,7 +20,15 @@ import {
 import "./EditResourcePage.css";
 
 
-export function EditResourcePage() {
+interface EditResourcePageProps {
+  embedded?: boolean;
+  onClose?: () => void;
+}
+
+export function EditResourcePage({
+  embedded = false,
+  onClose,
+}: EditResourcePageProps = {}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { resourceId = "" } = useParams();
@@ -113,7 +121,11 @@ export function EditResourcePage() {
         exact: true,
       });
 
-      navigate(`/app/resources/${resourceId}`);
+      if (embedded) {
+        onClose?.();
+      } else {
+        navigate(`/app/resources/${resourceId}`);
+      }
     } catch (submitErrorValue) {
       setSubmitError(
         submitErrorValue instanceof Error
@@ -162,32 +174,53 @@ export function EditResourcePage() {
     );
   }
 
-  const returnToResource = () =>
+  const returnToResource = () => {
+    if (embedded) {
+      onClose?.();
+      return;
+    }
+
     navigate(`/app/resources/${resource.id}`);
+  };
 
   return (
     <section
-      className="resource-edit-page"
+      className={`resource-edit-page${embedded ? " resource-edit-page--dialog" : ""}`}
       aria-labelledby="resource-edit-title"
     >
-      <button
-        type="button"
-        className="resource-edit-back"
-        onClick={returnToResource}
-      >
-        <ArrowLeft size={18} aria-hidden="true" />
-        Recursos
-      </button>
+      {!embedded ? (
+        <button
+          type="button"
+          className="resource-edit-back"
+          onClick={returnToResource}
+        >
+          <ArrowLeft size={18} aria-hidden="true" />
+          Recursos
+        </button>
+      ) : null}
 
       <header className="resource-edit-header">
-        <h1 id="resource-edit-title">
-          Editar recurso
-        </h1>
+        <div>
+          <h1 id="resource-edit-title">
+            Editar recurso
+          </h1>
 
-        <p>
-          Actualizá la información de{" "}
-          <strong>{resource.name}</strong>.
-        </p>
+          <p>
+            Actualizá la información de{" "}
+            <strong>{resource.name}</strong>.
+          </p>
+        </div>
+
+        {embedded ? (
+          <button
+            type="button"
+            className="resource-edit-close"
+            aria-label="Cerrar edición"
+            onClick={returnToResource}
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+        ) : null}
       </header>
 
       <form

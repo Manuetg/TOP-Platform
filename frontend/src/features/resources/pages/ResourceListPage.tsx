@@ -88,11 +88,6 @@ function ResourceCard({
           <h2>{resource.name}</h2>
 
           <p className="resource-list-card__meta">
-            <span className="resource-list-card__code">
-              {resource.internalCode}
-              <span aria-hidden="true"> · </span>
-            </span>
-
             <span>
               Hasta {resource.capacityMaximum}{" "}
               {resource.capacityMaximum === 1
@@ -377,6 +372,7 @@ export function ResourceListPage({
     >
       <header className="resource-list-header">
         <div className="resource-list-header__copy">
+          <span className="resource-list-header__eyebrow">Gestión</span>
           <h1 id="resources-title">Recursos</h1>
 
           <p>

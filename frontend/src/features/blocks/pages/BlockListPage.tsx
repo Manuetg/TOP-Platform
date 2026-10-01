@@ -449,6 +449,7 @@ export function BlockListPage({
     <section className="block-list-page">
       <header className="block-list-header">
         <div>
+          <span className="block-list-header__eyebrow">Gestión</span>
           <h1>Bloqueos</h1>
           <p>
             Gestioná períodos en los que un recurso

@@ -1,6 +1,7 @@
 .contact-list-page {
-  width: min(100%, 1220px);
-  margin: 0;
+  width: 100%;
+  max-width: 1680px;
+  margin-inline: auto;
 }
 
 .contact-list-header {
@@ -17,6 +18,16 @@
   font-size: clamp(1.7rem, 2vw, 2.15rem);
   font-weight: 700;
   letter-spacing: -0.035em;
+}
+
+.contact-list-header__eyebrow {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--color-brand-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .contact-list-header p {

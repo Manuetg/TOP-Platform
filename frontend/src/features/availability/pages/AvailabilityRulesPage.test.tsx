@@ -96,11 +96,11 @@ describe("AvailabilityRulesPage", () => {
     ).toBeChecked();
 
     expect(
-      screen.getByLabelText(/Buffer antes/i),
+      screen.getByLabelText(/Margen antes/i),
     ).toHaveValue(1);
 
     expect(
-      screen.getByLabelText(/Buffer después/i),
+      screen.getByLabelText(/Margen después/i),
     ).toHaveValue(2);
   });
 
@@ -114,7 +114,7 @@ describe("AvailabilityRulesPage", () => {
     );
 
     fireEvent.change(
-      screen.getByLabelText(/Buffer antes/i),
+      screen.getByLabelText(/Margen antes/i),
       {
         target: {
           value: "3",
@@ -123,7 +123,7 @@ describe("AvailabilityRulesPage", () => {
     );
 
     fireEvent.change(
-      screen.getByLabelText(/Buffer después/i),
+      screen.getByLabelText(/Margen después/i),
       {
         target: {
           value: "4",
@@ -158,7 +158,7 @@ describe("AvailabilityRulesPage", () => {
     renderPage();
 
     fireEvent.change(
-      screen.getByLabelText(/Buffer antes/i),
+      screen.getByLabelText(/Margen antes/i),
       {
         target: {
           value: "-1",

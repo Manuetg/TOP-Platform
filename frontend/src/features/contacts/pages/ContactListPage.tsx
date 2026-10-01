@@ -280,6 +280,7 @@ export function ContactListPage({
     <section className="contact-list-page">
       <header className="contact-list-header">
         <div>
+          <span className="contact-list-header__eyebrow">Gestión</span>
           <h1>Contactos</h1>
           <p>
             Gestioná huéspedes y contactos del
