@@ -100,6 +100,22 @@ model User {
   passwordResetTokens PasswordResetToken[]
   passwordResetChallenges PasswordResetChallenge[]
   emailVerificationTokens EmailVerificationToken[]
+  displayNameAudits UserDisplayNameAudit[] @relation("DisplayNameAuditSubject")
+  displayNameAuditActions UserDisplayNameAudit[] @relation("DisplayNameAuditActor")
+}
+
+model UserDisplayNameAudit {
+  id          String   @id @default(uuid())
+  userId      String
+  actorUserId String
+  occurredAt  DateTime @default(now())
+  beforeName  String?
+  afterName   String
+  reason      String
+  user        User     @relation("DisplayNameAuditSubject", fields: [userId], references: [id], onDelete: Restrict)
+  actor       User     @relation("DisplayNameAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([userId, occurredAt, id])
 }
 
 model UserBusinessMembership {

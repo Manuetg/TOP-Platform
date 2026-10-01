@@ -4,6 +4,10 @@ import { createEmailSender, IdentityModule } from './identity.module';
 import { EMAIL_SENDER } from './domain/email-sender';
 import { ConsoleEmailSender } from './infrastructure/console-email-sender';
 import { SmtpEmailSender } from './infrastructure/smtp-email-sender';
+import { GetUserProfileUseCase } from './application/get-user-profile.use-case';
+import { UpdateUserProfileUseCase } from './application/update-user-profile.use-case';
+import { USER_PROFILE_CHANGE_REPOSITORY } from './domain/user-profile-change.repository';
+import { PrismaUserRepository } from './infrastructure/prisma-user.repository';
 
 describe('selección de correo en IdentityModule', () => {
   const config = (values: Record<string, unknown>): ConfigService => {
@@ -19,6 +23,9 @@ describe('selección de correo en IdentityModule', () => {
       .compile();
     expect(module.get(EMAIL_SENDER)).toBeInstanceOf(ConsoleEmailSender);
     expect(() => module.get(SmtpEmailSender)).toThrow();
+    expect(module.get(GetUserProfileUseCase)).toBeInstanceOf(GetUserProfileUseCase);
+    expect(module.get(UpdateUserProfileUseCase)).toBeInstanceOf(UpdateUserProfileUseCase);
+    expect(module.get(USER_PROFILE_CHANGE_REPOSITORY)).toBe(module.get(PrismaUserRepository));
     await module.close();
   });
 

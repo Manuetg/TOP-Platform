@@ -9,7 +9,7 @@ const updated = User.create({ id, email: 'new@example.com', status: UserStatus.A
 
 describe('UserController Update User', () => {
   const execute = jest.fn();
-  const controller = new UserController({ execute: jest.fn() } as never, { execute: jest.fn() } as never, { execute } as never);
+  const controller = new UserController({ execute: jest.fn() } as never, { execute: jest.fn() } as never, { execute } as never, { execute: jest.fn() } as never, { execute: jest.fn() } as never);
   beforeEach(() => jest.resetAllMocks());
 
   it('delega únicamente id, actor y email y devuelve DTO público', async () => {
