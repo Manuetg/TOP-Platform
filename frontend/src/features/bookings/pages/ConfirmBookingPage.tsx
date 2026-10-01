@@ -13,6 +13,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useIsPresent } from "motion/react";
 import {
   useNavigate,
   useLocation,
@@ -34,8 +35,22 @@ import "./ConfirmBookingPage.css";
 
 
 export function ConfirmBookingPage() {
-  const { activeBusinessId } = useBusinessContext(); const { session } = useAuth(); const { bookingId } = useParams();
-  return <ConfirmBookingContent key={`${session?.user.id}:${activeBusinessId}:${bookingId}`} />;
+  const navigate = useNavigate();
+  const { activeBusinessId, activeBusiness, activeRole, status: businessStatus } = useBusinessContext();
+  const { session, status: authStatus } = useAuth();
+  const { bookingId = "" } = useParams();
+  const canConfirm = authStatus === "authenticated" && Boolean(session?.user.id && session.accessToken && activeBusinessId && bookingId) &&
+    businessStatus === "ready" && activeBusiness?.id === activeBusinessId &&
+    (activeRole === "OWNER" || activeRole === "ADMIN" || activeRole === "RECEPTIONIST");
+
+  if (!canConfirm) {
+    return <section className="confirm-booking-page">
+      <div className="confirm-booking-error" role="alert">No tienes permiso para confirmar esta reserva.</div>
+      <Button variant="secondary" onClick={() => navigate(bookingId ? `/app/bookings/${bookingId}` : "/app/bookings")}>Volver a la reserva</Button>
+    </section>;
+  }
+
+  return <ConfirmBookingContent key={`${session?.user.id}:${activeBusinessId}:${bookingId}:${activeRole}`} />;
 }
 
 function ConfirmBookingContent() {
@@ -43,9 +58,15 @@ function ConfirmBookingContent() {
   const location = useLocation();
   const confirmationError = typeof location.state?.confirmationError === "string" ? location.state.confirmationError : null;
   const { bookingId = "" } = useParams();
-  const { session } = useAuth();
+  const { session, status: authStatus } = useAuth();
 
-  const { activeBusinessId: businessId, activeBusiness, activeRole } = useBusinessContext();
+  const { activeBusinessId: businessId, activeBusiness, activeRole, status: businessStatus } = useBusinessContext();
+  const canConfirm = authStatus === "authenticated" && businessStatus === "ready" &&
+    (activeRole === "OWNER" || activeRole === "ADMIN" || activeRole === "RECEPTIONIST");
+  const isPresent = useIsPresent();
+  const present = useRef(isPresent);
+  present.current = isPresent;
+  const alive = useRef(false);
   const currency = activeBusiness?.currency ?? "";
 
   const {
@@ -155,6 +176,13 @@ function ConfirmBookingContent() {
 
   const operation = useRef<AbortController | null>(null);
   useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; operation.current?.abort(); operation.current = null; };
+  }, []);
+  useEffect(() => {
+    if (!isPresent) operation.current?.abort();
+  }, [isPresent]);
+  useEffect(() => {
     setPreview(null); setPageError(null);
     return () => { operation.current?.abort(); operation.current = null; };
   }, [manualContextKey, ratePlanId]);
@@ -169,7 +197,7 @@ function ConfirmBookingContent() {
   }, [manualContextKey]);
 
   function changePricingMode(mode: "CONFIGURED" | "MANUAL_NO_RATE_PLAN") {
-    if (mode === pricingMode || confirmMutation.isPending) return;
+    if (!alive.current || !present.current || !canConfirm || mode === pricingMode || confirmMutation.isPending || (mode === "MANUAL_NO_RATE_PLAN" && !canOverride)) return;
     operation.current?.abort(); operation.current = null;
     setPricingMode(mode);
     setRatePlanId("");
@@ -178,6 +206,7 @@ function ConfirmBookingContent() {
   }
 
   async function handlePreview() {
+    if (!alive.current || !present.current || !canConfirm || booking?.status !== "PENDING") return;
     setPageError(null);
     setPreview(null);
 
@@ -198,10 +227,10 @@ function ConfirmBookingContent() {
           signal: controller.signal,
         });
 
-      if (controller.signal.aborted) return;
+      if (!alive.current || !present.current || controller.signal.aborted || operation.current !== controller) return;
       setPreview(result);
     } catch (error) {
-      if (controller.signal.aborted) return;
+      if (!alive.current || !present.current || controller.signal.aborted || operation.current !== controller) return;
       setPageError(
         error instanceof Error
           ? error.message
@@ -211,7 +240,7 @@ function ConfirmBookingContent() {
   }
 
   async function handleConfirm() {
-    if (operation.current) return;
+    if (!alive.current || !present.current || !canConfirm || booking?.status !== "PENDING" || operation.current) return;
     setPageError(null);
 
     if (contextRefetching || (pricingMode === "MANUAL_NO_RATE_PLAN" ? !manualReady : !ratePlansCurrent || !selectedRatePlan || !preview)) {
@@ -233,12 +262,12 @@ function ConfirmBookingContent() {
         ],
       });
 
-      if (controller.signal.aborted) return;
+      if (!alive.current || !present.current || controller.signal.aborted || operation.current !== controller) return;
       navigate(
         `/app/bookings/${bookingId}`,
       );
     } catch (error) {
-      if (controller.signal.aborted) return;
+      if (!alive.current || !present.current || controller.signal.aborted || operation.current !== controller) return;
       setPageError(
         error instanceof Error
           ? error.message

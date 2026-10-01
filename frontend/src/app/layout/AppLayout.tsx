@@ -138,6 +138,7 @@ export function AppLayout() {
   const userDisplayName = typeof session?.user.displayName === "string" ? session.user.displayName.trim() : "";
 
   const activeSection = getActiveSection(location.pathname);
+  const isAccountSettings = location.pathname.replace(/\/+$/, "") === "/app/settings";
   const rail = status === "ready" ? getContextRailContent(location.pathname) : null;
   const previousPath = useRef(location.pathname);
   useEffect(() => {
@@ -160,7 +161,7 @@ export function AppLayout() {
   return (
     <AppShell
       activeSection={activeSection}
-      renderBusinessMenu={(close) => <BusinessSelector onSelected={() => { close(); void navigate("/app", { replace: true }); }} />}
+      renderBusinessMenu={(close) => <BusinessSelector onSelected={() => { close(); if (!isAccountSettings) void navigate("/app", { replace: true }); }} />}
       contextRail={rail ? <ContextRail title="Para tener en cuenta" blocks={rail} /> : null}
       businessName={activeBusiness?.name ?? (status === "empty" ? "Sin negocio activo" : status === "error" ? "No disponible" : "Seleccioná un negocio")}
       userName={userDisplayName || session?.user.email || "Usuario"}
@@ -179,7 +180,7 @@ export function AppLayout() {
             })()
       }
     >
-      {location.pathname.replace(/\/+$/, "") === "/app/settings" ? (
+      {isAccountSettings ? (
         <PageErrorBoundary key={`${session?.user.id}:settings`} />
       ) : (
         <BusinessBoundary><PageErrorBoundary key={`${session?.user.id}:${activeBusiness?.id}`} /></BusinessBoundary>

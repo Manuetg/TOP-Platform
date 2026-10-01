@@ -1,18 +1,18 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConfirmBookingPage } from "./ConfirmBookingPage";
 
 const state = vi.hoisted(() => ({ business: "business-1", businessStatus: "ACTIVE", role: "RECEPTIONIST", resource: "resource-1", resourceStatus: "ACTIVE", data: [{ id: "plan-1", name: "Normal", currency: "PYG", baseNightlyAmountMinor: 100000 }], error: false, loading: false, calculate: vi.fn(), confirm: vi.fn(), retry: vi.fn() }));
-vi.mock("../../auth/context/AuthContext", () => ({ useAuth: () => ({ session: { user: { id: "user-1" }, accessToken: "token" } }) }));
-vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ activeBusinessId: state.business, activeBusiness: { id: state.business, status: state.businessStatus, currency: "PYG" }, activeRole: state.role }) }));
+vi.mock("../../auth/context/AuthContext", () => ({ useAuth: () => ({ status: "authenticated", session: { user: { id: "user-1" }, accessToken: "token" } }) }));
+vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => ({ status: "ready", activeBusinessId: state.business, activeBusiness: { id: state.business, status: state.businessStatus, currency: "PYG" }, activeRole: state.role }) }));
 vi.mock("../queries/use-booking", () => ({ useBooking: () => ({ data: { id: "booking-1", businessId: state.business, status: "PENDING", resourceIds: [state.resource], checkInDate: "2026-09-24", checkOutDate: "2026-09-26" }, isLoading: false, isError: false }) }));
 vi.mock("../../resources/queries/use-resources", () => ({ useResources: () => ({ data: [{ id: state.resource, businessId: state.business, name: "Cabaña", status: state.resourceStatus }], isLoading: false, isError: false }) }));
 vi.mock("../../pricing/queries/use-selectable-rate-plans", () => ({ useSelectableRatePlans: () => ({ data: state.data, isLoading: state.loading, isFetching: state.loading, isSuccess: !state.error && !state.loading, isError: state.error, refetch: state.retry }) }));
 vi.mock("../../pricing/queries/use-calculate-price", () => ({ useCalculatePrice: () => ({ mutateAsync: state.calculate, isPending: false }) }));
 vi.mock("../queries/use-confirm-booking", () => ({ useConfirmBooking: () => ({ mutateAsync: state.confirm, isPending: false }) }));
-const view = () => <MemoryRouter><ConfirmBookingPage /></MemoryRouter>;
+const view = () => <MemoryRouter initialEntries={["/app/bookings/booking-1/confirm"]}><Routes><Route path="/app/bookings/:bookingId/confirm" element={<ConfirmBookingPage />} /><Route path="/app/bookings/:bookingId" element={<h1>Detalle de reserva</h1>} /></Routes></MemoryRouter>;
 describe("confirmación con selección contextual", () => {
   beforeEach(() => { vi.clearAllMocks(); state.role = "RECEPTIONIST"; state.business = "business-1"; state.businessStatus = "ACTIVE"; state.resource = "resource-1"; state.resourceStatus = "ACTIVE"; state.loading = false; state.error = false; state.data = [{ id: "plan-1", name: "Normal", currency: "PYG", baseNightlyAmountMinor: 100000 }]; });
   it("presenta fechas y autoselecciona el único plan sin modificar ISO enviado", async () => {
@@ -129,8 +129,14 @@ describe("confirmación con selección contextual", () => {
     await user.click(screen.getByRole("button", { name: "Confirmar reserva" }));
     expect(state.confirm).toHaveBeenCalledWith({ signal: expect.any(AbortSignal), pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 500, overrideReason: "Acuerdo" }] });
   });
-  it.each(["RECEPTIONIST", "VIEWER"])("no habilita el precio manual sin plan a %s", (role) => {
-    state.role = role; state.data = []; render(view()); expect(screen.queryByLabelText("Precio final")).not.toBeInTheDocument(); expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeDisabled();
+  it("no habilita el precio manual sin plan a RECEPTIONIST", () => {
+    state.data = []; render(view()); expect(screen.queryByLabelText("Precio final")).not.toBeInTheDocument(); expect(screen.getByRole("button", { name: "Confirmar reserva" })).toBeDisabled();
+  });
+  it("bloquea la URL directa de confirmación a VIEWER", () => {
+    state.role = "VIEWER"; render(view());
+    expect(screen.getByRole("alert")).toHaveTextContent("No tienes permiso para confirmar");
+    expect(screen.queryByRole("button", { name: "Confirmar reserva" })).not.toBeInTheDocument();
+    expect(state.confirm).not.toHaveBeenCalled(); expect(state.calculate).not.toHaveBeenCalled();
   });
   it.each(["businessStatus", "resourceStatus"] as const)("bloquea Manual si %s deja de estar activo", async (field) => {
     state.role = "OWNER"; state[field] = "ARCHIVED";

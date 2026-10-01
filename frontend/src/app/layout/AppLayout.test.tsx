@@ -26,7 +26,7 @@ function signedIn(displayName: string | null) {
   });
 }
 
-function renderApp(initialEntry = "/app") {
+function renderApp(initialEntry = "/app", settingsElement = <h1>Configuración</h1>) {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
@@ -40,7 +40,7 @@ function renderApp(initialEntry = "/app") {
           <Route path="pricing" element={<h1>Precios</h1>} />
           <Route path="payments" element={<h1>Pagos</h1>} />
           <Route path="blocks" element={<h1>Bloqueos</h1>} />
-          <Route path="settings" element={<h1>Configuración</h1>} />
+          <Route path="settings" element={settingsElement} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -48,6 +48,31 @@ function renderApp(initialEntry = "/app") {
 }
 
 describe("AppLayout", () => {
+  it.each(["/app/settings", "/app/settings/"])("preserves the personal draft when selecting another business at %s", async (path) => {
+    signedIn("Jeni González");
+    const businesses = ["a", "b"].map((id) => ({
+      id, name: `Negocio ${id}`, legalName: null, taxId: null, currency: "PYG",
+      timezone: "America/Asuncion", status: "ACTIVE" as const,
+      createdAt: "2026-10-01T00:00:00.000Z", updatedAt: "2026-10-01T00:00:00.000Z",
+    }));
+    const selectBusiness = vi.fn(() => true);
+    vi.spyOn(businessContext, "useBusinessContext").mockReturnValue({
+      businesses, activeBusiness: businesses[0], activeBusinessId: "a", activeMembership: null,
+      activeRole: "OWNER", status: "ready", error: null, retry: vi.fn(), selectBusiness,
+    });
+    const user = userEvent.setup();
+    renderApp(path, <><h1>Configuración</h1><label>Nombre borrador<input defaultValue="Jeni" /></label><label>Motivo borrador<input /></label></>);
+    await user.type(screen.getByRole("textbox", { name: "Nombre borrador" }), " actualizado");
+    await user.type(screen.getByRole("textbox", { name: "Motivo borrador" }), "Preferencia personal");
+    await user.click(screen.getAllByRole("button", { name: "Cambiar negocio activo" })[0]);
+    await user.click(screen.getByRole("button", { name: /Negocio b/ }));
+    expect(selectBusiness).toHaveBeenCalledWith("b");
+    expect(screen.getByRole("heading", { name: "Configuración" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Nombre borrador" })).toHaveValue("Jeni actualizado");
+    expect(screen.getByRole("textbox", { name: "Motivo borrador" })).toHaveValue("Preferencia personal");
+    expect(screen.queryByRole("heading", { name: "Inicio" })).not.toBeInTheDocument();
+  });
+
   it("shows the personal name in navigation and retains the account email", async () => {
     signedIn("Jeni González");
     renderApp();
