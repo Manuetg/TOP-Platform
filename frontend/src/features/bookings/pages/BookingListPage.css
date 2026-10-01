@@ -1,4 +1,7 @@
 .booking-list-page {
+  min-width: 0;
+  container-name: booking-list;
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: 22px;
@@ -60,6 +63,7 @@
 }
 
 .booking-list-search {
+  min-width: 0;
   display: flex;
   min-height: 44px;
   align-items: center;
@@ -91,6 +95,7 @@
 }
 
 .booking-list-field {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 7px;
@@ -103,6 +108,7 @@
 }
 
 .booking-list-field select {
+  min-width: 0;
   min-height: 44px;
   width: 100%;
   padding: 0 34px 0 11px;
@@ -317,6 +323,74 @@
   }
 }
 
+.booking-list-card {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 13px;
+  padding: 15px;
+  border: 1px solid #e0e7e5;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #40545a;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.booking-list-card:hover {
+  border-color: #cbd8d4;
+}
+
+.booking-list-card:focus-visible {
+  border-color: #155c4c;
+  outline: 3px solid rgba(21, 92, 76, 0.14);
+}
+
+.booking-list-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.booking-list-card__header > strong {
+  color: #29434a;
+  font-size: 0.88rem;
+}
+
+.booking-list-card__contact {
+  color: #29434a;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.booking-list-card__stay,
+.booking-list-card__occupancy {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: #718087;
+  font-size: 0.82rem;
+}
+
+.booking-list-card__stay svg,
+.booking-list-card__occupancy svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: #155c4c;
+}
+
+.booking-list-card__stay > span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.booking-list-card__stay strong {
+  color: #506268;
+}
+
 @media (max-width: 860px) {
   .booking-list-table {
     display: none;
@@ -326,73 +400,27 @@
     display: grid;
     gap: 12px;
   }
+}
 
-  .booking-list-card {
-    display: flex;
-    width: 100%;
-    flex-direction: column;
-    gap: 13px;
-    padding: 15px;
-    border: 1px solid #e0e7e5;
-    border-radius: 14px;
-    background: #ffffff;
-    color: #40545a;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
+@container booking-list (max-width: 960px) {
+  .booking-list-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .booking-list-card:hover {
-    border-color: #cbd8d4;
+  .booking-list-filters__clear {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+}
+
+@container booking-list (max-width: 900px) {
+  .booking-list-table {
+    display: none;
   }
 
-  .booking-list-card:focus-visible {
-    border-color: #155c4c;
-    outline: 3px solid rgba(21, 92, 76, 0.14);
-  }
-
-  .booking-list-card__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  .booking-list-cards {
+    display: grid;
     gap: 12px;
-  }
-
-  .booking-list-card__header > strong {
-    color: #29434a;
-    font-size: 0.88rem;
-  }
-
-  .booking-list-card__contact {
-    color: #29434a;
-    font-size: 1rem;
-    font-weight: 700;
-  }
-
-  .booking-list-card__stay,
-  .booking-list-card__occupancy {
-    display: flex;
-    align-items: flex-start;
-    gap: 9px;
-    color: #718087;
-    font-size: 0.82rem;
-  }
-
-  .booking-list-card__stay svg,
-  .booking-list-card__occupancy svg {
-    flex: 0 0 auto;
-    margin-top: 1px;
-    color: #155c4c;
-  }
-
-  .booking-list-card__stay > span {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  .booking-list-card__stay strong {
-    color: #506268;
   }
 }
 
