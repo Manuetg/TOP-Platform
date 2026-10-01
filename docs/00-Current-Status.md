@@ -2,13 +2,15 @@
 
 Última actualización: 2026-10-01
 
-## Publicación autorizada — 2026-10-01 12:06 UTC
+## Publicación y soporte QA — actualización documental 2026-10-01
 
-El usuario autorizó publicar codex/night-integration-20261001 y abrir PR DRAFT hacia develop. No autorizó aprobación de reviews, asignación de reviewers, merge/auto-merge ni despliegue. El código validado ee038ce y los árboles backend/frontend siguen sin cambios; la publicación añade documentación de proceso y guía. Los límites y resultados del corte local inferior permanecen como evidencia fechada. El CI del HEAD publicado debe revisarse por separado; no se hereda un PASS de otro HEAD.
+[PR #101](https://github.com/Manuetg/TOP-Platform/pull/101) publicada como Draft hacia develop, rama codex/night-integration-20261001, por autorización del usuario a las 12:06 UTC. Sin reviewers, aprobación, merge/auto-merge ni deploy. El código validado ee038ce y sus árboles backend/frontend se conservan.
 
-Proceso, antes/después, bugs, fuentes, inventario, comandos, cuentas sintéticas y matriz de revisión en [Refinamiento nocturno y guía](15-Night-Refinement-Review.md). La PR es draft y los refinamientos permanecen In Progress, sujetos a revisión humana y gates preproducción.
+CI verificado a las 12:27 UTC sobre 6e572c1: [frontend SUCCESS](https://github.com/Manuetg/TOP-Platform/actions/runs/36861110999), 106 archivos/867 pruebas; [backend SUCCESS](https://github.com/Manuetg/TOP-Platform/actions/runs/36861110824), unitarias/integración/E2E/aceptación/cobertura/arquitectura, Node 22.23.3/npm 10.9.9. Mutation SKIPPED por política del evento pull_request; no es PASS. Cualquier head posterior requiere CI propio; consultar la PR.
 
-## Handoff vigente — refinamientos locales de estados, configuración, recursos y web
+[Guía detallada](15-Night-Refinement-Review.md) y [soporte QA portable](../scripts/qa/README.md). El paquete parametriza rutas y arranca main.js normal; solo tiene análisis sintáctico, sin smoke nuevo. No contiene .env, datos reales, node_modules ni harness privado. Los apartados inferiores son evidencia histórica del corte local previo a la publicación. Los refinamientos permanecen In Progress, sujetos a revisión humana y gates preproducción.
+
+## Handoff local — corte previo a la publicación
 
 Base verificada: `develop@835b2a4397bb3e6f04480386e62b11c86a74e8a5`. PR #98 integrada el 30/09/2026 en `26ba478`; PR #100 integrada el 01/10/2026 e incluye sidebar, detalle de Resources, agenda mensual y showcase. Los handoffs inferiores son antecedentes fechados. El primer corte de B está integrado; B restante, el quality gate preproducción y la definición comercial de FE-SUB-001 siguen pendientes.
 

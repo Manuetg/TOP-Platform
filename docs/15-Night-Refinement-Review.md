@@ -1,28 +1,207 @@
 # TOP — Refinamiento nocturno: proceso, alcance y guía de revisión
 
-Encargo: TOP-Platform, no DevKittens. La revisión documental y la partición antecedieron a la implementación. El trabajo y la QA se hicieron en la rama aislada codex/night-integration-20261001. La aplicación validada es ee038ce; c9da5f2 añadió siete documentos y preservó idénticos los árboles backend/frontend.
+Encargo TOP-Platform. La revisión documental precedió a la implementación aislada. La PR [#101](https://github.com/Manuetg/TOP-Platform/pull/101) está publicada como Draft hacia develop por autorización de las 12:06 UTC; sin aprobación, reviewers, merge/auto-merge ni deploy.
 
-Publicación autorizada por el usuario el 01/10/2026 a las 12:06 UTC: publicar esa rama y abrir una PR DRAFT contra develop. Continúan prohibidos aprobar reviews, merge/auto-merge y desplegar. No se asignan reviewers. La revisión humana y el CI del HEAD publicado son pendientes independientes de la QA local; este informe no declara Completed ni Production Ready.
-
-Remoto consultado en solo lectura: develop835b2a4397bb3e6f04480386e62b11c86a74e8a5; sin rama/PR previa para este head. Se publicará sin force push. Las autorizaciones de otros proyectos no se reutilizaron.
-
-Esta documentación de proceso añade la guía reproducible y limita expresamente los comandos reconstruidos/no ejecutados. La infraestructura de QA anterior se cerró y eliminó. Este paso documental no cambia la aplicación ni vuelve a ejecutar las suites. Evidencias completas preservadas fuera del repositorio; se resumen aquí para revisión de la PR.
+La [receta portable](../scripts/qa/README.md) y sus scripts se incorporan como soporte: requieren copiarse a una carpeta externa al clon QA, no incluyen el harness privado y solo tienen validación sintáctica. No hay smoke nuevo. La API normal no fija loopback; consultar esa limitación en la receta antes de arrancar. La QA histórica y CI verificado se identifican por su head y no sustituyen ese smoke.
 
 # TOP-Platform — Informe detallado y guía de pruebas para Rolo
 
-Fecha: 1 de octubre de 2026. Código de aplicación validado ee038ce9e94b8f8c7d0b61f9f5cd4fc61f8b9d9c; entrega documental c9da5f2f48446666f9f68293463eaafc02d32aed, base develop835b2a4397bb3e6f04480386e62b11c86a74e8a5. Rama codex/night-integration-20261001.
+Actualización: 2026-10-01T12:48:54.431Z. Proyecto Manuetg/TOP-Platform. Base develop 835b2a4397bb3e6f04480386e62b11c86a74e8a5; rama codex/night-integration-20261001.
 
-Este informe reúne los hechos, los comandos fuente y la matriz por módulos. No se rehízo QA en esta fase de autoría. Los tres capítulos conservan la atribución de su evidencia. La base sintética anterior se eliminó: recreación, migraciones y seed son necesarios para una nueva prueba. El comando PG reconstruido está identificado como NO ejecutado; no se atribuye un comando de creación histórico que no quedó archivado.
+PR DRAFT publicada: https://github.com/Manuetg/TOP-Platform/pull/101. Publicación autorizada el 01/10/2026 a las 12:06 UTC. Sin reviewers, aprobación, merge/auto-merge ni despliegue. El código de aplicación sigue congelado en ee038ce9e94b8f8c7d0b61f9f5cd4fc61f8b9d9c; árbol backend 55a2290d933a810bd1c60249738d6c204a5d2df6 y frontend 94633656e5d5010c24c75300171377aa4aca75e7.
 
-Autorización actual del usuario, 12:06 UTC: publicar la rama y abrir PR DRAFT hacia develop. Continúan prohibidos aprobación de PR, merge/auto-merge y deploy. La publicación está en preparación y se registrará aparte con URL/head/CI exactos; los apartados históricos que describen trabajo local corresponden al corte validado. No usar credenciales ni datos reales; los valores .example.invalid y contraseñas marcadas sintéticas pertenecen exclusivamente a la DB descartable top_test.
+CI remoto verificado el 2026-10-01T12:27:21Z sobre head 6e572c1887391aca9c99dafbbee6caf2e997146d: frontend SUCCESS, 106 archivos/867 pruebas; backend SUCCESS, 128/1464 unitarias, 34/199 integración, 25/397 E2E, 196 escenarios/777 pasos, cobertura 187/2060 y arquitectura 0 violaciones. Node 22.23.3/npm 10.9.9. Mutation SKIPPED porque pull_request no activa ese job; no es PASS. El checkout sintético 87045746b28feba1bcd6c189d14429658e2ab25c tiene árbol completo idéntico al head publicado.
 
-Habilidad de documentos no disponible en este entorno. Por instrucción del padre se priorizan texto y HTML; no se promete DOCX/PDF.
+Frontend: https://github.com/Manuetg/TOP-Platform/actions/runs/36861110999
+Backend: https://github.com/Manuetg/TOP-Platform/actions/runs/36861110824
 
+El soporte QA se incorpora a la misma rama como documentación/scripts; cualquier nuevo head requiere su propio CI. Los resultados anteriores tienen el head indicado y no se heredan. El estado vivo de la PR es la fuente para el CI posterior a este corte documental.
+
+La nueva receta portable es el capítulo 1: rutas parametrizadas y bootstrap normal, sin harness privado. Solo se analizó sintaxis; no se arrancaron servicios, sembraron datos ni repitieron suites con el paquete. Se recomienda un clon QA dedicado. Los capítulos históricos posteriores conservan comandos dependientes del entorno original y no son el launcher portable. No reinterpretar sus estados “local/sin push/CI22 NOT RUN” como el estado actual de la PR. La infraestructura sintética anterior fue cerrada y eliminada.
+
+El nombre personal se edita con motivo y versión; el correo permanece informativo hasta definir su contrato seguro. Los siete estados de Booking y sus historias/transiciones se conservan. La página de cookies describe la implementación técnica; no afirma cumplimiento legal. No hay smoke nuevo del paquete ni certificación touch/WCAG, SMTP/S3 o finanzas reales.
+
+Se entregan TXT y HTML con las cinco capturas existentes. DOCX/PDF fueron cancelados por instrucción del padre al no existir la habilidad requerida.
+
+Proceso de publicación: se verificó develop y la ausencia de rama/PR previa, se conservó el checkout aislado y se hizo push normal sin force. El intento de crear la PR mediante la app integrada devolvió HTTP 403 “Resource not accessible by integration”; no creó ninguna PR. Antes del fallback se verificó la cuenta CLI ya autenticada rolandobarros27 y sus permisos pull/push/triage en Manuetg/TOP-Platform, sin modificar credenciales ni permisos, y se volvió a consultar la ausencia de PR. gh existente creó únicamente el Draft #101 hacia develop, sin reviewers ni auto-merge. El CI se leyó de los runs asociados al head exacto y su checkout sintético; no se reejecutó ni aprobó nada.
+
+# Capítulo 1 — Receta QA portable
+
+# QA local portable de TOP para Windows PowerShell
+
+Paquete de soporte externo a la aplicación, preparado a partir de scripts QA existentes. **Solo se verificó sintaxis; no se ejecutó un smoke nuevo, instalación, PostgreSQL, aplicación, seed ni suites con este paquete.** No incluye harness privado: arranca el bootstrap normal `backend/dist/src/main.js` en `NODE_ENV=development`, con base/correo/secrets sintéticos y storage en memoria. El recorrido interactivo con API real que consta en el informe anterior usó otro launcher/harness; ese PASS no valida esta adaptación portable.
+
+Usar un clon dedicado limpio de TOP-Platform y extraer este paquete en una carpeta externa al clon. Requiere Windows PowerShell 5.1 o PowerShell 7, Git, Node compatible, npm CLI local, Docker operativo con contenedores Linux y la imagen `postgres:16-alpine` disponible. README/CI oficiales del backend usan Node 22. La evidencia local anterior usa Node 24.19.0/npm 9.8.1 y no acredita CI22. No modifica Git global ni elimina archivos env. Se rechazan archivos env del clon para evitar consumir configuración ajena.
+
+El corte documental local es `c9da5f2f48446666f9f68293463eaafc02d32aed`; código QA `ee038ce9e94b8f8c7d0b61f9f5cd4fc61f8b9d9c`; árbol backend `55a2290d933a810bd1c60249738d6c204a5d2df6`. La implementación está publicada en PR #101 Draft; el HEAD publicado 6e registra CI oficial Node 22 SUCCESS: Backend run 36861110824 y Frontend run 36861110999. Los árboles backend 55a2290d933a810bd1c60249738d6c204a5d2df6 y frontend 94633656e5d5010c24c75300171377aa4aca75e7 permanecen idénticos. Incorporar la rama de PR #101 en el clon dedicado y verificar el HEAD/árbol elegido antes de ejecutar. Esa CI valida el código publicado, no este paquete portable, que sigue sin smoke nuevo. No ejecutar contra el checkout principal, bases existentes ni recursos de otra sesión.
+
+## 1. Configurar rutas e instalar las dependencias del clon
+
+Reemplazar solamente las tres rutas por las de tu equipo. `NpmCliPath` es el archivo JavaScript npm-cli.js de tu instalación, no npm.cmd. Ejecutar desde la carpeta del paquete extraído.
+
+```powershell
+$taskRepoRoot = 'C:\QA\TOP-Platform'
+$taskNodeExecutable = (Get-Command node.exe -CommandType Application | Select-Object -First 1).Source
+$taskNpmCliPath = 'C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js'
+. .\Set-QAEnvironment.ps1 -RepoRoot $taskRepoRoot -NodeExecutable $taskNodeExecutable -NpmCliPath $taskNpmCliPath
+Push-Location -LiteralPath (Join-Path $taskRepoRoot 'backend')
+& $taskNodeExecutable $taskNpmCliPath ci
+if ($LASTEXITCODE -ne 0) { throw 'Falló npm ci backend.' }
+Pop-Location
+Push-Location -LiteralPath (Join-Path $taskRepoRoot 'frontend')
+& $taskNodeExecutable $taskNpmCliPath ci
+if ($LASTEXITCODE -ne 0) { throw 'Falló npm ci frontend.' }
+Pop-Location
+```
+
+No instalar globalmente ni cambiar lockfiles. Los scripts no instalan dependencias. El entorno usa exactamente `top_test`, actor `top_night_test`, URL `postgresql://top_night_test:top-night-integration-synthetic-20261001@127.0.0.1:55473/top_test?schema=public`, email console y storage memoria. JWT/OTP son valores públicos sintéticos. Abrir una shell dedicada porque Set-QAEnvironment cambia variables y PATH.
+
+## 2. Crear PostgreSQL efímero propio
+
+**Comando reconstruido, no ejecutado en la preparación del paquete.** Captura el ID nuevo y utiliza un nombre y label de sesión únicos. No reutilizar contenedores, ni el ID histórico ya eliminado. `--pull never` evita descargas implícitas; si falta imagen o permiso Docker, detener el procedimiento.
+
+```powershell
+$taskPgRunId = [Guid]::NewGuid().ToString('N')
+$taskPgName = 'top-portable-qa-pg-' + $taskPgRunId
+$taskPgListeners = @(Get-NetTCPConnection -LocalPort 55473 -State Listen -ErrorAction SilentlyContinue)
+if ($taskPgListeners.Count -ne 0) { throw '55473 ocupado; no tocar el proceso existente.' }
+& docker image inspect postgres:16-alpine --format '{{.Id}}'
+if ($LASTEXITCODE -ne 0) { throw 'Falta imagen local o acceso Docker.' }
+$taskPgContainerId = (& docker run --pull never --detach --rm --name $taskPgName --label "top.portable.qa.run=$taskPgRunId" --tmpfs '/var/lib/postgresql/data:rw,size=512m' --publish '127.0.0.1:55473:5432' --env 'POSTGRES_USER=top_night_test' --env 'POSTGRES_PASSWORD=top-night-integration-synthetic-20261001' --env 'POSTGRES_DB=top_test' --health-cmd 'pg_isready -U top_night_test -d top_test' postgres:16-alpine | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or $taskPgContainerId -notmatch '^[0-9a-f]{64}$') { throw 'No se obtuvo ID propio válido.' }
+$env:TOP_QA_PG_CONTAINER_NAME = $taskPgName
+& docker inspect --format '{{.State.Health.Status}}' $taskPgContainerId
+& docker exec $taskPgContainerId pg_isready -U top_night_test -d top_test
+```
+
+Esperar healthy/accepting connections antes de continuar. Conservar ID, nombre y runId nuevos hasta el cierre. No usar Compose del producto: tiene otros puertos y volúmenes persistentes. Esta DB desaparece al detener PG; las credenciales ficticias solo sirven en este entorno descartable.
+
+## 3. Migraciones y gates backend en serie
+
+```powershell
+& .\Run-BackendGates.ps1 -RepoRoot $taskRepoRoot -NodeExecutable $taskNodeExecutable -NpmCliPath $taskNpmCliPath -PgContainerId $taskPgContainerId -PgName $taskPgName -PgRunId $taskPgRunId -EjecutarGates
+```
+
+Secuencia: generate, identidad SQL exacta, validate, migrate deploy, build, lint, unit --runInBand, integration, e2e --runInBand, acceptance, coverage, architecture. No migrate dev. Antes de gates, seed y arranque se inspeccionan funcionalmente ID completo/nombre/runId-label únicos, imagen, tmpfs, cero mounts, loopback/puerto, healthy, identidad SQL y cero otros client backend en todo el servidor; si falta acceso Docker o alguna guarda falla, no se ejecuta. El script conserva comandos/exit codes en `runs/gates-<timestamp>/results.json`, falla al primer control fallido y exige fuente limpia/HEAD/árbol estables. Copiar el paquete a una carpeta externa de ejecución, nunca correrlo desde el clon: runs y qa-fixtures.json son salidas locales que no deben versionarse. Continuar solo si conclusion es `all_listed_gates_passed_for_recorded_backend_tree`. No ejecuta mutation ni CI. Integración/E2E y aceptación @postgres limpian la DB: seed va después. No ejecutar navegador u otras suites contra esta base al mismo tiempo.
+
+## 4. Seed QA y build frontend
+
+```powershell
+& .\Seed-QAFixtures.ps1 -RepoRoot $taskRepoRoot -NodeExecutable $taskNodeExecutable -NpmCliPath $taskNpmCliPath -PgContainerId $taskPgContainerId -PgName $taskPgName -PgRunId $taskPgRunId -GatesTerminados
+. .\Set-QAEnvironment.ps1 -RepoRoot $taskRepoRoot -NodeExecutable $taskNodeExecutable -NpmCliPath $taskNpmCliPath
+Push-Location -LiteralPath (Join-Path $taskRepoRoot 'frontend')
+& $taskNodeExecutable $taskNpmCliPath run build
+if ($LASTEXITCODE -ne 0) { throw 'Falló build frontend QA.' }
+Pop-Location
+```
+
+El seed reutiliza el existente, mantiene guardas test/URL/actor/.env/SMTP/S3, requiere cliente y columna displayName migrados, usa upsert update:{} y verifica hashes Argon2. No tiene SQL DELETE ni reset destructivo. Genera `qa-fixtures.json` en el paquete. El seed Prisma del producto solo crea Amenities y no reemplaza este fixture. No crear usuarios reales.
+
+| Rol en negocio A | Email ficticio | Contraseña sintética |
+|---|---|---|
+| OWNER | owner@top-night.example.invalid | TopNight.Owner!2026-10-01 |
+| ADMIN | admin@top-night.example.invalid | TopNight.Admin!2026-10-01 |
+| RECEPTIONIST | receptionist@top-night.example.invalid | TopNight.Reception!2026-10-01 |
+| VIEWER | viewer@top-night.example.invalid | TopNight.Viewer!2026-10-01 |
+
+OWNER tiene A+B; los otros tres solo A. Son 4 usuarios ACTIVE/verificados, 2 negocios/5 membresías/2 recursos sin fotos/2 contactos/7 reservas de lectura/2 bloques. B está vacío de reservas/recursos. No hay snapshots de precio, payments ni payment plans: este fixture no acredita lifecycle ni finanzas. Fechas relativas a hoy en America/Asuncion.
+
+## 5. Arrancar el bootstrap normal y hacer QA
+
+```powershell
+& .\Start-QA.ps1 -RepoRoot $taskRepoRoot -NodeExecutable $taskNodeExecutable -NpmCliPath $taskNpmCliPath -PgContainerId $taskPgContainerId -PgName $taskPgName -PgRunId $taskPgRunId -LanzarQA
+```
+
+Para frontend dev, en otra sesión exclusiva cerrando primero la anterior: añadir `-DevelopmentFrontend`. API `http://127.0.0.1:3047/api`; health `/api/health`; frontend `http://127.0.0.1:4177`. NODE_ENV=development solo para el arranque normal; DB sigue siendo test descartable, correo console/memoria. CORS exactos 127.0.0.1:4177 y localhost:4177. Build preview debe contener VITE_API_URL=http://127.0.0.1:3047/api, que ya establece Set-QAEnvironment. El launcher rechaza puertos ocupados y genera un manifest NUEVO en runs/runtime-<timestamp>/processes.json con PID/startTime/executable/commandLine/args. Si falla arranque puede haber procesos propios activos: usar ese manifest para cierre verificado; si no se pudo capturar metadata completa, inspeccionar manualmente y no desactivar guardas.
+
+**Limitación del bootstrap normal actual:** app.listen usa PORT sin fijar interfaz; API puede escuchar en interfaces distintas de loopback. Se conserva la aplicación intacta. Usar una máquina local QA dedicada con red restringida; PG y Vite sí se publican en loopback. No presentar este paquete como hosting/producción ni como smoke HTTP aprobado. La readiness HTTP200 futura solo constata arranque, no sustituye suites ni QA manual.
+
+## 6. Cerrar exclusivamente recursos propios
+
+Cerrar navegador/tests propios y tomar el path exacto mostrado por Start-QA:
+
+```powershell
+& .\Stop-QA.ps1 -ManifestPath 'C:\QA\paquete\runs\runtime-<timestamp-nuevo>\processes.json'
+```
+
+Reemplazar placeholder; no reutilizar manifest antiguo. Stop exige path normalizado bajo runs de ese mismo paquete, owner/packageRoot, fecha de inicio exacta, executable, commandline exacta y argumentos. Verifica todos antes de la primera detención y vuelve a verificar fecha antes de Stop-Process. No mata por nombre ni usa PIDs históricos. No detiene PG automáticamente.
+
+**Cierre manual guardado de PG**, receta reconstruida sin ejecutar en esta entrega: usar las variables ID/name/runId recién capturadas, nunca seleccionar por nombre genérico. La inspección completa se mantiene en memoria; no imprimir Config.Env.
+
+```powershell
+$taskPgRecords = @(& docker inspect $taskPgContainerId | ConvertFrom-Json)
+if ($LASTEXITCODE -ne 0 -or $taskPgRecords.Count -ne 1) { throw 'No se pudo verificar PG propio.' }
+$taskPg = $taskPgRecords[0]
+$taskBindings = @($taskPg.HostConfig.PortBindings.'5432/tcp')
+if ($taskPg.Id -ne $taskPgContainerId -or $taskPg.Name -ne ('/' + $taskPgName) -or $taskPg.Config.Labels.'top.portable.qa.run' -ne $taskPgRunId -or $taskPg.Config.Image -ne 'postgres:16-alpine' -or -not $taskPg.HostConfig.AutoRemove -or $taskPg.HostConfig.Tmpfs.'/var/lib/postgresql/data' -ne 'rw,size=512m' -or @($taskPg.Mounts).Count -ne 0 -or $taskBindings.Count -ne 1 -or $taskBindings[0].HostIp -ne '127.0.0.1' -or $taskBindings[0].HostPort -ne '55473' -or -not $taskPg.State.Running) { throw 'Guardas PG no coinciden; no detener.' }
+$taskIdentity = (& docker exec $taskPgContainerId psql -U top_night_test -d top_test -tAc "SELECT current_database() || '|' || current_user;" | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or $taskIdentity -ne 'top_test|top_night_test') { throw 'Identidad SQL inesperada; no detener.' }
+$taskOtherClients = (& docker exec $taskPgContainerId psql -U top_night_test -d top_test -tAc "SELECT count(*) FROM pg_stat_activity WHERE backend_type = 'client backend' AND pid <> pg_backend_pid();" | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or $taskOtherClients -ne '0') { throw 'Hay otros clientes/no se pudo verificar; no detener.' }
+& docker stop $taskPgContainerId
+if ($LASTEXITCODE -ne 0) { throw 'Falló el cierre PG.' }
+& docker ps -a --filter "id=$taskPgContainerId" --format '{{.ID}} {{.Names}}'
+& docker ps -a --filter "name=$taskPgName" --format '{{.ID}} {{.Names}}'
+Get-NetTCPConnection -LocalPort 3047,4177,55473 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,OwningProcess
+```
+
+Verificar ausencia del contenedor propio y puertos libres. Si aparece otro ocupante, no detenerlo. No docker prune, compose down -v, borrar volúmenes ni taskkill global. --rm/tmpfs elimina solamente esta DB descartable y sus usuarios.
+
+## Contenido y límites de verificación
+
+Fuentes incluidas: Common.ps1, Set-QAEnvironment.ps1, Run-BackendGates.ps1, Seed-QAFixtures.ps1, Seed-QAFixtures.cjs, Check-QADatabase.cjs, Start-QA.ps1 y Stop-QA.ps1. `package-manifest.json` enumera hashes y `syntax-verification.json` y `windows-powershell-syntax.json` registran únicamente análisis de PowerShell 7/Windows PowerShell 5.1/node --check, sin ejecución de los scripts. No se incluyen .env, credenciales reales, node_modules, raws/logs históricos, fixtures JSON históricos ni launcher privado. Los valores sintéticos se incluyen deliberadamente para que la receta sea reproducible.
+
+La portabilidad runtime completa (Node22/PowerShell5.1/Docker/bootstrap normal) permanece sin smoke fresco. Ejecutar esta receta autorizadamente y preservar los manifests/resultados nuevos antes de atribuirle PASS. El frontend/adaptación puede requerir ajustar permisos locales de Docker; el daemon actual del entorno de preparación fue inaccesible, sin instalaciones ni escalaciones.
+
+
+# Revisión estática del paquete
+
+# Revisión independiente del paquete QA portable
+
+Revisión estática cerrada el 2026-10-01, sobre el paquete final generado a las 12:43:47 UTC en `validation/detailed-report/portable-qa`. Resultado: **sin hallazgos de seguridad bloqueantes pendientes en ese snapshot para distribuir las fuentes como receta Windows sin validación funcional nueva**. No acredita smoke, portabilidad runtime ni cumplimiento legal. La ejecución futura necesita autorización, clon dedicado y recursos nuevos propios conforme al README.
+
+## Evidencia y cobertura
+
+Se leyeron completos los ocho scripts y README, y se revisaron los cambios finales, los dos registros de sintaxis y el manifest. Inventario final: 12 archivos regulares; sin enlaces, `.env`, `node_modules`, directorios `runs`, fixtures JSON existentes, raws/logs históricos ni credenciales reales. Los valores públicos de prueba y las cuentas `example.invalid` son deliberadamente sintéticos. No hay rutas personales `C:\Users\Sady`, checkout Integration ni dependencia del launcher privado en las fuentes distribuidas.
+
+Se recalcularon SHA256 y tamaños de las 11 entradas del manifest: **11/11 coinciden**. El manifest no se incluye en su propia lista.
+
+| Archivo | SHA256 verificado |
+|---|---|
+| package-manifest.json | `0fc45176aee8d4b49673d01798006a064b7ce00b476541f3a4ef8a6d113b74cf` |
+| Common.ps1 | `f121956f907be8b1c04f406468b042a95f6a00c57ca7c9a268d5a4029e55a103` |
+| Stop-QA.ps1 | `2e6b0055324c4a21f2fec470a25b2bd3379ca379e27a9f5f3dbb09c46bc47923` |
+
+La revisión ejecutó únicamente lecturas, inventario y cálculo de hashes, y escribió este informe externo. No ejecutó scripts QA, Docker, servicios, instalaciones, tests, navegador ni cambios Git/GitHub/aplicación. No se revisaron nuevos estados remotos de CI: las referencias de CI del README corresponden al código publicado y están expresamente separadas de la evidencia de este paquete.
+
+## Guardas verificadas en las fuentes
+
+- `Common.ps1:9` normaliza `RepoRoot`, Node y npm CLI, comprueba estructura del clon y rechaza archivos env por existencia sin leerlos ni borrarlos. `Common.ps1:25` limpia variables del proceso relevantes y fija DB/actor/puertos/secretos sintéticos, correo console y API URL QA. Las instrucciones requieren shell dedicada.
+- `Common.ps1:55` exige ID PG completo, runId/nombre únicos, label exacto, imagen, AutoRemove, tmpfs exacto, cero mounts, binding loopback 55473, estado running/healthy, identidad SQL `top_test|top_night_test` y cero otros `client backend` en **todo el servidor**. Gates, seed y start requieren esos tres parámetros PG y llaman esta guarda antes de operar (`Run-BackendGates.ps1:15`, `Seed-QAFixtures.ps1:15`, `Start-QA.ps1:16`).
+- Gates usan `migrate deploy`, registran comandos/exit codes y fallan al primer error; consultan Git y verifican HEAD/árbol backend estables. No hay comandos que hagan checkout, merge, commit, push, clean/reset ni cambios de configuración Git. No seleccionan ni modifican develop.
+- El seed conserva guardas de URL/actor/test/env/SMTP/S3, comprueba cliente y columna migrados, y utiliza upserts con `update: {}` de fixtures sintéticos. No contiene reset ni DELETE. El indicador `GatesTerminados` expresa la decisión del operador; no se presenta como prueba automática de que los gates ya pasaron.
+- `Start-QA.ps1:17` ejecuta el bootstrap normal `dist/src/main.js`; no hay harness privado. Rechaza puertos ocupados, deriva paths del clon y registra nueva sesión con PID, inicio UTC, executable y commandline/args. Usa ventana oculta y outputs de esa nueva sesión. La readiness HTTP200 futura se distingue de tests y QA funcional.
+- `Stop-QA.ps1:3` restringe manifest a `runs` del paquete y comprueba owner/packageRoot. Deriva los argumentos esperados de RepoRoot/rol/modo y valida PID, fecha exacta, executable y commandline. Comprueba todos los procesos antes del primer cierre y vuelve a comprobar inicio antes de cada `Stop-Process -Id`; no mata por nombre ni árboles/globalmente. La ruta única de API se tipa `[string[]]` (`Stop-QA.ps1:16`).
+- PG **no tiene cierre automático**. La receta manual (`README.md:100`) vuelve a comprobar ID/nombre/label/topología/actor/DB y ausencia de otros clientes en todo el servidor antes de `docker stop` del ID propio. No hay prune, borrado de volúmenes ni cierre de ocupantes ajenos.
+
+## Hallazgos preliminares resueltos
+
+El paquete WIP carecía de la precondición de ownership PG en gates/seed/start y de comparación de argumentos Stop contra el rol/RepoRoot. Ambos controles existen en el snapshot final. También quedaron corregidos el conteo de clientes limitado a una DB, la conversión de fechas JSON, el binding explícito de argumentos Node y el posible scalar de la ruta API en Stop. No quedan esos hallazgos abiertos.
+
+## Límites pendientes de ejecución
+
+Los registros aportados declaran parse PASS de los seis PS1 en PowerShell 7.6.5 y Windows PowerShell 5.1.26100.9549; `node --check` PASS de los dos CJS con Node 24.19.0 y un stub de binding de dos argumentos. Son comprobaciones de sintaxis/binding del autor, no pruebas de los servicios ni de sus guardas con recursos reales. Los propios registros declaran `freshSmokeExecuted: false`, `applicationTestsExecuted: false`, `servicesStarted: false`.
+
+**Pendientes:** reproducción autorizada desde clon limpio con Node 22, Docker, PostgreSQL nuevo, gates/seed, bootstrap normal, QA funcional y cierre completo usando manifests nuevos. El API normal puede escuchar fuera de loopback porque el bootstrap actual no fija interfaz; `README.md:88` lo declara y exige máquina QA dedicada/red restringida. PG y Vite sí se configuran loopback. No se afirma portabilidad Linux ni PASS funcional fresco, y los PASS históricos/CI del código no validan este launcher.
+
+La copia que se distribuya debe preservar estas fuentes y hashes, incluir ambos registros de sintaxis y mantener ignoradas las futuras salidas `runs`/`qa-fixtures.json`. Cualquier cambio posterior al snapshot requiere revisar su delta y actualizar manifest/evidencia; este cierre no autoriza despliegue ni merge.
 
 
 ---
 
-Capítulo 1 — evidence-notes.md
+# Capítulo histórico 2 — evidence-notes.md
+
+Fuente fechada anterior a la publicación; hechos y comandos se conservan como evidencia, no como receta portable.
 
 # Notas de evidencia para el informe detallado de TOP
 
@@ -343,10 +522,11 @@ Las siguientes tablas se obtienen directamente del diff numstat y log locales de
 | `c9da5f2` | docs: reconcile local refinement contracts and validation |
 
 
-
 ---
 
-Capítulo 2 — backend-guide-notes.md
+# Capítulo histórico 3 — backend-guide-notes.md
+
+Fuente fechada anterior a la publicación; hechos y comandos se conservan como evidencia, no como receta portable.
 
 # Notas verificadas de backend para el informe y la guía de Rolo
 
@@ -586,10 +766,11 @@ Scripts y artefactos externos: set-test-environment.ps1, check-test-database.cjs
 Proyecto: AGENTS.md; backend README/package.json/jest.config.cjs/docker-compose.yml/prisma seed; backend-ci.yml; clean-test-database; acceptance hooks/run-acceptance/cucumber config; Identity create-user CLI/use case/repository, Membership controller/use case, Auth/User controllers y authorization-policy; Current Status y fragmentos pertinentes de Domain Bible/Business Rules/Architecture; documentation-map. No se leyó .env ni se buscaron secretos reales. No se afirma una relectura exhaustiva de los 43 documentos/contratos revisados por el integrador original.
 
 
-
 ---
 
-Capítulo 3 — frontend-guide-notes.md
+# Capítulo histórico 4 — frontend-guide-notes.md
+
+Fuente fechada anterior a la publicación; hechos y comandos se conservan como evidencia, no como receta portable.
 
 # Notas de apoyo: recorrido frontend para Rolo
 
