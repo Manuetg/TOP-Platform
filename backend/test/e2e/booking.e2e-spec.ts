@@ -70,8 +70,8 @@ describe('Booking endpoint', () => { let app: INestApplication; let bookings: Bo
   });
   it.each(['status=OTHER', 'status=', 'status=DRAFT&status=CONFIRMED', 'contactId=invalid', 'contactId=',
     'contactId=60000000-0000-4000-8000-000000000001&contactId=60000000-0000-4000-8000-000000000002',
-    'resourceId=invalid', 'resourceId=', 'resourceId=70000000-0000-4000-8000-000000000001&resourceId=70000000-0000-4000-8000-000000000002'])
-  ('rejects invalid HTTP filters %s before querying the repository', async (query) => {
+    'resourceId=invalid', 'resourceId=', 'resourceId=70000000-0000-4000-8000-000000000001&resourceId=70000000-0000-4000-8000-000000000002'])(
+    'rejects invalid HTTP filters %s before querying the repository', async (query) => {
     await request(app.getHttpServer()).get(`/api/businesses/${businessId}/bookings?${query}`).expect(400);
     expect(listByBusinessId).not.toHaveBeenCalled();
   });
