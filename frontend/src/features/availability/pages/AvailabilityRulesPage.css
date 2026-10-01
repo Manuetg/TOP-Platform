@@ -1,5 +1,7 @@
 .availability-rules-page {
-  width: min(100%, 880px);
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .availability-rules-header {
@@ -275,7 +277,7 @@
   margin-top: var(--space-3);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 767px) {
   .availability-rules-card {
     padding: var(--space-4);
   }

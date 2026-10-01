@@ -19,6 +19,16 @@
   line-height: 1.2;
 }
 
+.booking-list-header__eyebrow {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--color-brand-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .booking-list-header p {
   margin: 6px 0 0;
   color: #65767c;
@@ -386,7 +396,7 @@
   }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 1023px) {
   .booking-list-page {
     gap: 16px;
   }

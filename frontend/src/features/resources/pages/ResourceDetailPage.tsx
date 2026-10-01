@@ -1,18 +1,25 @@
 import { ConfirmDialog } from "../../../shared/ui/ConfirmDialog";
 import {
-  ArrowLeft,
   Building2,
+  Ban,
+  CalendarPlus,
   ChevronLeft,
   ChevronRight,
+  Gauge,
   ImagePlus,
+  Hotel,
+  LayoutDashboard,
   Pencil,
   Trash2,
+  WalletCards,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
+import { OverlayPanel } from "../../../shared/ui/OverlayPanel";
+import { TopBreadcrumb } from "../../../shared/ui/TopBreadcrumb";
 import { useAuth } from "../../auth/context/AuthContext";
 import { useBusinessContext } from "../../business/context/BusinessContext";
 import { deleteResourceImage } from "../api/delete-resource-image";
@@ -20,6 +27,8 @@ import { disableResource } from "../api/disable-resource";
 import { reactivateResource } from "../api/reactivate-resource";
 import { uploadResourceImage } from "../api/upload-resource-image";
 import { ResourceAmenitiesEditor } from "../components/ResourceAmenitiesEditor";
+import { ResourceAvailabilityCalendar } from "../components/ResourceAvailabilityCalendar";
+import { EditResourcePage } from "./EditResourcePage";
 import { useResourceImages } from "../queries/use-resource-images";
 import { useResource } from "../queries/use-resource";
 import type { ResourceStatus } from "../types/resource.types";
@@ -51,11 +60,10 @@ export function ResourceDetailPage() {
   return <ResourceDetailContent key={`${session?.user.id}:${activeBusinessId}:${resourceId}`} />;
 }
 function ResourceDetailContent() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { resourceId = "" } = useParams();
   const { session } = useAuth();
-  const { activeBusinessId } = useBusinessContext();
+  const { activeBusiness, activeBusinessId } = useBusinessContext();
 
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [statusActionError, setStatusActionError] = useState<string | null>(
@@ -63,7 +71,9 @@ function ResourceDetailContent() {
   );
 
   const deleteTrigger = useRef<HTMLButtonElement>(null);
+  const editTrigger = useRef<HTMLButtonElement>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
   const deleteOperation = useRef<AbortController | null>(null);
   useEffect(() => () => deleteOperation.current?.abort(), []);
@@ -380,14 +390,13 @@ function ResourceDetailContent() {
 
     return (
       <section className="resource-detail-page">
-        <button
-          type="button"
-          className="resource-detail-back"
-          onClick={() => navigate("/app/resources")}
-        >
-          <ArrowLeft size={20} aria-hidden="true" />
-          Recursos
-        </button>
+        <TopBreadcrumb
+          items={[
+            { label: "Inicio", href: "/app", icon: LayoutDashboard },
+            { label: "Recursos", href: "/app/resources", icon: Hotel },
+            { label: "Recurso", current: true },
+          ]}
+        />
 
         <div className="resource-detail-error" role="alert">
           <p>{message}</p>
@@ -411,14 +420,13 @@ function ResourceDetailContent() {
       className="resource-detail-page"
       aria-labelledby="resource-detail-title"
     >
-      <button
-        type="button"
-        className="resource-detail-back"
-        onClick={() => navigate("/app/resources")}
-      >
-        <ArrowLeft size={20} aria-hidden="true" />
-        Recursos
-      </button>
+      <TopBreadcrumb
+        items={[
+          { label: "Inicio", href: "/app", icon: LayoutDashboard },
+          { label: "Recursos", href: "/app/resources", icon: Hotel },
+          { label: resource.name, current: true },
+        ]}
+      />
 
       <header className="resource-detail-header">
         <div className="resource-detail-title-group">
@@ -455,9 +463,8 @@ function ResourceDetailContent() {
           type="button"
           className="resource-detail-edit-button"
           aria-label="Editar recurso"
-          onClick={() =>
-            navigate(`/app/resources/${resource.id}/edit`)
-          }
+          ref={editTrigger}
+          onClick={() => setEditOpen(true)}
         >
           <Pencil size={20} aria-hidden="true" />
           <span>Editar recurso</span>
@@ -646,7 +653,7 @@ function ResourceDetailContent() {
 
             <div>
               <dt>Descripción</dt>
-              <dd>
+              <dd className="resource-detail-info-description">
                 {resource.description?.trim()
                   ? resource.description
                   : "Sin descripción configurada."}
@@ -681,11 +688,67 @@ function ResourceDetailContent() {
           aria-label="Acciones"
         >
           <h2>Acciones</h2>
-          <span className="resource-detail-visually-hidden">
-            No hay acciones adicionales disponibles.
-          </span>
+          <div className="resource-detail-quick-actions">
+            <Link
+              to="/app/bookings/new"
+              className="resource-detail-quick-action"
+            >
+              <CalendarPlus size={16} aria-hidden="true" />
+              <span>Hacer una reserva</span>
+            </Link>
+
+            <Link
+              to="/app/availability"
+              className="resource-detail-quick-action"
+            >
+              <Gauge size={16} aria-hidden="true" />
+              <span>Consultar disponibilidad</span>
+            </Link>
+
+            <Link
+              to="/app/blocks/new"
+              className="resource-detail-quick-action"
+            >
+              <Ban size={16} aria-hidden="true" />
+              <span>Agregar bloqueo</span>
+            </Link>
+
+            <Link
+              to="/app/payments"
+              className="resource-detail-quick-action"
+            >
+              <WalletCards size={16} aria-hidden="true" />
+              <span>Agregar pago</span>
+            </Link>
+          </div>
         </article>
       </div>
+
+      {activeBusiness ? (
+        <ResourceAvailabilityCalendar
+          businessId={activeBusiness.id}
+          resourceId={resource.id}
+          timezone={activeBusiness.timezone}
+          accessToken={session?.accessToken}
+        />
+      ) : null}
+
+      <OverlayPanel
+        open={editOpen}
+        portal
+        motion="dialog"
+        label="Editar recurso"
+        closeLabel="Cerrar edición"
+        className="resource-edit-dialog"
+        layerClassName="resource-edit-dialog-layer"
+        triggerRef={editTrigger}
+        onClose={() => setEditOpen(false)}
+      >
+        <EditResourcePage
+          embedded
+          onClose={() => setEditOpen(false)}
+        />
+      </OverlayPanel>
       <ConfirmDialog open={deleteOpen} title="Eliminar imagen" description={`Vas a eliminar esta imagen de ${resource.name}. Las demás imágenes se conservan.`} confirmLabel="Eliminar imagen" destructive disabled={!resourceImages.some((image) => image.id === deleteImageId)} triggerRef={deleteTrigger} loading={isManagingImage} error={imageActionError} onCancel={() => setDeleteOpen(false)} onConfirm={() => void handleDeleteCurrentImage()} />
     </section>
   );

@@ -172,6 +172,77 @@ describe("ResourceDetailPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("renders the breadcrumb and opens the edit form as a dialog", async () => {
+    const user = userEvent.setup();
+
+    mockResource(activeResource);
+
+    renderPage();
+
+    const breadcrumb = screen.getByRole("navigation", {
+      name: "Migas de pan",
+    });
+
+    expect(
+      within(breadcrumb).getByRole("link", { name: /Inicio/ }),
+    ).toHaveAttribute("href", "/app");
+    expect(
+      within(breadcrumb).getByRole("link", { name: /Recursos/ }),
+    ).toHaveAttribute("href", "/app/resources");
+    expect(
+      within(breadcrumb)
+        .getByText(activeResource.name)
+        .closest("[aria-current]")
+    ).toHaveAttribute("aria-current", "page");
+
+    const actions = screen.getByRole("article", { name: "Acciones" });
+    expect(
+      within(actions).getByRole("link", {
+        name: "Hacer una reserva",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(actions).getByRole("link", {
+        name: "Consultar disponibilidad",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(actions).getByRole("link", {
+        name: "Agregar bloqueo",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(actions).getByRole("link", {
+        name: "Agregar pago",
+      }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Editar recurso",
+      }),
+    );
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "Editar recurso",
+    });
+
+    expect(dialog).toBeVisible();
+    expect(
+      within(dialog).getByRole("heading", { name: "Editar recurso" }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      within(dialog).getByRole("button", { name: "Cerrar edición" }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: "Editar recurso" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it("disables an active resource from the status switch", async () => {
     const user = userEvent.setup();
 

@@ -468,6 +468,7 @@ export function BookingListPage({
     <section className="booking-list-page">
       <header className="booking-list-header">
         <div>
+          <span className="booking-list-header__eyebrow">Operación</span>
           <h1>Reservas</h1>
           <p>
             Centro operativo de la estadía.

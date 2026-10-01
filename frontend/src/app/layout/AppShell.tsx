@@ -18,11 +18,14 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Settings,
   Tags,
   WalletCards,
   X,
 } from "lucide-react";
+import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { OverlayPanel } from "../../shared/ui/OverlayPanel";
 import { Button } from "../../shared/ui/Button";
 import "./AppShell.css";
@@ -56,8 +59,8 @@ interface AppShellProps extends PropsWithChildren {
   onProfileOpen?: () => void;
   onLogout?: () => void;
   isLoggingOut?: boolean;
+  breadcrumb?: ReactNode;
 }
-
 const operationItems = [
   { id: "calendar", label: "Calendario", icon: CalendarDays },
   { id: "bookings", label: "Reservas", icon: BedDouble },
@@ -106,9 +109,20 @@ export function AppShell({
   onProfileOpen,
   onLogout,
   isLoggingOut = false,
+  breadcrumb,
   children,
 }: AppShellProps) {
+  const prefersReducedMotion = useReducedMotion();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+
+    try {
+      return window.localStorage.getItem("top.sidebar.collapsed.v1") === "true";
+    } catch {
+      return false;
+    }
+  });
   const [headerState, setHeaderState] = useState<{ mode: "business" | "notifications" | "profile"; open: boolean }>({ mode: "profile", open: false });
   const headerMenu = headerState.open ? headerState.mode : null;
   const headerTrigger = useRef<HTMLElement | null>(null);
@@ -138,6 +152,23 @@ export function AppShell({
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
 
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed((current) => {
+      const next = !current;
+
+      try {
+        window.localStorage.setItem(
+          "top.sidebar.collapsed.v1",
+          String(next),
+        );
+      } catch {
+        // La navegación sigue funcionando aunque storage no esté disponible.
+      }
+
+      return next;
+    });
+  };
+
   const navigate = (target: AppNavigationTarget) => {
     if (target === "more") {
       closeHeader();
@@ -151,26 +182,36 @@ export function AppShell({
   };
 
   return (
-    <div className="top-app-shell">
+    <div className={`top-app-shell${isSidebarCollapsed ? " is-sidebar-collapsed" : ""}`}>
       <a className="top-skip-link" href="#top-main-content">Ir al contenido</a>
       <aside
-        className="top-sidebar"
+        className={`top-sidebar${isSidebarCollapsed ? " is-collapsed" : ""}`}
         aria-label="Navegación principal"
       >
-        <div className="top-sidebar__brand">
-          TOP
+        <div className="top-sidebar__brand-row">
+          <div className="top-sidebar__brand">TOP</div>
+          <button
+            type="button"
+            className="top-sidebar__collapse"
+            aria-label={isSidebarCollapsed ? "Expandir barra lateral" : "Contraer barra lateral"}
+            title={isSidebarCollapsed ? "Expandir barra lateral" : "Contraer barra lateral"}
+            onClick={toggleSidebar}
+          >
+            {isSidebarCollapsed ? <PanelLeftOpen size={19} aria-hidden="true" /> : <PanelLeftClose size={19} aria-hidden="true" />}
+          </button>
         </div>
-        <nav className="top-sidebar__nav">
-          <ShellNavItem
-            id="home"
-            label="Inicio"
-            icon={LayoutDashboard}
-            activeSection={activeSection}
-            onNavigate={navigate}
-          />
+        <LayoutGroup id="sidebar-navigation">
+          <nav className="top-sidebar__nav">
+            <ShellNavItem
+              id="home"
+              label="Inicio"
+              icon={LayoutDashboard}
+              activeSection={activeSection}
+              onNavigate={navigate}
+            />
 
-          <ShellNavGroup label="Operación">
-            {operationItems.map((item) => (
+            <ShellNavGroup label="Operación">
+              {operationItems.map((item) => (
               <ShellNavItem
                 key={item.id}
                 {...item}
@@ -190,16 +231,16 @@ export function AppShell({
               />
             ))}
           </ShellNavGroup>
-        </nav>
+          </nav>
 
-        {activeSection === "home" && (
+        {!isSidebarCollapsed && (
           <div className="top-sidebar-hospitality">
             <div className="top-sidebar-hospitality__art" aria-hidden="true"><Hotel size={42} strokeWidth={1.3} /></div>
             <strong>Haz crecer tu alojamiento con TOP</strong>
             <p>Más claridad para tu operación. Más tiempo para tus huéspedes.</p>
           </div>
         )}
-        <div className="top-sidebar__footer">
+          <div className="top-sidebar__footer">
           <ShellNavItem
             id="settings"
             label="Configuración"
@@ -207,7 +248,8 @@ export function AppShell({
             activeSection={activeSection}
             onNavigate={navigate}
           />
-        </div>
+          </div>
+        </LayoutGroup>
       </aside>
 
       <header className="top-global-header">
@@ -425,12 +467,15 @@ export function AppShell({
       </OverlayPanel>
 
       <div className={`top-app-shell__body${contextRail ? " top-app-shell__body--with-rail" : ""}`}>
-        <main id="top-main-content" tabIndex={-1} className="top-app-shell__content">{children}</main>
+        <main id="top-main-content" tabIndex={-1} className="top-app-shell__content">
+          {breadcrumb}
+          {children}
+        </main>
         {contextRail}
       </div>
 
       <OverlayPanel open={isMoreOpen} label="Más opciones" closeLabel="Cerrar menú Más al tocar fuera" triggerRef={moreTrigger}
-        onClose={() => setIsMoreOpen(false)} layerClassName="top-mobile-more-layer" className="top-mobile-more-sheet">
+        onClose={() => setIsMoreOpen(false)} layerClassName="top-mobile-more-layer" className="top-mobile-more-sheet" motion="mobile-sheet">
             <div
               className="top-mobile-more-sheet__handle"
               aria-hidden="true"
@@ -484,11 +529,12 @@ export function AppShell({
             </div>
       </OverlayPanel>
 
-      <nav
-        className="top-bottom-nav"
-        aria-label="Navegación principal"
-      >
-        {mobileItems.map((item) => {
+      <LayoutGroup id="bottom-navigation">
+        <nav
+          className="top-bottom-nav"
+          aria-label="Navegación principal"
+        >
+          {mobileItems.map((item) => {
           const Icon = item.icon;
 
           const isActive =
@@ -514,12 +560,26 @@ export function AppShell({
               }
               onClick={() => navigate(item.id)}
             >
+              {isActive && (
+                <motion.div
+                  layoutId="bottom-nav-active-pill"
+                  className="top-bottom-nav__active-pill"
+                  aria-hidden="true"
+                  transition={prefersReducedMotion ? { duration: 0 } : {
+                    type: "spring",
+                    stiffness: 600,
+                    damping: 38,
+                    mass: 0.45,
+                  }}
+                />
+              )}
               <Icon size={20} aria-hidden="true" />
               <span>{item.label}</span>
             </button>
           );
-        })}
-      </nav>
+          })}
+        </nav>
+      </LayoutGroup>
     </div>
   );
 }
@@ -564,6 +624,7 @@ function ShellNavItem({
   onNavigate,
 }: ShellNavItemProps) {
   const isActive = activeSection === id;
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <button
@@ -574,8 +635,22 @@ function ShellNavItem({
       aria-current={
         isActive ? "page" : undefined
       }
+      title={label}
       onClick={() => onNavigate(id)}
     >
+      {isActive && (
+        <motion.div
+          layoutId="sidebar-active-pill"
+          className="top-sidebar__active-pill"
+          aria-hidden="true"
+          transition={prefersReducedMotion ? { duration: 0 } : {
+            type: "spring",
+            stiffness: 600,
+                    damping: 38,
+                    mass: 0.45,
+          }}
+        />
+      )}
       <Icon size={20} aria-hidden="true" />
       <span>{label}</span>
     </button>

@@ -11,6 +11,19 @@ import { useAuth } from "../../features/auth/context/AuthContext";
 import { useBusinessContext } from "../../features/business/context/BusinessContext";
 import { BusinessBoundary } from "../../features/business/components/BusinessBoundary";
 import { BusinessSelector } from "../../features/business/components/BusinessSelector";
+import { TopBreadcrumb } from "../../shared/ui/TopBreadcrumb";
+import type { TopBreadcrumbItem } from "../../shared/ui/TopBreadcrumb";
+import {
+  BedDouble,
+  Blocks,
+  CalendarDays,
+  ContactRound,
+  Gauge,
+  Hotel,
+  Settings,
+  Tags,
+  WalletCards,
+} from "lucide-react";
 
 import { PageErrorBoundary } from "../errors/PageErrorBoundary";
 
@@ -52,6 +65,70 @@ function getActiveSection(pathname: string): AppSection {
   return (exactMatch?.[0] as AppSection | undefined) ?? "home";
 }
 
+const breadcrumbSections: Record<
+  string,
+  { label: string; icon: TopBreadcrumbItem["icon"] }
+> = {
+  calendar: { label: "Calendario", icon: CalendarDays },
+  bookings: { label: "Reservas", icon: BedDouble },
+  availability: { label: "Disponibilidad", icon: Gauge },
+  resources: { label: "Recursos", icon: Hotel },
+  contacts: { label: "Contactos", icon: ContactRound },
+  pricing: { label: "Precios", icon: Tags },
+  payments: { label: "Pagos", icon: WalletCards },
+  blocks: { label: "Bloqueos", icon: Blocks },
+  settings: { label: "Configuración", icon: Settings },
+};
+
+function getBreadcrumbItems(pathname: string): readonly TopBreadcrumbItem[] | null {
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/app";
+
+  if (normalizedPath === "/app") {
+    return [{ label: "Inicio", current: true }];
+  }
+
+  const parts = normalizedPath.replace(/^\/app\/?/, "").split("/");
+  const section = breadcrumbSections[parts[0]];
+
+  if (!section) {
+    return null;
+  }
+
+  const items: TopBreadcrumbItem[] = [
+    { label: "Inicio", href: "/app" },
+    {
+      label: section.label,
+      href: `/app/${parts[0]}`,
+      icon: section.icon,
+      current: parts.length === 1,
+    },
+  ];
+
+  if (parts.length === 1) {
+    return items;
+  }
+
+  const terminal = parts[parts.length - 1];
+  const labels: Record<string, string> = {
+    new: `Nuevo ${parts[0] === "bookings" ? "reserva" : parts[0] === "resources" ? "recurso" : parts[0] === "contacts" ? "contacto" : parts[0] === "blocks" ? "bloqueo" : "plan"}`,
+    edit: `Editar ${parts[0] === "bookings" ? "reserva" : parts[0] === "resources" ? "recurso" : parts[0] === "contacts" ? "contacto" : "plan"}`,
+    rules: "Reglas de disponibilidad",
+    payments: "Pagos de la reserva",
+    confirm: "Confirmar reserva",
+    seasons: "Temporadas",
+    preview: "Vista previa",
+  };
+
+  let currentLabel = labels[terminal] ?? "Detalle";
+  if (parts[0] === "availability" && terminal === "rules") {
+    currentLabel = "Reglas de disponibilidad";
+  }
+
+  items[1] = { ...items[1], href: `/app/${parts[0]}` };
+  items.push({ label: currentLabel, current: true });
+  return items;
+}
+
 export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -90,6 +167,14 @@ export function AppLayout() {
       onSearchNavigate={(path) => { void navigate(path); }}
       onLogout={() => { void logout().finally(() => navigate("/login", { replace: true })); }}
       isLoggingOut={isLoggingOut}
+      breadcrumb={
+        /^\/app\/resources\/[^/]+\/?$/.test(location.pathname)
+          ? null
+          : (() => {
+              const items = getBreadcrumbItems(location.pathname);
+              return items ? <TopBreadcrumb items={items} /> : null;
+            })()
+      }
     >
       <BusinessBoundary><PageErrorBoundary key={`${session?.user.id}:${activeBusiness?.id}`} /></BusinessBoundary>
     </AppShell>

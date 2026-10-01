@@ -147,7 +147,7 @@ export function AvailabilityRulesPage() {
 
         <p>
           Configurá cómo las reservas pendientes y
-          los buffers afectan la disponibilidad.
+          los días de margen afectan la disponibilidad.
         </p>
       </header>
 
@@ -225,7 +225,7 @@ export function AvailabilityRulesPage() {
                   </h2>
 
                   <p>
-                    Define si una Booking en estado
+                    Define si una reserva en estado
                     PENDING debe impedir nuevas
                     disponibilidades.
                   </p>
@@ -241,7 +241,7 @@ export function AvailabilityRulesPage() {
                   <small>
                     Si está activo, una reserva
                     pendiente se considera al
-                    calcular Availability.
+                    calcular la disponibilidad.
                   </small>
                 </span>
 
@@ -276,12 +276,12 @@ export function AvailabilityRulesPage() {
 
                 <div>
                   <h2>
-                    Buffers entre reservas
+                    Margen entre reservas
                   </h2>
 
                   <p>
                     Agregá días de margen antes o
-                    después de una Booking.
+                    después de una reserva.
                   </p>
                 </div>
               </div>
@@ -289,7 +289,7 @@ export function AvailabilityRulesPage() {
               <div className="availability-rules-buffer-grid">
                 <label className="availability-rules-field">
                   <span>
-                    Buffer antes
+                    Margen antes
                   </span>
 
                   <div className="availability-rules-number">
@@ -313,13 +313,13 @@ export function AvailabilityRulesPage() {
                   </div>
 
                   <small>
-                    Margen previo a una reserva.
+                    Días de margen antes de una reserva.
                   </small>
                 </label>
 
                 <label className="availability-rules-field">
                   <span>
-                    Buffer después
+                    Margen después
                   </span>
 
                   <div className="availability-rules-number">
@@ -343,7 +343,7 @@ export function AvailabilityRulesPage() {
                   </div>
 
                   <small>
-                    Margen posterior a una reserva.
+                    Días de margen después de una reserva.
                   </small>
                 </label>
               </div>
@@ -355,9 +355,9 @@ export function AvailabilityRulesPage() {
                 />
 
                 <p>
-                  Los buffers afectan conflictos
-                  con Booking. Los Block utilizan
-                  directamente su propio rango.
+                  Los días de margen se aplican a las
+                  reservas. Los bloqueos mantienen su
+                  período original.
                 </p>
               </div>
             </section>

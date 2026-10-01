@@ -3,6 +3,12 @@
   margin: 0;
 }
 
+.resource-edit-page--dialog {
+  width: 100%;
+  max-width: none;
+  padding: var(--space-6);
+}
+
 .resource-edit-back {
   display: inline-flex;
   align-items: center;
@@ -32,6 +38,41 @@
 
 .resource-edit-header {
   margin-bottom: var(--space-6);
+}
+
+.resource-edit-page--dialog .resource-edit-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.resource-edit-close {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--motion-state),
+    border-color var(--motion-fast) var(--motion-state),
+    background-color var(--motion-fast) var(--motion-state);
+}
+
+.resource-edit-close:hover {
+  color: var(--color-brand-primary);
+  border-color: var(--color-brand-primary);
+  background: rgb(21 92 76 / 6%);
+}
+
+.resource-edit-close:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 3px;
 }
 
 .resource-edit-header h1 {
@@ -223,6 +264,10 @@
 @media (max-width: 767px) {
   .resource-edit-page {
     width: 100%;
+  }
+
+  .resource-edit-page--dialog {
+    padding: var(--space-5);
   }
 
   .resource-edit-back {

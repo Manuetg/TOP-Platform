@@ -297,7 +297,7 @@
   }
 }
 
-/* ComposiciÃ³n de referencia: catÃ¡logo operacional y columna contextual. */
+/* Composición de referencia: catálogo operacional y columna contextual. */
 .dashboard-header-actions {
   display: flex;
   flex-wrap: wrap;
@@ -402,7 +402,7 @@
   .dashboard-segment-grid { grid-template-columns: 1fr; gap: var(--space-4); margin-top: var(--space-5); }
 }
 
-/* El Dashboard usa un canvas Ãºnico; ningÃºn widget operativo vive en un rail lateral. */
+/* El Dashboard usa un canvas único; ningún widget operativo vive en un rail lateral. */
 .dashboard-reference-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -441,8 +441,8 @@
   .dashboard-intelligence-grid { grid-template-columns: 1fr; }
 }
 
-/* El shell superior comparte un canvas Ãºnico; evita que el KPI caiga en la
-   columna lateral histÃ³rica del dashboard de referencia. */
+/* El shell superior comparte un canvas único; evita que el KPI caiga en la
+   columna lateral histórica del dashboard de referencia. */
 @media (min-width: 1280px) {
   .dashboard-reference-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -1162,7 +1162,7 @@
   .dashboard-health__list { margin-top: var(--space-3); }
 }
 
-/* Vista mensual: el perÃ­odo se entiende de un vistazo y los nÃºmeros son la
+/* Vista mensual: el período se entiende de un vistazo y los números son la
    primera lectura operacional. */
 .dashboard-month-filter {
   display: inline-flex;
