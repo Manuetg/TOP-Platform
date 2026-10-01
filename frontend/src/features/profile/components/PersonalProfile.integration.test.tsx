@@ -166,6 +166,29 @@ describe("Perfil personal con Auth, QueryClient y HTTP", () => {
     expect(profiles.get("one")?.displayName).toBe("Nombre final");
   });
 
+  it("permite descartar un conflicto consultado aunque el borrador vuelva a los valores iniciales", async () => {
+    await ready(); await changeName("Borrador local");
+    profiles.set("one", { ...initial("one"), displayName: "Nombre remoto", updatedAt: "2026-09-30T12:00:01.000Z" });
+    await userEvent.click(screen.getByRole("button", { name: "Guardar nombre" }));
+    await screen.findByText(/Tu perfil cambió desde que empezaste/);
+    await userEvent.clear(screen.getByLabelText("Nombre completo"));
+    await userEvent.type(screen.getByLabelText("Nombre completo"), "Ana");
+    await userEvent.clear(screen.getByLabelText("Motivo del cambio"));
+    expect(screen.getByRole("button", { name: "Descartar nombre" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Consultar nombre actual" }));
+    await screen.findByText(/Nombre consultado: Nombre remoto/);
+    expect(screen.getByRole("button", { name: "Guardar nombre" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Descartar nombre" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: "Descartar nombre" }));
+    expect(screen.getByLabelText("Nombre completo")).toHaveValue("Nombre remoto");
+    expect(screen.getByLabelText("Motivo del cambio")).toHaveValue("");
+    await changeName("Nombre final"); await userEvent.click(screen.getByRole("button", { name: "Guardar nombre" }));
+    await screen.findByText("Tu nombre se guardó.");
+    const patches = requests.filter((item) => item.method === "PATCH");
+    expect(patches).toHaveLength(2);
+    expect(JSON.parse(String(patches[1].init.body)).expectedUpdatedAt).toBe("2026-09-30T12:00:01.000Z");
+  });
+
   it("un refetch durante edición no sustituye la versión original del borrador", async () => {
     const { client } = await ready(); await changeName("Borrador local");
     profiles.set("one", { ...initial("one"), displayName: "Remoto", updatedAt: "2026-09-30T12:00:01.000Z" });

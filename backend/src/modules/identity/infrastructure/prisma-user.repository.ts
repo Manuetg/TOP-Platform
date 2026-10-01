@@ -40,7 +40,7 @@ export class PrismaUserRepository implements UserRepository, AuthenticationRepos
       await transaction.$queryRaw(Prisma.sql`SELECT "id" FROM "User" WHERE "id" = ${input.id} FOR UPDATE`);
       const current = await transaction.user.findUnique({ where: { id: input.id } });
       if (!current) throw new UserProfileNotFoundError('El usuario no existe.');
-      if (current.status !== UserStatus.ACTIVE) throw new UserProfileForbiddenError('Un usuario deshabilitado no puede actualizar su perfil.');
+      if (current.status !== 'ACTIVE') throw new UserProfileForbiddenError('Un usuario deshabilitado no puede actualizar su perfil.');
       if (current.updatedAt.getTime() !== input.expectedUpdatedAt.getTime()) throw new UserProfileConflictError('El perfil cambió. Consultá los datos actuales antes de guardar.');
       if (current.displayName === input.displayName) return current;
       const updatedAt = new Date(Math.max(Date.now(), current.updatedAt.getTime() + 1));
