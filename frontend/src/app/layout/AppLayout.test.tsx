@@ -4,6 +4,7 @@ import { render as rtlRender, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, vi } from "vitest";
 import * as authContext from "../../features/auth/context/AuthContext";
+import * as businessContext from "../../features/business/context/BusinessContext";
 import {
   MemoryRouter,
   Route,
@@ -53,12 +54,25 @@ describe("AppLayout", () => {
     expect(screen.getAllByText("Jeni González").length).toBeGreaterThan(0);
     await userEvent.click(screen.getAllByRole("button", { name: "Abrir perfil" })[0]);
     expect(screen.getByText("jeni@example.test")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Cookies y almacenamiento" })).toHaveAttribute("href", "/cookies");
   });
 
   it("uses the email for legacy accounts without a personal name", () => {
     signedIn(null);
     renderApp();
     expect(screen.getAllByText("jeni@example.test").length).toBeGreaterThan(0);
+  });
+
+  it.each(["/app/settings", "/app/settings/"])("keeps account settings accessible at %s without an active business", (path) => {
+    signedIn("Jeni González");
+    vi.spyOn(businessContext, "useBusinessContext").mockReturnValue({
+      businesses: [], activeBusiness: null, activeBusinessId: "", activeMembership: null,
+      activeRole: null, status: "empty", error: null, retry: vi.fn(), selectBusiness: () => false,
+    });
+      renderApp(path);
+      expect(screen.getByRole("heading", { name: "Configuración" })).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: "Configuración", current: "page" }).length).toBeGreaterThan(0);
+    expect(screen.queryByText("No tenés un negocio activo disponible.")).not.toBeInTheDocument();
   });
 
   it("renders the section associated with a deep link", () => {

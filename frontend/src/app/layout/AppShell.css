@@ -1046,6 +1046,7 @@
 }
 
 .top-header-popover__heading strong {
+  overflow-wrap: anywhere;
   color: var(--color-text-primary);
   font-size: 15px;
   line-height: 21px;
@@ -1058,6 +1059,7 @@
 }
 
 .top-header-popover__item {
+  text-decoration: none;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1168,6 +1170,7 @@
 
 .top-header-popover__business-current span,
 .top-header-popover__profile-summary span {
+  overflow-wrap: anywhere;
   color: var(--color-text-secondary);
   font-size: 11px;
   line-height: 17px;

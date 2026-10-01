@@ -21,6 +21,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
+  ShieldCheck,
   Tags,
   WalletCards,
   X,
@@ -460,6 +461,10 @@ export function AppShell({
                     <Settings size={18} aria-hidden="true" />
                     <span>Configuración</span>
                   </button>
+                  <a className="top-header-popover__item" href="/cookies">
+                    <ShieldCheck size={18} aria-hidden="true" />
+                    <span>Cookies y almacenamiento</span>
+                  </a>
                   <button type="button" className="top-header-popover__item top-header-popover__item--danger" onClick={onLogout} disabled={isLoggingOut}>
                     <LogOut size={18} aria-hidden="true" />
                     <span>{isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}</span>

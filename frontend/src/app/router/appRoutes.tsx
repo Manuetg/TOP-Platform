@@ -38,6 +38,7 @@ const BookingPaymentsPage = lazy(() => import("../../features/payments/pages/Boo
 import { ProtectedRoute, PublicRoute } from "./ProtectedRoute";
 
 import { ErrorFallback } from "../errors/ErrorFallback";
+import { privacyRoutes } from "../../features/privacy/routes";
 
 function page(Component: ComponentType) { return <Suspense fallback={<p role="status" aria-live="polite">Cargando pantalla…</p>}><Component /></Suspense>; }
 
@@ -56,6 +57,7 @@ export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general 
   { path: "/signup", element: <PublicRoute />, children: [{ index: true, element: page(SignupPage) }] },
   { path: "/verify-email", element: <PublicRoute />, children: [{ index: true, element: page(VerifyEmailPage) }] },
   { path: "/showcase/saas-launch", element: page(SaasLaunchShowcasePage) },
+  ...privacyRoutes,
   {
     path: "/app",
     element: <ProtectedRoute><AppLayout /></ProtectedRoute>,

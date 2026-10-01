@@ -41,17 +41,18 @@ const sectionPaths: Record<AppSection, string> = {
 };
 
 function getActiveSection(pathname: string): AppSection {
+  const path = pathname.replace(/\/+$/, "") || "/app";
   if (
     /^\/app\/bookings\/[^/]+\/payments\/?$/.test(
-      pathname,
+      path,
     )
   ) {
     return "payments";
   }
 
   const match = Object.entries(sectionPaths).find(
-    ([section, path]) =>
-      section !== "home" && pathname.startsWith(`${path}/`),
+    ([section, sectionPath]) =>
+      section !== "home" && path.startsWith(`${sectionPath}/`),
   );
 
   if (match) {
@@ -59,7 +60,7 @@ function getActiveSection(pathname: string): AppSection {
   }
 
   const exactMatch = Object.entries(sectionPaths).find(
-    ([, path]) => pathname === path,
+    ([, sectionPath]) => path === sectionPath,
   );
 
   return (exactMatch?.[0] as AppSection | undefined) ?? "home";
@@ -178,7 +179,11 @@ export function AppLayout() {
             })()
       }
     >
-      <BusinessBoundary><PageErrorBoundary key={`${session?.user.id}:${activeBusiness?.id}`} /></BusinessBoundary>
+      {location.pathname.replace(/\/+$/, "") === "/app/settings" ? (
+        <PageErrorBoundary key={`${session?.user.id}:settings`} />
+      ) : (
+        <BusinessBoundary><PageErrorBoundary key={`${session?.user.id}:${activeBusiness?.id}`} /></BusinessBoundary>
+      )}
     </AppShell>
   );
 }

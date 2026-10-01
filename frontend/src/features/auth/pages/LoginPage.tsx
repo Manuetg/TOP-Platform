@@ -117,6 +117,7 @@ export function LoginPage() {
           </motion.form>
           <motion.p className="top-auth-footnote" variants={itemVariants}><ShieldCheck size={16} aria-hidden="true" />Acceso seguro para tu equipo.</motion.p>
           <motion.p className="top-auth-footnote" variants={itemVariants}>¿Todavía no tenés una cuenta? <a className="top-auth-forgot" href="/signup">Crear cuenta</a></motion.p>
+          <motion.p className="top-auth-footnote" variants={itemVariants}><a className="top-auth-forgot" href="/cookies">Cookies y almacenamiento</a></motion.p>
         </motion.div>
       </motion.section>
     </motion.main>
