@@ -1,3 +1,21 @@
+# TOP — Actualización del arranque QA portable
+
+## Validación posterior del paquete — 2026-10-01
+
+Smoke con bootstrap normal ejecutado entre 2026-10-01T13:26:46.7709064Z y 2026-10-01T13:27:54.9700346Z, Node 24.19.0/PowerShell 7.6.5, PG nuevo sintético y app HEAD 9c2e8e6cffd36024881c8be6720f132bbd8d7cc4. Seis HTTP200 reales (health/UI/login/perfil/siete Bookings/dos Resources), assertions y cierre de API/frontend/PG propios PASS; 3047/4177/55473 libres. No se repitieron las suites completas ni se instaló nada. Backend55a2290/frontend94633656 limpios e idénticos.
+
+El primer intento falló por readiness. El segundo realizó los controles funcionales y cleanup, pero el recolector falló al escribir result.json por archivo ocupado; ambos resultados originales se preservan. Se distinguen functionalSmokeStatus=PASS y reportingStatus=FAILED_FILE_OCCUPIED_ORIGINAL_PRESERVED. No declarar que el runner completo pasó sin errores. No se repitió el smoke por el fallo del recolector.
+
+Start-QA usa ReadyTimeoutSeconds=180, rango10..300 y detección de salida propia; solo cambió soporte. La causa del primer timeout no quedó probada. Node22/PowerShell5.1 runtime y un recorrido nuevo de navegador siguen pendientes. La API normal puede escuchar fuera de loopback; rigen la máquina QA dedicada y red restringida del README.
+
+Evidencia y proceso públicos en https://github.com/Manuetg/TOP-Platform/blob/codex/night-integration-20261001/docs/16-Portable-QA-Startup.md; PR101 conserva CI por head exacto.
+
+[Detalle del smoke y comandos](16-Portable-QA-Startup.md).
+
+---
+
+## Snapshot documental anterior — preparación/publicación hasta 12:48 UTC
+
 # TOP — Refinamiento nocturno: proceso, alcance y guía de revisión
 
 Encargo TOP-Platform. La revisión documental precedió a la implementación aislada. La PR [#101](https://github.com/Manuetg/TOP-Platform/pull/101) está publicada como Draft hacia develop por autorización de las 12:06 UTC; sin aprobación, reviewers, merge/auto-merge ni deploy.

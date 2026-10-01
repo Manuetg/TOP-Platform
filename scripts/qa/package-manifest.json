@@ -1,61 +1,70 @@
 {
-  "generatedAt": "2026-10-01T12:43:47.2028239Z",
-  "purpose": "Fuentes soporte QA portable; syntax-only sin smoke fresco",
+  "generatedAt": "2026-10-01T13:39:04.311Z",
+  "purpose": "Fuentes QA portable; smoke funcional/cleanup PASS, reporting IO FAILURE preservado",
   "files": [
     {
-      "path": "Check-QADatabase.cjs",
       "sha256": "7e22493854f355026f2e6e4776f23987c02eca2e3b71f73e253302a293444f10",
+      "path": "Check-QADatabase.cjs",
       "bytes": 2053
     },
     {
-      "path": "Common.ps1",
       "sha256": "f121956f907be8b1c04f406468b042a95f6a00c57ca7c9a268d5a4029e55a103",
+      "path": "Common.ps1",
       "bytes": 5161
     },
     {
+      "sha256": "b5b64b86c3e3b2315c945d39435f7e8e1c813dbaaf14292988b6af54b8a1b6dd",
       "path": "README.md",
-      "sha256": "0a1f76e5866d56ca87712b848c4697f443266c859fc02bb10c766d827661dc74",
-      "bytes": 13496
+      "bytes": 15593
     },
     {
-      "path": "Run-BackendGates.ps1",
       "sha256": "65c7d7c4b4d7064031b412ef715fca915b8fd3bd5df0c14eb2d4b077cf1c07f6",
+      "path": "Run-BackendGates.ps1",
       "bytes": 3939
     },
     {
-      "path": "Seed-QAFixtures.cjs",
       "sha256": "31c5c5fef047f38eaddbaef27263793b53763af2ec2ff898a1366bc610b5e5e2",
+      "path": "Seed-QAFixtures.cjs",
       "bytes": 13373
     },
     {
-      "path": "Seed-QAFixtures.ps1",
       "sha256": "2e8903ece41b2f1fc3ab425c217a4d513756f5b825bae1c829f5d764e01971ea",
+      "path": "Seed-QAFixtures.ps1",
       "bytes": 860
     },
     {
-      "path": "Set-QAEnvironment.ps1",
       "sha256": "21925be428ca750bc23b1cbe43e6d04023652720df32868b93b1807056645896",
+      "path": "Set-QAEnvironment.ps1",
       "bytes": 424
     },
     {
+      "sha256": "e717697394c039aaee923c04fd3de6a311b5deb41a013b5f227da1c5aa670088",
       "path": "Start-QA.ps1",
-      "sha256": "dbf926acdb0ad5fc4877e0d445b829bce7cb4b8fc7b73031f820b82b9f22bfd9",
-      "bytes": 5234
+      "bytes": 5900
     },
     {
-      "path": "Stop-QA.ps1",
       "sha256": "2e6b0055324c4a21f2fec470a25b2bd3379ca379e27a9f5f3dbb09c46bc47923",
+      "path": "Stop-QA.ps1",
       "bytes": 4451
     },
     {
+      "sha256": "387b9e4f67171d9f30c52484b0d9f2fbefe18dc4988c9324969865d8dc5da7c5",
       "path": "syntax-verification.json",
-      "sha256": "74d595ee414593865e3795e2f14a8f783dd7d29b2dc2e1241464762e276ee211",
-      "bytes": 1350
+      "bytes": 1476
     },
     {
-      "path": "windows-powershell-syntax.json",
       "sha256": "abb8e6890b4e54d5ea0f0fc7475648993b291d266ad387a60981cbc9021441aa",
+      "path": "windows-powershell-syntax.json",
       "bytes": 1440
     }
-  ]
+  ],
+  "testedSourceManifestSha256": "ae88e87640ec15c10d19c2138f83edd8b6b4c39482c8910e66598beacc14ef4c",
+  "runtimeEvidence": {
+    "appHead": "9c2e8e6cffd36024881c8be6720f132bbd8d7cc4",
+    "node": "v24.19.0",
+    "powershell": "7.6.5",
+    "functionalSmokeStatus": "PASS",
+    "reportingStatus": "FAILED_FILE_OCCUPIED_ORIGINAL_PRESERVED",
+    "applicationSourceEdited": false
+  }
 }
