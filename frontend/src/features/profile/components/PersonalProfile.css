@@ -1,0 +1,13 @@
+.personal-profile { padding: var(--space-5); display: grid; gap: var(--space-5); min-width: 0; }
+.personal-profile header { display: grid; gap: var(--space-2); }
+.personal-profile h2 { margin: 0; font-size: 20px; line-height: 28px; }
+.personal-profile p { margin: 0; line-height: 1.5; }
+.personal-profile header p, .personal-profile__help { color: var(--color-text-secondary); }
+.personal-profile h2:focus, .personal-profile__form:focus { outline: 2px solid var(--color-brand-primary); outline-offset: 4px; }
+.personal-profile__form { display: grid; gap: var(--space-5); min-width: 0; }
+.personal-profile__form > div:first-child:empty { display: none; }
+.personal-profile__email { display: grid; gap: var(--space-2); overflow-wrap: anywhere; }
+.personal-profile__email > span { font-size: 14px; font-weight: 600; }
+.personal-profile__help { font-size: 14px; }
+.personal-profile__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+@media (min-width: 768px) { .personal-profile { padding: var(--space-6); } }

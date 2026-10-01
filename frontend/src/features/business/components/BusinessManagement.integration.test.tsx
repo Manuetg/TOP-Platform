@@ -30,7 +30,7 @@ function AuthControls() {
 function Tenant() {
   const context = useBusinessContext(); const { session: current } = useAuth();
   const resources = useResources({ businessId: context.activeBusinessId, accessToken: current?.accessToken });
-  return <><output aria-label="Activo">{context.activeBusinessId}</output><BusinessSelector /><BusinessBoundary><BusinessProfilePage key={`${current?.user.id}:${context.activeBusinessId}`} /><output aria-label="Recursos">{resources.data?.map((item) => item.name).join(",")}</output></BusinessBoundary></>;
+  return <><output aria-label="Activo">{context.activeBusinessId}</output><BusinessSelector /><BusinessProfilePage key={current?.user.id} /><BusinessBoundary><output aria-label="Recursos">{resources.data?.map((item) => item.name).join(",")}</output></BusinessBoundary></>;
 }
 function mount() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } }); clients.push(client);
@@ -43,18 +43,57 @@ async function ready() { await login(); await choose("a"); await screen.findByDi
 
 describe("Business Management con Auth, QueryClient y HTTP reales", () => {
   beforeEach(() => {
-    sessionStorage.clear(); role = "OWNER"; requests = []; override = () => undefined;
+    sessionStorage.clear(); localStorage.clear(); role = "OWNER"; requests = []; override = () => undefined;
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init: RequestInit = {}) => {
       const path = requestUrl(input instanceof Request ? input.url : input).pathname; requests.push({ path, method: init.method ?? "GET", init });
       const custom = override(path, init); if (custom) return custom;
       if (path.endsWith("/auth/logout")) return Promise.resolve(new Response(null, { status: 204 }));
+      if (/\/users\/[^/]+\/profile$/.test(path)) { const id = path.split("/").at(-2); return Promise.resolve(json({ id, email: `${id}@example.test`, displayName: "Ana", status: "ACTIVE", updatedAt: "2026-09-30T12:00:00.000Z" })); }
       if (path.endsWith("/subscription")) return Promise.resolve(json({ subscription: { planCode: "TOP_INITIAL", planName: "TOP Inicial" }, entitlements: { maxResources: 10 }, usage: { resources: { used: 0, available: 10, percentage: 0, state: "NORMAL", canCreate: true } }, upgrade: { status: "AVAILABLE", requestedAt: null } }));
       if (path.endsWith("/businesses")) return Promise.resolve(json([business("a"), business("b")]));
       if (path.endsWith("/resources")) return Promise.resolve(json([{ name: `Recurso ${path.includes("/a/") ? "a" : "b"}` }]));
       return Promise.resolve(json(business(path.endsWith("/a") ? "a" : "b")));
     }));
   });
-  afterEach(() => { cleanup(); clients.splice(0).forEach((client) => client.clear()); vi.unstubAllGlobals(); sessionStorage.clear(); });
+  afterEach(() => { cleanup(); clients.splice(0).forEach((client) => client.clear()); vi.unstubAllGlobals(); sessionStorage.clear(); localStorage.clear(); });
+
+  it("Configuración permite consultar y guardar la cuenta sin Business disponible y no inicia consultas operativas", async () => {
+    override = (path, init) => {
+      if (path.endsWith("/businesses")) return json([]);
+      if (path.endsWith("/users/one/profile") && init.method === "PATCH") return json({ id: "one", email: "one@example.test", displayName: "Cuenta sin negocio", status: "ACTIVE", updatedAt: "2026-09-30T12:00:00.001Z" });
+    };
+    mount(); await userEvent.click(screen.getByRole("button", { name: "Login A" }));
+    await screen.findByDisplayValue("Ana");
+    await waitFor(() => expect(screen.getAllByText("No tenés un negocio activo disponible.").length).toBeGreaterThan(0));
+    expect(screen.getByRole("heading", { name: "Configuración" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Tu cuenta" })).toBeInTheDocument();
+    expect(screen.getByText("one@example.test")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Nombre del establecimiento")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Plan y capacidad" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Activo")).toBeEmptyDOMElement();
+
+    await userEvent.clear(screen.getByLabelText("Nombre completo")); await userEvent.type(screen.getByLabelText("Nombre completo"), "Cuenta sin negocio");
+    await userEvent.type(screen.getByLabelText("Motivo del cambio"), "Corrección de mi nombre");
+    await userEvent.click(screen.getByRole("button", { name: "Guardar nombre" }));
+
+    await screen.findByText("Tu nombre se guardó.");
+    expect(JSON.parse(sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY)!).user.displayName).toBe("Cuenta sin negocio");
+    const patch = requests.find((item) => item.method === "PATCH")!;
+    expect(patch.path).toBe("/api/users/one/profile");
+    expect(JSON.parse(String(patch.init.body))).toEqual({ displayName: "Cuenta sin negocio", reason: "Corrección de mi nombre", expectedUpdatedAt: "2026-09-30T12:00:00.000Z" });
+    expect(requests.filter((item) => item.path.includes("/businesses/") || item.path.endsWith("/resources") || item.path.includes("/subscription"))).toHaveLength(0);
+  });
+
+  it("la cuenta está visible mientras se elige Business y sus consultas esperan el estado ready", async () => {
+    mount(); await login(); await screen.findByDisplayValue("Ana");
+    expect(screen.getByRole("heading", { name: "Tu cuenta" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Nombre del establecimiento")).not.toBeInTheDocument();
+    expect(requests.filter((item) => item.path.includes("/businesses/"))).toHaveLength(0);
+
+    await choose("a"); await screen.findByDisplayValue("Posada a");
+
+    expect(requests.some((item) => item.path.endsWith("/businesses/a"))).toBe(true);
+  });
 
   it.each(["Business", "identidad"])("cancela %s A, resuelve B y descarta efectivamente respuestas tardías de A", async (change) => {
     const oldProfile = deferred<Response>(); const oldResources = deferred<Response>();
@@ -166,7 +205,7 @@ describe("Business Management con Auth, QueryClient y HTTP reales", () => {
   it("valida campos y presenta rechazo de servidor conservando la edición", async () => {
     override = (_path, init) => init.method === "PATCH" ? json({ message: "La actualización no es válida." }, 400) : undefined;
     mount(); await ready(); await userEvent.clear(screen.getByLabelText("Nombre del establecimiento")); await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
-    await screen.findByText("Ingresá el nombre del establecimiento."); expect(requests.some((item) => item.method === "PATCH")).toBe(false);
+    await screen.findByText("Ingresa el nombre del establecimiento."); expect(requests.some((item) => item.method === "PATCH")).toBe(false);
     await userEvent.type(screen.getByLabelText("Nombre del establecimiento"), "Corregida"); await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
     await screen.findByText("La actualización no es válida."); expect(screen.getByLabelText("Nombre del establecimiento")).toHaveValue("Corregida"); expect(screen.getByRole("button", { name: "Guardar cambios" })).toBeEnabled();
   });
@@ -191,5 +230,57 @@ describe("Business Management con Auth, QueryClient y HTTP reales", () => {
     await act(async () => saving.resolve(json({ ...business("a"), name: "ANTIGUO" })));
     expect(screen.getByLabelText("Nombre del establecimiento")).toHaveValue("Posada b"); expect(screen.queryByText("Cambios guardados.")).not.toBeInTheDocument();
     expect(client.getQueryData(["business-profile", "one", "a"])).toBeUndefined();
+  });
+
+  it("cambiar Business conserva el borrador global del nombre y su motivo mientras actualiza el establecimiento", async () => {
+    mount(); await ready(); await screen.findByDisplayValue("Ana");
+    await userEvent.clear(screen.getByLabelText("Nombre completo"));
+    await userEvent.type(screen.getByLabelText("Nombre completo"), "Ana borrador global");
+    await userEvent.type(screen.getByLabelText("Motivo del cambio"), "Corrección pendiente de mi nombre");
+    const storedSession = sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY);
+
+    await choose("b"); await screen.findByDisplayValue("Posada b");
+
+    expect(screen.getByLabelText("Nombre completo")).toHaveValue("Ana borrador global");
+    expect(screen.getByLabelText("Motivo del cambio")).toHaveValue("Corrección pendiente de mi nombre");
+    expect(screen.getByLabelText("Nombre del establecimiento")).toHaveValue("Posada b");
+    expect(screen.getByRole("button", { name: "Guardar nombre" })).toBeEnabled();
+    expect(requests.some((item) => item.method === "PATCH")).toBe(false);
+    expect(sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY)).toBe(storedSession);
+  });
+
+  it("retira el éxito cuando se inicia un nuevo borrador", async () => {
+    override = (_path, init) => init.method === "PATCH" ? json({ ...business("a"), name: "Posada guardada" }) : undefined;
+    mount(); await ready();
+    await userEvent.clear(screen.getByLabelText("Nombre del establecimiento"));
+    await userEvent.type(screen.getByLabelText("Nombre del establecimiento"), "Posada guardada");
+    await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    await screen.findByText("Cambios guardados.");
+    await userEvent.type(screen.getByLabelText("Nombre del establecimiento"), " pendiente");
+    expect(screen.queryByText("Cambios guardados.")).not.toBeInTheDocument();
+  });
+
+  it("un refetch actualiza campos limpios y conserva un borrador sin guardar", async () => {
+    const { client } = mount(); await ready();
+    override = (path, init) => path.endsWith("/businesses/a") && !init.method ? json({ ...business("a"), name: "Nombre actualizado" }) : undefined;
+    await act(async () => { await client.refetchQueries({ queryKey: ["business-profile", "one", "a"] }); });
+    await waitFor(() => expect(screen.getByLabelText("Nombre del establecimiento")).toHaveValue("Nombre actualizado"));
+    await userEvent.type(screen.getByLabelText("Nombre del establecimiento"), " borrador");
+    override = (path, init) => path.endsWith("/businesses/a") && !init.method ? json({ ...business("a"), name: "Otro cambio remoto" }) : undefined;
+    await act(async () => { await client.refetchQueries({ queryKey: ["business-profile", "one", "a"] }); });
+    expect(screen.getByLabelText("Nombre del establecimiento")).toHaveValue("Nombre actualizado borrador");
+  });
+
+  it.each([403, 404])("rechazo PATCH %s ofrece una reconsulta real", async (status) => {
+    override = (path, init) => path.endsWith("/businesses/a") && init.method === "PATCH" ? json({ message: "Acceso rechazado" }, status) : undefined;
+    mount(); await ready();
+    await userEvent.type(screen.getByLabelText("Nombre del establecimiento"), " editada");
+    await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    const reload = await screen.findByRole("button", { name: "Actualizar establecimiento" });
+    expect(screen.queryByLabelText("Nombre del establecimiento")).not.toBeInTheDocument();
+    const before = requests.filter((item) => item.path.endsWith("/businesses/a") && item.method === "GET").length;
+    await userEvent.click(reload);
+    await screen.findByLabelText("Nombre del establecimiento");
+    expect(requests.filter((item) => item.path.endsWith("/businesses/a") && item.method === "GET")).toHaveLength(before + 1);
   });
 });

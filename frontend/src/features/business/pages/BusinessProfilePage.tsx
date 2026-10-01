@@ -13,33 +13,36 @@ import { Button } from "../../../shared/ui/Button";
 import { Input } from "../../../shared/ui/Input";
 import "../components/Business.css";
 import { SubscriptionCard } from "../../subscription/components/SubscriptionCard";
+import { PersonalProfile } from "../../profile/components/PersonalProfile";
+import { BusinessBoundary } from "../components/BusinessBoundary";
 
 const schema = z.object({
-  name: z.string().trim().min(1, "Ingresá el nombre del establecimiento.").max(120, "Usá hasta 120 caracteres."),
+  name: z.string().trim().min(1, "Ingresa el nombre del establecimiento.").max(120, "Usa hasta 120 caracteres."),
   legalName: z.string(), taxId: z.string(),
-  timezone: z.string().trim().min(1, "Ingresá la zona horaria.").refine((value) => { try { new Intl.DateTimeFormat("es", { timeZone: value }); return true; } catch { return false; } }, "Ingresá una zona horaria IANA válida, por ejemplo America/Asuncion."),
+  timezone: z.string().trim().min(1, "Ingresa la zona horaria.").refine((value) => { try { new Intl.DateTimeFormat("es", { timeZone: value }); return true; } catch { return false; } }, "Ingresa una zona horaria IANA válida, por ejemplo America/Asuncion."),
 });
 type Fields = z.infer<typeof schema>;
 const fields = (business: Business): Fields => ({ name: business.name, legalName: business.legalName ?? "", taxId: business.taxId ?? "", timezone: business.timezone });
 const inaccessible = (error: unknown) => error instanceof ApiError && [403, 404].includes(error.status);
 
 export function BusinessProfilePage() {
-  const { activeBusinessId, activeRole } = useBusinessContext();
-  const { session } = useAuth();
+  const { activeBusinessId, activeRole, status: businessStatus } = useBusinessContext();
+  const { session, updateUserProfile } = useAuth();
   const status = useRef<HTMLDivElement>(null);
-  const query = useQuery({ queryKey: ["business-profile", session?.user.id, activeBusinessId], queryFn: ({ signal }) => getBusiness(activeBusinessId, session!.accessToken, signal), enabled: Boolean(activeBusinessId && session), retry: false });
+  const query = useQuery({ queryKey: ["business-profile", session?.user.id, activeBusinessId], queryFn: ({ signal }) => getBusiness(activeBusinessId, session!.accessToken, signal), enabled: businessStatus === "ready" && Boolean(activeBusinessId && session), retry: false });
   return <section className="business-profile" aria-label="Perfil del establecimiento">
-    <header><h1>Tu establecimiento</h1><p>Información operativa del negocio activo.</p></header>
-    <div ref={status} tabIndex={-1} className="business-profile__message" aria-live="polite">
+    <header><h1>Configuración</h1><p>Tu cuenta y la información del establecimiento activo.</p></header>
+    <PersonalProfile onSaved={updateUserProfile} />
+    <BusinessBoundary><div ref={status} tabIndex={-1} className="business-profile__message" aria-live="polite">
       {query.isPending ? "Cargando información…" : null}
-      {query.isError ? <><p role="alert">{inaccessible(query.error) ? "No tenés acceso a este establecimiento o ya no está disponible." : "No pudimos actualizar la información del establecimiento."}</p><Button onClick={() => { status.current?.focus(); void query.refetch(); }}>Reintentar perfil</Button></> : null}
+      {query.isError ? <><p role="alert">{inaccessible(query.error) ? "No tienes acceso a este establecimiento o ya no está disponible." : "No pudimos actualizar la información del establecimiento."}</p><Button onClick={() => { status.current?.focus(); void query.refetch(); }}>Reintentar perfil</Button></> : null}
     </div>
-    {query.data && !inaccessible(query.error) && session ? <BusinessProfileForm key={`${session.user.id}:${activeBusinessId}`} business={query.data} accessToken={session.accessToken} userId={session.user.id} canEdit={activeRole === "OWNER" || activeRole === "ADMIN"} /> : null}
-    <SubscriptionCard />
+    {query.data && !inaccessible(query.error) && session ? <BusinessProfileForm key={`${session.user.id}:${activeBusinessId}`} business={query.data} accessToken={session.accessToken} userId={session.user.id} canEdit={activeRole === "OWNER" || activeRole === "ADMIN"} onReload={async () => !(await query.refetch()).isError} /> : null}
+    <SubscriptionCard /></BusinessBoundary>
   </section>;
 }
 
-function BusinessProfileForm({ business, accessToken, userId, canEdit }: { business: Business; accessToken: string; userId: string; canEdit: boolean }) {
+function BusinessProfileForm({ business, accessToken, userId, canEdit, onReload }: { business: Business; accessToken: string; userId: string; canEdit: boolean; onReload: () => Promise<boolean> }) {
   const client = useQueryClient();
   const form = useForm<Fields>({ resolver: zodResolver(schema), defaultValues: fields(business) });
   const controller = useRef<AbortController | null>(null);
@@ -49,6 +52,7 @@ function BusinessProfileForm({ business, accessToken, userId, canEdit }: { busin
   const formElement = useRef<HTMLFormElement>(null);
   const [saved, setSaved] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const [reloading, setReloading] = useState(false);
   useEffect(() => { alive.current = true; return () => { alive.current = false; controller.current?.abort(); }; }, []);
   const mutation = useMutation({ retry: false, mutationFn: (values: Fields) => {
     controller.current = new AbortController();
@@ -64,6 +68,8 @@ function BusinessProfileForm({ business, accessToken, userId, canEdit }: { busin
         if (formElement.current?.contains(document.activeElement)) formElement.current.focus({ preventScroll: true });
         const updated = await mutation.mutateAsync(values);
         if (!alive.current || controller.current?.signal.aborted) return;
+        await client.cancelQueries({ queryKey: ["business-profile", userId, business.id], exact: true });
+        if (!alive.current || controller.current?.signal.aborted) return;
         client.setQueryData(["business-profile", userId, business.id], updated);
         client.setQueryData<Business[]>(["businesses", userId], (items) => items?.map((item) => item.id === updated.id ? updated : item));
         void client.invalidateQueries({ predicate: (item) => item.queryKey[0] !== "business-profile" && isBusinessQuery(item.queryKey, business.id) });
@@ -75,11 +81,24 @@ function BusinessProfileForm({ business, accessToken, userId, canEdit }: { busin
     })(event).finally(() => { locked.current = false; });
   };
   const pending = mutation.isPending || form.formState.isSubmitting;
+  const dirty = form.formState.isDirty;
+  useEffect(() => { if (!dirty && !pending) form.reset(fields(business)); }, [business.name, business.legalName, business.taxId, business.timezone, dirty, pending, form.reset]);
+  const reload = async () => {
+    if (reloading) return;
+    if (formElement.current?.contains(document.activeElement)) formElement.current.focus({ preventScroll: true });
+    setReloading(true);
+    const restored = await onReload();
+    if (!alive.current) return;
+    setReloading(false);
+    if (restored) { setBlocked(false); mutation.reset(); }
+  };
   return <form ref={formElement} tabIndex={-1} aria-label="Datos del establecimiento" className="business-profile__card top-surface" onSubmit={submit} noValidate>
+    <h2>Tu establecimiento</h2>
     <div ref={message} tabIndex={-1} className="business-profile__message" aria-live="polite">
-      {saved ? <p role="status">Cambios guardados.</p> : null}
-      {mutation.isError ? <p role="alert">{blocked ? "Ya no tenés permiso para editar este establecimiento. Volvé a cargar el perfil." : mutation.error.message}</p> : null}
+      {saved && !dirty ? <p role="status">Cambios guardados.</p> : null}
+      {mutation.isError ? <p role="alert">{blocked ? "Ya no tienes permiso para editar este establecimiento. Actualiza la información para revisar tu acceso." : mutation.error.message}</p> : null}
     </div>
+    {blocked ? <Button variant="secondary" loading={reloading} loadingLabel="Actualizando…" onClick={() => { void reload(); }}>Actualizar establecimiento</Button> : null}
     {!blocked ? <><div className="business-profile__grid">
       <Input id="business-name" label="Nombre del establecimiento" {...form.register("name")} error={form.formState.errors.name?.message} readOnly={!canEdit} disabled={pending} autoComplete="organization" />
       <Input id="business-legal" label="Razón social (opcional)" {...form.register("legalName")} readOnly={!canEdit} disabled={pending} />
@@ -88,6 +107,6 @@ function BusinessProfileForm({ business, accessToken, userId, canEdit }: { busin
       <Input id="business-currency" label="Moneda" value={business.currency} readOnly />
     </div>
     <p className="business-profile__notice">La zona horaria se usa para interpretar fechas y horarios del establecimiento. La moneda contractual es PYG.</p>
-    {canEdit ? <div className="business-profile__actions"><Button type="submit" loading={pending} loadingLabel="Guardando…" disabled={!form.formState.isDirty}>Guardar cambios</Button><Button type="button" variant="secondary" disabled={pending || !form.formState.isDirty} onClick={() => { form.reset(fields(business)); mutation.reset(); setSaved(false); }}>Descartar cambios</Button></div> : <p className="business-profile__notice">Tu rol permite consultar este perfil. Solo propietarios y administradores pueden editarlo.</p>}</> : null}
+    {canEdit ? <div className="business-profile__actions"><Button type="submit" loading={pending} loadingLabel="Guardando…" disabled={!dirty}>Guardar cambios</Button><Button type="button" variant="secondary" disabled={pending || !dirty} onClick={() => { form.reset(fields(business)); mutation.reset(); setSaved(false); }}>Descartar cambios</Button></div> : <p className="business-profile__notice">Tu rol permite consultar este perfil. Solo propietarios y administradores pueden editarlo.</p>}</> : null}
   </form>;
 }

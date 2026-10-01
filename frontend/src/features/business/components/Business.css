@@ -1,6 +1,7 @@
 .business-profile { max-width: 920px; margin-inline: auto; display: grid; gap: var(--space-6); }
-.business-profile h1 { margin: 0; font-size: 28px; letter-spacing: -.025em; }
-.business-profile header p { color: var(--color-text-secondary); line-height: 1.6; }
+.business-profile h1 { margin: 0; font-size: 24px; line-height: 32px; letter-spacing: -.025em; }
+.business-profile > header p { color: var(--color-text-secondary); line-height: 1.6; }
+.business-profile__card h2 { margin: 0; font-size: 20px; line-height: 28px; }
 .business-profile__card { padding: var(--space-5); display: grid; gap: var(--space-5); }
 .business-profile__grid { display: grid; gap: var(--space-5); }
 .business-profile__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
