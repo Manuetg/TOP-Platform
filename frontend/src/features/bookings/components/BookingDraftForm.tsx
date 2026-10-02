@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import {
   type FormEvent,
+  type ReactNode,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -38,9 +40,16 @@ interface BookingDraftFormProps {
     input: CreateBookingInput,
   ) => Promise<void>;
   onCancel: () => void;
+  amendment?: {
+    onValuesChange: (values: BookingDraftFormInitialValues) => void;
+    priceContent: ReactNode;
+    reviewContent: ReactNode;
+    submitDisabled: boolean;
+  };
 }
 
 interface ValidationErrors {
+  complete?: string;
   dates?: string;
   adults?: string;
   children?: string;
@@ -78,6 +87,7 @@ export function BookingDraftForm({
   errorMessage,
   onSubmit,
   onCancel,
+  amendment,
 }: BookingDraftFormProps) {
   const { session } = useAuth();
 
@@ -95,6 +105,11 @@ export function BookingDraftForm({
     useState(initialValues.children);
   const [notes, setNotes] =
     useState(initialValues.notes);
+
+  const onValuesChange = amendment?.onValuesChange;
+  useEffect(() => {
+    onValuesChange?.({ contactId, resourceId, checkInDate, checkOutDate, adults, children, notes });
+  }, [onValuesChange, contactId, resourceId, checkInDate, checkOutDate, adults, children, notes]);
 
   const [
     validationErrors,
@@ -147,6 +162,10 @@ export function BookingDraftForm({
   function validate() {
     const next: ValidationErrors = {};
 
+    if (amendment && (!contactId || !resourceId || !checkInDate || !checkOutDate)) {
+      next.complete = "Completá contacto y fechas para revisar los cambios.";
+    }
+
     if (
       checkInDate &&
       checkOutDate &&
@@ -160,7 +179,7 @@ export function BookingDraftForm({
       const parsed = Number(adults);
 
       if (
-        !Number.isInteger(parsed) ||
+        !Number.isInteger(parsed) || (amendment && !Number.isSafeInteger(parsed)) ||
         parsed < 0
       ) {
         next.adults =
@@ -172,7 +191,7 @@ export function BookingDraftForm({
       const parsed = Number(children);
 
       if (
-        !Number.isInteger(parsed) ||
+        !Number.isInteger(parsed) || (amendment && !Number.isSafeInteger(parsed)) ||
         parsed < 0
       ) {
         next.children =
@@ -236,6 +255,8 @@ export function BookingDraftForm({
     event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
+
+    if (isPending || amendment?.submitDisabled) return;
 
     if (!validate()) {
       return;
@@ -379,8 +400,7 @@ export function BookingDraftForm({
             </select>
 
             <span className="create-booking-hint">
-              El contacto puede completarse mientras
-              la reserva siga en borrador.
+              {amendment ? "Contacto responsable de la reserva." : "El contacto puede completarse mientras la reserva siga en borrador."}
             </span>
           </div>
         </section>
@@ -407,7 +427,7 @@ export function BookingDraftForm({
               Alojamiento
             </label>
 
-            <select className="top-input" disabled={isPending}
+            <select className="top-input" disabled={isPending || Boolean(amendment)}
               id="booking-resource"
               value={resourceId}
               onChange={(event) => {
@@ -447,9 +467,7 @@ export function BookingDraftForm({
             </select>
 
             <span className="create-booking-hint">
-              Una reserva admite como máximo un
-              alojamiento. Los recursos archivados
-              no están disponibles.
+              {amendment ? "Esta edición conserva el alojamiento de la reserva." : "Una reserva admite como máximo un alojamiento. Los recursos archivados no están disponibles."}
             </span>
           </div>
         </section>
@@ -704,6 +722,7 @@ export function BookingDraftForm({
             </div>
           </div>
         </section>
+        {amendment?.priceContent}
       </div>
 
       <aside className="create-booking-sidebar">
@@ -748,10 +767,11 @@ export function BookingDraftForm({
             </div>
           </dl>
 
-          <div className="create-booking-summary__notice">
-            Mientras la reserva siga en borrador,
-            estos datos pueden modificarse.
-          </div>
+          {amendment ? amendment.reviewContent : <div className="create-booking-summary__notice">
+            Mientras la reserva siga en borrador, estos datos pueden modificarse.
+          </div>}
+
+          {validationErrors.complete && <p className="create-booking-error" role="alert">{validationErrors.complete}</p>}
 
           {errorMessage && (
             <div
@@ -774,7 +794,7 @@ export function BookingDraftForm({
 
             <Button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || amendment?.submitDisabled}
             >
               {isPending
                 ? pendingLabel

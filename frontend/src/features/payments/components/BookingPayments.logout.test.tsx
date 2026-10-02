@@ -17,7 +17,7 @@ vi.mock("../../auth/api/logout", () => ({ logout: vi.fn().mockResolvedValue(unde
 vi.mock("../api/get-outstanding-balance", () => ({ getOutstandingBalance: vi.fn() }));
 vi.mock("../api/list-payments", () => ({ listPayments: vi.fn() }));
 const session: LoginResponse = { accessToken: "access-a", refreshToken: "refresh-a", tokenType: "Bearer", expiresIn: 900, user: { id: "user-a", email: "a@example.com", status: "ACTIVE" }, memberships: [{ businessId: "business-a", role: "OWNER" }] };
-const balance: OutstandingBalance = { bookingId: "booking-a", currency: "PYG", totalAmountMinor: 1, paidAmountMinor: 0, outstandingAmountMinor: 1, overdueAmountMinor: 0, financialStatus: "UNPAID", nextDueDate: null, nextDueAmountMinor: null };
+const balance: OutstandingBalance = { bookingId: "booking-a", currency: "PYG", totalAmountMinor: 1, paidAmountMinor: 0, outstandingAmountMinor: 1, creditAmountMinor: 0, needsReconciliation: false, warning: null, overdueAmountMinor: 0, financialStatus: "UNPAID", nextDueDate: null, nextDueAmountMinor: null };
 const page: PaymentHistoryPage = { items: [], pageInfo: { hasNextPage: false, nextCursor: null } };
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>((done) => { resolve = done; }); return { promise, resolve }; }
 function Controls() { const auth = useAuth(); return <><button onClick={() => auth.establishSession(session)}>Establecer</button><button onClick={() => void auth.logout()}>Salir</button><output>{auth.status}</output></>; }

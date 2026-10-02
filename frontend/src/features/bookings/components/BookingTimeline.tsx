@@ -3,6 +3,7 @@ import { formatBusinessInstant } from "../../../shared/utils/date-format";
 import {
   CheckCircle2,
   Circle,
+  Pencil,
   Send,
   XCircle,
 } from "lucide-react";
@@ -30,6 +31,7 @@ const EVENT_LABELS: Record<
   BOOKING_CHECKED_OUT: "Salida registrada",
   BOOKING_MARKED_NO_SHOW: "No show registrado",
   BOOKING_CANCELLED: "Reserva cancelada",
+  BOOKING_AMENDED: "Reserva modificada",
 };
 
 
@@ -39,6 +41,8 @@ function EventIcon({
   type: BookingTimelineEventType;
 }) {
   switch (type) {
+    case "BOOKING_AMENDED":
+      return <Pencil size={16} aria-hidden="true" />;
     case "BOOKING_SUBMITTED":
       return (
         <Send

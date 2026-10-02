@@ -10,7 +10,7 @@ import { BookingPayments } from "./BookingPayments";
 
 vi.mock("../api/get-outstanding-balance", () => ({ getOutstandingBalance: vi.fn() }));
 vi.mock("../api/list-payments", () => ({ listPayments: vi.fn() }));
-const balance: OutstandingBalance = { bookingId: "booking", currency: "PYG", totalAmountMinor: 1000, paidAmountMinor: 0, outstandingAmountMinor: 1000, overdueAmountMinor: 0, financialStatus: "UNPAID", nextDueDate: null, nextDueAmountMinor: null };
+const balance: OutstandingBalance = { bookingId: "booking", currency: "PYG", totalAmountMinor: 1000, paidAmountMinor: 0, outstandingAmountMinor: 1000, creditAmountMinor: 0, needsReconciliation: false, warning: null, overdueAmountMinor: 0, financialStatus: "UNPAID", nextDueDate: null, nextDueAmountMinor: null };
 const page = (id: string, hasNextPage: boolean, nextCursor: string | null): PaymentHistoryPage => ({ items: [{ id, bookingId: "booking", amountMinor: 1000, currency: "PYG", method: "CASH", reference: id, note: null, paidAt: "2026-09-02T12:00:00.000Z", createdAt: "2026-09-02T12:00:00.000Z", recordedByUserId: "user", status: "RECORDED" }], pageInfo: { hasNextPage, nextCursor } });
 function show() { const client = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return { client, ...render(<QueryClientProvider client={client}><BookingPayments userId="user" businessId="business" bookingId="booking" accessToken="token" timezone="America/Asuncion" enabled /></QueryClientProvider>) }; }
 

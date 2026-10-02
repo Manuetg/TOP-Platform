@@ -2,7 +2,7 @@ import {
   ArrowLeft,
   ClipboardList,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useIsPresent } from "motion/react";
 import {
   useNavigate,
@@ -16,6 +16,7 @@ import {
   type BookingDraftFormInitialValues,
 } from "../components/BookingDraftForm";
 import { useBooking } from "../queries/use-booking";
+import { BookingAmendmentForm } from "../components/BookingAmendmentForm";
 import { useUpdateBooking } from "../queries/use-update-booking";
 import type { CreateBookingInput } from "../types/booking.types";
 import "./CreateBookingPage.css";
@@ -56,7 +57,7 @@ function EditBookingContent({ businessId }: { businessId: string }) {
   const navigate = useNavigate();
   const { bookingId = "" } = useParams();
   const { session, status: authStatus } = useAuth();
-  const { activeRole, status: businessStatus } = useBusinessContext();
+  const { activeBusiness, activeRole, status: businessStatus } = useBusinessContext();
   const isPresent = useIsPresent();
   const present = useRef(isPresent);
   present.current = isPresent;
@@ -85,6 +86,16 @@ function EditBookingContent({ businessId }: { businessId: string }) {
     bookingId,
     accessToken: session?.accessToken,
   });
+
+  const [amendmentNotice, setAmendmentNotice] = useState<string | null>(null);
+  const observedVersion = useRef<string | null>(null);
+  useEffect(() => {
+    if (!booking || !["PENDING", "CONFIRMED"].includes(booking.status)) return;
+    if (observedVersion.current && observedVersion.current !== booking.updatedAt) {
+      setAmendmentNotice((previous) => previous ?? "La reserva cambió. Volvimos a cargar los datos actuales; revisá los cambios nuevamente.");
+    }
+    observedVersion.current = booking.updatedAt;
+  }, [booking]);
 
   if (isLoading) {
     return (
@@ -161,6 +172,18 @@ function EditBookingContent({ businessId }: { businessId: string }) {
 
   const currentBookingId = booking.id;
 
+  if (booking.id === bookingId && booking.businessId === businessId && booking.resourceIds.length === 1 &&
+    ["PENDING", "CONFIRMED"].includes(booking.status) && booking.financialSummary?.totalAmountMinor != null && activeBusiness?.status === "ACTIVE") {
+    return <BookingAmendmentForm key={`${session?.user.id}:${businessId}:${bookingId}:${activeRole}:${activeBusiness.status}:${booking.updatedAt}`} booking={booking} businessId={businessId}
+      notice={amendmentNotice} onStalePreview={async () => {
+        setAmendmentNotice("La reserva cambió antes de revisar. Cargá los datos actuales antes de revisar nuevamente.");
+        const response = await refetch();
+        if (response.isError) throw response.error;
+        if (!alive.current || !present.current || !canEdit) return;
+        setAmendmentNotice("La reserva cambió antes de revisar. Volvimos a cargar los datos actuales; revisá los cambios nuevamente.");
+      }} />;
+  }
+
   if (booking.status !== "DRAFT") {
     return (
       <section className="create-booking-page">
@@ -196,8 +219,7 @@ function EditBookingContent({ businessId }: { businessId: string }) {
           </h1>
 
           <p>
-            Sólo las reservas en estado Borrador
-            pueden modificarse.
+            Podés editar borradores o reservas Pendiente y Confirmada con precio acordado dentro de un negocio activo.
           </p>
 
           <Button

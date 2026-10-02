@@ -26,6 +26,8 @@ export interface Booking {
 export interface BookingFinancialSummary {
   totalAmountMinor: number | null;
   paidAmountMinor: number;
+  outstandingAmountMinor?: number;
+  creditAmountMinor?: number;
   currency: string | null;
 }
 
@@ -50,6 +52,7 @@ export type BookingTimelineEventType =
   | "BOOKING_CHECKED_IN"
   | "BOOKING_CHECKED_OUT"
   | "BOOKING_MARKED_NO_SHOW"
+  | "BOOKING_AMENDED"
   | "BOOKING_CANCELLED";
 
 export type BookingOperation = "check-in" | "check-out" | "no-show" | "confirm-without-payment";

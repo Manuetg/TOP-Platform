@@ -54,7 +54,7 @@ function setup(mode: "success" | "lost-response" | "deferred") {
     if (path.endsWith("/contacts")) return json([{ id: "contact-1", fullName: "Contacto de prueba" }]);
     if (requestedBooking && path.endsWith("/outstanding-balance")) {
       const summary = requestedBooking.financialSummary!;
-      return json({ bookingId: requestedBooking.id, currency: "PYG", totalAmountMinor: summary.totalAmountMinor, paidAmountMinor: summary.paidAmountMinor, outstandingAmountMinor: summary.totalAmountMinor! - summary.paidAmountMinor, overdueAmountMinor: 0, financialStatus: summary.paidAmountMinor ? "PARTIALLY_PAID" : "UNPAID", nextDueDate: null, nextDueAmountMinor: null });
+      return json({ bookingId: requestedBooking.id, currency: "PYG", totalAmountMinor: summary.totalAmountMinor, paidAmountMinor: summary.paidAmountMinor, outstandingAmountMinor: Math.max(0, summary.totalAmountMinor! - summary.paidAmountMinor), creditAmountMinor: Math.max(0, summary.paidAmountMinor - summary.totalAmountMinor!), needsReconciliation: false, warning: null, overdueAmountMinor: 0, financialStatus: summary.paidAmountMinor ? "PARTIALLY_PAID" : "UNPAID", nextDueDate: null, nextDueAmountMinor: null });
     }
     if (path.endsWith("/payment-plan")) return json({ message: "Sin plan" }, 404);
     if (requestedBooking && path.endsWith("/payments")) return json({ items: [...recorded.values()].filter((payment) => payment.bookingId === requestedBooking.id), pageInfo: { nextCursor: null, hasNextPage: false } });

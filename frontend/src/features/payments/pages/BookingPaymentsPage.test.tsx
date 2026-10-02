@@ -102,6 +102,9 @@ describe("estado operativo y financiero de la cuenta de una reserva", () => {
       totalAmountMinor: 400000,
       paidAmountMinor: 100000,
       outstandingAmountMinor: 300000,
+      creditAmountMinor: 0,
+      needsReconciliation: false,
+      warning: null,
       overdueAmountMinor: 0,
       financialStatus: "PARTIALLY_PAID",
       nextDueDate: null,
@@ -159,6 +162,73 @@ describe("estado operativo y financiero de la cuenta de una reserva", () => {
     expect(screen.getByRole("button", { name: "Registrar pago" })).toBeDisabled();
     expect(state.status).toBe("PENDING");
     expect(state.register).not.toHaveBeenCalled();
+  });
+
+  it("muestra crédito y conciliación sin modificar las cuotas, el historial ni el estado operativo", () => {
+    const warning = "El precio vigente y el plan de pagos requieren conciliación. Se conserva el historial sin reasignar cobros ni generar devoluciones.";
+    state.status = "NO_SHOW";
+    Object.assign(state.balance, {
+      totalAmountMinor: 100000,
+      paidAmountMinor: 120000,
+      outstandingAmountMinor: 0,
+      creditAmountMinor: 20000,
+      overdueAmountMinor: null,
+      needsReconciliation: true,
+      warning,
+      financialStatus: "PAID",
+    });
+    state.plan = { ...unpaidPlan(), needsReconciliation: true, warning };
+    state.payments = [{ id: "payment-1", bookingId: "booking-1", amountMinor: 120000, currency: "PYG", method: "CASH", reference: "REC-001", note: "Cobro conservado", paidAt: "2026-09-19T12:00:00Z", createdAt: "2026-09-19T12:00:00Z", recordedByUserId: "user-1", status: "RECORDED" }];
+    render(<BookingPaymentsPage />);
+
+    expect(screen.getByText("No show")).toBeVisible();
+    expect(screen.getByText("Saldo a favor", { selector: ".payments-account-status" })).toBeVisible();
+    expect(screen.getByText("₲ 20.000")).toBeVisible();
+    expect(screen.getByText("120%")).toBeVisible();
+    const progress = screen.getByRole("progressbar", { name: "Porcentaje pagado" });
+    expect(progress).toHaveAttribute("aria-valuenow", "100");
+    expect(progress).toHaveAttribute("aria-valuemax", "100");
+    expect(progress).toHaveAttribute("aria-valuetext", "120%; saldo a favor ₲ 20.000");
+    expect(progress.firstElementChild).toHaveStyle({ width: "100%" });
+    expect(screen.getByRole("alert")).toHaveTextContent(warning);
+    expect(screen.getAllByText(warning)).toHaveLength(1);
+    expect(screen.getByText("Pendiente de conciliación")).toBeVisible();
+    const schedule = screen.getByRole("heading", { name: "Plan de cobro" }).closest("section")!;
+    expect(within(schedule).getAllByText("₲ 200.000")).toHaveLength(2);
+    expect(within(schedule).getAllByText("50% del total")).toHaveLength(2);
+    expect(screen.getByText("Cobro conservado")).toBeVisible();
+    expect(screen.getByText(/REC-001/)).toBeVisible();
+    for (const name of ["Registrar pago", "Pagar", "Crear plan", "Editar plan", "Reprogramar"]) expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
+    expect(state.register).not.toHaveBeenCalled();
+    expect(state.savePlan).not.toHaveBeenCalled();
+  });
+
+  it("conserva porcentajes enormes exactos y sólo limita la representación de la barra", () => {
+    Object.assign(state.balance, { totalAmountMinor: 1, paidAmountMinor: Number.MAX_SAFE_INTEGER, outstandingAmountMinor: 0, creditAmountMinor: Number.MAX_SAFE_INTEGER - 1, financialStatus: "PAID" });
+    render(<BookingPaymentsPage />);
+    expect(screen.getByText("900.719.925.474.099.100%")).toBeVisible();
+    const progress = screen.getByRole("progressbar", { name: "Porcentaje pagado" });
+    expect(progress).toHaveAttribute("aria-valuenow", "100");
+    expect(progress).toHaveAttribute("aria-valuetext", "900.719.925.474.099.100%; saldo a favor ₲ 9.007.199.254.740.990");
+  });
+
+  it("conserva el saldo a favor de un precio cero con porcentaje no aplicable", () => {
+    Object.assign(state.balance, { totalAmountMinor: 0, paidAmountMinor: 100, outstandingAmountMinor: 0, creditAmountMinor: 100, overdueAmountMinor: null, needsReconciliation: true, financialStatus: "PAID" });
+    render(<BookingPaymentsPage />);
+    expect(screen.getByText("—")).toBeVisible();
+    expect(screen.getByText("₲ 100", { selector: ".payments-invoice__balance strong" })).toBeVisible();
+    expect(screen.getByRole("progressbar", { name: "Porcentaje pagado" })).toHaveAttribute("aria-valuetext", "No aplica: el total es cero; saldo a favor ₲ 100");
+    expect(screen.getByRole("button", { name: "Registrar pago" })).toBeDisabled();
+    expect(state.register).not.toHaveBeenCalled();
+  });
+
+  it("muestra la advertencia del plan aunque el saldo no la incluya", () => {
+    state.plan = { ...unpaidPlan(), needsReconciliation: true, warning: "El plan conserva sus importes anteriores." };
+    render(<BookingPaymentsPage />);
+    expect(screen.getByRole("alert")).toHaveTextContent("El plan conserva sus importes anteriores.");
+    expect(screen.getByRole("heading", { name: "Plan de cobro" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Pagos registrados" })).toBeVisible();
+    expect(state.savePlan).not.toHaveBeenCalled();
   });
 
   it.each([

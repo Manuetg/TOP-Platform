@@ -55,7 +55,7 @@ function localDateTime() {
 
 function percentageOf(part: number, total: number) {
   const hundredths = paymentPercentageHundredths(part, total);
-  return hundredths === null ? 0 : Number(hundredths) / 100;
+  return hundredths === null ? 0 : hundredths >= 10_000n ? 100 : Number(hundredths) / 100;
 }
 
 function dateFromYmd(value: string) {
@@ -227,7 +227,10 @@ function BookingPaymentsContent({ expectedContext }: { expectedContext: string }
   const paidAmountMinor = balance.data?.paidAmountMinor ?? 0;
   const outstandingAmountMinor =
     balance.data?.outstandingAmountMinor ?? 0;
-  const overdueAmountMinor = balance.data?.overdueAmountMinor ?? 0;
+  const creditAmountMinor = balance.data?.creditAmountMinor ?? 0;
+  const overdueAmountMinor = balance.data ? balance.data.overdueAmountMinor : 0;
+  const needsReconciliation = Boolean(balance.data?.needsReconciliation || plan.data?.needsReconciliation);
+  const reconciliationWarnings = [...new Set([balance.data?.warning, plan.data?.warning].filter((warning): warning is string => Boolean(warning)))];
   const canRecordPayments = hasPaymentPermission && Boolean(booking.data && balance.data) &&
     ["PENDING", "CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(booking.data?.status ?? "") &&
     (booking.data?.status !== "PENDING" || booking.data.financialSummary?.totalAmountMinor != null);
@@ -250,7 +253,7 @@ function BookingPaymentsContent({ expectedContext }: { expectedContext: string }
     !planLocked;
 
   const suggestedPaymentMinor =
-    overdueAmountMinor > 0
+    overdueAmountMinor !== null && overdueAmountMinor > 0
       ? Math.min(overdueAmountMinor, outstandingAmountMinor)
       : balance.data?.nextDueAmountMinor &&
           balance.data.nextDueAmountMinor > 0
@@ -708,9 +711,11 @@ function BookingPaymentsContent({ expectedContext }: { expectedContext: string }
   const bookingStatus = getBookingStatusLabel(booking.data.status);
 
   const accountStatus =
-    outstandingAmountMinor === 0
+    creditAmountMinor > 0
+      ? "Saldo a favor"
+      : outstandingAmountMinor === 0
       ? "Pagada"
-      : overdueAmountMinor > 0
+      : overdueAmountMinor !== null && overdueAmountMinor > 0
         ? "Vencida"
         : paidAmountMinor > 0
           ? "Pago parcial"
@@ -719,7 +724,7 @@ function BookingPaymentsContent({ expectedContext }: { expectedContext: string }
   const accountStatusClass =
     outstandingAmountMinor === 0
       ? "paid"
-      : overdueAmountMinor > 0
+      : overdueAmountMinor !== null && overdueAmountMinor > 0
         ? "overdue"
         : paidAmountMinor > 0
           ? "partial"
@@ -771,16 +776,18 @@ function BookingPaymentsContent({ expectedContext }: { expectedContext: string }
 
         <div className="payments-invoice__balance">
           <div>
-            <span>Saldo por cobrar</span>
+            <span>{creditAmountMinor > 0 ? "Saldo a favor" : "Saldo por cobrar"}</span>
 
             <strong>
               {money(
-                outstandingAmountMinor,
+                creditAmountMinor > 0 ? creditAmountMinor : outstandingAmountMinor,
                 currency,
               )}
             </strong>
 
-            {overdueAmountMinor > 0 ? (
+            {needsReconciliation ? (
+              <small>Requiere conciliación</small>
+            ) : overdueAmountMinor !== null && overdueAmountMinor > 0 ? (
               <small className="is-overdue">
                 {money(overdueAmountMinor, currency)}{" "}
                 vencidos
@@ -820,7 +827,7 @@ function BookingPaymentsContent({ expectedContext }: { expectedContext: string }
             aria-label="Porcentaje pagado"
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuetext={totalAmountMinor > 0 ? formatPaymentPercentage(paidAmountMinor, totalAmountMinor) : "No aplica: el total es cero"}
+            aria-valuetext={`${totalAmountMinor > 0 ? formatPaymentPercentage(paidAmountMinor, totalAmountMinor) : "No aplica: el total es cero"}${creditAmountMinor > 0 ? `; saldo a favor ${money(creditAmountMinor, currency)}` : ""}`}
             aria-valuenow={Math.min(
               paidPercentage,
               100,
@@ -856,16 +863,27 @@ function BookingPaymentsContent({ expectedContext }: { expectedContext: string }
             <span>Vencido</span>
             <strong
               className={
-                overdueAmountMinor > 0
+                overdueAmountMinor !== null && overdueAmountMinor > 0
                   ? "is-overdue"
                   : undefined
               }
             >
-              {money(overdueAmountMinor, currency)}
+              {overdueAmountMinor === null ? "Pendiente de conciliación" : money(overdueAmountMinor, currency)}
             </strong>
           </div>
         </div>
       </article>
+
+      {(needsReconciliation || reconciliationWarnings.length > 0) && (
+        <section className="payments-card" role="alert" aria-labelledby="payment-reconciliation-title">
+          <header>
+            <div>
+              <h2 id="payment-reconciliation-title"><CircleAlert size={18} aria-hidden="true" /> Requiere conciliación</h2>
+              {reconciliationWarnings.map((warning) => <div key={warning}>{warning}</div>)}
+            </div>
+          </header>
+        </section>
+      )}
 
       <section className="payments-card payments-schedule">
         <header>
@@ -930,7 +948,7 @@ function BookingPaymentsContent({ expectedContext }: { expectedContext: string }
 
             {plan.data.installments.map(
               (item, index) => {
-                const percentage = percentageOf(
+                const percentage = formatPaymentPercentage(
                   item.amountMinor,
                   plan.data!.totalAmountMinor,
                 );
@@ -954,7 +972,7 @@ function BookingPaymentsContent({ expectedContext }: { expectedContext: string }
                           )}
                         </strong>
                         <small>
-                          {percentage}% del total
+                          {percentage} del total
                         </small>
                       </div>
                     </div>

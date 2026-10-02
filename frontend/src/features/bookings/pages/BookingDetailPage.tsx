@@ -389,6 +389,12 @@ export function BookingDetailPage({
               Gestionar pagos
             </Button>
           )}
+          {canWriteBooking && activeBusiness?.id === businessId && activeBusiness.status === "ACTIVE" &&
+            ["PENDING", "CONFIRMED"].includes(booking.status) && booking.financialSummary?.totalAmountMinor != null && booking.resourceIds.length === 1 && (
+            <Button type="button" variant="secondary" disabled={cancelMutation.isPending} onClick={() => navigate(`/app/bookings/${booking.id}/edit`)}>
+              <Pencil size={16} aria-hidden="true" />Editar reserva
+            </Button>
+          )}
           {canWriteBooking && booking.status === "DRAFT" && (
             <>
               <Button

@@ -11,7 +11,7 @@ import { usePaymentHistory } from "./use-payment-history";
 vi.mock("../api/get-outstanding-balance", () => ({ getOutstandingBalance: vi.fn() }));
 vi.mock("../api/list-payments", () => ({ listPayments: vi.fn() }));
 const input = { userId: "user-a", businessId: "business-a", bookingId: "booking-a", accessToken: "token", enabled: true };
-const balance: OutstandingBalance = { bookingId: "booking-a", currency: "PYG", totalAmountMinor: 1000, paidAmountMinor: 0, outstandingAmountMinor: 1000, overdueAmountMinor: 0, financialStatus: "UNPAID", nextDueDate: null, nextDueAmountMinor: null };
+const balance: OutstandingBalance = { bookingId: "booking-a", currency: "PYG", totalAmountMinor: 1000, paidAmountMinor: 0, outstandingAmountMinor: 1000, creditAmountMinor: 0, needsReconciliation: false, warning: null, overdueAmountMinor: 0, financialStatus: "UNPAID", nextDueDate: null, nextDueAmountMinor: null };
 const paymentPage = (id: string, hasNextPage: boolean, nextCursor: string | null): PaymentHistoryPage => ({ items: [{ id, bookingId: "booking-a", amountMinor: 1000, currency: "PYG", method: "CASH", reference: null, note: null, paidAt: "2026-09-02T12:00:00.000Z", createdAt: "2026-09-02T12:00:00.000Z", recordedByUserId: "user-a", status: "RECORDED" }], pageInfo: { hasNextPage, nextCursor } });
 function setup() { const client = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return { client, wrapper: ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider> }; }
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>((done) => { resolve = done; }); return { promise, resolve }; }

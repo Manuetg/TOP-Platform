@@ -36,6 +36,7 @@ export class ApiResponseError extends Error {
 
 export interface ApiRequestOptions extends RequestInit {
   accessToken?: string | null;
+  skipUnauthorizedRecovery?: boolean;
 }
 
 export interface UnauthorizedRecoveryHandler {
@@ -51,13 +52,13 @@ export async function apiRequest<T>(
   path: string,
   options: ApiRequestOptions = {},
 ): Promise<T> {
-  const { accessToken, headers: customHeaders, ...requestOptions } = options;
+  const { accessToken, skipUnauthorizedRecovery = false, headers: customHeaders, ...requestOptions } = options;
   const headers = createHeaders(customHeaders, requestOptions.body, accessToken);
   const signal = requestOptions.signal;
   throwIfAborted(signal);
 
   const response = await fetchResponse(`${API_URL}${path}`, { ...requestOptions, headers }, signal);
-  const isRefreshable = Boolean(accessToken) && response.status === 401 &&
+  const isRefreshable = !skipUnauthorizedRecovery && Boolean(accessToken) && response.status === 401 &&
     !isAuthEndpoint(path);
 
   if (isRefreshable && unauthorizedRecovery) {
