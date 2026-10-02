@@ -6,8 +6,11 @@ import { afterEach, beforeEach, vi } from "vitest";
 import { AppShell } from "./AppShell";
 
 describe("AppShell", () => {
-  beforeEach(() => localStorage.clear());
-  afterEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ x: 100, y: 20, top: 20, left: 100, right: 300, bottom: 64, width: 200, height: 44, toJSON: () => ({}) });
+  });
+  afterEach(() => { localStorage.clear(); vi.restoreAllMocks(); });
 
   it("starts with an expanded desktop sidebar when no preference exists", () => {
     render(<AppShell activeSection="home" businessName="Tobera" userName="Jeni" userRole="Propietaria"><div /></AppShell>);
@@ -324,7 +327,7 @@ describe("AppShell", () => {
     ).toBeInTheDocument();
   });
 
-  it("opens notifications with a valid empty state", async () => {
+  it("opens notifications without claiming that operational alerts are implemented", async () => {
     const user = userEvent.setup();
 
     render(
@@ -349,11 +352,11 @@ describe("AppShell", () => {
     });
 
     expect(
-      within(panel).getByText("Todo al día"),
+      within(panel).getByText("Notificaciones aún no disponibles"),
     ).toBeInTheDocument();
 
     expect(
-      within(panel).getByText("No tenés notificaciones nuevas."),
+      within(panel).getByText("Por ahora, revisa la actividad en Calendario, Reservas y Pagos."),
     ).toBeInTheDocument();
   });
 
@@ -433,6 +436,7 @@ describe("AppShell", () => {
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Configuración" }));
     expect(onNavigate).toHaveBeenCalledWith("settings");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
 
   it("closes the mobile overlay when the desktop breakpoint hides its trigger", async () => {

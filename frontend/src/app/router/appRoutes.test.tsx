@@ -52,6 +52,7 @@ async function navigate(router: ReturnType<typeof createMemoryRouter>, path = "/
 
 describe("recuperación en las rutas productivas", () => {
   beforeEach(() => {
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ x: 100, y: 20, top: 20, left: 100, right: 300, bottom: 64, width: 200, height: 44, toJSON: () => ({}) });
     Object.assign(state, { status: "authenticated", businessStatus: "ready", userId: "user-1", businessId: "business-1", pageFails: true, shellFails: false, pageRenders: 0 });
     state.mutation.mockReset();
     // React informa las excepciones sintéticas de estos casos. Solo se silencia este describe.

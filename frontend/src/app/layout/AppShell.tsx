@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { OverlayPanel } from "../../shared/ui/OverlayPanel";
+import { AnchoredPopover } from "../../shared/ui/AnchoredPopover";
 import { Button } from "../../shared/ui/Button";
 import "./AppShell.css";
 
@@ -179,6 +180,7 @@ export function AppShell({
       return;
     }
 
+    if (headerMenu) headerTrigger.current?.focus({ preventScroll: true });
     setIsMoreOpen(false);
     closeHeader();
     onNavigate?.(target);
@@ -399,8 +401,9 @@ export function AppShell({
       </header>
 
 
-      <OverlayPanel open={headerState.open} label="Panel del encabezado" closeLabel="Cerrar panel del encabezado" triggerRef={headerTrigger} onClose={closeHeader}
-        layerClassName={`top-header-popover-layer${headerState.mode === "business" ? " top-header-popover-layer--business" : ""}`}
+      <AnchoredPopover key={headerState.mode} open={headerState.open} label="Panel del encabezado" triggerRef={headerTrigger} onClose={closeHeader}
+        onAnchorHidden={() => document.getElementById("top-main-content")?.focus({ preventScroll: true })}
+        align={headerState.mode === "business" ? "start" : "end"}
         className={`top-header-popover${headerState.mode === "business" ? " top-header-popover--business" : ""}`}>
             <Button variant="tertiary" size="sm" iconOnly aria-label="Cerrar panel del encabezado" className="top-panel-close" onClick={() => { headerTrigger.current?.focus(); closeHeader(); }}><X size={20} aria-hidden="true" /></Button>            {headerState.mode === "business" && renderBusinessMenu ? <><div className="top-header-popover__heading"><span>Establecimientos</span><strong>Tu negocio activo</strong></div>{renderBusinessMenu(() => { headerTrigger.current?.focus(); closeHeader(); })}</> : headerState.mode === "business" ? (
               <>
@@ -429,8 +432,8 @@ export function AppShell({
 
                 <div className="top-header-popover__empty">
                   <Bell size={20} aria-hidden="true" />
-                  <strong>Todo al día</strong>
-                  <span>No tenés notificaciones nuevas.</span>
+                  <strong>Notificaciones aún no disponibles</strong>
+                  <span>Por ahora, revisa la actividad en Calendario, Reservas y Pagos.</span>
                 </div>
               </>
             ) : (
@@ -472,7 +475,7 @@ export function AppShell({
                 </div>
               </>
             )}
-      </OverlayPanel>
+      </AnchoredPopover>
 
       <div className={`top-app-shell__body${contextRail ? " top-app-shell__body--with-rail" : ""}`}>
         <main id="top-main-content" tabIndex={-1} className="top-app-shell__content">

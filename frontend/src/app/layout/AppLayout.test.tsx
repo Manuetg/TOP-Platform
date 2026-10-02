@@ -2,7 +2,7 @@ import { QueryProvider } from "../providers/QueryProvider";
 import type { ReactElement } from "react";
 import { render as rtlRender, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, vi } from "vitest";
+import { afterEach, beforeEach, vi } from "vitest";
 import * as authContext from "../../features/auth/context/AuthContext";
 import * as businessContext from "../../features/business/context/BusinessContext";
 import {
@@ -13,6 +13,9 @@ import {
 import { AppLayout } from "./AppLayout";
 
 afterEach(() => vi.restoreAllMocks());
+beforeEach(() => {
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ x: 100, y: 20, top: 20, left: 100, right: 300, bottom: 64, width: 200, height: 44, toJSON: () => ({}) });
+});
 
 function signedIn(displayName: string | null) {
   vi.spyOn(authContext, "useAuth").mockReturnValue({

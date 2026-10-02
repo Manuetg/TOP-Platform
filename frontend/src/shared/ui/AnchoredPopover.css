@@ -1,0 +1,24 @@
+.top-anchored-popover {
+  z-index: 80;
+  min-width: 0;
+  margin: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  color: var(--color-text-primary);
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
+  animation: top-anchored-enter var(--motion-fast) var(--motion-enter);
+}
+.top-anchored-popover:focus-visible {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: -2px;
+}
+@keyframes top-anchored-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .top-anchored-popover { animation: none; }
+}
