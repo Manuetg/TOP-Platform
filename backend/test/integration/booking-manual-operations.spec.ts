@@ -67,6 +67,35 @@ describeWithPostgres('Operaciones manuales de reservas en PostgreSQL', () => {
     expect(await prisma.bookingTimelineEvent.findMany({ where: { bookingId: value.booking.id } })).toEqual([expect.objectContaining({ type: 'BOOKING_CONFIRMED', actorUserId: value.actor.id, details: expect.objectContaining({ source: 'FREE_CONFIRM', beforeStatus: 'PENDING', afterStatus: 'CONFIRMED' }) })]);
   });
 
+  it.each([
+    { original: 0, current: 100, eligible: false },
+    { original: 100, current: 0, eligible: true },
+  ])('confirma sin cobro según precio vigente $current y conserva el original $original', async ({ original, current, eligible }) => {
+    const value = await fixture(BookingStatus.PENDING, original);
+    const revision = await prisma.pricingRevision.create({ data: {
+      businessId: value.business.id, bookingId: value.booking.id, originalSnapshotId: value.snapshot.id,
+      revisionNumber: 1, currency: 'PYG', totalAmountMinor: current,
+      items: [{ resourceId: value.resource.id, pricingMode: 'MANUAL_NO_RATE_PLAN', agreedAmountMinor: current, overrideReason: 'Cambio acordado de prueba', nights: 2, breakdown: [] }],
+      previousPricing: { id: value.snapshot.id, totalAmountMinor: original }, beforeContext: {}, afterContext: {},
+      paidAmountMinorAtSave: 0, actorUserId: value.actor.id,
+    } });
+    const request = operations.execute(input(value, BookingOperation.CONFIRM_WITHOUT_PAYMENT));
+    if (eligible) {
+      await expect(request).resolves.toMatchObject({ status: BookingStatus.CONFIRMED });
+      expect(await prisma.bookingTimelineEvent.findMany({ where: { bookingId: value.booking.id } })).toEqual([
+        expect.objectContaining({ type: 'BOOKING_CONFIRMED', details: expect.objectContaining({ source: 'FREE_CONFIRM' }) }),
+      ]);
+    } else {
+      await expect(request).rejects.toBeInstanceOf(BookingOperationConflictError);
+      expect(await prisma.booking.findUnique({ where: { id: value.booking.id } })).toEqual(value.booking);
+      expect(await prisma.bookingTimelineEvent.count()).toBe(0);
+    }
+    expect(await prisma.pricingSnapshot.findUnique({ where: { id: value.snapshot.id } })).toEqual(value.snapshot);
+    expect(await prisma.pricingRevision.findUnique({ where: { id: revision.id } })).toEqual(revision);
+    expect(await prisma.payment.count()).toBe(0);
+    expect(await prisma.paymentApplication.count()).toBe(0);
+  });
+
   it.each([0, 1])('rechaza confirmación gratuita sin precio o con total positivo (%s)', async (total) => {
     const value = await fixture(BookingStatus.PENDING, total);
     if (total === 0) await prisma.pricingSnapshot.delete({ where: { id: value.snapshot.id } });

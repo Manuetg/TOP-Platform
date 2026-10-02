@@ -5,6 +5,7 @@ import { Booking as BookingEntity, BookingBusinessNotFoundError, BookingBusiness
 import { validateAvailabilityInTransaction, AvailabilityBusinessNotFoundError, AvailabilityBusinessUnavailableError, AvailabilityResourceNotFoundError } from '../../availability/availability.contract';
 import { BOOKING_OPERATION_TRANSITIONS, BookingOperation, type BookingOperationData, type BookingOperationTransaction } from '../booking-operation.contract';
 import { BookingOperationConflictError, BookingOperationForbiddenError } from '../application/booking-operation.errors';
+import { readCurrentPricing } from '../../pricing/pricing.contract';
 
 type LockedBooking = BookingRow & { resources: { resourceId: string }[] };
 
@@ -65,8 +66,9 @@ export class PrismaBookingOperationTransaction implements BookingOperationTransa
   }
 
   private async validateFreeConfirmation(transaction: Prisma.TransactionClient, data: BookingOperationData, booking: LockedBooking): Promise<void> {
-    const snapshot = await transaction.pricingSnapshot.findFirst({ where: { bookingId: data.bookingId, businessId: data.businessId }, select: { totalAmountMinor: true } });
-    if (!snapshot || snapshot.totalAmountMinor !== 0n) throw new BookingOperationConflictError('Confirmar sin cobro requiere un precio acordado con total cero.');
+    await transaction.$queryRaw(Prisma.sql`SELECT "id" FROM "PricingSnapshot" WHERE "bookingId" = ${data.bookingId} AND "businessId" = ${data.businessId} FOR SHARE`);
+    const price = await readCurrentPricing(transaction, data.businessId, data.bookingId);
+    if (!price || price.totalAmountMinor !== 0) throw new BookingOperationConflictError('Confirmar sin cobro requiere un precio acordado con total cero.');
     this.requireCompleteBooking(booking);
     for (const resource of booking.resources) await transaction.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${resource.resourceId}, 0))`);
     await this.requireContactAndCapacity(transaction, data.businessId, booking);
