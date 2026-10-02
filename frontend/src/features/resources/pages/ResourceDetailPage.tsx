@@ -531,7 +531,7 @@ function ResourceDetailContent() {
           <div className="resource-detail-quick-actions">
             {canOperate && resource.status === "ACTIVE" ? (
             <Link
-              to="/app/bookings/new"
+              to="/app/calendar"
               className="resource-detail-quick-action resource-detail-quick-action--primary"
             >
               <CalendarPlus size={16} aria-hidden="true" />

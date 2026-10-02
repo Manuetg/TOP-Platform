@@ -24,7 +24,6 @@ const AvailabilityCalendarPage = lazy(() => import("../../features/availability/
 const BlockListPage = lazy(() => import("../../features/blocks/pages/BlockListPage").then((module) => ({ default: module.BlockListPage })));
 const BookingListPage = lazy(() => import("../../features/bookings/pages/BookingListPage").then((module) => ({ default: module.BookingListPage })));
 const BookingDetailPage = lazy(() => import("../../features/bookings/pages/BookingDetailPage").then((module) => ({ default: module.BookingDetailPage })));
-const CreateBookingPage = lazy(() => import("../../features/bookings/pages/CreateBookingPage").then((module) => ({ default: module.CreateBookingPage })));
 const EditBookingPage = lazy(() => import("../../features/bookings/pages/EditBookingPage").then((module) => ({ default: module.EditBookingPage })));
 const ConfirmBookingPage = lazy(() => import("../../features/bookings/pages/ConfirmBookingPage").then((module) => ({ default: module.ConfirmBookingPage })));
 const CreateBlockPage = lazy(() => import("../../features/blocks/pages/CreateBlockPage").then((module) => ({ default: module.CreateBlockPage })));
@@ -76,7 +75,7 @@ export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general 
       },
       {
         path: "bookings/new",
-        element: page(CreateBookingPage),
+        element: <Navigate to="/app/calendar" replace />,
       },
       {
         path: "bookings/:bookingId",

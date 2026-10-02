@@ -15,6 +15,8 @@ import {
   MemoryRouter,
   Route,
   Routes,
+  useLocation,
+  useNavigate,
 } from "react-router-dom";
 import {
   beforeEach,
@@ -124,6 +126,12 @@ function mockResource(resource: Resource) {
   } as never);
 }
 
+function CalendarDestination() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return <><h1>Calendario de prueba</h1><output aria-label="Ruta actual">{location.pathname}{location.search}</output><button onClick={() => void navigate(-1)}>Volver</button></>;
+}
+
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -143,6 +151,7 @@ function renderPage() {
               path="/app/resources/:resourceId"
               element={<ResourceDetailPage />}
             />
+            <Route path="/app/calendar" element={<CalendarDestination />} />
           </Routes>
         </MemoryRouter>
     </QueryClientProvider>,
@@ -197,6 +206,21 @@ describe("ResourceDetailPage", () => {
         name: "Poner fuera de servicio",
       }),
     ).toBeInTheDocument();
+  });
+
+  it.each(["OWNER", "ADMIN", "RECEPTIONIST"])("mantiene Crear reserva para %s y navega a Calendario sin parámetros inventados; Back recupera el recurso", async (role) => {
+    businessContext.activeRole = role;
+    mockResource(activeResource);
+    const user = userEvent.setup();
+    renderPage();
+    const create = screen.getByRole("link", { name: "Crear reserva" });
+    expect(create).toHaveAttribute("href", "/app/calendar");
+    await user.click(create);
+    expect(screen.getByRole("heading", { name: "Calendario de prueba" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Ruta actual")).toHaveTextContent(/^\/app\/calendar$/);
+    expect(businessContext.activeBusinessId).toBe("business-1");
+    await user.click(screen.getByRole("button", { name: "Volver" }));
+    expect(screen.getByRole("heading", { name: activeResource.name })).toBeInTheDocument();
   });
 
   it("renders the breadcrumb and opens the edit form as a dialog", async () => {

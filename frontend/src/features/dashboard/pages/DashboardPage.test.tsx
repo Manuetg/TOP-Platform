@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DashboardPage } from "./DashboardPage";
 import { useDashboard } from "../queries/use-dashboard";
@@ -50,10 +50,17 @@ const data: DashboardResponse = {
     },
   },
 };
+function CalendarDestination() {
+  const location = useLocation();
+  return <><h1>Calendario de prueba</h1><output aria-label="Ruta actual">{location.pathname}{location.search}</output></>;
+}
 function show(businessId = "business-a") {
   return render(
-    <MemoryRouter>
-      <DashboardPage businessId={businessId} />
+    <MemoryRouter initialEntries={["/app"]}>
+      <Routes>
+        <Route path="/app" element={<DashboardPage businessId={businessId} />} />
+        <Route path="/app/calendar" element={<CalendarDestination />} />
+      </Routes>
     </MemoryRouter>,
   );
 }
@@ -138,7 +145,7 @@ describe("DashboardPage", () => {
       expect(screen.getByText(label)).toBeVisible();
     expect(screen.getByRole("link", { name: "Crear reserva" })).toHaveAttribute(
       "href",
-      "/app/bookings/new",
+      "/app/calendar",
     );
     expect(query).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -146,6 +153,12 @@ describe("DashboardPage", () => {
         accessToken: "access-token",
       }),
     );
+  });
+  it("el acceso Crear reserva del inicio usa Calendario", async () => {
+    show();
+    await userEvent.click(screen.getByRole("link", { name: "Crear reserva" }));
+    expect(screen.getByRole("heading", { name: "Calendario de prueba" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Ruta actual")).toHaveTextContent(/^\/app\/calendar$/);
   });
   it("formats the backend rate without recalculating from counts", () => {
     result({

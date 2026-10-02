@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Booking, BookingStatus } from "../types/booking.types";
 import { BookingListPage } from "./BookingListPage";
@@ -9,9 +9,8 @@ import { BookingListPage } from "./BookingListPage";
 vi.mock("../../auth/context/AuthContext", () => ({
   useAuth: () => ({ session: { accessToken: "access-token", user: { id: "user-1" } } }),
 }));
-vi.mock("../../business/context/BusinessContext", () => ({
-  useBusinessContext: () => ({ activeBusinessId: "business-1", activeRole: "OWNER" }),
-}));
+const context = vi.hoisted(() => ({ activeBusinessId: "business-1", activeRole: "OWNER" }));
+vi.mock("../../business/context/BusinessContext", () => ({ useBusinessContext: () => context }));
 
 const states: [BookingStatus, string][] = [
   ["DRAFT", "Borrador"], ["PENDING", "Pendiente"], ["CONFIRMED", "Confirmada"],
@@ -35,9 +34,14 @@ function deferred() {
   const promise = new Promise<Response>((finish) => { resolve = finish; });
   return { promise, resolve };
 }
+function CalendarDestination() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return <><h1>Calendario de prueba</h1><output aria-label="Ruta actual">{location.pathname}{location.search}</output><button onClick={() => void navigate(-1)}>Volver</button></>;
+}
 function show() {
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
-  return render(<QueryClientProvider client={client}><MemoryRouter><BookingListPage /></MemoryRouter></QueryClientProvider>);
+  return render(<QueryClientProvider client={client}><MemoryRouter initialEntries={["/app/bookings"]}><Routes><Route path="/app/bookings" element={<BookingListPage />} /><Route path="/app/calendar" element={<CalendarDestination />} /></Routes></MemoryRouter></QueryClientProvider>);
 }
 function assertNoEmptyMessage() {
   expect(screen.queryByRole("heading", { name: /No encontramos reservas|Todavía no hay reservas/ })).not.toBeInTheDocument();
@@ -47,6 +51,7 @@ async function loaded() {
 }
 
 beforeEach(() => {
+  Object.assign(context, { activeBusinessId: "business-1", activeRole: "OWNER" });
   fetchMock.mockReset();
   fetchMock.mockImplementation(async (input) => {
     const request = url(input);
@@ -60,6 +65,19 @@ beforeEach(() => {
 afterEach(() => { cleanup(); client?.clear(); vi.unstubAllGlobals(); });
 
 describe("BookingListPage: foco durante consultas de filtros", () => {
+  it.each(["OWNER", "ADMIN", "RECEPTIONIST", "VIEWER"])("conserva Crear reserva para %s y navega a Calendario; Back recupera el listado", async (role) => {
+    context.activeRole = role;
+    const user = userEvent.setup();
+    show(); await loaded();
+    await user.click(screen.getByRole("button", { name: "Crear reserva" }));
+    expect(screen.getByRole("heading", { name: "Calendario de prueba" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Ruta actual")).toHaveTextContent(/^\/app\/calendar$/);
+    expect(context.activeBusinessId).toBe("business-1");
+    await user.click(screen.getByRole("button", { name: "Volver" }));
+    expect(screen.getByRole("heading", { name: "Reservas", level: 1 })).toBeInTheDocument();
+    await loaded();
+  });
+
   it.each(states)("mantiene foco y controles antes y después del GET diferido de %s", async (status, label) => {
     const user = userEvent.setup();
     const originalFetch = fetchMock.getMockImplementation()!;

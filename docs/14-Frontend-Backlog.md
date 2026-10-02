@@ -1,6 +1,16 @@
 # TOP — Frontend Backlog
 
-Última actualización: 2026-10-01
+Última actualización: 2026-10-02
+
+## Entrada de creación de reservas desde Calendario (2026-10-02)
+
+Decisión confirmada por Rolo durante QA con Ema: conservar el listado y los botones **Crear reserva** del listado y del detalle de recurso, pero llevarlos a `/app/calendar`. El acceso rápido del Dashboard usa el mismo destino. Se retira la pantalla independiente de creación; `/app/bookings/new` conserva compatibilidad mediante redirección `replace` dentro de la protección de sesión y negocio, para que Back vuelva al origen sin bucles.
+
+Calendario conserva su asistente existente de contacto, fechas, tarifa configurada y precio manual. No admite un recurso desde URL/state; estos enlaces no introducen preselección ni apertura automática. OWNER/ADMIN/RECEPTIONIST pueden iniciar el asistente; VIEWER consulta Calendario sin acciones de creación. Un cambio de rol descarta el asistente y aborta sus operaciones anteriores. Los formularios de detalle, edición y confirmación siguen usando sus contratos actuales; se conserva el CSS compartido por edición.
+
+Este delta de navegación se revisa por separado de las nuevas reglas de alta Pendiente, confirmación por pago y edición posterior. No cambia estados persistidos, precios, cobros ni históricos. Criterios: botón y Back desde lista/recurso/Dashboard; URL antigua directa y Back/Forward; sesión/restauración y BusinessBoundary; permisos y flujo del asistente; móvil y desktop; build/lint/suite completa.
+
+Validación local del candidato: build y lint exit 0; 107 archivos y 896 pruebas PASS (`npm test -- --maxWorkers=1`); 24 escenarios únicos de navegador PASS en 390 y 1440 px sobre el mismo bundle. La API de navegador usa fixtures y no acredita el backend. Se conservan los intentos fallidos del runner y de tests; las consultas del asistente se acotaron al diálogo sin ampliar timeouts ni reducir comprobaciones. Lint conserva el aviso previo de `formatDashboardMonth` sin uso. Revisión independiente sin bloqueantes; integración, publicación y merge no realizados.
 
 ## Refinamientos locales de configuración, estados, Resources y web (2026-10-01)
 

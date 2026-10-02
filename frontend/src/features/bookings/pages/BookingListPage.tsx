@@ -394,7 +394,7 @@ export function BookingListPage({
           type="button"
           className="booking-list-header__create"
           onClick={() =>
-            navigate("/app/bookings/new")
+            navigate("/app/calendar")
           }
         >
           <Plus

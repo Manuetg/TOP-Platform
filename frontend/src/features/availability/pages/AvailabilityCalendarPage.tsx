@@ -94,10 +94,10 @@ function selectedDiscountPercent(wizard: WizardState) {
 }
 
 export function AvailabilityCalendarPage() {
-  const { activeBusiness } = useBusinessContext();
+  const { activeBusiness, activeRole } = useBusinessContext();
   const { session } = useAuth();
   if (!activeBusiness) return <p role="status">Seleccioná un negocio para ver el calendario.</p>;
-  return <BusinessCalendar key={`${session?.user.id}:${activeBusiness.id}:${activeBusiness.timezone}`} businessId={activeBusiness.id} timezone={activeBusiness.timezone} currency={activeBusiness.currency} />;
+  return <BusinessCalendar key={`${session?.user.id}:${activeBusiness.id}:${activeBusiness.timezone}:${activeRole}`} businessId={activeBusiness.id} timezone={activeBusiness.timezone} currency={activeBusiness.currency} />;
 }
 
 function BusinessCalendar({ businessId, timezone, currency }: { businessId: string; timezone: string; currency: string }) {
@@ -105,6 +105,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
   const queryClient = useQueryClient();
   const { session } = useAuth();
   const { activeRole } = useBusinessContext();
+  const canOperate = Boolean(session?.user.id && session.accessToken) && (activeRole === "OWNER" || activeRole === "ADMIN" || activeRole === "RECEPTIONIST");
   const canOverride = activeRole === "OWNER" || activeRole === "ADMIN";
   const accessToken = session?.accessToken;
   const today = businessDateAt(new Date(), timezone);
@@ -314,6 +315,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
   }
 
   function openWizard(day?: string, resourceId?: string) {
+    if (!canOperate) return;
     wizardTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setWizard({
       ...emptyWizard,
@@ -328,7 +330,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
   }
 
   async function nextStep() {
-    if (saving) return;
+    if (!canOperate || saving) return;
     setError(null);
     if (step === 1) {
       const adults = Number(wizard.adults);
@@ -391,6 +393,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
   }
 
   async function handleCreateContact() {
+    if (!canOperate) return;
     setError(null);
     if (newContact.name.trim().length < 2 || newContact.lastName.trim().length < 2 || newContact.phone.trim().length < 6) {
       setError("Completá nombre, apellido y teléfono del contacto.");
@@ -444,7 +447,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
   }
 
   async function finishBooking() {
-    if (savingLock.current || !businessId || !pricingReady || ((wizard.mode !== "CONFIGURED" || selectedDiscountPercent(wizard) > 0) && !canOverride) || (wizard.mode === "CONFIGURED" && !preview)) return;
+    if (!canOperate || savingLock.current || !businessId || !pricingReady || ((wizard.mode !== "CONFIGURED" || selectedDiscountPercent(wizard) > 0) && !canOverride) || (wizard.mode === "CONFIGURED" && !preview)) return;
     savingLock.current = true;
     const controller = operation();
     const discount = selectedDiscountPercent(wizard);
@@ -519,7 +522,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
           <h1>Calendario</h1>
           <p>Reservas, disponibilidad y bloqueos en una sola vista.</p>
         </div>
-        <Button type="button" onClick={() => openWizard()}><Plus size={17} />Nueva reserva</Button>
+        {canOperate ? <Button type="button" onClick={() => openWizard()}><Plus size={17} />Nueva reserva</Button> : null}
       </header>
 
       <div className="availability-calendar-toolbar">
@@ -629,17 +632,17 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
                 </strong>
               </div>
 
-              <button
+              {canOperate ? <button
                 type="button"
                 className="availability-mobile-new-booking"
                 onClick={() => openWizard(selectedDay)}
               >
                 <Plus size={16} />
                 Reserva
-              </button>
+              </button> : null}
             </header>
 
-            {selectedDayAgenda.length === 0 ? (
+            {selectedDayAgenda.length === 0 ? canOperate ? (
               <button
                 type="button"
                 className="availability-mobile-empty-day"
@@ -651,7 +654,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
                   <small>Crear una reserva para este día</small>
                 </span>
               </button>
-            ) : (
+            ) : <div className="availability-mobile-empty-day" role="status"><strong>Sin movimientos</strong></div> : (
               <div className="availability-mobile-events">
                 {selectedDayAgenda.map((item) =>
                   item.kind === "booking" ? (
@@ -718,6 +721,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
                         booking={booking}
                         block={block}
                         free={free}
+                        canCreate={canOperate}
                         onFreeClick={openWizard}
                         onBookingClick={openBooking}
                       />
@@ -727,14 +731,14 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
               })}
             </div>
           </div>
-          <footer className="availability-calendar-legend"><span><i className="is-confirmed" />{bookingLabels.CONFIRMED}</span><span><i className="is-pending" />{bookingLabels.PENDING}</span><span><i className="is-stay" />{bookingLabels.IN_PROGRESS}</span><span><i className="is-block" />Bloqueo</span><small>Seleccioná un día libre para iniciar una reserva.</small></footer>
+          <footer className="availability-calendar-legend"><span><i className="is-confirmed" />{bookingLabels.CONFIRMED}</span><span><i className="is-pending" />{bookingLabels.PENDING}</span><span><i className="is-stay" />{bookingLabels.IN_PROGRESS}</span><span><i className="is-block" />Bloqueo</span><small>{canOperate ? "Seleccioná un día libre para iniciar una reserva." : "Consulta las reservas y los bloqueos de este mes."}</small></footer>
         </div>
         </div>
         </>
 
       )}
 
-      <OverlayPanel open={wizardOpen} label="Nueva reserva" className="booking-wizard" layerClassName="booking-wizard-layer" closeLabel="Cerrar asistente de reserva" triggerRef={wizardTrigger} onClose={closeWizard}>
+      <OverlayPanel open={wizardOpen && canOperate} label="Nueva reserva" className="booking-wizard" layerClassName="booking-wizard-layer" closeLabel="Cerrar asistente de reserva" triggerRef={wizardTrigger} onClose={closeWizard}>
             <header><div><span>Paso {step} de 5</span><h2 id="booking-wizard-title">Nueva reserva</h2></div><button type="button" aria-label="Cerrar" onClick={closeWizard}><X size={20} /></button></header>
             <div className="booking-wizard-progress" aria-hidden="true">{[1,2,3,4,5].map((item) => <i key={item} className={item <= step ? "is-active" : ""} />)}</div>
             <div className="booking-wizard-body">
@@ -775,6 +779,7 @@ function CalendarCell({
   booking,
   block,
   free,
+  canCreate,
   onFreeClick,
   onBookingClick,
 }: {
@@ -783,6 +788,7 @@ function CalendarCell({
   booking?: Booking;
   block?: Block;
   free: boolean;
+  canCreate: boolean;
   onFreeClick: (
     day?: string,
     resourceId?: string,
@@ -823,15 +829,15 @@ function CalendarCell({
     <button
       type="button"
       className={`availability-calendar-cell${weekend ? " is-weekend" : ""}${free ? " is-free" : " is-unavailable"}`}
-      disabled={!free}
+      disabled={!free || !canCreate}
       aria-label={
         free
-          ? `Crear reserva para ${formatDateForDisplay(day)}`
+          ? `${canCreate ? "Crear reserva para" : "Disponible el"} ${formatDateForDisplay(day)}`
           : `No disponible el ${formatDateForDisplay(day)}`
       }
       onClick={() => onFreeClick(day, resourceId)}
     >
-      {free && <Plus size={14} />}
+      {free && canCreate && <Plus size={14} />}
     </button>
   );
 }
