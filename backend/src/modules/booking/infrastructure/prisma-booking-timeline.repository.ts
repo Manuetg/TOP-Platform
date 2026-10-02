@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../business/infrastructure/prisma.service';
-import { BookingTimelineEventType, type BookingTimelineEvent, type BookingTimelineRepository } from '../domain/booking-timeline-event';
+import { BookingTimelineEventType, type BookingTimelineEvent, type BookingTimelineRepository, type BookingTimelineDetails } from '../domain/booking-timeline-event';
 
 @Injectable()
 export class PrismaBookingTimelineRepository implements BookingTimelineRepository {
@@ -19,5 +19,5 @@ export class PrismaBookingTimelineRepository implements BookingTimelineRepositor
     });
     return rows.map((row)=>this.map(row));
   }
-  private map(row:{id:string;businessId:string;bookingId:string;type:string;occurredAt:Date;actorUserId:string|null;details:unknown}): BookingTimelineEvent { return { id:row.id, businessId:row.businessId, bookingId:row.bookingId, type:row.type as BookingTimelineEventType, occurredAt:row.occurredAt, actorUserId:row.actorUserId, details:row.details as {reason?:string} }; }
+  private map(row:{id:string;businessId:string;bookingId:string;type:string;occurredAt:Date;actorUserId:string|null;details:unknown}): BookingTimelineEvent { return { id:row.id, businessId:row.businessId, bookingId:row.bookingId, type:row.type as BookingTimelineEventType, occurredAt:row.occurredAt, actorUserId:row.actorUserId, details:row.details as BookingTimelineDetails }; }
 }

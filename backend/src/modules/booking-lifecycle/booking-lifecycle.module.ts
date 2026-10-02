@@ -16,6 +16,10 @@ import { BookingLifecycleController } from './presentation/booking-lifecycle.con
 import { CreatePendingBookingUseCase } from './application/create-pending-booking.use-case';
 import { PENDING_BOOKING_TRANSACTION } from './pending-booking.contract';
 import { PrismaPendingBookingTransaction } from './infrastructure/prisma-pending-booking.transaction';
+import { BookingOperationsController } from './presentation/booking-operations.controller';
+import { OperateBookingUseCase } from './application/operate-booking.use-case';
+import { BOOKING_OPERATION_TRANSACTION } from './booking-operation.contract';
+import { PrismaBookingOperationTransaction } from './infrastructure/prisma-booking-operation.transaction';
 
 @Module({
   imports: [
@@ -28,6 +32,7 @@ import { PrismaPendingBookingTransaction } from './infrastructure/prisma-pending
   ],
   controllers: [
     BookingLifecycleController,
+    BookingOperationsController,
   ],
   providers: [
     PrismaPendingBookingTransaction,
@@ -43,6 +48,9 @@ import { PrismaPendingBookingTransaction } from './infrastructure/prisma-pending
     SubmitBookingUseCase,
     ConfirmBookingUseCase,
     CancelBookingUseCase,
+    OperateBookingUseCase,
+    PrismaBookingOperationTransaction,
+    { provide: BOOKING_OPERATION_TRANSACTION, useExisting: PrismaBookingOperationTransaction },
   ],
 })
 export class BookingLifecycleModule {}

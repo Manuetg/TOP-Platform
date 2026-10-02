@@ -2,7 +2,16 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { BookingTimelineEventType, type BookingTimelineEvent } from '../../domain/booking-timeline-event';
 
 class BookingTimelineActorDto { @ApiProperty({format:'uuid',example:'11111111-1111-4111-8111-111111111111'}) userId!:string; }
-class BookingTimelineDetailsDto { @ApiPropertyOptional({example:'Cambio de planes.'}) reason?:string; }
+class BookingTimelineDetailsDto {
+  @ApiPropertyOptional({example:'Cambio de planes.'}) reason?:string;
+  @ApiPropertyOptional({format:'uuid'}) paymentId?:string;
+  @ApiPropertyOptional({enum:['MANUAL','FREE_CONFIRM']}) source?:'MANUAL'|'FREE_CONFIRM';
+  @ApiPropertyOptional({enum:['CHECK_IN','CHECK_OUT','NO_SHOW','CONFIRM_WITHOUT_PAYMENT']}) operation?:'CHECK_IN'|'CHECK_OUT'|'NO_SHOW'|'CONFIRM_WITHOUT_PAYMENT';
+  @ApiPropertyOptional() beforeStatus?:string;
+  @ApiPropertyOptional() afterStatus?:string;
+  @ApiPropertyOptional({format:'date-time'}) beforeUpdatedAt?:string;
+  @ApiPropertyOptional({format:'date-time'}) afterUpdatedAt?:string;
+}
 export class BookingTimelineEventResponseDto {
   @ApiProperty({format:'uuid'}) id!:string;
   @ApiProperty({enum:BookingTimelineEventType}) type!:BookingTimelineEventType;

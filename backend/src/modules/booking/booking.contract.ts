@@ -9,7 +9,7 @@ export interface BlockingBooking {
 export const BOOKING_AVAILABILITY_LOOKUP = Symbol('BOOKING_AVAILABILITY_LOOKUP');
 export const BOOKING_TIMELINE_REPOSITORY = Symbol('BOOKING_TIMELINE_REPOSITORY');
 export { BookingTimelineEventType } from './domain/booking-timeline-event';
-export type { BookingTimelineRepository, BookingTimelineEvent, BookingTimelineCursor } from './domain/booking-timeline-event';
+export type { BookingTimelineRepository, BookingTimelineEvent, BookingTimelineCursor, BookingTimelineDetails } from './domain/booking-timeline-event';
 
 export interface BookingAvailabilityLookup {
   hasBlockingBooking(
@@ -51,7 +51,7 @@ export interface ReservationsProjectionReader {
 
 export { BOOKING_REPOSITORY, type BookingRepository, type BookingData } from './domain/booking.repository';
 export { BookingStatus };
-export type { Booking } from './domain/booking.entity';
+export { Booking } from './domain/booking.entity';
 export { requireBookingUuid, assertBookingCapacity } from './application/booking.validation';
 export { assertDateRange, bookingContactId, bookingCount, bookingDate, bookingNotes, bookingResourceIds } from './application/booking.validation';
 export { BookingBase } from './application/booking.base';
