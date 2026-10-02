@@ -46,13 +46,20 @@ export class RegisterPaymentUseCase {
     if (![BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS, BookingStatus.COMPLETED].includes(booking.status)) {
       throw new PaymentConflictError('La reserva no admite pagos en su estado actual.');
     }
-    const snapshot = await this.snapshots.findByBookingId(input.bookingId);
-    if (!snapshot || snapshot.businessId !== input.businessId) throw new PaymentConflictError('La reserva no tiene un precio acordado persistido.');
+    const price = await this.agreedPrice(input.businessId, input.bookingId);
     return (await this.payments.register({
-      businessId: input.businessId, bookingId: input.bookingId, amountMinor, currency: snapshot.currency,
+      businessId: input.businessId, bookingId: input.bookingId, amountMinor, currency: price.currency,
       method, reference, note, paidAt, recordedByUserId: input.actorUserId, status: PaymentStatus.RECORDED,
       idempotencyKey, requestFingerprint,
-    }, snapshot.totalAmountMinor)).payment;
+    }, price.totalAmountMinor)).payment;
+  }
+
+  private async agreedPrice(businessId: string, bookingId: string): Promise<{ currency: string; totalAmountMinor: number }> {
+    const snapshot = await this.snapshots.findByBookingId(bookingId);
+    if (!snapshot || snapshot.businessId !== businessId) throw new PaymentConflictError('La reserva no tiene un precio acordado persistido.');
+    const price = this.payments.findCurrentPricing ? await this.payments.findCurrentPricing(businessId, bookingId) : snapshot;
+    if (!price) throw new PaymentConflictError('La reserva no tiene un precio vigente.');
+    return price;
   }
 
   private amount(value: unknown): number {

@@ -3,10 +3,12 @@ import { PrismaService } from '../../business/business.contract';
 import { Payment, PaymentMethod, PaymentRepository, PaymentStatus, PublicPayment, RegisterPaymentData } from '../domain/payment';
 import { applyPaymentToPlan } from './prisma-payment-plan.repository';
 import { fromPrismaMoney, toPrismaMoney } from '../../../shared/infrastructure/prisma-money';
-import { Prisma, type Payment as PrismaPayment, type PricingSnapshot } from '@prisma/client';
+import { Prisma, type Payment as PrismaPayment } from '@prisma/client';
+import { readCurrentPricing, type CurrentPricing } from '../../pricing/pricing.contract';
 import { validateAvailabilityInTransaction, AvailabilityBusinessNotFoundError, AvailabilityBusinessUnavailableError, AvailabilityResourceNotFoundError } from '../../availability/availability.contract';
 import { PaymentConflictError, PaymentInputError, PaymentNotFoundError } from '../application/register-payment.use-case';
 import { assertBookingCapacity, InvalidBookingInputError } from '../../booking/booking.contract';
+import { needsPaymentReconciliation } from '../domain/financial-reconciliation';
 
 type RegisterPaymentResult = { payment: Payment; duplicate: boolean };
 interface PayableBooking {
@@ -18,6 +20,10 @@ interface PayableBooking {
 @Injectable()
 export class PrismaPaymentRepository implements PaymentRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async findCurrentPricing(businessId: string, bookingId: string): Promise<CurrentPricing | null> {
+    return this.prisma.$transaction((transaction) => readCurrentPricing(transaction, businessId, bookingId), { isolationLevel: 'RepeatableRead' });
+  }
 
   async findByIdempotencyKey(businessId: string, idempotencyKey: string): Promise<Payment | null> {
     const row = await this.prisma.payment.findUnique({ where: { businessId_idempotencyKey: { businessId, idempotencyKey } } });
@@ -44,10 +50,10 @@ export class PrismaPaymentRepository implements PaymentRepository {
     }
     const booking = await this.payableBooking(transaction, data);
     const snapshot = await this.agreedPrice(transaction, data);
-    await this.ensureNoOverpayment(transaction, data, snapshot.totalAmountMinor);
+    await this.ensureNoOverpayment(transaction, data, toPrismaMoney(snapshot.totalAmountMinor));
     if (booking.status === 'PENDING') await this.validatePending(transaction, data, booking);
     const payment = await transaction.payment.create({ data: { ...data, currency: snapshot.currency, amountMinor: toPrismaMoney(data.amountMinor) } });
-    await this.applyToPlan(transaction, data, payment);
+    await this.applyToPlan(transaction, data, payment, snapshot);
     if (booking.status === 'PENDING') await this.confirmFromPending(transaction, data, payment.id);
     return { payment: this.map(payment), duplicate: false };
   }
@@ -67,9 +73,9 @@ export class PrismaPaymentRepository implements PaymentRepository {
     return booking;
   }
 
-  private async agreedPrice(transaction: Prisma.TransactionClient, data: RegisterPaymentData): Promise<PricingSnapshot> {
+  private async agreedPrice(transaction: Prisma.TransactionClient, data: RegisterPaymentData): Promise<CurrentPricing> {
     await transaction.$queryRaw(Prisma.sql`SELECT "id" FROM "PricingSnapshot" WHERE "bookingId" = ${data.bookingId} AND "businessId" = ${data.businessId} FOR UPDATE`);
-    const snapshot = await transaction.pricingSnapshot.findUnique({ where: { bookingId: data.bookingId } });
+    const snapshot = await readCurrentPricing(transaction, data.businessId, data.bookingId);
     if (!snapshot || snapshot.businessId !== data.businessId) throw new PaymentConflictError('La reserva no tiene un precio acordado persistido.');
     if (snapshot.currency !== data.currency) throw new PaymentConflictError('La moneda del precio acordado cambió.');
     return snapshot;
@@ -116,9 +122,25 @@ export class PrismaPaymentRepository implements PaymentRepository {
     }
   }
 
-  private async applyToPlan(transaction: Prisma.TransactionClient, data: RegisterPaymentData, payment: PrismaPayment): Promise<void> {
-    const plan = await transaction.paymentPlan.findUnique({ where: { bookingId: data.bookingId }, select: { id: true, businessId: true } });
-    if (plan?.businessId === data.businessId) await applyPaymentToPlan(transaction, plan.id, payment.id, payment.amountMinor);
+  private async applyToPlan(transaction: Prisma.TransactionClient, data: RegisterPaymentData, payment: PrismaPayment, price: CurrentPricing): Promise<void> {
+    const plan = await transaction.paymentPlan.findUnique({ where: { bookingId: data.bookingId }, select: { id: true, businessId: true, currency: true, totalAmountMinor: true } });
+    if (!plan || plan.businessId !== data.businessId) return;
+    const matchesPrice = plan.currency === price.currency && plan.totalAmountMinor === toPrismaMoney(price.totalAmountMinor);
+    if (!matchesPrice) return;
+    if (!await this.planIsReconciled(transaction, data, payment.id, plan, price)) return;
+    await applyPaymentToPlan(transaction, plan.id, payment.id, payment.amountMinor);
+  }
+
+  private async planIsReconciled(transaction: Prisma.TransactionClient, data: RegisterPaymentData, paymentId: string, plan: { id: string; currency: string; totalAmountMinor: bigint }, price: CurrentPricing): Promise<boolean> {
+    const [priorPayments, applications] = await Promise.all([
+      transaction.payment.aggregate({ where: { businessId: data.businessId, bookingId: data.bookingId, status: 'RECORDED', id: { not: paymentId } }, _sum: { amountMinor: true } }),
+      transaction.paymentApplication.aggregate({ where: { installment: { paymentPlanId: plan.id } }, _sum: { amountMinor: true } }),
+    ]);
+    const paidAmountMinor = fromPrismaMoney(priorPayments._sum.amountMinor ?? 0n);
+    const appliedAmountMinor = fromPrismaMoney(applications._sum.amountMinor ?? 0n);
+    if (appliedAmountMinor > paidAmountMinor) throw new Error('PAYMENT_APPLICATION_FINANCIAL_INVARIANT');
+    const planTotalAmountMinor = fromPrismaMoney(plan.totalAmountMinor);
+    return !needsPaymentReconciliation(price, paidAmountMinor, { currency: plan.currency, totalAmountMinor: planTotalAmountMinor, installmentTotalAmountMinor: planTotalAmountMinor, appliedAmountMinor });
   }
 
   private async confirmFromPending(transaction: Prisma.TransactionClient, data: RegisterPaymentData, paymentId: string): Promise<void> {

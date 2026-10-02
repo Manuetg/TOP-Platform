@@ -4,6 +4,17 @@ import { AvailabilityBusinessUnavailableError } from '../../availability/applica
 import { PaymentConflictError, PaymentNotFoundError } from '../application/register-payment.use-case';
 import { PaymentMethod, PaymentStatus, type RegisterPaymentData } from '../domain/payment';
 import { PrismaPaymentRepository } from './prisma-payment.repository';
+import { readCurrentPricing } from '../../pricing/pricing.contract';
+import { applyPaymentToPlan } from './prisma-payment-plan.repository';
+
+jest.mock('../../pricing/pricing.contract', () => ({
+  ...jest.requireActual<typeof import('../../pricing/pricing.contract')>('../../pricing/pricing.contract'),
+  readCurrentPricing: jest.fn(),
+}));
+jest.mock('./prisma-payment-plan.repository', () => ({
+  ...jest.requireActual<typeof import('./prisma-payment-plan.repository')>('./prisma-payment-plan.repository'),
+  applyPaymentToPlan: jest.fn(),
+}));
 
 jest.mock('../../availability/availability.contract', () => ({
   ...jest.requireActual<typeof import('../../availability/availability.contract')>('../../availability/availability.contract'),
@@ -31,6 +42,8 @@ describe('PrismaPaymentRepository', () => {
   const timelineCreate = jest.fn();
   const retryLookup = jest.fn();
   const validateAvailability = jest.mocked(validateAvailabilityInTransaction);
+  const currentPrice = jest.mocked(readCurrentPricing);
+  const applyPayment = jest.mocked(applyPaymentToPlan);
   const transaction = {
     $queryRaw: queryRaw,
     $executeRaw: executeRaw,
@@ -58,10 +71,15 @@ describe('PrismaPaymentRepository', () => {
     findBooking.mockResolvedValue(currentBooking());
     findBusiness.mockResolvedValue({ id: data().businessId, status: 'ACTIVE' });
     findSnapshot.mockResolvedValue({ businessId: data().businessId, bookingId: data().bookingId, currency: 'PYG', totalAmountMinor: 100n });
+    currentPrice.mockImplementation(async () => {
+      const row = await findSnapshot({ where: { bookingId: data().bookingId } }) as { businessId: string; bookingId: string; currency: string; totalAmountMinor: bigint } | null;
+      return row ? { ...row, id: 'snapshot', originalSnapshotId: 'snapshot', pricingRevisionId: null, revisionNumber: 0, totalAmountMinor: Number(row.totalAmountMinor), items: [], createdAt: new Date() } : null;
+    });
     findContact.mockResolvedValue({ id: currentBooking().contactId });
     findResource.mockResolvedValue({ capacityMaximum: 4, capacityMaximumChildren: 2 });
     findPlan.mockResolvedValue(null);
     aggregate.mockResolvedValue({ _sum: { amountMinor: null } });
+    transaction.paymentApplication.aggregate.mockResolvedValue({ _sum: { amountMinor: null } });
     create.mockImplementation(({ data: value }: { data: RegisterPaymentData }) => Promise.resolve({ id: 'payment-id', ...value, createdAt: new Date() }));
     updateBooking.mockResolvedValue({ count: 1 });
     timelineCreate.mockResolvedValue({ id: 'timeline-id' });
@@ -251,5 +269,33 @@ describe('PrismaPaymentRepository', () => {
     expect(create).not.toHaveBeenCalled();
     expect(updateBooking).not.toHaveBeenCalled();
     expect(timelineCreate).not.toHaveBeenCalled();
+  });
+
+  it('uses the latest revision under the original Snapshot lock instead of its historical amount', async () => {
+    currentPrice.mockResolvedValueOnce({ id: 'revision-1', originalSnapshotId: 'snapshot', pricingRevisionId: 'revision-1', revisionNumber: 1, businessId: data().businessId, bookingId: data().bookingId, currency: 'PYG', totalAmountMinor: 30, items: [], createdAt: new Date() });
+    await expect(subject.register(data({ amountMinor: 40 }), 100)).rejects.toThrow('OVERPAYMENT');
+    expect(currentPrice).toHaveBeenCalledWith(transaction, data().businessId, data().bookingId);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it.each([{ currency: 'PYG', totalAmountMinor: 80n }, { currency: 'USD', totalAmountMinor: 100n }])('records without applying or rewriting an obsolete plan, case %#', async (price) => {
+    findPlan.mockResolvedValueOnce({ id: 'old-plan', businessId: data().businessId, ...price });
+    await expect(subject.register(data(), 100)).resolves.toMatchObject({ payment: { amountMinor: 40 } });
+    expect(applyPayment).not.toHaveBeenCalled();
+  });
+
+  it('keeps the existing allocation behavior when the plan matches current total and currency', async () => {
+    findPlan.mockResolvedValueOnce({ id: 'compatible-plan', businessId: data().businessId, currency: 'PYG', totalAmountMinor: 100n });
+    await subject.register(data(), 100);
+    expect(applyPayment).toHaveBeenCalledWith(transaction, 'compatible-plan', 'payment-id', 40n);
+  });
+
+  it('leaves later payments unapplied when a restored price still has a historical payment gap', async () => {
+    findPlan.mockResolvedValueOnce({ id: 'restored-plan', businessId: data().businessId, currency: 'PYG', totalAmountMinor: 100n });
+    aggregate.mockResolvedValueOnce({ _sum: { amountMinor: 50n } }).mockResolvedValueOnce({ _sum: { amountMinor: 50n } });
+    transaction.paymentApplication.aggregate.mockResolvedValueOnce({ _sum: { amountMinor: 40n } });
+    await expect(subject.register(data({ amountMinor: 10 }), 100)).resolves.toMatchObject({ payment: { amountMinor: 10 } });
+    expect(applyPayment).not.toHaveBeenCalled();
+    expect(aggregate).toHaveBeenLastCalledWith({ where: { businessId: data().businessId, bookingId: data().bookingId, status: 'RECORDED', id: { not: 'payment-id' } }, _sum: { amountMinor: true } });
   });
 });

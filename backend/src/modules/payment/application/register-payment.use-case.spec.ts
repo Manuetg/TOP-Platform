@@ -51,6 +51,24 @@ describe('RegisterPaymentUseCase', () => {
     expect(register).toHaveBeenCalledWith(expect.objectContaining({ amountMinor: 1, status: PaymentStatus.RECORDED }), 1_000_000);
   });
 
+  it('uses current price and currency while preserving the original Snapshot lookup', async () => {
+    const findCurrentPricing = jest.fn().mockResolvedValue({ currency: 'PYG', totalAmountMinor: 80 });
+    const revised = new RegisterPaymentUseCase({ ...repository, findCurrentPricing }, { findByIdAndBusinessId: findBooking } as never, { findByBookingId: findSnapshot } as never, { findById: findBusiness } as never);
+    await revised.execute(input);
+    expect(findCurrentPricing).toHaveBeenCalledWith(businessId, bookingId);
+    expect(register).toHaveBeenCalledWith(expect.objectContaining({ currency: 'PYG' }), 80);
+  });
+
+  it('returns an existing retry before reading any changed current price', async () => {
+    const findCurrentPricing = jest.fn();
+    const previous = payment();
+    findByIdempotencyKey.mockResolvedValueOnce(previous);
+    const revised = new RegisterPaymentUseCase({ ...repository, findCurrentPricing }, { findByIdAndBusinessId: findBooking } as never, { findByBookingId: findSnapshot } as never, { findById: findBusiness } as never);
+    await expect(revised.execute(input)).resolves.toEqual(previous);
+    expect(findCurrentPricing).not.toHaveBeenCalled();
+    expect(register).not.toHaveBeenCalled();
+  });
+
   it.each([0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, '40', null])('rejects invalid amount %p before lookups or writes', async (amountMinor) => {
     await expect(subject.execute({ ...input, amountMinor })).rejects.toBeInstanceOf(PaymentInputError);
     expect(findByIdempotencyKey).not.toHaveBeenCalled();

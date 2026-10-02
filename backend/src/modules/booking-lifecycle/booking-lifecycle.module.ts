@@ -20,6 +20,10 @@ import { BookingOperationsController } from './presentation/booking-operations.c
 import { OperateBookingUseCase } from './application/operate-booking.use-case';
 import { BOOKING_OPERATION_TRANSACTION } from './booking-operation.contract';
 import { PrismaBookingOperationTransaction } from './infrastructure/prisma-booking-operation.transaction';
+import { BookingAmendmentController } from './presentation/booking-amendment.controller';
+import { BookingAmendmentUseCase } from './application/booking-amendment.use-case';
+import { BOOKING_AMENDMENT_TRANSACTION } from './booking-amendment.contract';
+import { PrismaBookingAmendmentTransaction } from './infrastructure/prisma-booking-amendment.transaction';
 
 @Module({
   imports: [
@@ -33,8 +37,12 @@ import { PrismaBookingOperationTransaction } from './infrastructure/prisma-booki
   controllers: [
     BookingLifecycleController,
     BookingOperationsController,
+    BookingAmendmentController,
   ],
   providers: [
+    PrismaBookingAmendmentTransaction,
+    { provide: BOOKING_AMENDMENT_TRANSACTION, useExisting: PrismaBookingAmendmentTransaction },
+    BookingAmendmentUseCase,
     PrismaPendingBookingTransaction,
     { provide: PENDING_BOOKING_TRANSACTION, useExisting: PrismaPendingBookingTransaction },
     CreatePendingBookingUseCase,

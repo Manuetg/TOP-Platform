@@ -3,8 +3,9 @@ import { PrismaService } from '../../business/business.contract';
 import { fromPrismaMoney } from '../../../shared/infrastructure/prisma-money';
 import type { BookingFinancialSummary, BookingFinancialSummaryReader } from '../application/booking-financial-summary.reader';
 import type { BookingStatus } from '../domain/booking-status.enum';
+import { readCurrentPricingBatch, type CurrentPricing } from '../../pricing/pricing.contract';
 
-interface Snapshot { bookingId: string; currency: string; totalAmountMinor: bigint; booking?: { status: string }; }
+interface BookingState { id: string; status: string; }
 interface PaymentGroup { bookingId: string; currency: string; _sum: { amountMinor: bigint | null }; }
 interface PaidAmount { currency: string; amountMinor: bigint; }
 
@@ -19,31 +20,36 @@ function paidAmounts(groups: PaymentGroup[]): Map<string, PaidAmount> {
   return paid;
 }
 
-function requireConsistentAmounts(snapshot: Snapshot | undefined, payment: PaidAmount | undefined): void {
+function requireConsistentAmounts(snapshot: CurrentPricing | undefined, payment: PaidAmount | undefined): void {
   if (!snapshot) {
     if (payment) throw new Error('BOOKING_FINANCIAL_SNAPSHOT_INVARIANT');
     return;
   }
-  if (snapshot.totalAmountMinor < 0n) throw new Error('BOOKING_FINANCIAL_AMOUNT_INVARIANT');
-  if (payment && (payment.currency !== snapshot.currency || payment.amountMinor > snapshot.totalAmountMinor)) throw new Error('BOOKING_FINANCIAL_AMOUNT_INVARIANT');
+  if (!Number.isSafeInteger(snapshot.totalAmountMinor) || snapshot.totalAmountMinor < 0) throw new Error('BOOKING_FINANCIAL_AMOUNT_INVARIANT');
+  if (payment && payment.currency !== snapshot.currency) throw new Error('BOOKING_FINANCIAL_AMOUNT_INVARIANT');
 }
 
-function summarize(bookingIds: string[], snapshots: Snapshot[], payments: PaymentGroup[]): Map<string, BookingFinancialSummary> {
-  const prices = new Map(snapshots.map((row) => [row.bookingId, row]));
+function summarize(bookingIds: string[], prices: Map<string, CurrentPricing>, payments: PaymentGroup[], bookings: BookingState[]): Map<string, BookingFinancialSummary> {
+  const states = new Map(bookings.map((row) => [row.id, row.status as BookingStatus]));
   const paid = paidAmounts(payments);
   const result = new Map<string, BookingFinancialSummary>();
   for (const bookingId of bookingIds) {
     const snapshot = prices.get(bookingId);
     const payment = paid.get(bookingId);
     requireConsistentAmounts(snapshot, payment);
-    result.set(bookingId, {
-      totalAmountMinor: snapshot ? fromPrismaMoney(snapshot.totalAmountMinor) : null,
-      paidAmountMinor: fromPrismaMoney(payment?.amountMinor ?? 0n),
-      currency: snapshot?.currency ?? null,
-      ...(snapshot?.booking ? { bookingStatus: snapshot.booking.status as BookingStatus } : {}),
-    });
+    result.set(bookingId, bookingSummary(snapshot, payment, states.get(bookingId)));
   }
   return result;
+}
+
+function bookingSummary(price: CurrentPricing | undefined, payment: PaidAmount | undefined, bookingStatus: BookingStatus | undefined): BookingFinancialSummary {
+  const paidAmountMinor = fromPrismaMoney(payment?.amountMinor ?? 0n);
+  const totalAmountMinor = price?.totalAmountMinor ?? null;
+  return { totalAmountMinor, paidAmountMinor, ...financialAmounts(totalAmountMinor, paidAmountMinor), currency: price?.currency ?? null, ...(bookingStatus === undefined ? {} : { bookingStatus }) };
+}
+
+function financialAmounts(totalAmountMinor: number | null, paidAmountMinor: number): { outstandingAmountMinor: number; creditAmountMinor: number } {
+  return { outstandingAmountMinor: totalAmountMinor === null ? 0 : Math.max(totalAmountMinor - paidAmountMinor, 0), creditAmountMinor: totalAmountMinor === null ? 0 : Math.max(paidAmountMinor - totalAmountMinor, 0) };
 }
 
 @Injectable()
@@ -52,11 +58,12 @@ export class PrismaBookingFinancialSummaryReader implements BookingFinancialSumm
   async read(businessId: string, bookingIds: string[]): Promise<Map<string, BookingFinancialSummary>> {
     if (bookingIds.length === 0) return new Map();
     return this.prisma.$transaction(async (transaction) => {
-      const [snapshots, payments] = await Promise.all([
-        transaction.pricingSnapshot.findMany({ where: { businessId, bookingId: { in: bookingIds } }, select: { bookingId: true, currency: true, totalAmountMinor: true, booking: { select: { status: true } } } }),
+      const [prices, payments, bookings] = await Promise.all([
+        readCurrentPricingBatch(transaction, businessId, bookingIds),
         transaction.payment.groupBy({ by: ['bookingId', 'currency'], where: { businessId, bookingId: { in: bookingIds }, status: 'RECORDED' }, _sum: { amountMinor: true } }),
+        transaction.booking.findMany({ where: { businessId, id: { in: bookingIds } }, select: { id: true, status: true } }),
       ]);
-      return summarize(bookingIds, snapshots, payments);
+      return summarize(bookingIds, prices, payments, bookings);
     }, { isolationLevel: 'RepeatableRead', maxWait: 5000, timeout: 10000 });
   }
 }

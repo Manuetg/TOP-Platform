@@ -7,6 +7,7 @@ export interface ListPaymentsQuery { businessId:string; bookingId:string; before
 export const PAYMENT_REPOSITORY=Symbol('PAYMENT_REPOSITORY');
 export type RegisterPaymentData = Omit<Payment,'id'|'createdAt'>;
 export interface PaymentRepository {
+  findCurrentPricing?(businessId:string,bookingId:string):Promise<{currency:string;totalAmountMinor:number}|null>;
   register(data:RegisterPaymentData,totalAmountMinor:number):Promise<{payment:Payment; duplicate:boolean}>;
   findByIdempotencyKey?(businessId:string,idempotencyKey:string):Promise<Payment|null>;
   listByBooking(query:ListPaymentsQuery):Promise<PublicPayment[]>;

@@ -110,6 +110,18 @@ Esta decisión explícita del usuario sustituye el estado inicial de BR-039 y el
 - Borradores y Pending históricos sin Snapshot conservan POST/Submit/Confirm para compatibilidad. Submit toma Booking y recursos y revalida Availability en la misma transacción; Confirm no permite saltar el cobro de una PENDING nueva que ya tiene precio persistido.
 - Un total acordado cero admite Snapshot y no se divide por cero para el porcentaje. En este delta no existe cobro válido positivo que confirme ese total ni se fabrica Payment cero. La acción manual «Confirmar sin cobro», la edición con preservación de pagos/excedentes y las transiciones manuales de ingreso/salida/no show corresponden al siguiente delta autorizado; no se agregan aquí devoluciones ni reinterpretación de historia.
 
+### Edición autorizada y revisiones de precio — QA 2026-10-02
+
+Complemento de BR-022/040/050/056/057/081/082 para el pedido explícito de editar fechas/tarifa con preview conservando los cobros:
+
+- Alcance mínimo interpretado: PENDING/CONFIRMED con precio y mismo Resource. No equivale a aprobación explícita de todos los estados. DRAFT conserva editor; En curso, cerradas y cambio de Resource quedan fuera.
+- Preview backend obligatorio sin escrituras. Omitir pricing solo con fechas idénticas para contacto/huéspedes/notas conserva precio exacto sin override financiero nuevo, incluso Snapshot manual de Recepción. Fechas/tarifa nuevas requieren precio explícito. Motivo opcional real de 2 a 500 caracteres si existe; moneda igual a vigente, sin FX.
+- Guardado con versión exacta, precio vigente, cobrado observado y quote aceptado completo. Revalidación transaccional tenant/actor/membresía/estado/contacto/capacidad/Availability con bloqueos Booking → Snapshot → Resource. Un preview obsoleto devuelve HTTP 409 y revierte todo el intento.
+- PricingRevision append-only conserva Snapshot original, precio/contexto anterior y nuevo, actor/fecha, cobrado observado y motivo nullable. Revisión, Booking y BOOKING_AMENDED son atómicos; sin precio nuevo no hay revisión y no-op sin cambio no inventa auditoría. Editar no altera estado ni reescribe historias.
+- Precio vigente = última revisión por número o Snapshot original. Pagado suma RECORDED. Pendiente/crédito son diferencias no negativas exactas. Cobros, aplicaciones y calendario del plan se conservan; no se agregan reembolsos.
+- Conciliación visible por diferencia de total/moneda, crédito o pagos sin aplicar al plan; preview anticipa el aviso y Balance deja vencimientos nulos. GET plan conserva calendario histórico. No se marca un plan obsoleto solo por otra revisión si importes/moneda/aplicaciones coinciden.
+- Nuevos pagos validan precio canónico bloqueado y no se autoaplican mientras exista conciliación pendiente. Volver al importe anterior conserva los cobros sin aplicar. Las escrituras manuales del plan mantienen restricciones y revalidan precio/moneda/contexto bajo bloqueo; sin reasignación ni programación automática.
+
 ## 8. Payment
 
 - **BR-047 — Plan y pagos opcionales.** Tipo: Integridad. Estado: Aprobada. Dominios: Payment, Booking. Descripción: Booking puede existir sin plan o pagos; plan tiene múltiples previstos. Comportamiento: no se exige cobro inicial. Excepciones: ninguna.

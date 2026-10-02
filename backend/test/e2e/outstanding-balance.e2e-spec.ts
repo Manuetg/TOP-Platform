@@ -178,6 +178,9 @@ describe('Outstanding Balance API', () => {
       totalAmountMinor: 100,
       paidAmountMinor: 40,
       outstandingAmountMinor: 60,
+      creditAmountMinor: 0,
+      needsReconciliation: false,
+      warning: null,
       overdueAmountMinor: 0,
       financialStatus: 'PARTIALLY_PAID',
       nextDueDate: null,
@@ -206,6 +209,11 @@ describe('Outstanding Balance API', () => {
           nextDueAmountMinor: 20,
         }),
       );
+  });
+
+  it('returns credit and an explicit warning without publishing obsolete due amounts', async () => {
+    projection = { ...noPlanProjection(100), currentTotalAmountMinor: 80, currentCurrency: 'PYG' };
+    await authorizedGet().expect(200).expect(({ body }) => expect(body).toMatchObject({ totalAmountMinor: 80, paidAmountMinor: 100, outstandingAmountMinor: 0, creditAmountMinor: 20, needsReconciliation: true, warning: expect.any(String), overdueAmountMinor: null, nextDueDate: null, nextDueAmountMinor: null }));
   });
 
   it('allows VIEWER and archived Business historical reads', async () => {

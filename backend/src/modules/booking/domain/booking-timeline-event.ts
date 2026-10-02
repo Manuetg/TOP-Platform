@@ -6,9 +6,11 @@ export enum BookingTimelineEventType {
   BOOKING_CHECKED_IN = 'BOOKING_CHECKED_IN',
   BOOKING_CHECKED_OUT = 'BOOKING_CHECKED_OUT',
   BOOKING_MARKED_NO_SHOW = 'BOOKING_MARKED_NO_SHOW',
+  BOOKING_AMENDED = 'BOOKING_AMENDED',
 }
 
 export interface BookingTimelineDetails {
+  [key: string]: unknown;
   reason?: string;
   paymentId?: string;
   source?: 'MANUAL' | 'FREE_CONFIRM';

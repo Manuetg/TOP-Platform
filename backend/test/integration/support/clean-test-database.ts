@@ -8,6 +8,8 @@ export function assertTestDatabase(databaseUrl: string | undefined): void {
 
 export async function cleanTestDatabase(prisma: PrismaClient, databaseUrl: string | undefined): Promise<void> {
   assertTestDatabase(databaseUrl);
+  // Solo la base sintética: el historial append-only se reinicia sin desactivar su protección.
+  await prisma.$executeRaw`TRUNCATE TABLE "PricingRevision"`;
   await prisma.userDisplayNameAudit.deleteMany();
   await prisma.refreshSession.deleteMany();
   await prisma.userBusinessMembership.deleteMany();

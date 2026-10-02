@@ -2,6 +2,8 @@ export const BOOKING_FINANCIAL_SUMMARY_READER = Symbol('BOOKING_FINANCIAL_SUMMAR
 export interface BookingFinancialSummary {
   totalAmountMinor: number | null;
   paidAmountMinor: number;
+  outstandingAmountMinor: number;
+  creditAmountMinor: number;
   currency: string | null;
   /** Internal projection field; never included in financialSummary's public JSON. */
   bookingStatus?: BookingStatus;

@@ -10,7 +10,7 @@ describe('BookingController', () => {
   const create = { execute: jest.fn() }; const get = { execute: jest.fn() }; const list = { execute: jest.fn() }; const update = { execute: jest.fn() }; const timeline = { execute: jest.fn() }; const controller = new BookingController(create as never, get as never, list as never, update as never, timeline as never); const principal={userId:'99999999-9999-4999-8999-999999999999'}; const authenticatedRequest={authenticatedPrincipal:principal};
   beforeEach(() => jest.resetAllMocks());
   it('uses the booking status read consistently with financial amounts and does not expose its projection field', async () => {
-    const read = jest.fn().mockResolvedValue(new Map([[bookingId, { totalAmountMinor: 1000000, paidAmountMinor: 1, currency: 'PYG', bookingStatus: BookingStatus.CONFIRMED }]]));
+    const read = jest.fn().mockResolvedValue(new Map([[bookingId, { totalAmountMinor: 1000000, paidAmountMinor: 1, currency: 'PYG', outstandingAmountMinor: 999999, creditAmountMinor: 0, bookingStatus: BookingStatus.CONFIRMED }]]));
     const withFinances = new BookingController(create as never, get as never, list as never, update as never, timeline as never, { read });
     get.execute.mockResolvedValue(booking);
     list.execute.mockResolvedValue([booking]);
@@ -18,7 +18,7 @@ describe('BookingController', () => {
     const rows = await withFinances.listBookings(businessId, {});
     expect(detail.status).toBe(BookingStatus.CONFIRMED);
     expect(rows[0].status).toBe(BookingStatus.CONFIRMED);
-    expect(detail.financialSummary).toEqual({ totalAmountMinor: 1000000, paidAmountMinor: 1, currency: 'PYG' });
+    expect(detail.financialSummary).toEqual({ totalAmountMinor: 1000000, paidAmountMinor: 1, currency: 'PYG', outstandingAmountMinor: 999999, creditAmountMinor: 0 });
     expect(read).toHaveBeenCalledWith(businessId, [bookingId]);
   });
   it('maps the timeline page to the public DTO',async()=>{timeline.execute.mockResolvedValueOnce({items:[{id:'33333333-3333-4333-8333-333333333333',businessId,bookingId,type:'BOOKING_CREATED',occurredAt:new Date('2026-08-29T18:00:00.000Z'),actorUserId:principal.userId,details:{}}],pageInfo:{nextCursor:null,hasNextPage:false}});await expect(controller.timeline({businessId,bookingId},{cursor:'opaque',limit:'1'})).resolves.toEqual({items:[{id:'33333333-3333-4333-8333-333333333333',type:'BOOKING_CREATED',occurredAt:'2026-08-29T18:00:00.000Z',actor:{userId:principal.userId},details:{}}],pageInfo:{nextCursor:null,hasNextPage:false}});expect(timeline.execute).toHaveBeenCalledWith({businessId,bookingId,cursor:'opaque',limit:'1'});});

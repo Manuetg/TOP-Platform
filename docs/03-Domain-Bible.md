@@ -1180,6 +1180,18 @@ Se conservan pagos en `CONFIRMED`, `IN_PROGRESS` y `COMPLETED` sin retroceder su
 
 No se migran ni eliminan Borradores históricos. POST legacy, Submit y Confirm se conservan para compatibilidad, con Submit revalidado atómicamente bajo los mismos bloqueos de recursos. Confirm legacy rechaza una nueva PENDING que ya contiene Snapshot: su confirmación ocurre al registrar cobro. El precio cero continúa válido; en este corte permanece PENDING sin pagos artificiales. La confirmación manual sin cobro, edición de precio/fechas con preservación de cobros y acciones manuales de ingreso/salida/no show fueron autorizadas posteriormente en QA y se implementarán en un delta separado. No se infieren reembolsos, anulaciones ni cambios históricos.
 
+### Edición con preview y precio vigente — QA 2026-10-02
+
+El usuario autorizó editar fechas/tarifa mostrando el precio antes de guardar, conservar los cobros y recalcular pendiente o excedente sin reembolsos automáticos. El alcance mínimo interpretado para este corte es PENDING/CONFIRMED con precio persistido y mismo Resource; no se atribuye al usuario una aprobación específica de todos los estados. DRAFT mantiene su editor legacy. En curso, estados cerrados y cambio de Resource quedan fuera del delta.
+
+POST `/:bookingId/amendment-preview` calcula sin persistir. Contacto/huéspedes/notas con fechas idénticas permiten omitir `pricing[]` y conservar exactamente ítems y moneda vigentes, sin fabricar precio manual ni revisión; también para Recepción sobre Snapshot manual. Fechas o tarifa nuevas requieren precio explícito y permisos existentes de cálculo/override. Motivo opcional real de 2 a 500 caracteres si existe. La moneda propuesta debe coincidir con la vigente; no se convierte dinero.
+
+PATCH `/:bookingId/amendment` exige `expectedUpdatedAt`, `currentPricingId`, `expectedPaidAmountMinor` y `acceptedQuote` exacto del preview (moneda, total, ítems y fingerprint). Revalida tenant, actor/membresía, estado, contacto, capacidad y Availability excluyendo la propia reserva, bajo bloqueos Booking → Snapshot → Resource. Versiones, cobros, precio o quote obsoletos producen HTTP 409 sin cambios parciales. Editar no cambia estado. Una operación sin modificación efectiva ni precio nuevo no fabrica auditoría.
+
+Snapshot original, Payments y PaymentApplications se conservan. Un precio explícito crea PricingRevision append-only con número por reserva, procedencia al Snapshot tenant-scoped, precio anterior/nuevo, contexto, cobrado observado, actor/fecha y motivo nullable. Booking, revisión y BOOKING_AMENDED se confirman o revierten juntos, sin backfill. Precio vigente es última revisión por número o Snapshot original.
+
+Pendiente = `max(precioVigente − cobrado, 0)` y crédito = `max(cobrado − precioVigente, 0)`, con enteros seguros; financialSummary agrega ambos valores. Preview, Balance y GET plan advierten conciliación por diferencia de total/moneda, crédito o cobros sin aplicar. Restaurar el importe anterior no elimina el aviso si quedan cobros sin aplicar. Balance deja overdue/nextDue nulos; GET plan conserva cuotas históricas. Nuevos cobros se validan contra precio vigente y quedan sin aplicar mientras el plan necesite conciliación. Las escrituras manuales de planes conservan sus restricciones y releen precio/moneda/contexto bajo bloqueo. No se reprograman cuotas, reasignan aplicaciones ni generan devoluciones automáticamente.
+
 ## Payment
 
 ### 1. Propósito
