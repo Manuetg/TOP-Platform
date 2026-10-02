@@ -19,7 +19,8 @@ export function PaymentHubPage() {
   const bookings = useBookings({ businessId: activeBusinessId, accessToken: session?.accessToken });
   const contacts = useContacts({ businessId: activeBusinessId, accessToken: session?.accessToken });
   const eligibleRows = useMemo(() => (bookings.data ?? [])
-    .filter((booking) => ["CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(booking.status))
+    .filter((booking) => ["CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(booking.status) ||
+      (booking.status === "PENDING" && booking.financialSummary?.totalAmountMinor != null))
     .map((booking) => ({ booking, contact: (contacts.data ?? []).find((item) => item.id === booking.contactId) })), [bookings.data, contacts.data]);
   const rows = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("es");
@@ -46,7 +47,7 @@ export function PaymentHubPage() {
           <p>No encontramos reservas con esa búsqueda.</p>
           <Button type="button" variant="secondary" onClick={clearSearch}>Limpiar búsqueda</Button>
         </div>
-      ) : rows.length === 0 ? <div className="payments-state" role="status"><Banknote size={26} /><strong>Sin reservas para cobrar</strong><p>Las reservas confirmadas aparecerán aquí.</p></div> : <div className="payments-list">
+      ) : rows.length === 0 ? <div className="payments-state" role="status"><Banknote size={26} /><strong>Sin reservas para cobrar</strong><p>Las reservas pendientes con precio y las confirmadas aparecerán aquí.</p></div> : <div className="payments-list">
       <div className="payments-list__head"><span>Huésped</span><span>Estadía</span><span>Estado</span><span /></div>
       {rows.map(({ booking, contact }) => <button key={booking.id} type="button" className="payments-list__row" onClick={() => navigate(`/app/bookings/${booking.id}/payments`)}>
         <span><strong>{contact?.fullName ?? "Contacto no disponible"}</strong><small>Reserva {booking.id.slice(0, 8).toUpperCase()}</small></span>

@@ -20,6 +20,13 @@ export interface Booking {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+  financialSummary?: BookingFinancialSummary;
+}
+
+export interface BookingFinancialSummary {
+  totalAmountMinor: number | null;
+  paidAmountMinor: number;
+  currency: string | null;
 }
 
 export interface ListBookingsInput {
@@ -76,5 +83,9 @@ export type ConfirmBookingPricingItem = {
 };
 
 export interface ConfirmBookingInput {
+  pricing: ConfirmBookingPricingItem[];
+}
+
+export interface CreatePendingBookingInput extends CreateBookingInput {
   pricing: ConfirmBookingPricingItem[];
 }

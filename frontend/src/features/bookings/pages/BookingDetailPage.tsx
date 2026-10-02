@@ -370,11 +370,11 @@ export function BookingDetailPage({
         </div>
 
         <div className="booking-detail-header-actions">
-          {[
+            {([
             "CONFIRMED",
             "IN_PROGRESS",
             "COMPLETED",
-          ].includes(booking.status) && (
+            ].includes(booking.status) || (booking.status === "PENDING" && booking.financialSummary?.totalAmountMinor != null)) && (
             <Button
               type="button"
               variant="secondary"
@@ -429,7 +429,7 @@ export function BookingDetailPage({
               </Button>
             </>
           )}
-          {canWriteBooking && booking.status === "PENDING" && (
+          {canWriteBooking && booking.status === "PENDING" && booking.financialSummary?.totalAmountMinor == null && (
             <Button
               type="button"
               disabled={cancelMutation.isPending}

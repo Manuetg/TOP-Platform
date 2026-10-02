@@ -78,6 +78,44 @@ describe("BookingListPage: foco durante consultas de filtros", () => {
     await loaded();
   });
 
+  it("presenta estado operativo, estado financiero y porcentaje en filas y tarjetas, sin solicitudes por cada reserva", async () => {
+    const sourceFetch = fetchMock.getMockImplementation()!;
+    const summaries: Record<string, { totalAmountMinor: number | null; paidAmountMinor: number; currency: string | null } | undefined> = {
+      DRAFT: undefined,
+      PENDING: { totalAmountMinor: 400000, paidAmountMinor: 0, currency: "PYG" },
+      CONFIRMED: { totalAmountMinor: 400000, paidAmountMinor: 1, currency: "PYG" },
+      IN_PROGRESS: { totalAmountMinor: 3, paidAmountMinor: 1, currency: "PYG" },
+      COMPLETED: { totalAmountMinor: 3, paidAmountMinor: 3, currency: "PYG" },
+      CANCELLED: { totalAmountMinor: 0, paidAmountMinor: 0, currency: "PYG" },
+      NO_SHOW: { totalAmountMinor: null, paidAmountMinor: 0, currency: null },
+    };
+    fetchMock.mockImplementation((input, init) => url(input).pathname.endsWith("/bookings")
+      ? Promise.resolve(json(bookings.map((item) => ({ ...item, financialSummary: summaries[item.status] }))))
+      : sourceFetch(input, init));
+    show(); await loaded();
+    for (const [status, label, financial, percentage] of [
+      ["DRAFT", "Borrador", "Sin precio", "—"],
+      ["PENDING", "Pendiente", "Sin pagos", "0%"],
+      ["CONFIRMED", "Confirmada", "Pago parcial", "<0,01%"],
+      ["IN_PROGRESS", "En curso", "Pago parcial", "33,33%"],
+      ["COMPLETED", "Finalizada", "Pagada", "100%"],
+      ["CANCELLED", "Cancelada", "Sin pagos", "—"],
+      ["NO_SHOW", "No show", "Sin precio", "—"],
+    ]) {
+      const id = `${status.toLowerCase()}-booking`.slice(0, 8).toUpperCase();
+      for (const row of screen.getAllByRole("button", { name: `Abrir reserva ${id}` })) {
+        expect(within(row).getByText(label)).toBeInTheDocument();
+        expect(within(row).getByText(financial)).toBeInTheDocument();
+        expect(within(row).getByText(percentage)).toBeInTheDocument();
+      }
+    }
+    expect(fetchMock.mock.calls).toHaveLength(3);
+    const user = userEvent.setup();
+    await user.type(screen.getByRole("searchbox", { name: "Buscar reservas" }), "Pago parcial");
+    expect(screen.getAllByRole("button", { name: /^Abrir reserva / })).toHaveLength(4);
+    expect(fetchMock.mock.calls).toHaveLength(3);
+  });
+
   it.each(states)("mantiene foco y controles antes y después del GET diferido de %s", async (status, label) => {
     const user = userEvent.setup();
     const originalFetch = fetchMock.getMockImplementation()!;

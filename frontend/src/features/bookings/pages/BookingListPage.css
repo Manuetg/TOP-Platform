@@ -139,11 +139,13 @@
 .booking-list-row {
   display: grid;
   grid-template-columns:
-    minmax(120px, 0.8fr)
-    minmax(155px, 1fr)
-    minmax(240px, 1.6fr)
-    minmax(150px, 0.9fr)
-    minmax(120px, 0.7fr);
+    minmax(95px, 0.7fr)
+    minmax(125px, 1fr)
+    minmax(165px, 1.4fr)
+    minmax(100px, 0.8fr)
+    minmax(110px, 0.8fr)
+    minmax(100px, 0.8fr)
+    minmax(100px, 0.8fr);
   align-items: center;
   gap: 18px;
   padding: 0 18px;
@@ -209,6 +211,12 @@
 .booking-list-row__stay span,
 .booking-list-row__occupancy {
   color: #718087;
+  font-size: 0.79rem;
+}
+
+.booking-list-row__financial-status,
+.booking-list-row__paid-percentage {
+  color: var(--color-text-secondary);
   font-size: 0.79rem;
 }
 
@@ -314,11 +322,13 @@
   .booking-list-table__header,
   .booking-list-row {
     grid-template-columns:
+      minmax(95px, 0.7fr)
+      minmax(125px, 1fr)
+      minmax(165px, 1.4fr)
+      minmax(100px, 0.8fr)
       minmax(110px, 0.8fr)
-      minmax(140px, 1fr)
-      minmax(200px, 1.5fr)
-      minmax(130px, 0.9fr)
-      minmax(110px, 0.7fr);
+      minmax(100px, 0.8fr)
+      minmax(100px, 0.8fr);
     gap: 12px;
   }
 }
@@ -391,6 +401,32 @@
   color: #506268;
 }
 
+.booking-list-card__finances {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #edf1f0;
+}
+
+.booking-list-card__finances > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  color: #40545a;
+  font-size: 0.82rem;
+}
+
+.booking-list-card__finances small {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.booking-list-row__paid-percentage {
+  font-variant-numeric: tabular-nums;
+}
+
 @media (max-width: 860px) {
   .booking-list-table {
     display: none;
@@ -413,7 +449,7 @@
   }
 }
 
-@container booking-list (max-width: 900px) {
+@container booking-list (max-width: 1100px) {
   .booking-list-table {
     display: none;
   }

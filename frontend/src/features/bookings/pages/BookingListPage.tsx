@@ -21,6 +21,7 @@ import { useContacts } from "../../contacts/queries/use-contacts";
 import { useResources } from "../../resources/queries/use-resources";
 import { useBookings } from "../queries/use-bookings";
 import { bookingStatusOptions, getBookingStatusLabel } from "../booking-status";
+import { formatPaymentPercentage, getBookingFinancialLabel } from "../booking-financial-summary";
 import type {
   Booking,
   BookingStatus,
@@ -163,6 +164,8 @@ function BookingRow({
       <BookingStatusBadge
         status={booking.status}
       />
+      <span className="booking-list-row__financial-status">{getBookingFinancialLabel(booking.financialSummary)}</span>
+      <span className="booking-list-row__paid-percentage">{formatPaymentPercentage(booking.financialSummary?.paidAmountMinor ?? 0, booking.financialSummary?.totalAmountMinor ?? null)}</span>
     </button>
   );
 }
@@ -226,6 +229,10 @@ function BookingCard({
           booking.adults,
           booking.children,
         )}
+      </div>
+      <div className="booking-list-card__finances">
+        <span><small>Estado del pago</small><strong>{getBookingFinancialLabel(booking.financialSummary)}</strong></span>
+        <span><small>Porcentaje de pago</small><strong>{formatPaymentPercentage(booking.financialSummary?.paidAmountMinor ?? 0, booking.financialSummary?.totalAmountMinor ?? null)}</strong></span>
       </div>
     </button>
   );
@@ -341,6 +348,7 @@ export function BookingListPage({
           resourceNames,
           booking.status,
           getBookingStatusLabel(booking.status),
+          getBookingFinancialLabel(booking.financialSummary),
           booking.checkInDate ?? "",
           booking.checkOutDate ?? "",
         ]
@@ -642,6 +650,8 @@ export function BookingListPage({
               <span>Estadía</span>
               <span>Ocupación</span>
               <span>Estado</span>
+              <span>Estado del pago</span>
+              <span>Porcentaje de pago</span>
             </div>
 
             <div className="booking-list-table__body">

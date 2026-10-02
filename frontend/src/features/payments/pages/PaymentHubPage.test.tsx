@@ -50,6 +50,21 @@ function booking(status: BookingStatus): Booking {
 }
 
 describe("etiquetas de reservas en el listado de pagos", () => {
+  it.each([0, 400000])("incluye la Pendiente con precio %s junto a confirmadas, sin incluir Pendientes históricas sin precio", async (total) => {
+    const pending = state.bookings.find((item) => item.status === "PENDING")!;
+    pending.financialSummary = { totalAmountMinor: total, paidAmountMinor: 0, currency: "PYG" };
+    state.bookings.push({ ...booking("PENDING"), id: "pending-legacy", contactId: null, financialSummary: { totalAmountMinor: null, paidAmountMinor: 0, currency: null } });
+    const user = userEvent.setup();
+    render(<PaymentHubPage />);
+    expect(screen.getAllByRole("button")).toHaveLength(4);
+    const row = screen.getByRole("button", { name: /Contacto pendiente/ });
+    expect(within(row).getByText("Pendiente")).toHaveClass("payments-status--pending");
+    await user.click(row);
+    expect(state.navigate).toHaveBeenCalledWith("/app/bookings/booking-pending/payments");
+    await user.type(screen.getByRole("searchbox"), "Pendiente");
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+  });
+
   afterEach(() => vi.unstubAllGlobals());
 
   beforeEach(() => {

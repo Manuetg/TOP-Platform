@@ -1,7 +1,7 @@
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { requestUrl } from "../../../../tests/request-url";
 import type { LoginResponse } from "../../auth/types/auth.types";
@@ -30,9 +30,16 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-function setup(route: "edit" | "confirm", options: { deferConfirm?: boolean; deferCalculate?: boolean; deferEdit?: boolean; suppliedBusinessId?: string } = {}) {
+function PaymentRouteProbe() {
+  const navigate = useNavigate();
+  return <><h1>Cuenta de reserva</h1><button onClick={() => navigate(-1)}>Atrás del navegador</button></>;
+}
+
+function setup(route: "edit" | "confirm", options: { deferConfirm?: boolean; deferCalculate?: boolean; deferEdit?: boolean; suppliedBusinessId?: string; pricedPending?: boolean; total?: number; initialEntries?: string[] } = {}) {
   const requests: RequestRecord[] = [];
-  const currentBooking = { ...booking, status: route === "edit" ? "DRAFT" as const : "PENDING" as const };
+  const currentBooking = { ...booking, status: route === "edit" ? "DRAFT" as const : "PENDING" as const,
+    ...(options.pricedPending ? { financialSummary: { totalAmountMinor: options.total ?? 400000, paidAmountMinor: 0, currency: "PYG" } } : {}),
+  };
   const pending = deferred<Response>();
   vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init: RequestInit = {}) => {
     const path = requestUrl(input instanceof Request ? input.url : input).pathname;
@@ -49,10 +56,12 @@ function setup(route: "edit" | "confirm", options: { deferConfirm?: boolean; def
   }));
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   clients.push(client);
-  const view = () => <QueryClientProvider client={client}><MemoryRouter initialEntries={[`/app/bookings/booking-1/${route}`]}><Routes>
+  const view = () => <QueryClientProvider client={client}><MemoryRouter initialEntries={options.initialEntries ?? [`/app/bookings/booking-1/${route}`]}><Routes>
+    <Route path="/app/bookings" element={<h1>Listado de reservas</h1>} />
     <Route path="/app/bookings/:bookingId/edit" element={<EditBookingPage businessId={options.suppliedBusinessId} />} />
     <Route path="/app/bookings/:bookingId/confirm" element={<ConfirmBookingPage />} />
     <Route path="/app/bookings/:bookingId" element={<h1>Detalle de reserva</h1>} />
+    <Route path="/app/bookings/:bookingId/payments" element={<PaymentRouteProbe />} />
   </Routes></MemoryRouter></QueryClientProvider>;
   const page = render(view());
   return { requests, pending, currentBooking, client, page, view, user: userEvent.setup() };
@@ -64,6 +73,33 @@ beforeEach(() => {
   context.session = { user: { id: "user-1", email: "user@example.test", status: "ACTIVE" }, accessToken: "fixture-token", refreshToken: "fixture-refresh", tokenType: "Bearer", expiresIn: 3600, memberships: [{ businessId: "business-1", role: "OWNER" }] };
 });
 afterEach(() => { cleanup(); clients.splice(0).forEach((client) => client.clear()); vi.unstubAllGlobals(); });
+
+describe("ruta antigua de confirmación con precio Pendiente", () => {
+  it.each(["OWNER", "ADMIN", "RECEPTIONIST"])("redirige a Pagos para %s tras comprobar permiso y leer sólo la reserva", async (role) => {
+    context.role = role;
+    const { requests } = setup("confirm", { pricedPending: true });
+    expect(await screen.findByRole("heading", { name: "Cuenta de reserva" })).toBeInTheDocument();
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({ method: "GET", path: expect.stringMatching(/\/businesses\/business-1\/bookings\/booking-1$/) });
+    expect(screen.queryByRole("button", { name: "Confirmar reserva" })).not.toBeInTheDocument();
+  });
+
+  it("redirige también precio cero y Back omite la pantalla retirada del historial", async () => {
+    const { requests, user } = setup("confirm", { pricedPending: true, total: 0, initialEntries: ["/app/bookings", "/app/bookings/booking-1/confirm"] });
+    await screen.findByRole("heading", { name: "Cuenta de reserva" });
+    await user.click(screen.getByRole("button", { name: "Atrás del navegador" }));
+    expect(await screen.findByRole("heading", { name: "Listado de reservas" })).toBeInTheDocument();
+    expect(requests).toHaveLength(1);
+  });
+
+  it("VIEWER continúa denegado en URL de confirmación antes de cualquier lectura o redirección", () => {
+    context.role = "VIEWER";
+    const { requests } = setup("confirm", { pricedPending: true });
+    expect(screen.getByRole("alert")).toHaveTextContent("No tienes permiso para confirmar");
+    expect(screen.queryByRole("heading", { name: "Cuenta de reserva" })).not.toBeInTheDocument();
+    expect(requests).toEqual([]);
+  });
+});
 
 describe.each(["edit", "confirm"] as const)("URL directa de reserva /%s", (route) => {
   it.each([

@@ -15,6 +15,7 @@ import {
 } from "react";
 import { useIsPresent } from "motion/react";
 import {
+  Navigate,
   useNavigate,
   useLocation,
   useParams,
@@ -50,10 +51,29 @@ export function ConfirmBookingPage() {
     </section>;
   }
 
-  return <ConfirmBookingContent key={`${session?.user.id}:${activeBusinessId}:${bookingId}:${activeRole}`} />;
+  return <ConfirmBookingEntry key={`${session?.user.id}:${activeBusinessId}:${bookingId}:${activeRole}`} />;
 }
 
-function ConfirmBookingContent() {
+function ConfirmBookingEntry() {
+  const { activeBusinessId } = useBusinessContext();
+  const { session } = useAuth();
+  const { bookingId = "" } = useParams();
+  const bookingQuery = useBooking({ businessId: activeBusinessId, bookingId, accessToken: session?.accessToken });
+  if (bookingQuery.isLoading) {
+    return <section className="confirm-booking-page"><div className="confirm-booking-state" role="status">Cargando confirmación...</div></section>;
+  }
+  if (bookingQuery.isError || !bookingQuery.data || bookingQuery.data.businessId !== activeBusinessId) {
+    return <section className="confirm-booking-page"><div className="confirm-booking-error" role="alert">
+      {bookingQuery.error instanceof Error ? bookingQuery.error.message : "No pudimos cargar la reserva."}
+    </div></section>;
+  }
+  if (bookingQuery.data.status === "PENDING" && bookingQuery.data.financialSummary?.totalAmountMinor != null) {
+    return <Navigate replace to={`/app/bookings/${bookingId}/payments`} />;
+  }
+  return <ConfirmBookingContent bookingQuery={bookingQuery} />;
+}
+
+function ConfirmBookingContent({ bookingQuery }: { bookingQuery: ReturnType<typeof useBooking> }) {
   const navigate = useNavigate();
   const location = useLocation();
   const confirmationError = typeof location.state?.confirmationError === "string" ? location.state.confirmationError : null;
@@ -75,11 +95,7 @@ function ConfirmBookingContent() {
     isFetching: isFetchingBooking,
     isError: isBookingError,
     error: bookingError,
-  } = useBooking({
-    businessId,
-    bookingId,
-    accessToken: session?.accessToken,
-  });
+  } = bookingQuery;
 
   const {
     data: resources,

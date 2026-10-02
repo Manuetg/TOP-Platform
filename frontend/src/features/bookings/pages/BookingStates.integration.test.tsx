@@ -77,6 +77,7 @@ function show(path = "/app/bookings") {
         <Routes>
           <Route path="/app/bookings" element={<BookingListPage />} />
           <Route path="/app/bookings/:bookingId" element={<BookingDetailPage />} />
+          <Route path="/app/bookings/:bookingId/payments" element={<h1>Cuenta de reserva</h1>} />
           <Route path="/timeline" element={<BookingTimeline businessId="business-1" bookingId="cancelled-booking" />} />
         </Routes>
       </MemoryRouter>
@@ -127,6 +128,33 @@ afterEach(() => {
 });
 
 describe("Estados de reservas: presentación y contratos", () => {
+  it.each([0, 400000])("una Pendiente con precio %s ofrece pagos y no confirmación manual", async (total) => {
+    currentBooking = { ...booking("PENDING"), financialSummary: { totalAmountMinor: total, paidAmountMinor: 0, currency: "PYG" } };
+    const user = userEvent.setup();
+    show(`/app/bookings/${currentBooking.id}`);
+    const payments = await screen.findByRole("button", { name: "Gestionar pagos" });
+    expect(screen.queryByRole("button", { name: "Confirmar reserva" })).not.toBeInTheDocument();
+    await user.click(payments);
+    expect(await screen.findByRole("heading", { name: "Cuenta de reserva" })).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
+  });
+
+  it("una Pendiente histórica sin precio conserva la confirmación y no ofrece pagos", async () => {
+    currentBooking = { ...booking("PENDING"), financialSummary: { totalAmountMinor: null, paidAmountMinor: 0, currency: null } };
+    show(`/app/bookings/${currentBooking.id}`);
+    expect(await screen.findByRole("button", { name: "Confirmar reserva" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Gestionar pagos" })).not.toBeInTheDocument();
+  });
+
+  it("VIEWER consulta pagos de una Pendiente con precio y no obtiene acciones de reserva", async () => {
+    context.role = "VIEWER";
+    currentBooking = { ...booking("PENDING"), financialSummary: { totalAmountMinor: 400000, paidAmountMinor: 0, currency: "PYG" } };
+    show(`/app/bookings/${currentBooking.id}`);
+    expect(await screen.findByRole("button", { name: "Gestionar pagos" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Confirmar reserva" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancelar reserva" })).not.toBeInTheDocument();
+  });
+
   it("mantiene los siete estados y envía sus enums originales al filtrar", async () => {
     const user = userEvent.setup();
     show();

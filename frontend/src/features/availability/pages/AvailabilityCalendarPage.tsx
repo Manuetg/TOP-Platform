@@ -30,9 +30,7 @@ import { useBookings } from "../../bookings/queries/use-bookings";
 import { useBlocks } from "../../blocks/queries/use-blocks";
 import { useContacts } from "../../contacts/queries/use-contacts";
 import { createContact } from "../../contacts/api/create-contact";
-import { createBooking } from "../../bookings/api/create-booking";
-import { submitBooking } from "../../bookings/api/submit-booking";
-import { confirmBooking } from "../../bookings/api/confirm-booking";
+import { createPendingBooking } from "../../bookings/api/create-pending-booking";
 import { useSelectableRatePlans } from "../../pricing/queries/use-selectable-rate-plans";
 import { useCalculatePrice } from "../../pricing/queries/use-calculate-price";
 import type { CalculatePriceResult } from "../../pricing/types/pricing.types";
@@ -451,11 +449,10 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
     savingLock.current = true;
     const controller = operation();
     const discount = selectedDiscountPercent(wizard);
-    let pendingBookingId: string | null = null;
     setSaving(true);
     setError(null);
     try {
-      const booking = await createBooking({
+      const booking = await createPendingBooking({
         businessId: businessId,
         accessToken,
         signal: controller.signal,
@@ -466,18 +463,6 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
           checkOutDate: wizard.checkOut,
           adults: Number(wizard.adults),
           children: Number(wizard.children),
-        },
-      });
-      if (controller.signal.aborted) return;
-      await submitBooking({ businessId: businessId, bookingId: booking.id, accessToken, signal: controller.signal });
-      if (controller.signal.aborted) return;
-      pendingBookingId = booking.id;
-      await confirmBooking({
-        businessId: businessId,
-        bookingId: booking.id,
-        accessToken,
-        signal: controller.signal,
-        input: {
           pricing: [{
             resourceId: wizard.resourceId,
             ...(wizard.mode === "MANUAL_NO_RATE_PLAN" ? { pricingMode: "MANUAL_NO_RATE_PLAN" as const, agreedAmountMinor: guaraniesToMinor(wizard.agreedAmountMinor)!, overrideReason: wizard.overrideReason.trim() } : { ratePlanId: wizard.ratePlanId,
@@ -492,19 +477,17 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
         },
       });
       if (controller.signal.aborted) return;
-      await queryClient.invalidateQueries({ queryKey: ["bookings", businessId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["bookings", businessId] }),
+        queryClient.invalidateQueries({ queryKey: ["availability", "calendar", businessId] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard", businessId] }),
+      ]);
       if (controller.signal.aborted) return;
       setWizardOpen(false);
       navigate(`/app/bookings/${booking.id}`);
     } catch (cause) {
       if (controller.signal.aborted) return;
-      const message = cause instanceof Error ? cause.message : "No pudimos confirmar la reserva.";
-      if (pendingBookingId) {
-        await queryClient.invalidateQueries({ queryKey: ["bookings", businessId] });
-        if (controller.signal.aborted) return;
-        setWizardOpen(false);
-        navigate(`/app/bookings/${pendingBookingId}/confirm`, { state: { confirmationError: message } });
-      } else setError(message);
+      setError(cause instanceof Error ? cause.message : "No pudimos crear la reserva.");
     } finally {
       operations.current.delete(controller);
       if (!controller.signal.aborted) { savingLock.current = false; setSaving(false); }
@@ -766,7 +749,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
               ) : (
                 <span aria-hidden="true" />
               )}
-              {step < 5 ? <Button type="button" disabled={saving || (step === 1 && stayAvailability.isLoading) || (step === 4 && (!pricingReady || (wizard.mode !== "CONFIGURED" && guaraniesToMinor(wizard.agreedAmountMinor) === null) || (wizard.mode === "CONFIGURED" && (wizard.discountPercent === "OTHER" && (!Number.isInteger(Number(wizard.customDiscountPercent)) || Number(wizard.customDiscountPercent) < 1 || Number(wizard.customDiscountPercent) > 100)))))} onClick={() => void nextStep()}>{step === 1 ? "Buscar disponibilidad" : "Continuar"}<ArrowRight size={16} /></Button> : <Button type="button" disabled={saving || !pricingReady || (wizard.mode === "CONFIGURED" && !preview)} onClick={() => void finishBooking()}>{saving ? "Confirmando…" : "Confirmar reserva"}<Check size={16} /></Button>}
+              {step < 5 ? <Button type="button" disabled={saving || (step === 1 && stayAvailability.isLoading) || (step === 4 && (!pricingReady || (wizard.mode !== "CONFIGURED" && guaraniesToMinor(wizard.agreedAmountMinor) === null) || (wizard.mode === "CONFIGURED" && (wizard.discountPercent === "OTHER" && (!Number.isInteger(Number(wizard.customDiscountPercent)) || Number(wizard.customDiscountPercent) < 1 || Number(wizard.customDiscountPercent) > 100)))))} onClick={() => void nextStep()}>{step === 1 ? "Buscar disponibilidad" : "Continuar"}<ArrowRight size={16} /></Button> : <Button type="button" disabled={saving || !pricingReady || (wizard.mode === "CONFIGURED" && !preview)} onClick={() => void finishBooking()}>{saving ? "Guardando…" : "Crear reserva"}<Check size={16} /></Button>}
             </footer>
       </OverlayPanel>
     </section>
@@ -1150,5 +1133,5 @@ function RateStep({ wizard, ratePlans, loading, failed, retry, canOverride, prev
 function ReviewStep({ wizard, resourceName, contactName, rateName, preview, currency }: { wizard: WizardState; resourceName?: string; contactName?: string; rateName?: string; preview: CalculatePriceResult | null; currency: string }) {
   const discount = selectedDiscountPercent(wizard);
   const total = wizard.mode !== "CONFIGURED" ? guaraniesToMinor(wizard.agreedAmountMinor) ?? 0 : preview ? Math.round(preview.totalAmountMinor * (100 - discount) / 100) : 0;
-  return <><div className="booking-wizard-heading"><Check size={22} /><div><h3>Revisá y confirmá</h3><p>TOP volverá a validar disponibilidad y precio al confirmar.</p></div></div><dl className="booking-wizard-review"><div><dt>Contacto</dt><dd>{contactName}</dd></div><div><dt>Alojamiento</dt><dd>{resourceName}</dd></div><div><dt>Estadía</dt><dd>{formatDateForDisplay(wizard.checkIn)} → {formatDateForDisplay(wizard.checkOut)}</dd></div><div><dt>Huéspedes</dt><dd>{wizard.adults} adultos · {wizard.children} niños</dd></div><div><dt>Precio</dt><dd>{wizard.mode === "MANUAL_NO_RATE_PLAN" ? "Precio manual" : rateName}</dd></div>{wizard.mode === "MANUAL_NO_RATE_PLAN" && <div><dt>Motivo</dt><dd>{wizard.overrideReason.trim()}</dd></div>}<div className="is-total"><dt>Total acordado</dt><dd>{formatMoney(total, currency)}</dd></div></dl></>;
+  return <><div className="booking-wizard-heading"><Check size={22} /><div><h3>Revisá y creá la reserva</h3><p>La reserva quedará Pendiente. Un pago registrado confirmará la reserva. TOP valida disponibilidad y precio al guardar.</p></div></div><dl className="booking-wizard-review"><div><dt>Contacto</dt><dd>{contactName}</dd></div><div><dt>Alojamiento</dt><dd>{resourceName}</dd></div><div><dt>Estadía</dt><dd>{formatDateForDisplay(wizard.checkIn)} → {formatDateForDisplay(wizard.checkOut)}</dd></div><div><dt>Huéspedes</dt><dd>{wizard.adults} adultos · {wizard.children} niños</dd></div><div><dt>Precio</dt><dd>{wizard.mode === "MANUAL_NO_RATE_PLAN" ? "Precio manual" : rateName}</dd></div>{wizard.mode === "MANUAL_NO_RATE_PLAN" && <div><dt>Motivo</dt><dd>{wizard.overrideReason.trim()}</dd></div>}<div className="is-total"><dt>Total acordado</dt><dd>{formatMoney(total, currency)}</dd></div></dl></>;
 }

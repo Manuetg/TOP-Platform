@@ -38,6 +38,7 @@ const useSelectableRatePlansMock = vi.fn();
 const useCalculatePriceMock = vi.fn();
 const createBookingMock = vi.fn();
 const submitBookingMock = vi.fn();
+const createPendingBookingMock = vi.fn();
 const confirmBookingMock = vi.fn();
 
 vi.mock("../../auth/context/AuthContext", () => ({
@@ -99,6 +100,9 @@ vi.mock("../../bookings/api/submit-booking", () => ({
 vi.mock("../../bookings/api/confirm-booking", () => ({
   confirmBooking: (...args: unknown[]) => confirmBookingMock(...args),
 }));
+vi.mock("../../bookings/api/create-pending-booking", () => ({
+  createPendingBooking: (...args: unknown[]) => createPendingBookingMock(...args),
+}));
 
 const resource = {
   id: "resource-1",
@@ -150,6 +154,8 @@ function renderPage() {
 function wizardQueries() {
   return within(screen.getByRole("dialog", { name: "Nueva reserva" }));
 }
+
+function wizardQueries() { return within(screen.getByRole("dialog", { name: "Nueva reserva" })); }
 
 async function goToRateStep() {
   const user = await goToContactStep();
@@ -206,19 +212,28 @@ async function goToContactStep() {
 }
 
 describe("AvailabilityCalendarPage", () => {
-  it("crea contacto con país antes del teléfono compuesto y conserva el payload normalizado", async () => {
-    vi.mocked(createContact).mockResolvedValue({ ...contact, status: "ACTIVE" });
+  it("ubica país antes del teléfono compuesto y actualiza el prefijo internacional", async () => {
     const user = await goToContactStep();
-    await user.click(wizardQueries().getByRole("button", { name: "Crear contacto" }));
-    const country = wizardQueries().getByLabelText("País");
-    const phone = wizardQueries().getByLabelText("Teléfono");
+    const wizard = wizardQueries();
+    await user.click(wizard.getByRole("button", { name: "Crear contacto" }));
+    const country = wizard.getByLabelText("País");
+    const phone = wizard.getByLabelText("Teléfono");
     expect(country.compareDocumentPosition(phone) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     await user.selectOptions(country, "Argentina");
-    expect(wizardQueries().getByLabelText("Prefijo internacional")).toHaveTextContent("+54");
-    await user.type(wizardQueries().getByLabelText("Nombre"), "Ana");
-    await user.type(wizardQueries().getByLabelText("Apellido"), "Prueba");
-    await user.type(phone, "11 2345 6789");
-    await user.click(wizardQueries().getByRole("button", { name: "Crear contacto" }));
+    expect(wizard.getByLabelText("Prefijo internacional")).toHaveTextContent("+54");
+    expect(createContact).not.toHaveBeenCalled();
+  });
+
+  it("crea contacto conservando el payload normalizado del teléfono compuesto", async () => {
+    vi.mocked(createContact).mockResolvedValue({ ...contact, status: "ACTIVE" });
+    const user = await goToContactStep();
+    const wizard = wizardQueries();
+    await user.click(wizard.getByRole("button", { name: "Crear contacto" }));
+    await user.selectOptions(wizard.getByLabelText("País"), "Argentina");
+    await user.type(wizard.getByLabelText("Nombre"), "Ana");
+    await user.type(wizard.getByLabelText("Apellido"), "Prueba");
+    await user.type(wizard.getByLabelText("Teléfono"), "11 2345 6789");
+    await user.click(wizard.getByRole("button", { name: "Crear contacto" }));
     await waitFor(() => expect(createContact).toHaveBeenCalledWith(expect.objectContaining({
       businessId: "business-1", input: expect.objectContaining({ name: "Ana", lastName: "Prueba", country: "Argentina", phone: "+541123456789", whatsapp: "+541123456789" }),
     })));
@@ -339,6 +354,7 @@ describe("AvailabilityCalendarPage", () => {
 
     createBookingMock.mockResolvedValue({ id: "booking-1" });
     submitBookingMock.mockResolvedValue(undefined);
+    createPendingBookingMock.mockReset().mockResolvedValue({ id: "booking-1", status: "PENDING" });
     confirmBookingMock.mockResolvedValue(undefined);
   });
 
@@ -386,6 +402,7 @@ describe("AvailabilityCalendarPage", () => {
     await openWizard();
     expect(screen.getByRole("dialog", { name: "Nueva reserva" })).toBeVisible();
     expect(screen.getByLabelText("Entrada")).toHaveValue("");
+    expect(createPendingBookingMock).not.toHaveBeenCalled();
     expect(createBookingMock).not.toHaveBeenCalled();
   });
 
@@ -413,6 +430,7 @@ describe("AvailabilityCalendarPage", () => {
     expect(screen.queryByRole("dialog", { name: "Nueva reserva" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /^Abrir reserva Confirmada del 02\/09\/2026$/ }));
     expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/app/bookings/existing-booking");
+    expect(createPendingBookingMock).not.toHaveBeenCalled();
     expect(createBookingMock).not.toHaveBeenCalled();
     expect(submitBookingMock).not.toHaveBeenCalled();
     expect(confirmBookingMock).not.toHaveBeenCalled();
@@ -430,6 +448,7 @@ describe("AvailabilityCalendarPage", () => {
     context.role = "OWNER";
     view.rerenderPage();
     expect(screen.queryByRole("dialog", { name: "Nueva reserva" })).not.toBeInTheDocument();
+    expect(createPendingBookingMock).not.toHaveBeenCalled();
     expect(createBookingMock).not.toHaveBeenCalled();
   });
 
@@ -561,21 +580,33 @@ describe("AvailabilityCalendarPage", () => {
     expect(calculate).not.toHaveBeenCalled();
   });
 
-  it("confirms manual pricing in minor units with the entered reason", async () => {
+  it("crea Pendiente con precio manual y datos completos en una sola operación", async () => {
     const user = await goToRateStep();
     await user.click(wizardQueries().getByRole("button", { name: "Manual" }));
     await user.type(wizardQueries().getByLabelText("Precio final"), "600000");
     await user.type(wizardQueries().getByLabelText("Motivo del precio manual"), "Acuerdo directo");
     await user.click(wizardQueries().getByRole("button", { name: /Continuar/i }));
-    await user.click(wizardQueries().getByRole("button", { name: /Confirmar reserva/i }));
-    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 600000, overrideReason: "Acuerdo directo" }] } })));
+    await user.click(wizardQueries().getByRole("button", { name: /Crear reserva/i }));
+    await waitFor(() => expect(createPendingBookingMock).toHaveBeenCalledWith(expect.objectContaining({
+      businessId: "business-1", input: {
+        contactId: "contact-1", resourceIds: ["resource-1"], checkInDate: "2026-09-17", checkOutDate: "2026-09-18", adults: 2, children: 0,
+        pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 600000, overrideReason: "Acuerdo directo" }],
+      },
+    })));
+    expect(createPendingBookingMock).toHaveBeenCalledOnce();
+    expect(createPendingBookingMock).not.toHaveBeenCalled();
+    expect(createBookingMock).not.toHaveBeenCalled();
+    expect(submitBookingMock).not.toHaveBeenCalled();
+    expect(confirmBookingMock).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/app/bookings/booking-1"));
   });
 
   it("keeps configured pricing unchanged without a discount", async () => {
     const user = await goToRateStep();
     await user.click(wizardQueries().getByRole("button", { name: /Continuar/i }));
-    await user.click(wizardQueries().getByRole("button", { name: /Confirmar reserva/i }));
-    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.not.objectContaining({ agreedAmountMinor: expect.anything(), overrideReason: expect.anything() })] }) })));
+    expect(wizardQueries().getByText(/La reserva quedará Pendiente/)).toBeVisible();
+    await user.click(wizardQueries().getByRole("button", { name: /Crear reserva/i }));
+    await waitFor(() => expect(createPendingBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.not.objectContaining({ agreedAmountMinor: expect.anything(), overrideReason: expect.anything() })] }) })));
   });
 
   it("usa el Business activo en todas las lecturas y en la confirmación", async () => {
@@ -586,21 +617,22 @@ describe("AvailabilityCalendarPage", () => {
         expect(hook).toHaveBeenLastCalledWith(expect.objectContaining({ businessId: "business-selected" }));
       }
       await user.click(wizardQueries().getByRole("button", { name: /Continuar/i }));
-      await user.click(wizardQueries().getByRole("button", { name: /Confirmar reserva/i }));
-      await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ businessId: "business-selected" })));
+      await user.click(wizardQueries().getByRole("button", { name: /Crear reserva/i }));
+      await waitFor(() => expect(createPendingBookingMock).toHaveBeenCalledWith(expect.objectContaining({ businessId: "business-selected" })));
     } finally { context.businessId = "business-1"; }
   });
 
   it("cerrar durante el alta aborta la señal y una respuesta tardía no continúa Submit/Confirm", async () => {
     let resolve!: (value: { id: string }) => void;
-    createBookingMock.mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+    createPendingBookingMock.mockReturnValueOnce(new Promise((done) => { resolve = done; }));
     const user = await goToRateStep(); await user.click(wizardQueries().getByRole("button", { name: /Continuar/i }));
-    await user.dblClick(wizardQueries().getByRole("button", { name: /Confirmar reserva/i }));
-    expect(createBookingMock).toHaveBeenCalledTimes(1);
-    const signal: AbortSignal = createBookingMock.mock.calls[0][0].signal;
+    await user.dblClick(wizardQueries().getByRole("button", { name: /Crear reserva/i }));
+    expect(createPendingBookingMock).toHaveBeenCalledTimes(1);
+    const signal: AbortSignal = createPendingBookingMock.mock.calls[0][0].signal;
     await user.click(wizardQueries().getByRole("button", { name: "Cerrar" })); expect(signal.aborted).toBe(true);
     await act(async () => resolve({ id: "late-booking" }));
     expect(submitBookingMock).not.toHaveBeenCalled(); expect(confirmBookingMock).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/app/calendar");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -618,8 +650,8 @@ describe("AvailabilityCalendarPage", () => {
     await user.click(wizardQueries().getByRole("button", { name: "Aplicar descuento" }));
     await user.click(wizardQueries().getByRole("button", { name: "10%" }));
     await user.click(wizardQueries().getByRole("button", { name: /Continuar/i }));
-    await user.click(wizardQueries().getByRole("button", { name: /Confirmar reserva/i }));
-    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.objectContaining({ agreedAmountMinor: 5850000, overrideReason: "Descuento del 10% aplicado desde calendario" })] }) })));
+    await user.click(wizardQueries().getByRole("button", { name: /Crear reserva/i }));
+    await waitFor(() => expect(createPendingBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.objectContaining({ agreedAmountMinor: 5850000, overrideReason: "Descuento del 10% aplicado desde calendario" })] }) })));
   });
 
   it("removes the discount and restores the configured price", async () => {
@@ -629,8 +661,8 @@ describe("AvailabilityCalendarPage", () => {
     await user.click(wizardQueries().getByRole("button", { name: "Quitar descuento" }));
     expect(wizardQueries().queryByText(/Descuento \(10%\)/i)).not.toBeInTheDocument();
     await user.click(wizardQueries().getByRole("button", { name: /Continuar/i }));
-    await user.click(wizardQueries().getByRole("button", { name: /Confirmar reserva/i }));
-    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.not.objectContaining({ agreedAmountMinor: expect.anything(), overrideReason: expect.anything() })] }) })));
+    await user.click(wizardQueries().getByRole("button", { name: /Crear reserva/i }));
+    await waitFor(() => expect(createPendingBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [expect.not.objectContaining({ agreedAmountMinor: expect.anything(), overrideReason: expect.anything() })] }) })));
   });
   it("no mezcla descuento configurado con el payload Manual al alternar", async () => {
     const user = await goToRateStep();
@@ -641,8 +673,8 @@ describe("AvailabilityCalendarPage", () => {
     await user.type(wizardQueries().getByLabelText("Precio final"), "450000");
     await user.type(wizardQueries().getByLabelText("Motivo del precio manual"), "Acuerdo directo");
     await user.click(wizardQueries().getByRole("button", { name: /Continuar/i }));
-    await user.click(wizardQueries().getByRole("button", { name: /Confirmar reserva/i }));
-    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 450000, overrideReason: "Acuerdo directo" }] } })));
+    await user.click(wizardQueries().getByRole("button", { name: /Crear reserva/i }));
+    await waitFor(() => expect(createPendingBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 450000, overrideReason: "Acuerdo directo" }] }) })));
   });
   it("no ofrece Manual ni permite continuar sin planes para RECEPTIONIST", async () => {
     context.role = "RECEPTIONIST";
@@ -651,7 +683,7 @@ describe("AvailabilityCalendarPage", () => {
     expect(wizardQueries().getByText("No hay un tarifario disponible para esta estadía.")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Manual" })).not.toBeInTheDocument();
     expect(wizardQueries().getByRole("button", { name: /Continuar/i })).toBeDisabled();
-    expect(confirmBookingMock).not.toHaveBeenCalled();
+    expect(createPendingBookingMock).not.toHaveBeenCalled();
   });
   it("no ofrece override ni descuento a RECEPTIONIST", async () => {
     context.role = "RECEPTIONIST"; await goToRateStep();
@@ -686,8 +718,8 @@ describe("AvailabilityCalendarPage", () => {
     fireEvent.change(wizardQueries().getByLabelText("Motivo del precio manual"), { target: { value: "Acuerdo directo" } });
     await user.click(wizardQueries().getByRole("button", { name: /Continuar/i }));
     expect(wizardQueries().getByText("Precio manual")).toBeVisible(); expect(wizardQueries().getByText("Acuerdo directo")).toBeVisible();
-    await user.click(wizardQueries().getByRole("button", { name: /Confirmar reserva/i }));
-    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 350000, overrideReason: "Acuerdo directo" }] } })));
+    await user.click(wizardQueries().getByRole("button", { name: /Crear reserva/i }));
+    await waitFor(() => expect(createPendingBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 350000, overrideReason: "Acuerdo directo" }] }) })));
   });
   it.each([1, 2])("confirma Manual con %s tarifario(s) sin ratePlanId", async (count) => {
     useSelectableRatePlansMock.mockReturnValue({ data: Array.from({ length: count }, (_, index) => ({ id: `plan-${index + 1}`, name: `Tarifa ${index + 1}`, currency: "PYG", baseNightlyAmountMinor: 500000 })), isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
@@ -697,8 +729,8 @@ describe("AvailabilityCalendarPage", () => {
     await user.type(wizardQueries().getByLabelText("Precio final"), "450.000");
     await user.type(wizardQueries().getByLabelText("Motivo del precio manual"), "Acuerdo directo");
     await user.click(wizardQueries().getByRole("button", { name: /Continuar/i }));
-    await user.click(wizardQueries().getByRole("button", { name: /Confirmar reserva/i }));
-    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 450000, overrideReason: "Acuerdo directo" }] } })));
+    await user.click(wizardQueries().getByRole("button", { name: /Crear reserva/i }));
+    await waitFor(() => expect(createPendingBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 450000, overrideReason: "Acuerdo directo" }] }) })));
   });
   it.each(["carga", "error", "refetch"])("Manual sigue disponible durante %s de tarifarios", async (status) => {
     useSelectableRatePlansMock.mockReturnValue({ data: status === "refetch" ? [{ id: "plan-1", name: "Tarifa", currency: "PYG", baseNightlyAmountMinor: 500000 }] : undefined, isSuccess: status === "refetch", isLoading: status === "carga", isFetching: status !== "error", isError: status === "error", refetch: vi.fn() });
@@ -711,8 +743,8 @@ describe("AvailabilityCalendarPage", () => {
     await user.type(wizardQueries().getByLabelText("Motivo del precio manual"), "Acuerdo directo");
     expect(wizardQueries().getByRole("button", { name: /Continuar/i })).toBeEnabled();
     await user.click(wizardQueries().getByRole("button", { name: /Continuar/i }));
-    await user.click(wizardQueries().getByRole("button", { name: /Confirmar reserva/i }));
-    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 450000, overrideReason: "Acuerdo directo" }] } })));
+    await user.click(wizardQueries().getByRole("button", { name: /Crear reserva/i }));
+    await waitFor(() => expect(createPendingBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 450000, overrideReason: "Acuerdo directo" }] }) })));
   });
   it.each(["-1", "1,5", "1.5", "9007199254740992"])("rechaza el monto inválido %s sin borrar signos ni separadores", async (value) => {
     const user = await goToRateStep(); await user.click(wizardQueries().getByRole("button", { name: "Manual" }));
@@ -722,11 +754,14 @@ describe("AvailabilityCalendarPage", () => {
     await user.type(input, value);
     expect(input).toHaveValue(value);
     expect(wizardQueries().getByRole("button", { name: /Continuar/i })).toBeDisabled();
+    expect(createPendingBookingMock).not.toHaveBeenCalled();
+    expect(createPendingBookingMock).not.toHaveBeenCalled();
     expect(createBookingMock).not.toHaveBeenCalled();
+    expect(submitBookingMock).not.toHaveBeenCalled();
     expect(confirmBookingMock).not.toHaveBeenCalled();
   });
 
-  it("permite corregir un monto inválido a cero y conserva el importe al confirmar", async () => {
+  it("permite corregir un monto inválido a cero y conserva el importe al crear Pendiente", async () => {
     const user = await goToRateStep(); await user.click(wizardQueries().getByRole("button", { name: "Manual" }));
     const input = wizardQueries().getByLabelText("Precio final");
     await user.type(wizardQueries().getByLabelText("Motivo del precio manual"), "Acuerdo directo");
@@ -736,17 +771,23 @@ describe("AvailabilityCalendarPage", () => {
     await user.clear(input); await user.type(input, "0");
     expect(wizardQueries().getByRole("button", { name: /Continuar/i })).toBeEnabled();
     await user.click(wizardQueries().getByRole("button", { name: /Continuar/i }));
-    await user.click(wizardQueries().getByRole("button", { name: /Confirmar reserva/i }));
-    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 0, overrideReason: "Acuerdo directo" }] } })));
+    await user.click(wizardQueries().getByRole("button", { name: /Crear reserva/i }));
+    await waitFor(() => expect(createPendingBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 0, overrideReason: "Acuerdo directo" }] }) })));
   });
 
-  it("abre la misma reserva pendiente si el backend rechaza el precio al confirmar", async () => {
+  it("conserva la revisión y muestra el rechazo sin crear una reserva incompleta", async () => {
     useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
-    confirmBookingMock.mockRejectedValueOnce(new Error("Alojamiento no disponible"));
+    createPendingBookingMock.mockRejectedValueOnce(new Error("Alojamiento no disponible"));
     const user = await goToRateStep(); await user.click(wizardQueries().getByRole("button", { name: "Manual" })); fireEvent.change(wizardQueries().getByLabelText("Precio final"), { target: { value: "350000" } }); fireEvent.change(wizardQueries().getByLabelText("Motivo del precio manual"), { target: { value: "Acuerdo" } });
-    await user.click(wizardQueries().getByRole("button", { name: /Continuar/i })); await user.click(wizardQueries().getByRole("button", { name: /Confirmar reserva/i }));
-    await waitFor(() => expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/app/bookings/booking-1/confirm Alojamiento no disponible"));
-    expect(createBookingMock).toHaveBeenCalledOnce(); expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await user.click(wizardQueries().getByRole("button", { name: /Continuar/i })); await user.click(wizardQueries().getByRole("button", { name: /Crear reserva/i }));
+    expect(await wizardQueries().findByRole("alert")).toHaveTextContent("Alojamiento no disponible");
+    expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/app/calendar");
+    expect(createPendingBookingMock).toHaveBeenCalledOnce();
+    expect(createPendingBookingMock).not.toHaveBeenCalled();
+    expect(createBookingMock).not.toHaveBeenCalled();
+    expect(submitBookingMock).not.toHaveBeenCalled();
+    expect(confirmBookingMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
   it("conserva la edición manual si aparece un plan", async () => {
     useSelectableRatePlansMock.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, refetch: vi.fn() });
@@ -762,10 +803,10 @@ describe("AvailabilityCalendarPage", () => {
     expect(reason).toHaveFocus();
     expect(screen.queryByRole("button", { name: /Tarifa nueva/i })).not.toBeInTheDocument();
     expect(wizardQueries().queryByLabelText("Plan de referencia")).not.toBeInTheDocument();
-    expect(confirmBookingMock).not.toHaveBeenCalled();
+    expect(createPendingBookingMock).not.toHaveBeenCalled();
     await user.click(wizardQueries().getByRole("button", { name: /Continuar/i }));
-    await user.click(wizardQueries().getByRole("button", { name: /Confirmar reserva/i }));
-    await waitFor(() => expect(confirmBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: { pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 350000, overrideReason: "Acuerdo directo" }] } })));
+    await user.click(wizardQueries().getByRole("button", { name: /Crear reserva/i }));
+    await waitFor(() => expect(createPendingBookingMock).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ pricing: [{ resourceId: "resource-1", pricingMode: "MANUAL_NO_RATE_PLAN", agreedAmountMinor: 350000, overrideReason: "Acuerdo directo" }] }) })));
   });
 
 });

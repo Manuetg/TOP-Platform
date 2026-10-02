@@ -13,7 +13,7 @@ import {
   ReceiptText,
   X,
 } from "lucide-react";
-import { useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
 import { OverlayPanel } from "../../../shared/ui/OverlayPanel";
@@ -21,6 +21,7 @@ import { useAuth } from "../../auth/context/AuthContext";
 import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useBooking } from "../../bookings/queries/use-booking";
 import { getBookingStatusLabel } from "../../bookings/booking-status";
+import { formatPaymentPercentage, paymentPercentageHundredths } from "../../bookings/booking-financial-summary";
 import { useContacts } from "../../contacts/queries/use-contacts";
 import {
   useBookingFinances,
@@ -53,11 +54,8 @@ function localDateTime() {
 }
 
 function percentageOf(part: number, total: number) {
-  if (!Number.isFinite(part) || !Number.isFinite(total) || total <= 0) {
-    return 0;
-  }
-
-  return Math.max(0, Math.round((part / total) * 100));
+  const hundredths = paymentPercentageHundredths(part, total);
+  return hundredths === null ? 0 : Number(hundredths) / 100;
 }
 
 function dateFromYmd(value: string) {
@@ -124,13 +122,31 @@ interface DraftInstallment {
 }
 
 export function BookingPaymentsPage() {
+  const { bookingId = "" } = useParams();
+  const { session } = useAuth();
+  const { activeBusinessId, activeBusiness, activeRole } = useBusinessContext();
+  const contextKey = JSON.stringify([session?.user.id, activeBusinessId, bookingId, activeRole, activeBusiness?.id, activeBusiness?.status]);
+  return <BookingPaymentsContent key={contextKey} expectedContext={contextKey} />;
+}
+
+function BookingPaymentsContent({ expectedContext }: { expectedContext: string }) {
   const navigate = useNavigate();
   const { bookingId = "" } = useParams();
   const { session, status: authStatus } = useAuth();
   const { activeBusinessId, activeBusiness, activeRole, status: businessStatus } = useBusinessContext();
-  const canRecordPayments = authStatus === "authenticated" && businessStatus === "ready" && activeBusinessId.length > 0 && ["OWNER", "ADMIN", "RECEPTIONIST"].includes(activeRole ?? "");
+  const hasPaymentPermission = authStatus === "authenticated" && Boolean(session?.accessToken) && businessStatus === "ready" &&
+    activeBusinessId.length > 0 && activeBusiness?.id === activeBusinessId && activeBusiness.status === "ACTIVE" &&
+    ["OWNER", "ADMIN", "RECEPTIONIST"].includes(activeRole ?? "");
   const modalTrigger = useRef<HTMLElement | null>(null);
   const financialInFlight = useRef(false);
+  const alive = useRef(false);
+  const currentContext = useRef(expectedContext);
+  currentContext.current = expectedContext;
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; };
+  }, []);
+  function isCurrentContext() { return alive.current && currentContext.current === expectedContext; }
 
   const booking = useBooking({
     businessId: activeBusinessId,
@@ -212,6 +228,9 @@ export function BookingPaymentsPage() {
   const outstandingAmountMinor =
     balance.data?.outstandingAmountMinor ?? 0;
   const overdueAmountMinor = balance.data?.overdueAmountMinor ?? 0;
+  const canRecordPayments = hasPaymentPermission && Boolean(booking.data && balance.data) &&
+    ["PENDING", "CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(booking.data?.status ?? "") &&
+    (booking.data?.status !== "PENDING" || booking.data.financialSummary?.totalAmountMinor != null);
 
   const paidPercentage = percentageOf(
     paidAmountMinor,
@@ -242,7 +261,7 @@ export function BookingPaymentsPage() {
         : outstandingAmountMinor;
 
   const draftPaymentAmount = Number(payment.amount);
-  const draftPaymentPercentage = percentageOf(
+  const draftPaymentPercentage = formatPaymentPercentage(
     draftPaymentAmount,
     totalAmountMinor,
   );
@@ -343,7 +362,7 @@ export function BookingPaymentsPage() {
   }
 
   function openPayment(amountOverride?: number) {
-    if (!canRecordPayments || financialInFlight.current || register.isPending || savePlan.isPending) return;
+    if (!isCurrentContext() || !canRecordPayments || financialInFlight.current || register.isPending || savePlan.isPending) return;
     modalTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setFormError(null);
     setShowPaymentDetails(false);
@@ -368,7 +387,7 @@ export function BookingPaymentsPage() {
   }
 
   function openPlan() {
-    if (!canManagePlan || financialInFlight.current || register.isPending || savePlan.isPending) return;
+    if (!isCurrentContext() || !canManagePlan || financialInFlight.current || register.isPending || savePlan.isPending) return;
     modalTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     setFormError(null);
@@ -456,7 +475,7 @@ export function BookingPaymentsPage() {
   }
 
   function openReschedule(index: number) {
-    if (!plan.data || !canManagePlan || financialInFlight.current || register.isPending || savePlan.isPending) return;
+    if (!isCurrentContext() || !plan.data || !canManagePlan || financialInFlight.current || register.isPending || savePlan.isPending) return;
     modalTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     setFormError(null);
@@ -468,7 +487,7 @@ export function BookingPaymentsPage() {
   }
 
   async function submitReschedule() {
-    if (!canManagePlan || financialInFlight.current || savePlan.isPending || register.isPending) return;
+    if (!isCurrentContext() || !canManagePlan || financialInFlight.current || savePlan.isPending || register.isPending) return;
     if (
       !plan.data ||
       rescheduleIndex === null ||
@@ -497,21 +516,23 @@ export function BookingPaymentsPage() {
         replace: true,
       });
 
+      if (!isCurrentContext()) return;
       setShowReschedule(false);
       setRescheduleIndex(null);
     } catch (error) {
+      if (!isCurrentContext()) return;
       setFormError(
         error instanceof Error
           ? error.message
           : "No pudimos cambiar el vencimiento.",
       );
     } finally {
-      financialInFlight.current = false;
+      if (isCurrentContext()) financialInFlight.current = false;
     }
   }
 
   async function submitPayment() {
-    if (!canRecordPayments || financialInFlight.current || register.isPending || savePlan.isPending) return;
+    if (!isCurrentContext() || !canRecordPayments || financialInFlight.current || register.isPending || savePlan.isPending) return;
     const amountMinor = Number(payment.amount);
 
     if (
@@ -566,20 +587,22 @@ export function BookingPaymentsPage() {
         note: payment.note.trim() || undefined,
       });
 
+      if (!isCurrentContext()) return;
       setShowPayment(false);
     } catch (error) {
+      if (!isCurrentContext()) return;
       setFormError(
         error instanceof Error
           ? error.message
           : "No pudimos registrar el pago.",
       );
     } finally {
-      financialInFlight.current = false;
+      if (isCurrentContext()) financialInFlight.current = false;
     }
   }
 
   async function submitPlan() {
-    if (!canManagePlan || financialInFlight.current || savePlan.isPending || register.isPending) return;
+    if (!isCurrentContext() || !canManagePlan || financialInFlight.current || savePlan.isPending || register.isPending) return;
     const parsed = installments.map((item) => ({
       amountMinor: Number(item.amount),
       dueDate: item.dueDate || null,
@@ -622,15 +645,17 @@ export function BookingPaymentsPage() {
         replace: Boolean(plan.data),
       });
 
+      if (!isCurrentContext()) return;
       setShowPlan(false);
     } catch (error) {
+      if (!isCurrentContext()) return;
       setFormError(
         error instanceof Error
           ? error.message
           : "No pudimos guardar el plan.",
       );
     } finally {
-      financialInFlight.current = false;
+      if (isCurrentContext()) financialInFlight.current = false;
     }
   }
 
@@ -786,7 +811,7 @@ export function BookingPaymentsPage() {
         <div className="payments-invoice__progress">
           <div>
             <span>Progreso de pago</span>
-            <strong>{paidPercentage}%</strong>
+            <strong>{formatPaymentPercentage(paidAmountMinor, totalAmountMinor)}</strong>
           </div>
 
           <div
@@ -795,6 +820,7 @@ export function BookingPaymentsPage() {
             aria-label="Porcentaje pagado"
             aria-valuemin={0}
             aria-valuemax={100}
+            aria-valuetext={totalAmountMinor > 0 ? formatPaymentPercentage(paidAmountMinor, totalAmountMinor) : "No aplica: el total es cero"}
             aria-valuenow={Math.min(
               paidPercentage,
               100,
@@ -1137,7 +1163,7 @@ export function BookingPaymentsPage() {
                     )}
                   </strong>
                   <span>
-                    {draftPaymentPercentage}% del
+                    {draftPaymentPercentage} del
                     total
                   </span>
                 </div>

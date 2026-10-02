@@ -1,13 +1,16 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { BookingStatus } from "../../bookings/types/booking.types";
+import type { Booking, BookingStatus } from "../../bookings/types/booking.types";
 import type { MembershipRole } from "../../auth/types/auth.types";
 import type { OutstandingBalance, Payment, PaymentPlan } from "../types/payment.types";
 import { BookingPaymentsPage } from "./BookingPaymentsPage";
 
 const state = vi.hoisted(() => ({
   status: "IN_PROGRESS" as BookingStatus,
+  summary: undefined as Booking["financialSummary"],
+  businessId: "business-1",
+  businessStatus: "ACTIVE",
   role: "OWNER" as MembershipRole | null,
   balance: {} as OutstandingBalance,
   plan: null as PaymentPlan | null,
@@ -22,12 +25,12 @@ vi.mock("react-router-dom", () => ({
   useParams: () => ({ bookingId: "booking-1" }),
 }));
 vi.mock("../../auth/context/AuthContext", () => ({
-  useAuth: () => ({ session: { accessToken: "synthetic-token" }, status: "authenticated" }),
+  useAuth: () => ({ session: { accessToken: "synthetic-token", user: { id: "user-1" } }, status: "authenticated" }),
 }));
 vi.mock("../../business/context/BusinessContext", () => ({
   useBusinessContext: () => ({
     activeBusinessId: "business-1",
-    activeBusiness: { id: "business-1", currency: "PYG", timezone: "America/Asuncion" },
+    activeBusiness: { id: state.businessId, status: state.businessStatus, currency: "PYG", timezone: "America/Asuncion" },
     activeRole: state.role,
     status: "ready",
   }),
@@ -38,6 +41,7 @@ vi.mock("../../bookings/queries/use-booking", () => ({
       id: "booking-1",
       businessId: "business-1",
       status: state.status,
+      financialSummary: state.summary,
       contactId: "contact-1",
       resourceIds: ["resource-1"],
       checkInDate: "2026-09-20",
@@ -86,6 +90,9 @@ describe("estado operativo y financiero de la cuenta de una reserva", () => {
     state.register.mockReset();
     state.savePlan.mockReset();
     state.status = "IN_PROGRESS";
+    state.summary = undefined;
+    state.businessId = "business-1";
+    state.businessStatus = "ACTIVE";
     state.role = "OWNER";
     state.plan = null;
     state.payments = [];
@@ -100,6 +107,58 @@ describe("estado operativo y financiero de la cuenta de una reserva", () => {
       nextDueDate: null,
       nextDueAmountMinor: null,
     };
+  });
+
+  it("permite un pago positivo mínimo de una Pendiente con precio sin habilitar plan ni confirmar en el cliente", async () => {
+    state.status = "PENDING";
+    state.summary = { totalAmountMinor: 400000, paidAmountMinor: 0, currency: "PYG" };
+    Object.assign(state.balance, { paidAmountMinor: 0, outstandingAmountMinor: 400000, financialStatus: "UNPAID" });
+    const user = userEvent.setup();
+    render(<BookingPaymentsPage />);
+    expect(screen.getByText("Pendiente", { selector: ".payments-reservation-meta span" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Crear plan" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Registrar pago" }));
+    const dialog = screen.getByRole("dialog", { name: "Registrar pago" });
+    const amount = within(dialog).getByLabelText("Monto recibido");
+    await user.clear(amount); await user.type(amount, "1");
+    await user.click(within(dialog).getByRole("button", { name: "Registrar pago" }));
+    expect(state.register).toHaveBeenCalledOnce();
+    expect(state.register).toHaveBeenCalledWith(expect.objectContaining({ amountMinor: 1 }));
+    expect(state.status).toBe("PENDING");
+    expect(state.savePlan).not.toHaveBeenCalled();
+  });
+
+  it("no permite registrar pagos de un Borrador o una Pendiente histórica sin precio", () => {
+    state.status = "PENDING";
+    state.summary = { totalAmountMinor: null, paidAmountMinor: 0, currency: null };
+    const { rerender } = render(<BookingPaymentsPage />);
+    expect(screen.queryByRole("button", { name: "Registrar pago" })).not.toBeInTheDocument();
+    state.status = "DRAFT";
+    rerender(<BookingPaymentsPage />);
+    expect(screen.queryByRole("button", { name: "Registrar pago" })).not.toBeInTheDocument();
+    expect(state.register).not.toHaveBeenCalled();
+  });
+
+  it.each(["archivado", "negocio incoherente"])("conserva lectura sin acciones de pago en contexto %s", (mode) => {
+    if (mode === "archivado") state.businessStatus = "ARCHIVED";
+    else state.businessId = "business-other";
+    render(<BookingPaymentsPage />);
+    expect(screen.queryByRole("button", { name: "Registrar pago" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Crear plan" })).not.toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "Porcentaje pagado" })).toBeInTheDocument();
+    expect(state.register).not.toHaveBeenCalled();
+    expect(state.savePlan).not.toHaveBeenCalled();
+  });
+
+  it("un total cero muestra porcentaje no aplicable y no admite un pago cero", () => {
+    state.status = "PENDING";
+    state.summary = { totalAmountMinor: 0, paidAmountMinor: 0, currency: "PYG" };
+    Object.assign(state.balance, { totalAmountMinor: 0, paidAmountMinor: 0, outstandingAmountMinor: 0 });
+    render(<BookingPaymentsPage />);
+    expect(screen.getByText("—")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Registrar pago" })).toBeDisabled();
+    expect(state.status).toBe("PENDING");
+    expect(state.register).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -121,8 +180,9 @@ describe("estado operativo y financiero de la cuenta de una reserva", () => {
     expect(screen.getByText(label).closest(".payments-reservation-meta")).not.toBeNull();
     expect(screen.getByText(account)).toHaveClass(`payments-account-status--${accountClass}`);
     expect(screen.getByRole("progressbar", { name: "Porcentaje pagado" })).toHaveAttribute("aria-valuenow", String(percentage));
-    const register = screen.getByRole("button", { name: "Registrar pago" });
-    if (outstanding === 0) expect(register).toBeDisabled();
+    const register = screen.queryByRole("button", { name: "Registrar pago" });
+    if (status === "NO_SHOW") expect(register).not.toBeInTheDocument();
+    else if (outstanding === 0) expect(register).toBeDisabled();
     else expect(register).toBeEnabled();
     expect(state.register).not.toHaveBeenCalled();
     expect(state.savePlan).not.toHaveBeenCalled();
@@ -179,7 +239,8 @@ describe("estado operativo y financiero de la cuenta de una reserva", () => {
     expect(screen.getByText("Pago registrado")).toBeVisible();
     expect(screen.getByText(/REC-001/)).toBeVisible();
     expect(screen.getByText("Cobro historico")).toBeVisible();
-    expect(screen.getByRole("progressbar", { name: "Porcentaje pagado" })).toHaveAttribute("aria-valuenow", "31");
+    expect(screen.getByRole("progressbar", { name: "Porcentaje pagado" })).toHaveAttribute("aria-valuenow", "31.25");
+    expect(screen.getByText("31,25%")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Volver a la reserva" }));
     expect(state.navigate).toHaveBeenCalledWith("/app/bookings/booking-1");
