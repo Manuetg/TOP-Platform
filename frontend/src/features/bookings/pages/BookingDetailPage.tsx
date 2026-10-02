@@ -31,6 +31,7 @@ import { useBooking } from "../queries/use-booking";
 import { useSubmitBooking } from "../queries/use-submit-booking";
 import { useCancelBooking } from "../queries/use-cancel-booking";
 import { BookingTimeline } from "../components/BookingTimeline";
+import { BookingOperationActions } from "../components/BookingOperationActions";
 import { BookingPayments } from "../../payments/components/BookingPayments";
 import type { BookingStatus } from "../types/booking.types";
 import { getBookingStatusLabel } from "../booking-status";
@@ -370,7 +371,8 @@ export function BookingDetailPage({
         </div>
 
         <div className="booking-detail-header-actions">
-            {([
+          <BookingOperationActions businessId={businessId} booking={booking} disabled={showCancel || submitMutation.isPending || cancelMutation.isPending} />
+          {([
             "CONFIRMED",
             "IN_PROGRESS",
             "COMPLETED",

@@ -26,6 +26,9 @@ const EVENT_LABELS: Record<
   BOOKING_CREATED: "Reserva creada",
   BOOKING_SUBMITTED: "Reserva pasó a pendiente",
   BOOKING_CONFIRMED: "Reserva confirmada",
+  BOOKING_CHECKED_IN: "Ingreso registrado",
+  BOOKING_CHECKED_OUT: "Salida registrada",
+  BOOKING_MARKED_NO_SHOW: "No show registrado",
   BOOKING_CANCELLED: "Reserva cancelada",
 };
 
@@ -45,6 +48,8 @@ function EventIcon({
       );
 
     case "BOOKING_CONFIRMED":
+    case "BOOKING_CHECKED_IN":
+    case "BOOKING_CHECKED_OUT":
       return (
         <CheckCircle2
           size={16}
@@ -53,6 +58,7 @@ function EventIcon({
       );
 
     case "BOOKING_CANCELLED":
+    case "BOOKING_MARKED_NO_SHOW":
       return (
         <XCircle
           size={16}
@@ -90,7 +96,7 @@ function TimelineItem({
       <div className="booking-timeline-item__content">
         <div className="booking-timeline-item__header">
           <strong>
-            {EVENT_LABELS[item.type]}
+            {item.type === "BOOKING_CONFIRMED" && item.details.source === "FREE_CONFIRM" ? "Reserva confirmada sin cobro" : EVENT_LABELS[item.type]}
           </strong>
 
           <time dateTime={item.occurredAt}>

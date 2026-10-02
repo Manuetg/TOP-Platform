@@ -12,6 +12,25 @@ Este delta de navegación se revisa por separado de las nuevas reglas de alta Pe
 
 Validación local del candidato: build y lint exit 0; 107 archivos y 896 pruebas PASS (`npm test -- --maxWorkers=1`); 24 escenarios únicos de navegador PASS en 390 y 1440 px sobre el mismo bundle. La API de navegador usa fixtures y no acredita el backend. Se conservan los intentos fallidos del runner y de tests; las consultas del asistente se acotaron al diálogo sin ampliar timeouts ni reducir comprobaciones. Lint conserva el aviso previo de `formatDashboardMonth` sin uso. Revisión independiente sin bloqueantes; integración, publicación y merge no realizados.
 
+## Operaciones manuales de reservas para el piloto (2026-10-02)
+
+Implementación local en `codex/booking-operations-20261002`, sobre `0dc22cd`, pendiente de integración y controles completos del candidato. No describe un merge o despliegue.
+
+| Acción | Transición y criterio |
+|---|---|
+| Registrar ingreso | CONFIRMED → IN_PROGRESS, decisión manual de OWNER, ADMIN o RECEPTIONIST. |
+| Registrar salida | IN_PROGRESS → COMPLETED, decisión manual de esos mismos roles. |
+| No show | CONFIRMED → NO_SHOW, con confirmación explícita. |
+| Confirmar sin cobro | PENDING → CONFIRMED sólo con precio acordado de total exacto cero y disponibilidad válida; no crea Payment. |
+
+Cada POST exige la versión `expectedUpdatedAt`; estado, versión monotónica y evento se guardan atómicamente. Un 409 requiere volver a consultar y revisar el detalle antes de elegir la acción nuevamente. El motivo es opcional, de 2 a 500 caracteres cuando se proporciona. No se agregan umbrales por deuda o fecha, reembolsos ni cambios automáticos de estado.
+
+Frontend: componentes del design system, teclado y foco, bloqueo de doble envío y aislamiento por usuario, negocio, reserva y rol. Un cambio de contexto aborta la solicitud; las respuestas conocidas invalidan el contexto original. La respuesta del POST conserva el resumen financiero del detalle hasta consultar el GET canónico. VIEWER conserva consulta sin operaciones.
+
+Evidencia local en `validation/booking-operations-20261002` del workspace de revisión: build, lint y arquitectura backend aprobados; 103 pruebas focalizadas de backend (43 unitarias, 13 HTTP y 47 PostgreSQL); 113 pruebas focalizadas de frontend en corridas separadas; build y lint frontend aprobados, con el aviso previo de DashboardHeader. Navegador Edge con API mock: 46 escenarios aprobados en 390 y 1440 píxeles, cero peticiones desconocidas, errores de página o desbordamientos. Migración final probada en PostgreSQL aislado con ocho tipos de evento y rollback limpio. Los intentos fallidos anteriores se conservan como evidencia; no se aumentaron timeouts.
+
+Pendiente de integración con Amendments: confirmar sin cobro debe leer el precio vigente bajo los locks de Booking/Snapshot, no sólo el Snapshot original; probar original cero revisado a positivo y original positivo revisado a cero. La migración admite BOOKING_AMENDED para que el orden de integración no elimine tipos, pero la etiqueta y el flujo de edición corresponden a su propio cambio. Los controles completos y la QA del conjunto siguen pendientes; esta validación focalizada no declara que el piloto esté listo.
+
 ## Refinamientos locales de configuración, estados, Resources y web (2026-10-01)
 
 Base vigente verificada: `develop@835b2a4`, con PR #97, #98 y #100 integradas. Los apartados siguientes conservan sus fechas y evidencias históricas; sus referencias a revisiones o merges pendientes no describen el remoto vigente. El precio manual libre ya está integrado. Se preservan los conteos históricos del MVP y la definición comercial pendiente de FE-SUB-001.

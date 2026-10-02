@@ -47,7 +47,16 @@ export type BookingTimelineEventType =
   | "BOOKING_CREATED"
   | "BOOKING_SUBMITTED"
   | "BOOKING_CONFIRMED"
+  | "BOOKING_CHECKED_IN"
+  | "BOOKING_CHECKED_OUT"
+  | "BOOKING_MARKED_NO_SHOW"
   | "BOOKING_CANCELLED";
+
+export type BookingOperation = "check-in" | "check-out" | "no-show" | "confirm-without-payment";
+export interface BookingOperationInput {
+  expectedUpdatedAt: string;
+  reason?: string;
+}
 
 export interface BookingTimelineItem {
   id: string;
@@ -58,6 +67,7 @@ export interface BookingTimelineItem {
   } | null;
   details: {
     reason?: string;
+    source?: string;
   };
 }
 
