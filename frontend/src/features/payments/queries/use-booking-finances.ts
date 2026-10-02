@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { ApiError } from "../../../shared/api/api-client";
+import { createPaymentIdempotencyKey } from "../../../shared/utils/create-payment-idempotency-key";
 import {
   getOutstandingBalance,
   getPaymentPlan,
@@ -69,7 +70,7 @@ export function useRegisterPayment(options: Options) {
   function request(input: RegisterPaymentInput): Request {
     const fingerprint = JSON.stringify([input.amountMinor, input.method, input.paidAt, input.reference ?? null, input.note ?? null]);
     if (intent.current?.scope !== scope || intent.current.fingerprint !== fingerprint) {
-      intent.current = { scope, fingerprint, key: crypto.randomUUID() };
+      intent.current = { scope, fingerprint, key: createPaymentIdempotencyKey() };
     }
     // Captura el negocio y la reserva del envío; una respuesta tardía no invalida el contexto nuevo.
     return { input, context: { ...options }, key: intent.current.key };
