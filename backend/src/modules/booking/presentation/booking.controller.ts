@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ConflictException, Controller, Get, HttpCode, HttpStatus, NotFoundException, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, Get, HttpCode, HttpStatus, Inject, NotFoundException, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiConflictResponse, ApiCreatedResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { CreateBookingUseCase } from '../application/create-booking.use-case';
 import { GetBookingUseCase } from '../application/get-booking.use-case';
@@ -16,20 +16,28 @@ import { ListBookingTimelineUseCase } from '../application/list-booking-timeline
 import { BookingTimelineQueryDto } from './dto/booking-timeline.query.dto';
 import { BookingTimelineEventResponseDto, BookingTimelineResponseDto } from './dto/booking-timeline.response.dto';
 import { BookingTimelinePathParamsDto } from './dto/booking-timeline.params.dto';
+import type { Booking } from '../domain/booking.entity';
+import { BOOKING_FINANCIAL_SUMMARY_READER, type BookingFinancialSummaryReader, type BookingFinancialSummary } from '../application/booking-financial-summary.reader';
 
 @ApiTags('Bookings')
 @Controller('businesses/:businessId/bookings')
 export class BookingController {
-  constructor(private readonly create: CreateBookingUseCase, private readonly getBooking: GetBookingUseCase, private readonly list: ListBookingsUseCase, private readonly updateBooking: UpdateBookingUseCase, private readonly listTimeline: ListBookingTimelineUseCase) {}
+  constructor(private readonly create: CreateBookingUseCase, private readonly getBooking: GetBookingUseCase, private readonly list: ListBookingsUseCase, private readonly updateBooking: UpdateBookingUseCase, private readonly listTimeline: ListBookingTimelineUseCase, @Inject(BOOKING_FINANCIAL_SUMMARY_READER) private readonly financialSummary?: BookingFinancialSummaryReader) {}
   @Post() @BusinessAccess('businessId', Capability.BOOKING_WRITE) @HttpCode(HttpStatus.CREATED) @ApiOperation({ summary: 'Creates an incomplete draft booking.' }) @ApiCreatedResponse({ type: BookingResponseDto }) @ApiBadRequestResponse() @ApiNotFoundResponse() @ApiConflictResponse()
   async createBooking(@Param('businessId') businessId: string, @Body() body: CreateBookingRequestDto, @Req() request?: AuthenticatedRequest): Promise<BookingResponseDto> { try { return BookingResponseDto.fromDomain(await this.create.execute({ businessId, ...(request?.authenticatedPrincipal ? { actorUserId: request.authenticatedPrincipal.userId } : {}), ...body })); } catch (error: unknown) { throw this.mapError(error); } }
   @Get() @BusinessAccess('businessId', Capability.BOOKING_READ) @ApiOperation({ summary: 'Lists bookings scoped to a business.' }) @ApiOkResponse({ type: BookingResponseDto, isArray: true }) @ApiBadRequestResponse()
-  async listBookings(@Param('businessId') businessId: string, @Query() query: ListBookingsRequestDto): Promise<BookingResponseDto[]> { try { return (await this.list.execute(businessId, query)).map((booking) => BookingResponseDto.fromDomain(booking)); } catch (error: unknown) { throw this.mapError(error); } }
+  async listBookings(@Param('businessId') businessId: string, @Query() query: ListBookingsRequestDto): Promise<BookingResponseDto[]> { try { const bookings = await this.list.execute(businessId, query); const summaries = await this.financialSummary?.read(businessId, bookings.map(({ id }) => id)); return bookings.map((booking) => this.response(booking, summaries?.get(booking.id))); } catch (error: unknown) { throw this.mapError(error); } }
   @Get(':bookingId') @BusinessAccess('businessId', Capability.BOOKING_READ) @ApiOperation({ summary: 'Gets a booking scoped to a business.' }) @ApiOkResponse({ type: BookingResponseDto }) @ApiBadRequestResponse() @ApiNotFoundResponse()
-  async get(@Param('businessId') businessId: string, @Param('bookingId') bookingId: string): Promise<BookingResponseDto> { try { return BookingResponseDto.fromDomain(await this.getBooking.execute(businessId, bookingId)); } catch (error: unknown) { throw this.mapError(error); } }
+  async get(@Param('businessId') businessId: string, @Param('bookingId') bookingId: string): Promise<BookingResponseDto> { try { const booking = await this.getBooking.execute(businessId, bookingId); const summaries = await this.financialSummary?.read(businessId, [booking.id]); return this.response(booking, summaries?.get(booking.id)); } catch (error: unknown) { throw this.mapError(error); } }
   @Get(':bookingId/timeline') @BusinessAccess('businessId', Capability.BOOKING_READ) @ApiOperation({summary:'Lists the functional booking timeline, newest events first.'}) @ApiOkResponse({type:BookingTimelineResponseDto,description:'Timeline page ordered by occurredAt DESC and id DESC.'}) @ApiBadRequestResponse({description:'Invalid path, limit, or opaque cursor.'}) @ApiUnauthorizedResponse({description:'Missing or invalid JWT, or disabled user.'}) @ApiForbiddenResponse({description:'The authenticated user is not a member of the Business.'}) @ApiNotFoundResponse({description:'The Booking does not exist in the requested Business.'})
   async timeline(@Param() params:BookingTimelinePathParamsDto,@Query() query:BookingTimelineQueryDto):Promise<BookingTimelineResponseDto>{try{const page=await this.listTimeline.execute({businessId:params.businessId,bookingId:params.bookingId,cursor:query.cursor,limit:query.limit});return{items:page.items.map((event) => BookingTimelineEventResponseDto.fromDomain(event)),pageInfo:page.pageInfo};}catch(error:unknown){throw this.mapError(error);}}
   @Patch(':bookingId') @BusinessAccess('businessId', Capability.BOOKING_WRITE) @ApiOperation({ summary: 'Updates a draft booking partially.' }) @ApiOkResponse({ type: BookingResponseDto }) @ApiBadRequestResponse() @ApiNotFoundResponse() @ApiConflictResponse()
   async update(@Param('businessId') businessId: string, @Param('bookingId') bookingId: string, @Body() body: UpdateBookingRequestDto): Promise<BookingResponseDto> { try { return BookingResponseDto.fromDomain(await this.updateBooking.execute({ businessId, bookingId, ...body })); } catch (error: unknown) { throw this.mapError(error); } }
+  private response(booking: Booking, projection: BookingFinancialSummary | undefined): BookingResponseDto {
+    const response = BookingResponseDto.fromDomain(booking);
+    if (!projection) return response;
+    const { bookingStatus, ...financialSummary } = projection;
+    return { ...response, ...(bookingStatus ? { status: bookingStatus } : {}), financialSummary };
+  }
   private mapError(error: unknown): Error { if (error instanceof InvalidBookingInputError) return new BadRequestException(error.message); if (error instanceof BookingBusinessNotFoundError || error instanceof BookingContactNotFoundError || error instanceof BookingResourceNotFoundError || error instanceof BookingNotFoundError) return new NotFoundException(error.message); if (error instanceof BookingBusinessUnavailableError || error instanceof BookingResourceUnavailableError || error instanceof BookingNotDraftError) return new ConflictException(error.message); return error instanceof Error ? error : new Error('Error inesperado.'); }
 }

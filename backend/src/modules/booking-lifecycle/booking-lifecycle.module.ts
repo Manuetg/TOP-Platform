@@ -13,6 +13,9 @@ import {
 } from './booking-confirmation.contract';
 import { PrismaBookingConfirmationTransaction } from './infrastructure/prisma-booking-confirmation.transaction';
 import { BookingLifecycleController } from './presentation/booking-lifecycle.controller';
+import { CreatePendingBookingUseCase } from './application/create-pending-booking.use-case';
+import { PENDING_BOOKING_TRANSACTION } from './pending-booking.contract';
+import { PrismaPendingBookingTransaction } from './infrastructure/prisma-pending-booking.transaction';
 
 @Module({
   imports: [
@@ -27,6 +30,9 @@ import { BookingLifecycleController } from './presentation/booking-lifecycle.con
     BookingLifecycleController,
   ],
   providers: [
+    PrismaPendingBookingTransaction,
+    { provide: PENDING_BOOKING_TRANSACTION, useExisting: PrismaPendingBookingTransaction },
+    CreatePendingBookingUseCase,
     PrismaBookingConfirmationTransaction,
     {
       provide:

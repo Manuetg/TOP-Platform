@@ -1169,6 +1169,17 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - Política de archivado.
 - Alcance de duplicar reserva en el MVP.
 
+
+### Alta pendiente desde Calendario y primer cobro — decisión de QA del 2026-10-02
+
+El usuario autorizó conservar los accesos «Crear reserva» y centralizar el alta en Calendario. El contrato aditivo `POST /api/businesses/:businessId/bookings/pending` recibe contacto, exactamente un Resource, fechas completas y `pricing[]` con el mismo contrato de tarifas configuradas, ajustes y precio manual sin referencia. La nueva reserva se persiste directamente como `PENDING`, junto a Resources, PricingSnapshot y eventos de creación/paso a pendiente, sin un `DRAFT` o `CONFIRMED` intermedio. El precio acordado queda disponible para registrar el primer cobro; cambios posteriores de tarifarios no reescriben ese Snapshot.
+
+Un Payment efectivo `RECORDED`, entero seguro estrictamente positivo y sin sobrepago, confirma exclusivamente `PENDING → CONFIRMED`. Cualquier importe positivo alcanza; no existe umbral del 50 %. Registrar, aplicar a cuotas, confirmar y auditar comparte transacción. Booking, Business, Snapshot, contacto, fechas, capacidad vigente y Availability se validan nuevamente con datos canónicos; un conflicto revierte todo el intento. La confirmación por este flujo genera un solo evento con actor autenticado y referencia interna al Payment que la causó. Un reintento de la misma key/fingerprint devuelve el cobro original, incluso después de una cancelación o archivo; no duplica dinero ni eventos.
+
+Se conservan pagos en `CONFIRMED`, `IN_PROGRESS` y `COMPLETED` sin retroceder sus estados. Nuevos pagos no reabren `CANCELLED` o `NO_SHOW` ni aceptan `DRAFT`. El estado operativo sigue separado del financiero. GET de lista y detalle añade `financialSummary: { totalAmountMinor, paidAmountMinor, currency }`: total y moneda nulos identifican una reserva legacy sin Snapshot; pagado suma solo `RECORDED`. Usa importes enteros seguros y consultas por lote, sin saldos persistidos ni N+1. Para reservas con Snapshot, estado e importes se proyectan en la misma lectura consistente.
+
+No se migran ni eliminan Borradores históricos. POST legacy, Submit y Confirm se conservan para compatibilidad, con Submit revalidado atómicamente bajo los mismos bloqueos de recursos. Confirm legacy rechaza una nueva PENDING que ya contiene Snapshot: su confirmación ocurre al registrar cobro. El precio cero continúa válido; en este corte permanece PENDING sin pagos artificiales. La confirmación manual sin cobro, edición de precio/fechas con preservación de cobros y acciones manuales de ingreso/salida/no show fueron autorizadas posteriormente en QA y se implementarán en un delta separado. No se infieren reembolsos, anulaciones ni cambios históricos.
+
 ## Payment
 
 ### 1. Propósito

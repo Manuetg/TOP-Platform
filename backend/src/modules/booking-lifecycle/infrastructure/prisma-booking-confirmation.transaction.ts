@@ -77,6 +77,9 @@ export class PrismaBookingConfirmationTransaction
       return 'NOT_PENDING';
     }
 
+    const existingPrice = await transaction.pricingSnapshot.findUnique({ where: { bookingId: input.bookingId }, select: { id: true } });
+    if (existingPrice) return 'PAYMENT_REQUIRED';
+
     for (const resource of booking.resources) {
       await this.lockResource(
         transaction,

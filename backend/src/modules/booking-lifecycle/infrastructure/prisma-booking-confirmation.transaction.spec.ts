@@ -9,12 +9,13 @@ describe('PrismaBookingConfirmationTransaction', () => {
   const findFirst = jest.fn();
   const updateMany = jest.fn();
   const createSnapshot = jest.fn();
+  const findSnapshot = jest.fn();
   const createTimelineEvent = jest.fn();
   const queryRaw = jest.fn();
   const executeRaw = jest.fn();
   const transaction = {
     booking: { findFirst, updateMany },
-    pricingSnapshot: { create: createSnapshot },
+    pricingSnapshot: { create: createSnapshot, findUnique: findSnapshot },
     bookingTimelineEvent: { create: createTimelineEvent },
     $queryRaw: queryRaw,
     $executeRaw: executeRaw,
@@ -43,6 +44,7 @@ describe('PrismaBookingConfirmationTransaction', () => {
     });
     updateMany.mockResolvedValue({ count: 1 });
     createSnapshot.mockResolvedValue({ id: 'snapshot-id' });
+    findSnapshot.mockResolvedValue(null);
   });
 
   const input = () => ({
@@ -127,5 +129,15 @@ describe('PrismaBookingConfirmationTransaction', () => {
     await expect(repository.confirm(input())).rejects.toThrow(
       'La reserva cambi\u00f3 de estado durante la confirmaci\u00f3n.',
     );
+  });
+
+  it('requires a positive payment instead of legacy confirmation when the pending booking already has agreed pricing', async () => {
+    findSnapshot.mockResolvedValueOnce({ id: 'already-priced' });
+    const confirmation = input();
+    await expect(repository.confirm(confirmation)).resolves.toBe('PAYMENT_REQUIRED');
+    expect(confirmation.prepare).not.toHaveBeenCalled();
+    expect(createSnapshot).not.toHaveBeenCalled();
+    expect(updateMany).not.toHaveBeenCalled();
+    expect(createTimelineEvent).not.toHaveBeenCalled();
   });
 });

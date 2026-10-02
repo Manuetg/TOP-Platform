@@ -98,6 +98,18 @@ Cada regla indica ID, nombre, tipo, estado, dominios afectados, descripción, co
 
 **Pendientes:** confirmación automática tras pago, penalizaciones de cancelación, No Show, cambios en estadía confirmada, early/late check-in, archivado y duplicación. BKG-005 define la información mínima para `PENDING` y agrupa Submit, Confirm y Cancel. `PENDING` exige exactamente un Resource y usa la regla efectiva de Availability; AVL-004 valida el Resource de Booking y conflictos de Booking/Block antes de crear un estado bloqueante y antes de Confirm. Confirm Booking exige Pricing Snapshot y revalidación inmediata de Availability.
 
+
+### Reservas nuevas pendientes y confirmación por primer pago — QA 2026-10-02
+
+Esta decisión explícita del usuario sustituye el estado inicial de BR-039 y el momento de persistencia del precio de BR-022 **para el alta nueva desde Calendario**. No reinterpreta datos o contratos legacy:
+
+- Alta aditiva completa mediante `POST /api/businesses/:businessId/bookings/pending`: negocio activo, contacto y exactamente un Resource tenant-scoped, fechas válidas, capacidad y Availability vigentes, y precio backend conforme a las variantes ya aprobadas. Reserva PENDING, Snapshot y Timeline se escriben o revierten juntos. No se crea Borrador intermedio.
+- Complemento de BR-050: el primer Payment `RECORDED` de importe entero seguro mayor que cero ejecuta PENDING → CONFIRMED. Se acepta cualquier porcentaje positivo; cero, falla y sobrepago no cuentan. Snapshot no se recalcula al cobrar. Availability y capacidad se revalidan bajo bloqueos antes de persistir el cobro y la transición. Un conflicto produce HTTP 409 y rollback de Payment, aplicaciones al plan, estado y Timeline.
+- Complemento de BR-062/063/064: key financiera serializada por Business, Booking tenant-scoped y Snapshot bloqueados, recursos con orden determinista, precio y estado canónicos releídos dentro de la transacción. Reintentos idénticos devuelven el cobro original antes de aplicar restricciones del estado posterior; fingerprint diferente produce conflicto. Solo una transición real añade BOOKING_CONFIRMED.
+- Pagos posteriores conservan CONFIRMED, IN_PROGRESS o COMPLETED; no reabren CANCELLED/NO_SHOW ni retroceden En curso. Estado financiero y porcentaje proceden de cobros efectivos sobre el total acordado; no se incorpora un estado de reserva «Pagado». La lectura de importes exige la misma audiencia vigente de booking.read/payment.read y no expone metadatos internos del pago.
+- Borradores y Pending históricos sin Snapshot conservan POST/Submit/Confirm para compatibilidad. Submit toma Booking y recursos y revalida Availability en la misma transacción; Confirm no permite saltar el cobro de una PENDING nueva que ya tiene precio persistido.
+- Un total acordado cero admite Snapshot y no se divide por cero para el porcentaje. En este delta no existe cobro válido positivo que confirme ese total ni se fabrica Payment cero. La acción manual «Confirmar sin cobro», la edición con preservación de pagos/excedentes y las transiciones manuales de ingreso/salida/no show corresponden al siguiente delta autorizado; no se agregan aquí devoluciones ni reinterpretación de historia.
+
 ## 8. Payment
 
 - **BR-047 — Plan y pagos opcionales.** Tipo: Integridad. Estado: Aprobada. Dominios: Payment, Booking. Descripción: Booking puede existir sin plan o pagos; plan tiene múltiples previstos. Comportamiento: no se exige cobro inicial. Excepciones: ninguna.
