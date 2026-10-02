@@ -155,7 +155,6 @@ function wizardQueries() {
   return within(screen.getByRole("dialog", { name: "Nueva reserva" }));
 }
 
-function wizardQueries() { return within(screen.getByRole("dialog", { name: "Nueva reserva" })); }
 
 async function goToRateStep() {
   const user = await goToContactStep();
@@ -594,7 +593,6 @@ describe("AvailabilityCalendarPage", () => {
       },
     })));
     expect(createPendingBookingMock).toHaveBeenCalledOnce();
-    expect(createPendingBookingMock).not.toHaveBeenCalled();
     expect(createBookingMock).not.toHaveBeenCalled();
     expect(submitBookingMock).not.toHaveBeenCalled();
     expect(confirmBookingMock).not.toHaveBeenCalled();
@@ -755,7 +753,6 @@ describe("AvailabilityCalendarPage", () => {
     expect(input).toHaveValue(value);
     expect(wizardQueries().getByRole("button", { name: /Continuar/i })).toBeDisabled();
     expect(createPendingBookingMock).not.toHaveBeenCalled();
-    expect(createPendingBookingMock).not.toHaveBeenCalled();
     expect(createBookingMock).not.toHaveBeenCalled();
     expect(submitBookingMock).not.toHaveBeenCalled();
     expect(confirmBookingMock).not.toHaveBeenCalled();
@@ -783,7 +780,6 @@ describe("AvailabilityCalendarPage", () => {
     expect(await wizardQueries().findByRole("alert")).toHaveTextContent("Alojamiento no disponible");
     expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/app/calendar");
     expect(createPendingBookingMock).toHaveBeenCalledOnce();
-    expect(createPendingBookingMock).not.toHaveBeenCalled();
     expect(createBookingMock).not.toHaveBeenCalled();
     expect(submitBookingMock).not.toHaveBeenCalled();
     expect(confirmBookingMock).not.toHaveBeenCalled();
