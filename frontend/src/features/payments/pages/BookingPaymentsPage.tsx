@@ -365,7 +365,7 @@ function BookingPaymentsContent({ expectedContext }: { expectedContext: string }
   }
 
   function openPayment(amountOverride?: number) {
-    if (!isCurrentContext() || !canRecordPayments || financialInFlight.current || register.isPending || savePlan.isPending) return;
+    if (!isCurrentContext() || !canRecordPayments || outstandingAmountMinor <= 0 || financialInFlight.current || register.isPending || savePlan.isPending) return;
     modalTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setFormError(null);
     setShowPaymentDetails(false);
@@ -1019,7 +1019,7 @@ function BookingPaymentsContent({ expectedContext }: { expectedContext: string }
                         <button
                           type="button"
                           className="payments-schedule-pay"
-                          disabled={register.isPending || savePlan.isPending}
+                          disabled={outstandingAmountMinor === 0 || register.isPending || savePlan.isPending}
                           onClick={() =>
                             openPayment(item.outstandingAmountMinor)
                           }

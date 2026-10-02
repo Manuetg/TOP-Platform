@@ -164,9 +164,12 @@ describe("estado operativo y financiero de la cuenta de una reserva", () => {
     expect(state.register).not.toHaveBeenCalled();
   });
 
-  it("muestra crédito y conciliación sin modificar las cuotas, el historial ni el estado operativo", () => {
+  it.each([
+    { status: "NO_SHOW", label: "No show" },
+    { status: "CONFIRMED", label: "Confirmada" },
+  ] as const)("muestra crédito y conciliación en $status sin modificar las cuotas, el historial ni el estado operativo", ({ status, label }) => {
     const warning = "El precio vigente y el plan de pagos requieren conciliación. Se conserva el historial sin reasignar cobros ni generar devoluciones.";
-    state.status = "NO_SHOW";
+    state.status = status;
     Object.assign(state.balance, {
       totalAmountMinor: 100000,
       paidAmountMinor: 120000,
@@ -181,7 +184,7 @@ describe("estado operativo y financiero de la cuenta de una reserva", () => {
     state.payments = [{ id: "payment-1", bookingId: "booking-1", amountMinor: 120000, currency: "PYG", method: "CASH", reference: "REC-001", note: "Cobro conservado", paidAt: "2026-09-19T12:00:00Z", createdAt: "2026-09-19T12:00:00Z", recordedByUserId: "user-1", status: "RECORDED" }];
     render(<BookingPaymentsPage />);
 
-    expect(screen.getByText("No show")).toBeVisible();
+    expect(screen.getByText(label)).toBeVisible();
     expect(screen.getByText("Saldo a favor", { selector: ".payments-account-status" })).toBeVisible();
     expect(screen.getByText("₲ 20.000")).toBeVisible();
     expect(screen.getByText("120%")).toBeVisible();
@@ -198,7 +201,19 @@ describe("estado operativo y financiero de la cuenta de una reserva", () => {
     expect(within(schedule).getAllByText("50% del total")).toHaveLength(2);
     expect(screen.getByText("Cobro conservado")).toBeVisible();
     expect(screen.getByText(/REC-001/)).toBeVisible();
-    for (const name of ["Registrar pago", "Pagar", "Crear plan", "Editar plan", "Reprogramar"]) expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
+    if (status === "NO_SHOW") {
+      for (const name of ["Registrar pago", "Pagar", "Crear plan", "Editar plan", "Reprogramar"]) expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
+    } else {
+      expect(screen.getByRole("button", { name: "Registrar pago" })).toBeDisabled();
+      const payButtons = within(schedule).getAllByRole("button", { name: /^Pagar$/ });
+      expect(payButtons).toHaveLength(2);
+      for (const button of payButtons) {
+        expect(button).toBeDisabled();
+        fireEvent.click(button);
+      }
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    }
+    expect(state.status).toBe(status);
     expect(state.register).not.toHaveBeenCalled();
     expect(state.savePlan).not.toHaveBeenCalled();
   });

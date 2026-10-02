@@ -13,6 +13,7 @@ export function operateBooking({ operation, businessId, bookingId, accessToken, 
   return apiRequest<Booking>(`/businesses/${businessId}/bookings/${bookingId}/${operation}`, {
     method: "POST",
     accessToken,
+    skipUnauthorizedRecovery: true,
     signal,
     body: JSON.stringify({ expectedUpdatedAt, ...(reason ? { reason } : {}) }),
   });
