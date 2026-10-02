@@ -8,6 +8,29 @@ El encargo posterior de estados, configuración, perfil, Resources y cookies se 
 
 - **Perfil personal — In Progress local, contrato aditivo autorizado.** Fuente: contrato aditivo cerrado e implementación integrada localmente en ee038ce; evidencia final y revisión en Estado actual. `GET/PATCH /api/users/:id/profile` requieren `SELF` y User `ACTIVE`; PATCH recibe `displayName` recortado de 1 a 120 caracteres, `reason` real ingresado por el usuario y recortado no vacío, y `expectedUpdatedAt` exacto en ISO UTC con milisegundos. DTO público: `id`, `email`, `displayName`, `status`, `updatedAt`; lectura legacy conserva `null`. Transacción con `User FOR UPDATE`, revalidación SELF/ACTIVE, conflicto de versión `409`, escritura limitada de nombre/versión y auditoría atómica conforme a BR-056/BR-063. Migración aditiva `UserDisplayNameAudit` con FK `RESTRICT` a sujeto y actor, sin backfill histórico. Un nombre idéntico con versión vigente no escribe, audita ni avanza versión; una repetición con versión obsoleta devuelve `409` sin duplicar auditoría. Conserva correo, verificación, credenciales, membresías, roles, sesiones y tokens; no amplía IAM-005 ni habilita edición de correo. Criterios de validación: regresiones SELF/ACTIVE, motivo, DTO sin internos, stale version/no-op, rollback y concurrencia en PostgreSQL, migración y preservación de identidad/tokens, además de los gates vigentes. No declara Completed ni aprobación de PR. Detalle en [Domain Bible](03-Domain-Bible.md), [Business Rules](04-Business-Rules.md) y [Architecture](05-Architecture.md).
 
+## Notificaciones operativas — MVP completo, pospiloto (2026-10-02)
+
+- **NOT-001 — Módulo de notificaciones internas.** Estado: **Planned**. Alcance incorporado al MVP completo por solicitud explícita del usuario del 02/10/2026; ejecución **después del piloto**, sin implementación funcional en el candidato del piloto. Contratos, endpoints y desglose de historias backend/frontend: **Pendientes de definición**.
+
+Avisos solicitados:
+
+- Reservas/ingresos del día.
+- Tarifas próximas a finalizar.
+- Bloqueos por terminar.
+- Pagos no procesados.
+
+Antes de implementar se deben definir y aprobar:
+
+- La semántica y fuente de cada aviso, incluidos «ingresos del día» y «pagos no procesados». No se equiparan automáticamente a los KPI existentes: DSH-004 agrupa reservas por creación, DSH-003 suma pagos registrados y Payment registra pagos externos `RECORDED`; no existe un estado de procesamiento online aprobado.
+- Permisos y destinatarios por Negocio, preservando el aislamiento de datos y la autorización backend vigente.
+- Plazos de anticipación, vigencia y criterio de «del día» según la zona horaria del Negocio.
+- Estado leído/no leído, su alcance por usuario y las reglas de deduplicación.
+- Contratos y validaciones de autorización, aislamiento, límites temporales y deduplicación, antes de conectar datos reales o declarar la capacidad completada.
+
+Este registro no autoriza envíos externos ni automatización real; no incorpora correo, WhatsApp, push, jobs ni cambios automáticos en reservas, tarifas, bloqueos o pagos. La corrección visual de la campana y su desplegable pertenece al refinamiento actual del header y no implementa NOT-001 ni presenta avisos ficticios como operativos.
+
+El baseline backend histórico **53/53 Completed** y el recuento frontend histórico se conservan sin modificaciones. NOT-001 se registra por separado como alcance pendiente del MVP completo; esos porcentajes históricos no acreditan que este módulo esté implementado ni que el MVP completo haya finalizado.
+
 ## POST-MVP / PRODUCTION READINESS — separado del MVP
 
 Épico A integrado en develop mediante [PR #96](https://github.com/Manuetg/TOP-Platform/pull/96). Su evidencia y limitaciones quedan como historial en [Estado actual](00-Current-Status.md). Sin modificación de los conteos MVP.
