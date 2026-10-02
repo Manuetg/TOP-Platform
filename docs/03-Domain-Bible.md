@@ -1154,7 +1154,7 @@ No se definen aún las cardinalidades técnicas de base de datos.
 ### 12. Pendientes
 
 - La información mínima para pasar de `DRAFT` a `PENDING` queda definida por BKG-005: Contact responsable, exactamente un Resource y rango completo `[checkInDate, checkOutDate)` válido.
-- Regla definitiva para confirmar automáticamente tras un primer pago.
+- Pendiente histórico resuelto en QA 2026-10-02: cualquier primer Payment RECORDED efectivo de importe positivo confirma PENDING conforme al apartado de alta pendiente y primer cobro inferior; no existe umbral del 50 %.
 - `PENDING` consume la regla efectiva `pendingBlocksAvailability` de Availability; al entrar en `PENDING` se valida disponibilidad con la misma semántica central.
 - Política de cancelación y penalizaciones.
 - Tratamiento de reembolsos.
@@ -1170,7 +1170,9 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - Alcance de duplicar reserva en el MVP.
 
 
-### Alta pendiente desde Calendario y primer cobro — decisión de QA del 2026-10-02
+### Alta pendiente desde Calendario y primer cobro - decisión de QA del 2026-10-02
+
+Este apartado conserva el alcance del corte Pending inicial. Las referencias a Operations/edición como siguiente delta se completan en los apartados posteriores del mismo día; no representan pendientes funcionales de este candidato integrado.
 
 El usuario autorizó conservar los accesos «Crear reserva» y centralizar el alta en Calendario. El contrato aditivo `POST /api/businesses/:businessId/bookings/pending` recibe contacto, exactamente un Resource, fechas completas y `pricing[]` con el mismo contrato de tarifas configuradas, ajustes y precio manual sin referencia. La nueva reserva se persiste directamente como `PENDING`, junto a Resources, PricingSnapshot y eventos de creación/paso a pendiente, sin un `DRAFT` o `CONFIRMED` intermedio. El precio acordado queda disponible para registrar el primer cobro; cambios posteriores de tarifarios no reescriben ese Snapshot.
 
@@ -1180,7 +1182,15 @@ Se conservan pagos en `CONFIRMED`, `IN_PROGRESS` y `COMPLETED` sin retroceder su
 
 No se migran ni eliminan Borradores históricos. POST legacy, Submit y Confirm se conservan para compatibilidad, con Submit revalidado atómicamente bajo los mismos bloqueos de recursos. Confirm legacy rechaza una nueva PENDING que ya contiene Snapshot: su confirmación ocurre al registrar cobro. El precio cero continúa válido; en este corte permanece PENDING sin pagos artificiales. La confirmación manual sin cobro, edición de precio/fechas con preservación de cobros y acciones manuales de ingreso/salida/no show fueron autorizadas posteriormente en QA y se implementarán en un delta separado. No se infieren reembolsos, anulaciones ni cambios históricos.
 
-### Edición con preview y precio vigente — QA 2026-10-02
+### Operaciones manuales y confirmación sin cobro - QA 2026-10-02
+
+El usuario autorizó acciones manuales de OWNER/ADMIN/RECEPTIONIST: Registrar ingreso CONFIRMED → IN_PROGRESS, Registrar salida IN_PROGRESS → COMPLETED y No show CONFIRMED → NO_SHOW. No son estados adicionales de check-in/check-out; las transiciones y sus eventos conservan la historia. No se agregan umbrales de fecha o deuda ni cambios automáticos, reembolsos o reaperturas de estados cerrados.
+
+Confirmar sin cobro permite exclusivamente PENDING → CONFIRMED con total vigente exacto cero, Contact/Resource/fechas/capacidad/Availability válidos. No fabrica Payment ni interpreta outstanding cero como precio cero. El precio vigente es la última PricingRevision o, en su ausencia, el Snapshot original, consultado bajo los locks de Booking/Snapshot. Un original cero revisado a positivo no habilita la acción; un original positivo revisado a cero sí puede habilitarla.
+
+Cada POST exige expectedUpdatedAt canónico. Estado, avance monotónico de versión y Timeline se guardan o revierten juntos; motivo opcional de 2 a 500 caracteres cuando se proporciona. Actor/membresía/Business y estado se comprueban en la operación. Un conflicto requiere nueva consulta y decisión; VIEWER sólo consulta. Frontend no recupera ni repite automáticamente estas mutaciones después de 401 y descarta respuestas de un contexto anterior.
+
+### Edición con preview y precio vigente - QA 2026-10-02
 
 El usuario autorizó editar fechas/tarifa mostrando el precio antes de guardar, conservar los cobros y recalcular pendiente o excedente sin reembolsos automáticos. El alcance mínimo interpretado para este corte es PENDING/CONFIRMED con precio persistido y mismo Resource; no se atribuye al usuario una aprobación específica de todos los estados. DRAFT mantiene su editor legacy. En curso, estados cerrados y cambio de Resource quedan fuera del delta.
 
@@ -1319,7 +1329,7 @@ PaymentApplication materializa la relación entre un Payment y una cuota del pla
 ### 12. Pendientes
 
 - Plantillas iniciales de plan de pagos.
-- Regla definitiva de confirmación automática tras primer pago.
+- Pendiente histórico resuelto en QA 2026-10-02 por la regla de primer Payment RECORDED positivo definida en Booking; no requiere porcentaje mínimo.
 - Política de sobrepago y saldo a favor.
 - Tratamiento exacto de reembolsos.
 - Formatos y límites de comprobantes.

@@ -2,6 +2,23 @@
 
 Última actualización: 2026-10-02
 
+## Integración local de reservas y criterios del conjunto (2026-10-02)
+
+Candidato `codex/reservations-pilot-20261002`, base `0dc22cd`, separado de develop y de los cambios externos LAN/Settings/Business. Los cortes de navegación y operaciones descritos abajo conservan su evidencia histórica; su integración local no equivale a publicación, merge o aprobación del piloto. Estado In Progress, controles completos del conjunto en curso. Fuente del handoff y límites: [Estado actual](00-Current-Status.md).
+
+| Frente | Criterio de aceptación del conjunto |
+|---|---|
+| Calendario | Un solo POST crea PENDING con precio y Snapshot; no pasa por Submit/Confirm legacy ni por estados intermedios persistidos. CTA/URL antigua y Back conservan el contrato de navegación. |
+| Primer cobro | Cualquier primer importe positivo efectivamente RECORDED confirma PENDING. Cero/fallo no confirma; idempotencia no duplica; estados terminales no se reabren. |
+| Listado y finanzas | Estado operativo separado de estado financiero; importe/porcentaje exactos, pago mínimo y saldo restante visibles. |
+| Operaciones manuales | Ingreso, salida y No show en sus estados permitidos; VIEWER sólo consulta. Confirmar sin cobro consulta total vigente cero, aunque el Snapshot original difiera. Versión, contexto, doble envío, foco y 401 sin replay protegidos. |
+| Edición con precio | PENDING/CONFIRMED y mismo Resource; contacto/fechas/tarifa/huéspedes/notas con preview antes de Save. Metadata conserva precio exacto sin PricingRevision; fechas/tarifa revalidan cotización y disponibilidad. Versiones obsoletas recargan y exigen nueva revisión. |
+| Crédito e historia | Snapshot y pagos anteriores preservados; deuda/crédito actualizados, conciliación de plan/cobros visible, sin reembolso ni reaplicación automática. Pagar de cuotas históricas queda deshabilitado y no abre modal con saldo vigente cero; con saldo positivo la conciliación no bloquea el cobro. |
+| Pagos HTTP LAN | Clave CSPRNG con fallback `getRandomValues`, misma intención ante respuesta incierta y cero POST sin CSPRNG. Cobros y altas/reemplazos de plan no recuperan/reproducen automáticamente 401 con otra sesión. El probe sintético y navegador loopback no acreditan una LAN física. |
+| Validación | Build/lint/suite completa sobre el conjunto y navegador en 390/1440 px, hashes antes/después y logs de intentos preservados. PostgreSQL real aislado se distingue de API mock; Node 22/CI y dependencias LAN pendientes. |
+
+Integración Operations/Amendments corregida: backend lee el precio vigente bajo los locks existentes y se agregan regresiones PostgreSQL original cero → revisión positiva (rechaza) y original positivo → revisión cero (confirma sin crear pago). Timeline conserva ocho tipos, incluido BOOKING_AMENDED, y frontend muestra el historial combinado. Mutaciones de operaciones, edición, cobros y altas/reemplazos de plan desactivan recuperación/replay automático de 401 mediante la opción compartida de API; lecturas y consumidores restantes conservan su comportamiento existente.
+
 ## Entrada de creación de reservas desde Calendario (2026-10-02)
 
 Decisión confirmada por Rolo durante QA con Ema: conservar el listado y los botones **Crear reserva** del listado y del detalle de recurso, pero llevarlos a `/app/calendar`. El acceso rápido del Dashboard usa el mismo destino. Se retira la pantalla independiente de creación; `/app/bookings/new` conserva compatibilidad mediante redirección `replace` dentro de la protección de sesión y negocio, para que Back vuelva al origen sin bucles.
@@ -29,7 +46,7 @@ Frontend: componentes del design system, teclado y foco, bloqueo de doble envío
 
 Evidencia local en `validation/booking-operations-20261002` del workspace de revisión: build, lint y arquitectura backend aprobados; 103 pruebas focalizadas de backend (43 unitarias, 13 HTTP y 47 PostgreSQL); 113 pruebas focalizadas de frontend en corridas separadas; build y lint frontend aprobados, con el aviso previo de DashboardHeader. Navegador Edge con API mock: 46 escenarios aprobados en 390 y 1440 píxeles, cero peticiones desconocidas, errores de página o desbordamientos. Migración final probada en PostgreSQL aislado con ocho tipos de evento y rollback limpio. Los intentos fallidos anteriores se conservan como evidencia; no se aumentaron timeouts.
 
-Pendiente de integración con Amendments: confirmar sin cobro debe leer el precio vigente bajo los locks de Booking/Snapshot, no sólo el Snapshot original; probar original cero revisado a positivo y original positivo revisado a cero. La migración admite BOOKING_AMENDED para que el orden de integración no elimine tipos, pero la etiqueta y el flujo de edición corresponden a su propio cambio. Los controles completos y la QA del conjunto siguen pendientes; esta validación focalizada no declara que el piloto esté listo.
+Pendiente histórico de este corte resuelto en el candidato integrado: confirmar sin cobro lee el precio vigente bajo los locks de Booking/Snapshot, con regresiones original cero revisado a positivo y original positivo revisado a cero. La migración, etiquetas y flujo integrado conservan BOOKING_AMENDED. Los controles completos y la QA del conjunto siguen en curso; esta validación focalizada no declara que el piloto esté listo.
 
 ## Refinamientos locales de configuración, estados, Resources y web (2026-10-01)
 

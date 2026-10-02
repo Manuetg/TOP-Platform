@@ -96,10 +96,12 @@ Cada regla indica ID, nombre, tipo, estado, dominios afectados, descripción, co
 - **BR-045 — Transiciones válidas.** Tipo: Integridad. Estado: Aprobada. Dominios: Booking. Descripción: Borrador→Pendiente/Cancelada; Pendiente→Confirmada/Cancelada; Confirmada→En curso/Cancelada/No Show; En curso→Finalizada. Comportamiento: solo se permiten estas transiciones. Excepciones: ninguna.
 - **BR-046 — Transiciones inválidas.** Tipo: Integridad. Estado: Aprobada. Dominios: Booking. Descripción: Finalizada no vuelve, Cancelada no confirma, No Show no entra en curso y En curso no vuelve a Pendiente. Comportamiento: se rechazan. Excepciones: ninguna.
 
-**Pendientes:** confirmación automática tras pago, penalizaciones de cancelación, No Show, cambios en estadía confirmada, early/late check-in, archivado y duplicación. BKG-005 define la información mínima para `PENDING` y agrupa Submit, Confirm y Cancel. `PENDING` exige exactamente un Resource y usa la regla efectiva de Availability; AVL-004 valida el Resource de Booking y conflictos de Booking/Block antes de crear un estado bloqueante y antes de Confirm. Confirm Booking exige Pricing Snapshot y revalidación inmediata de Availability.
+**Pendientes históricos y estado al 2026-10-02:** confirmación por primer pago positivo, No show manual y edición de fechas/tarifa PENDING/CONFIRMED quedan definidos en los apartados QA inferiores. Siguen pendientes penalizaciones de cancelación, reglas de modificación En curso, early/late check-in, archivado y duplicación. BKG-005 define la información mínima para `PENDING` y conserva Submit, Confirm y Cancel legacy. `PENDING` exige exactamente un Resource y usa la regla efectiva de Availability; AVL-004 valida el Resource de Booking y conflictos de Booking/Block antes de crear un estado bloqueante y antes de Confirm. Confirm Booking exige precio acordado y revalidación inmediata de Availability.
 
 
-### Reservas nuevas pendientes y confirmación por primer pago — QA 2026-10-02
+### Reservas nuevas pendientes y confirmación por primer pago - QA 2026-10-02
+
+El alcance de este apartado corresponde al corte Pending inicial. Operations y edición, entonces descritos como siguiente delta, se completan en los apartados posteriores de este mismo día.
 
 Esta decisión explícita del usuario sustituye el estado inicial de BR-039 y el momento de persistencia del precio de BR-022 **para el alta nueva desde Calendario**. No reinterpreta datos o contratos legacy:
 
@@ -110,7 +112,13 @@ Esta decisión explícita del usuario sustituye el estado inicial de BR-039 y el
 - Borradores y Pending históricos sin Snapshot conservan POST/Submit/Confirm para compatibilidad. Submit toma Booking y recursos y revalida Availability en la misma transacción; Confirm no permite saltar el cobro de una PENDING nueva que ya tiene precio persistido.
 - Un total acordado cero admite Snapshot y no se divide por cero para el porcentaje. En este delta no existe cobro válido positivo que confirme ese total ni se fabrica Payment cero. La acción manual «Confirmar sin cobro», la edición con preservación de pagos/excedentes y las transiciones manuales de ingreso/salida/no show corresponden al siguiente delta autorizado; no se agregan aquí devoluciones ni reinterpretación de historia.
 
-### Edición autorizada y revisiones de precio — QA 2026-10-02
+### Operaciones manuales y precio cero vigente - QA 2026-10-02
+
+Complemento aprobado de BR-040/042/043/045/046/062/063: OWNER, ADMIN y RECEPTIONIST registran manualmente ingreso CONFIRMED → IN_PROGRESS, salida IN_PROGRESS → COMPLETED y No show CONFIRMED → NO_SHOW. No se agregan estados persistidos de check-in/check-out, umbrales de fecha/deuda ni reembolsos. VIEWER consulta sin esas operaciones.
+
+Confirmar sin cobro realiza PENDING → CONFIRMED únicamente con total vigente exacto cero y revalidación de Contact, Resource, fechas, capacidad y Availability. Precio vigente = última PricingRevision o Snapshot original; se lee bajo locks de Booking/Snapshot y no se usa saldo pendiente como sustituto del total. No se crea Payment cero. Versionado monotónico, estado y evento son atómicos; se exige expectedUpdatedAt exacto y se admite motivo opcional de 2 a 500 caracteres si se proporciona. Estado/actor/membresía/Business se vuelven a validar. Conflicto obliga a consultar/revisar; frontend no recupera ni repite una mutación después de 401.
+
+### Edición autorizada y revisiones de precio - QA 2026-10-02
 
 Complemento de BR-022/040/050/056/057/081/082 para el pedido explícito de editar fechas/tarifa con preview conservando los cobros:
 

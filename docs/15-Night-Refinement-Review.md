@@ -938,6 +938,8 @@ Fuentes principales: frontend/src/features/profile/components/PersonalProfile.ts
 
 ### Reservas: siete estados, filtros, acciones y rutas directas
 
+**Guía histórica del corte 2026-10-01.** La tabla inferior describe sus fixtures legacy sin Snapshot. Desde el candidato local del 2026-10-02, una PENDING nueva con precio se confirma con el primer cobro positivo o, si el total vigente es cero, mediante Confirmar sin cobro. `/confirm` se conserva para Pending legacy sin precio; no es la guía de operación de todas las PENDING. La navegación de alta directa, edición y acciones manuales vigentes están en [Estado actual](00-Current-Status.md), [Domain Bible](03-Domain-Bible.md) y [Frontend Backlog](14-Frontend-Backlog.md). La evidencia histórica de esta tabla no valida el candidato posterior.
+
 | Código persistido | Etiqueta visible |
 | --- | --- |
 | DRAFT | Borrador |
