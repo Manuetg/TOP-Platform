@@ -4,9 +4,9 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { createReadStream } from 'node:fs';
-import { cp, mkdir, mkdtemp, open, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, open, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as zlib from 'node:zlib';
 
@@ -17,7 +17,8 @@ const network = `top-production-smoke-${id}`;
 const database = `top-production-db-${id}`;
 const application = `top-production-api-${id}`;
 const localApplication = `top-development-api-${id}`;
-const temporary = await mkdtemp(join(tmpdir(), 'top-production-packaging-'));
+const temporaryRoot = await realpath(tmpdir());
+const temporary = await mkdtemp(join(temporaryRoot, 'top-production-packaging-'));
 const context = join(temporary, 'context');
 const sentinel = `TOP_SYNTHETIC_PRIVATE_${id}`;
 const fixtures = [
@@ -29,9 +30,18 @@ const fixtures = [
   'nested/private.jks', 'nested/private.keystore',
 ];
 const cleanup = [];
+const ownerLabel = 'com.top.packaging.smoke';
+let smokeFailure;
 
 function docker(args, { allowFailure = false, inherit = false } = {}) {
-  const result = spawnSync('docker', args, {
+  const argumentsToRun = [...args];
+  if (args[0] === 'run') {
+    argumentsToRun.splice(1, 0, '--pull=never', '--label', ownerLabel + '=' + id);
+    if (!args.some((arg) => arg === '--network' || arg.startsWith('--network='))) {
+      argumentsToRun.splice(1, 0, '--network=none');
+    }
+  }
+  const result = spawnSync('docker', argumentsToRun, {
     encoding: 'utf8', stdio: inherit ? 'inherit' : 'pipe', maxBuffer: 32 * 1024 * 1024,
   });
   if (result.error) throw result.error;
@@ -39,6 +49,39 @@ function docker(args, { allowFailure = false, inherit = false } = {}) {
     throw new Error(`Docker ${args[0]} falló (${result.status}): ${result.stderr ?? ''}`);
   }
   return { status: result.status, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
+}
+
+function missingResource(result, name) {
+  if (result.status === 0) return false;
+  const output = (result.stdout + result.stderr).toLowerCase();
+  return ['no such container: ', 'no such network: ', 'no such object: ']
+    .some((prefix) => output.includes(prefix + name.toLowerCase())) ||
+    output.includes('network ' + name.toLowerCase() + ' not found');
+}
+
+function removeOwnedResource(args) {
+  const kind = args[0] === 'network' ? 'network' : 'container';
+  const name = args.at(-1);
+  const inspectArgs = [kind, 'inspect', '--format', '{{json .}}', name];
+  const before = docker(inspectArgs, { allowFailure: true });
+  if (missingResource(before, name)) return;
+  assert.equal(before.status, 0, 'No se pudo inspeccionar el recurso propio antes de retirarlo: ' + name);
+  const resource = JSON.parse(before.stdout);
+  const labels = kind === 'network' ? resource.Labels : resource.Config.Labels;
+  assert.equal(labels?.[ownerLabel], id, 'Se conserva un recurso cuya pertenencia a este smoke no está probada: ' + name);
+  const removed = docker(args, { allowFailure: true });
+  assert.equal(removed.status, 0, 'No se pudo retirar el recurso propio: ' + name);
+  assert.ok(missingResource(docker(inspectArgs, { allowFailure: true }), name), 'No se confirmó la retirada del recurso propio: ' + name);
+}
+
+async function removeTemporaryContext() {
+  const absoluteTemporary = await realpath(temporary);
+  const pathWithinRoot = relative(temporaryRoot, absoluteTemporary);
+  assert.equal(absoluteTemporary, resolve(temporary), 'El contexto temporal cambió de destino.');
+  assert.ok(pathWithinRoot && !isAbsolute(pathWithinRoot) && !pathWithinRoot.split(/[\\/]/).includes('..'));
+  assert.equal(dirname(absoluteTemporary), temporaryRoot, 'El contexto debe seguir directamente dentro del directorio temporal.');
+  assert.ok(basename(absoluteTemporary).startsWith('top-production-packaging-'));
+  await rm(absoluteTemporary, { recursive: true, force: false });
 }
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -121,7 +164,7 @@ try {
     await writeFile(path, sentinel);
   }
   console.log('Construyendo imagen con fixtures sensibles sintéticas en un contexto temporal.');
-  docker(['build', '--tag', image, context], { inherit: true });
+  docker(['build', '--pull=false', '--tag', image, context], { inherit: true });
   const configuredEnvironment = JSON.parse(docker(['image', 'inspect', image,
     '--format', '{{json .Config.Env}}']).stdout);
   assert.ok(configuredEnvironment.includes('NODE_ENV=production'));
@@ -133,6 +176,41 @@ try {
   await assertLayersExcludeSentinel(savedImage);
   await rm(savedImage);
   console.log('PASS imagen: NODE_ENV=production en configuración y runtime; fixtures ausentes del filesystem y de las capas.');
+
+  const runtimeInventory = [
+    "const assert = require('node:assert/strict');",
+    "const fs = require('node:fs');",
+    "const path = require('node:path');",
+    "for (const entry of ['src', 'test', 'dist/test', 'prisma/seed.ts']) assert.equal(fs.existsSync(entry), false, entry);",
+    "function inspectDist(directory) { for (const entry of fs.readdirSync(directory, { withFileTypes: true })) { const file = path.join(directory, entry.name); if (entry.isDirectory()) inspectDist(file); else assert.equal(/\\.spec\\./.test(entry.name), false, file); } }",
+    "inspectDist('dist');",
+    "const development = ['jest', '@jest/core', '@nestjs/cli', '@nestjs/schematics', '@nestjs/testing', 'typescript', 'ts-node', 'ts-jest', '@types/multer', '@types/nodemailer', '@types/jest', '@types/supertest', '@cucumber/cucumber', '@stryker-mutator/core', '@stryker-mutator/jest-runner', 'dependency-cruiser', 'eslint', 'typescript-eslint', 'supertest'];",
+    "for (const dependency of development) { assert.equal(fs.existsSync(path.join('node_modules', dependency)), false, dependency); assert.throws(() => require.resolve(dependency + '/package.json'), { code: 'MODULE_NOT_FOUND' }, dependency); }",
+    // Nest JWT incorpora tipos de Node mediante su dependencia productiva @types/jsonwebtoken.
+    "const project = require('./package.json'); assert.ok(Object.hasOwn(project.dependencies, '@nestjs/jwt')); assert.equal(Object.hasOwn(project.dependencies, '@types/node'), false);",
+    "const { createRequire } = require('node:module'); const jwtPackage = require.resolve('@nestjs/jwt/package.json');",
+    "assert.ok(Object.hasOwn(require(jwtPackage).dependencies, '@types/jsonwebtoken'));",
+    "const tokenTypesPackage = createRequire(jwtPackage).resolve('@types/jsonwebtoken/package.json');",
+    "assert.ok(Object.hasOwn(require(tokenTypesPackage).dependencies, '@types/node'));",
+    "assert.equal(createRequire(tokenTypesPackage).resolve('@types/node/package.json'), require.resolve('@types/node/package.json'));",
+    "assert.equal(require('prisma/package.json').version, '6.19.3');",
+    "assert.equal(require('@prisma/client/package.json').version, '6.19.3');",
+    "assert.ok(fs.existsSync('node_modules/.bin/prisma'));",
+    "assert.ok(fs.existsSync('prisma/schema.prisma'));",
+    "assert.ok(fs.existsSync('prisma/migrations'));",
+    "require('./dist/src/config/prisma-environment.js').validateProductionPrismaArtifact();",
+    "const { PrismaClient } = require('@prisma/client'); assert.equal(typeof PrismaClient, 'function');",
+    "const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');",
+    "const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');",
+    "const client = new S3Client({ region: 'us-east-1', endpoint: 'https://storage.invalid', forcePathStyle: true, credentials: { accessKeyId: 'smoke-access-key', secretAccessKey: 'smoke-storage-key' } });",
+    "const { Argon2PasswordHasher } = require('./dist/src/modules/identity/infrastructure/argon2-password-hasher.js');",
+    "const hasher = new Argon2PasswordHasher();",
+    "(async () => { try { const password = 'synthetic-runtime-password'; const hash = await hasher.hash(password); assert.match(hash, /^\\$argon2id\\$/); assert.equal(await hasher.verify(hash, password), true); assert.equal(await hasher.verify(hash, 'synthetic-wrong-password'), false); const signed = new URL(await getSignedUrl(client, new GetObjectCommand({ Bucket: 'top-resource-images', Key: 'synthetic.jpg' }), { expiresIn: 60 })); assert.equal(signed.hostname, 'storage.invalid'); assert.match(signed.searchParams.get('X-Amz-Signature'), /^[a-f0-9]{64}$/); console.log('PASS runtime: sin fuentes, pruebas compiladas ni herramientas de desarrollo; Prisma 6.19.3/guard, firma AWS local y Argon2 nativo disponibles.'); } finally { client.destroy(); } })().catch(error => { console.error(error); process.exitCode = 1; });",
+  ].join('\n');
+  docker(['run', '--rm', image, 'node', '-e', runtimeInventory], { inherit: true });
+  docker(['run', '--rm', image, './node_modules/.bin/prisma', '--version'], { inherit: true });
+  docker(['run', '--rm', '--env', 'DATABASE_URL=postgresql://synthetic:synthetic@127.0.0.1/top_packaging_test',
+    image, './node_modules/.bin/prisma', 'validate'], { inherit: true });
 
   const invalid = docker(['run', '--rm', image], { allowFailure: true });
   assert.notEqual(invalid.status, 0, 'Configuración ausente debe terminar el arranque.');
@@ -148,13 +226,14 @@ try {
   assert.doesNotMatch(runtimeDotenv.stdout + runtimeDotenv.stderr, /Nest application successfully started/);
   console.log('PASS runtime: producción ignora .env presente físicamente y errores/logs excluyen su marker sensible.');
 
-  docker(['network', 'create', network]);
   cleanup.push(['network', 'rm', network]);
+  docker(['network', 'create', '--internal', '--label', ownerLabel + '=' + id, network]);
+  assert.equal(docker(['network', 'inspect', '--format', '{{json .Internal}}', network]).stdout.trim(), 'true');
+  cleanup.push(['rm', '--force', database]);
   docker(['run', '--detach', '--name', database, '--network', network,
     '--tmpfs', '/var/lib/postgresql/data', '--env', 'POSTGRES_USER=top',
     '--env', 'POSTGRES_PASSWORD=smoke-postgres-password', '--env', 'POSTGRES_DB=top_test',
     'postgres:16-alpine']);
-  cleanup.push(['rm', '--force', database]);
   await waitUntil(() => docker(['exec', database, 'pg_isready', '-h', '127.0.0.1', '-U', 'top', '-d', 'top_test'],
     { allowFailure: true }).status === 0, 'PostgreSQL desechable');
   const env = {
@@ -177,10 +256,20 @@ try {
   assert.doesNotMatch(invalidUrl.stdout + invalidUrl.stderr, /Nest application successfully started/);
   console.log('PASS logs de arranque: URL inválida con credencial sintética no expone su valor.');
   docker(['run', '--rm', '--network', network, ...environmentArguments,
-    image, 'npx', 'prisma', 'migrate', 'deploy']);
+    image, './node_modules/.bin/prisma', 'migrate', 'deploy']);
+  const prismaQuery = [
+    "const assert = require('node:assert/strict');",
+    "const fs = require('node:fs');",
+    "require('./dist/src/config/prisma-environment.js').validateProductionPrismaArtifact();",
+    "const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient();",
+    "const expected = fs.readdirSync('prisma/migrations', { withFileTypes: true }).filter(entry => entry.isDirectory()).length;",
+    "(async () => { try { const applied = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int AS count FROM \"_prisma_migrations\" WHERE finished_at IS NOT NULL'); assert.equal(applied[0].count, expected); assert.equal(await prisma.user.count(), 0); assert.equal(await prisma.business.count(), 0); console.log('PASS cliente Prisma nativo: consulta PostgreSQL y ' + expected + ' migraciones aplicadas; sin seed ni cuentas.'); } finally { await prisma.$disconnect(); } })().catch(error => { console.error(error); process.exitCode = 1; });",
+  ].join('\n');
+  docker(['run', '--rm', '--network', network, ...environmentArguments,
+    image, 'node', '-e', prismaQuery], { inherit: true });
+  cleanup.push(['rm', '--force', application]);
   docker(['run', '--detach', '--name', application, '--network', network,
     ...environmentArguments, image]);
-  cleanup.push(['rm', '--force', application]);
   await waitUntil(() => httpProbe('/api/health')?.status === 200, 'API de producción');
   assert.equal(httpProbe('/api/health').status, 200);
   const allowed = httpProbe('/api/health', { Origin: env.CORS_ORIGIN });
@@ -197,12 +286,15 @@ try {
   assert.equal(preflight.cors, env.CORS_ORIGIN);
   assert.equal(httpProbe('/api/businesses').status, 401);
   assert.equal(httpProbe('/api/businesses', { Origin: env.CORS_ORIGIN }).status, 401);
+  for (const path of ['/api/docs', '/api/docs-json', '/api/docs-yaml']) {
+    assert.equal(httpProbe(path).status, 404, 'Swagger de producción debe seguir ausente: ' + path);
+  }
   console.log('PASS smoke: HTTP health, CORS permitido/ajeno/preflight/sin Origin y guards; sin enviar correo ni conectar a storage.');
+  cleanup.push(['rm', '--force', localApplication]);
   docker(['run', '--detach', '--name', localApplication, '--network', network,
     '--env', 'NODE_ENV=development', '--env', `DATABASE_URL=${env.DATABASE_URL}`,
     '--env', 'JWT_ACCESS_SECRET=top-local-development-secret-change-in-production',
     '--env', 'EMAIL_DELIVERY_MODE=console', '--env', 'CORS_ORIGIN=http://localhost:3001', image]);
-  cleanup.push(['rm', '--force', localApplication]);
   await waitUntil(() => httpProbe('/api/health', {}, 'GET', localApplication)?.status === 200, 'API local de desarrollo');
   assert.equal(httpProbe('/api/docs', {}, 'GET', localApplication).status, 200);
   assert.equal(httpProbe('/api/docs-json', {}, 'GET', localApplication).status, 200);
@@ -210,7 +302,20 @@ try {
   assert.equal(httpProbe('/api/health', { Origin: 'http://localhost:3001' }, 'GET', localApplication).cors, 'http://localhost:3001');
   console.log('PASS desarrollo real: console sin SMTP configurado, storage en memoria permitido, Swagger UI/JSON/YAML y origen HTTP local.');
   console.log(`PASS PostgreSQL efímero top_test; sin puertos publicados ni volúmenes persistentes. Imagen conservada: ${image}`);
+} catch (error) {
+  smokeFailure = error;
 } finally {
-  for (const args of cleanup.reverse()) docker(args, { allowFailure: true });
-  await rm(temporary, { recursive: true, force: true });
+  const cleanupFailures = [];
+  for (const args of cleanup.reverse()) {
+    try { removeOwnedResource(args); }
+    catch (error) { cleanupFailures.push(error); }
+  }
+  try { await removeTemporaryContext(); }
+  catch (error) { cleanupFailures.push(error); }
+  if (cleanupFailures.length) {
+    throw new AggregateError([...(smokeFailure ? [smokeFailure] : []), ...cleanupFailures],
+      'El smoke no confirmó la limpieza completa de sus recursos; revisar los errores de pertenencia/retirada.');
+  }
+  if (smokeFailure) throw smokeFailure;
+  console.log('PASS limpieza: contenedores/red propios inspeccionados y retirados; contexto temporal validado y eliminado.');
 }

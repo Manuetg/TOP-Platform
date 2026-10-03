@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Gauge,
   ImagePlus,
+  ImageOff,
   Hotel,
   LayoutDashboard,
   Pencil,
@@ -18,6 +19,7 @@ import type { ChangeEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
+import { Badge } from "../../../shared/ui/Badge";
 import { OverlayPanel } from "../../../shared/ui/OverlayPanel";
 import { TopBreadcrumb } from "../../../shared/ui/TopBreadcrumb";
 import { useAuth } from "../../auth/context/AuthContext";
@@ -56,14 +58,25 @@ function getResourceStatusLabel(status: ResourceStatus) {
 }
 
 export function ResourceDetailPage() {
-  const { resourceId } = useParams(); const { activeBusinessId } = useBusinessContext(); const { session } = useAuth();
-  return <ResourceDetailContent key={`${session?.user.id}:${activeBusinessId}:${resourceId}`} />;
+  const { resourceId } = useParams();
+  const { activeBusinessId, activeRole } = useBusinessContext();
+  const { session } = useAuth();
+  return <ResourceDetailContent key={`${session?.user.id}:${activeBusinessId}:${resourceId}:${activeRole}`} />;
 }
 function ResourceDetailContent() {
   const queryClient = useQueryClient();
   const { resourceId = "" } = useParams();
   const { session } = useAuth();
-  const { activeBusiness, activeBusinessId } = useBusinessContext();
+  const { activeBusiness, activeBusinessId, activeRole } = useBusinessContext();
+  const canManageResource = activeRole === "OWNER" || activeRole === "ADMIN";
+  const canOperate = canManageResource || activeRole === "RECEPTIONIST";
+  const mounted = useRef(true);
+  const statusBusy = useRef(false);
+  const uploadBusy = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
 
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [statusActionError, setStatusActionError] = useState<string | null>(
@@ -74,6 +87,7 @@ function ResourceDetailContent() {
   const editTrigger = useRef<HTMLButtonElement>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const editRevision = useRef(0);
   const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
   const deleteOperation = useRef<AbortController | null>(null);
   useEffect(() => () => deleteOperation.current?.abort(), []);
@@ -105,6 +119,8 @@ function ResourceDetailContent() {
   const {
     data: resourceImages = [],
     isLoading: areImagesLoading,
+    isError: imagesHaveError,
+    refetch: refetchImages,
   } = useResourceImages({
     businessId: activeBusinessId,
     resourceId,
@@ -120,7 +136,7 @@ function ResourceDetailContent() {
 
   const currentImage = resourceImages[displayedImageIndex];
   const currentImageFailed = currentImage
-    ? failedImageIds.has(currentImage.id)
+    ? failedImageIds.has(`${currentImage.id}:${currentImage.url}`)
     : false;
 
   function showPreviousImage() {
@@ -154,7 +170,7 @@ function ResourceDetailContent() {
   ) {
     const file = event.target.files?.[0];
 
-    if (!file || !resource) {
+    if (!file || !resource || !canManageResource || resource.status === "ARCHIVED" || uploadBusy.current || areImagesLoading || imagesHaveError) {
       return;
     }
 
@@ -180,6 +196,7 @@ function ResourceDetailContent() {
       return;
     }
 
+    uploadBusy.current = true;
     setIsUploadingImage(true);
 
     try {
@@ -189,6 +206,7 @@ function ResourceDetailContent() {
         file,
         accessToken: session?.accessToken,
       });
+      if (!mounted.current) return;
 
       const imageQueryKey = [
         "resources",
@@ -213,13 +231,15 @@ function ResourceDetailContent() {
         exact: true,
       });
     } catch (uploadError) {
+      if (!mounted.current) return;
       setImageActionError(
         uploadError instanceof Error
           ? uploadError.message
           : "No pudimos subir la imagen.",
       );
     } finally {
-      setIsUploadingImage(false);
+      uploadBusy.current = false;
+      if (mounted.current) setIsUploadingImage(false);
       event.target.value = "";
     }
   }
@@ -229,7 +249,9 @@ function ResourceDetailContent() {
     if (
       !resource ||
       !imageToDelete ||
+      !canManageResource ||
       isManagingImage ||
+      deleteOperation.current !== null ||
       resource.status === "ARCHIVED"
     ) {
       return;
@@ -294,10 +316,11 @@ function ResourceDetailContent() {
   }
 
   async function handleDisableResource() {
-    if (!resource || resource.status !== "ACTIVE") {
+    if (!resource || !canManageResource || resource.status !== "ACTIVE" || statusBusy.current) {
       return;
     }
 
+    statusBusy.current = true;
     setStatusActionError(null);
     setIsUpdatingStatus(true);
 
@@ -307,6 +330,7 @@ function ResourceDetailContent() {
         resourceId: resource.id,
         accessToken: session?.accessToken,
       });
+      if (!mounted.current) return;
 
       queryClient.setQueryData(
         ["resources", activeBusinessId, resource.id],
@@ -318,21 +342,24 @@ function ResourceDetailContent() {
         exact: true,
       });
     } catch (disableResourceError) {
+      if (!mounted.current) return;
       setStatusActionError(
         disableResourceError instanceof Error
           ? disableResourceError.message
           : "No pudimos poner el recurso fuera de servicio.",
       );
     } finally {
-      setIsUpdatingStatus(false);
+      statusBusy.current = false;
+      if (mounted.current) setIsUpdatingStatus(false);
     }
   }
 
   async function handleReactivateResource() {
-    if (!resource || resource.status !== "OUT_OF_SERVICE") {
+    if (!resource || !canManageResource || resource.status !== "OUT_OF_SERVICE" || statusBusy.current) {
       return;
     }
 
+    statusBusy.current = true;
     setStatusActionError(null);
     setIsUpdatingStatus(true);
 
@@ -342,6 +369,7 @@ function ResourceDetailContent() {
         resourceId: resource.id,
         accessToken: session?.accessToken,
       });
+      if (!mounted.current) return;
 
       queryClient.setQueryData(
         ["resources", activeBusinessId, resource.id],
@@ -353,13 +381,15 @@ function ResourceDetailContent() {
         exact: true,
       });
     } catch (reactivateResourceError) {
+      if (!mounted.current) return;
       setStatusActionError(
         reactivateResourceError instanceof Error
           ? reactivateResourceError.message
           : "No pudimos reactivar el recurso.",
       );
     } finally {
-      setIsUpdatingStatus(false);
+      statusBusy.current = false;
+      if (mounted.current) setIsUpdatingStatus(false);
     }
   }
 
@@ -413,7 +443,12 @@ function ResourceDetailContent() {
     );
   }
 
-  const canManageImages = resource.status !== "ARCHIVED";
+  const canManageImages = canManageResource && resource.status !== "ARCHIVED";
+  const renderedEditRevision = editRevision.current;
+  function closeEdit() {
+    editRevision.current += 1;
+    setEditOpen(false);
+  }
 
   return (
     <section
@@ -430,8 +465,14 @@ function ResourceDetailContent() {
 
       <header className="resource-detail-header">
         <div className="resource-detail-title-group">
+          <p className="resource-detail-eyebrow">Detalle del recurso</p>
           <h1 id="resource-detail-title">{resource.name}</h1>
-
+          <div className="resource-detail-status-control">
+            <span>Estado operativo</span>
+            <Badge tone={resource.status === "ACTIVE" ? "success" : resource.status === "OUT_OF_SERVICE" ? "warning" : "neutral"}>
+              {getResourceStatusLabel(resource.status)}
+            </Badge>
+          {canManageResource && resource.status !== "ARCHIVED" ? (
           <button
             type="button"
             role="switch"
@@ -445,7 +486,7 @@ function ResourceDetailContent() {
             }
             className={`resource-detail-status-switch resource-detail-status-switch--${resource.status.toLowerCase()}`}
             disabled={
-              isUpdatingStatus || resource.status === "ARCHIVED"
+              isUpdatingStatus
             }
             onClick={() => {
               if (resource.status === "ACTIVE") {
@@ -457,18 +498,23 @@ function ResourceDetailContent() {
           >
             <span aria-hidden="true" />
           </button>
+          ) : null}
+          {isUpdatingStatus ? <span role="status">Actualizando estado…</span> : null}
+          </div>
         </div>
 
+        {canManageResource && resource.status !== "ARCHIVED" ? (
         <button
           type="button"
           className="resource-detail-edit-button"
           aria-label="Editar recurso"
           ref={editTrigger}
-          onClick={() => setEditOpen(true)}
+          onClick={() => { editRevision.current += 1; setEditOpen(true); }}
         >
           <Pencil size={20} aria-hidden="true" />
           <span>Editar recurso</span>
         </button>
+        ) : null}
       </header>
 
       {statusActionError ? (
@@ -477,8 +523,82 @@ function ResourceDetailContent() {
         </div>
       ) : null}
 
+        <article
+          className="resource-detail-card resource-detail-actions-card"
+          aria-label="Acciones"
+        >
+          <h2>Acciones</h2>
+          <div className="resource-detail-quick-actions">
+            {canOperate && resource.status === "ACTIVE" ? (
+            <Link
+              to="/app/calendar"
+              className="resource-detail-quick-action resource-detail-quick-action--primary"
+            >
+              <CalendarPlus size={16} aria-hidden="true" />
+              <span>Crear reserva</span>
+            </Link>
+            ) : null}
+
+            <Link
+              to="/app/availability"
+              className="resource-detail-quick-action"
+            >
+              <Gauge size={16} aria-hidden="true" />
+              <span>Consultar disponibilidad</span>
+            </Link>
+
+            {canOperate && resource.status !== "ARCHIVED" ? <Link
+              to="/app/blocks/new"
+              className="resource-detail-quick-action"
+            >
+              <Ban size={16} aria-hidden="true" />
+              <span>Crear bloqueo</span>
+            </Link> : null}
+
+            <Link
+              to="/app/payments"
+              className="resource-detail-quick-action"
+            >
+              <WalletCards size={16} aria-hidden="true" />
+              <span>Ver pagos por reserva</span>
+            </Link>
+          </div>
+        </article>
+
       <div className="resource-detail-layout">
+        <article className="resource-detail-card resource-detail-info-card">
+          <h2>Información del recurso</h2>
+          <dl className="resource-detail-info-list">
+            <div>
+              <dt>Código</dt>
+              <dd>{resource.internalCode}</dd>
+            </div>
+            <div>
+              <dt>Capacidad total</dt>
+              <dd>{resource.capacityMinimum}–{resource.capacityMaximum} huéspedes</dd>
+            </div>
+            <div>
+              <dt>Máximo de niños</dt>
+              <dd>{resource.capacityMaximumChildren} dentro de la capacidad total</dd>
+            </div>
+            <div className="resource-detail-info-list__description">
+              <dt>Descripción</dt>
+              <dd>{resource.description?.trim() ? resource.description : "Sin descripción configurada."}</dd>
+            </div>
+          </dl>
+        </article>
+      {activeBusiness ? (
+        <ResourceAvailabilityCalendar
+          businessId={activeBusiness.id}
+          resourceId={resource.id}
+          resourceName={resource.name}
+          timezone={activeBusiness.timezone}
+          accessToken={session?.accessToken}
+        />
+      ) : null}
+
         <article className="resource-detail-card resource-detail-media-card">
+          <h2>Fotos</h2>
           <div className="resource-detail-media">
             {areImagesLoading ? (
               <div
@@ -488,7 +608,27 @@ function ResourceDetailContent() {
                 <Building2 size={32} aria-hidden="true" />
                 <span>Cargando imagen…</span>
               </div>
-            ) : currentImage && !currentImageFailed ? (
+            ) : imagesHaveError ? (
+              <div className="resource-detail-media__placeholder" role="alert">
+                <ImageOff size={32} aria-hidden="true" />
+                <strong>No pudimos cargar las fotos.</strong>
+                <Button type="button" variant="secondary" onClick={() => void refetchImages()}>Reintentar fotos</Button>
+              </div>
+            ) : currentImageFailed ? (
+              <div className="resource-detail-media__placeholder" role="group" aria-label={`Imagen de ${resource.name} no disponible`}>
+                <ImageOff size={32} aria-hidden="true" />
+                <strong>Esta imagen no está disponible.</strong>
+                <span>Puedes recorrer las demás fotos o reintentar.</span>
+                <Button type="button" variant="secondary" onClick={() => {
+                  setFailedImageIds((current) => {
+                    const next = new Set(current);
+                    if (currentImage) next.delete(`${currentImage.id}:${currentImage.url}`);
+                    return next;
+                  });
+                  void refetchImages();
+                }}>Reintentar imagen</Button>
+              </div>
+            ) : currentImage ? (
               <>
                 <img
                   className="resource-detail-media__image"
@@ -497,22 +637,12 @@ function ResourceDetailContent() {
                   onError={() => {
                     setFailedImageIds((current) => {
                       const next = new Set(current);
-                      next.add(currentImage.id);
+                      next.add(`${currentImage.id}:${currentImage.url}`);
                       return next;
                     });
                   }}
                 />
 
-                <button
-                  type="button"
-                  className="resource-detail-icon-button resource-detail-icon-button--overlay resource-detail-icon-button--danger"
-                  aria-label="Eliminar imagen"
-                  disabled={!canManageImages || isManagingImage}
-                  ref={deleteTrigger}
-                  onClick={() => { setImageActionError(null); setDeleteImageId(currentImage?.id ?? null); setDeleteOpen(true); }}
-                >
-                  <Trash2 size={20} aria-hidden="true" />
-                </button>
               </>
             ) : (
               <div
@@ -527,6 +657,15 @@ function ResourceDetailContent() {
                 </div>
               </div>
             )}
+            {currentImage && canManageImages && !areImagesLoading && !imagesHaveError ? <button
+              type="button"
+              className="resource-detail-icon-button resource-detail-icon-button--overlay resource-detail-icon-button--danger"
+              aria-label="Eliminar imagen"
+              title="Eliminar imagen"
+              disabled={isManagingImage || isUploadingImage}
+              ref={deleteTrigger}
+              onClick={() => { setImageActionError(null); setDeleteImageId(currentImage.id); setDeleteOpen(true); }}
+            ><Trash2 size={20} aria-hidden="true" /></button> : null}
           </div>
 
           <footer className="resource-detail-media-toolbar">
@@ -534,7 +673,7 @@ function ResourceDetailContent() {
               className="resource-detail-media-count"
               aria-live="polite"
             >
-              {resourceImages.length > 0
+              {areImagesLoading || imagesHaveError ? "" : resourceImages.length > 0
                 ? `${displayedImageIndex + 1} / ${resourceImages.length}`
                 : `0 / ${MAX_RESOURCE_IMAGES}`}
             </span>
@@ -592,8 +731,11 @@ function ResourceDetailContent() {
                 ref={imageInputRef}
                 className="resource-detail-image-input"
                 type="file"
+                tabIndex={-1}
+                aria-hidden="true"
                 accept="image/jpeg,image/png,image/webp"
                 disabled={
+                  areImagesLoading || imagesHaveError ||
                   isUploadingImage ||
                   isManagingImage ||
                   !canManageImages ||
@@ -602,7 +744,7 @@ function ResourceDetailContent() {
                 onChange={(event) => void handleImageChange(event)}
               />
 
-              <button
+              {canManageImages ? <button
                 type="button"
                 className="resource-detail-icon-button"
                 aria-label={
@@ -610,7 +752,9 @@ function ResourceDetailContent() {
                     ? "Subiendo imagen"
                     : "Agregar imagen"
                 }
+                title="Agregar imagen"
                 disabled={
+                  areImagesLoading || imagesHaveError ||
                   isUploadingImage ||
                   isManagingImage ||
                   !canManageImages ||
@@ -619,7 +763,7 @@ function ResourceDetailContent() {
                 onClick={() => imageInputRef.current?.click()}
               >
                 <ImagePlus size={20} aria-hidden="true" />
-              </button>
+              </button> : null}
             </div>
           </footer>
 
@@ -633,105 +777,23 @@ function ResourceDetailContent() {
           ) : null}
         </article>
 
-        <article className="resource-detail-card resource-detail-info-card">
-          <h2>Información</h2>
-
-          <dl className="resource-detail-info-list">
-            <div>
-              <dt>Código</dt>
-              <dd>{resource.internalCode}</dd>
-            </div>
-
-            <div>
-              <dt>Capacidad</dt>
-              <dd>
-                {resource.capacityMinimum}–{resource.capacityMaximum} huéspedes
-                {" · "}
-                {resource.capacityMaximumChildren} niños
-              </dd>
-            </div>
-
-            <div>
-              <dt>Descripción</dt>
-              <dd className="resource-detail-info-description">
-                {resource.description?.trim()
-                  ? resource.description
-                  : "Sin descripción configurada."}
-              </dd>
-            </div>
-
-            <div>
-              <dt>Estado operativo</dt>
-              <dd>
-                <span
-                  className={`resource-detail-status-badge resource-detail-status-badge--${resource.status.toLowerCase()}`}
-                >
-                  {getResourceStatusLabel(resource.status)}
-                </span>
-              </dd>
-            </div>
-          </dl>
-        </article>
-
         <article className="resource-detail-card resource-detail-amenities-card">
-          <h2>Amenities</h2>
+          <h2>Amenidades</h2>
 
           <ResourceAmenitiesEditor
             businessId={activeBusinessId}
             resource={resource}
             accessToken={session?.accessToken}
+            canManage={canManageImages}
           />
         </article>
 
-        <article
-          className="resource-detail-card resource-detail-actions-card"
-          aria-label="Acciones"
-        >
-          <h2>Acciones</h2>
-          <div className="resource-detail-quick-actions">
-            <Link
-              to="/app/bookings/new"
-              className="resource-detail-quick-action"
-            >
-              <CalendarPlus size={16} aria-hidden="true" />
-              <span>Hacer una reserva</span>
-            </Link>
 
-            <Link
-              to="/app/availability"
-              className="resource-detail-quick-action"
-            >
-              <Gauge size={16} aria-hidden="true" />
-              <span>Consultar disponibilidad</span>
-            </Link>
-
-            <Link
-              to="/app/blocks/new"
-              className="resource-detail-quick-action"
-            >
-              <Ban size={16} aria-hidden="true" />
-              <span>Agregar bloqueo</span>
-            </Link>
-
-            <Link
-              to="/app/payments"
-              className="resource-detail-quick-action"
-            >
-              <WalletCards size={16} aria-hidden="true" />
-              <span>Agregar pago</span>
-            </Link>
-          </div>
-        </article>
       </div>
 
-      {activeBusiness ? (
-        <ResourceAvailabilityCalendar
-          businessId={activeBusiness.id}
-          resourceId={resource.id}
-          timezone={activeBusiness.timezone}
-          accessToken={session?.accessToken}
-        />
-      ) : null}
+      {resource.status !== "ACTIVE" ? <p className="resource-detail-operational-note">{resource.status === "ARCHIVED" ? "Este recurso está archivado. Puedes consultar su información y su agenda." : "Este recurso está fuera de servicio. La disponibilidad se consulta para un rango de fechas."}</p> : null}
+
+
 
       <OverlayPanel
         open={editOpen}
@@ -742,11 +804,14 @@ function ResourceDetailContent() {
         className="resource-edit-dialog"
         layerClassName="resource-edit-dialog-layer"
         triggerRef={editTrigger}
-        onClose={() => setEditOpen(false)}
+        onClose={closeEdit}
       >
         <EditResourcePage
+          key={renderedEditRevision}
           embedded
-          onClose={() => setEditOpen(false)}
+          onClose={() => {
+            if (mounted.current && editRevision.current === renderedEditRevision) closeEdit();
+          }}
         />
       </OverlayPanel>
       <ConfirmDialog open={deleteOpen} title="Eliminar imagen" description={`Vas a eliminar esta imagen de ${resource.name}. Las demás imágenes se conservan.`} confirmLabel="Eliminar imagen" destructive disabled={!resourceImages.some((image) => image.id === deleteImageId)} triggerRef={deleteTrigger} loading={isManagingImage} error={imageActionError} onCancel={() => setDeleteOpen(false)} onConfirm={() => void handleDeleteCurrentImage()} />

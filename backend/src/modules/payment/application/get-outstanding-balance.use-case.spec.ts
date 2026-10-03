@@ -101,6 +101,9 @@ describe('GetOutstandingBalanceUseCase', () => {
       totalAmountMinor: 100,
       paidAmountMinor: 0,
       outstandingAmountMinor: 100,
+      creditAmountMinor: 0,
+      needsReconciliation: false,
+      warning: null,
       overdueAmountMinor: 0,
       financialStatus: 'UNPAID',
       nextDueDate: null,
@@ -168,6 +171,132 @@ describe('GetOutstandingBalanceUseCase', () => {
     });
   });
 
+  it('uses the current total instead of the original Snapshot and preserves PYG', async () => {
+    calculate.mockResolvedValueOnce(projection({
+      currentCurrency: 'PYG',
+      currentTotalAmountMinor: 80,
+      currentPricingRevisionId: 'revision-1',
+      paidAmountMinor: 40,
+    }));
+    await expect(subject.execute(businessId, bookingId)).resolves.toMatchObject({
+      currency: 'PYG',
+      totalAmountMinor: 80,
+      paidAmountMinor: 40,
+      outstandingAmountMinor: 40,
+      creditAmountMinor: 0,
+      needsReconciliation: false,
+      warning: null,
+    });
+  });
+
+  it('preserves an excess after a price reduction as credit without inventing a refund', async () => {
+    calculate.mockResolvedValueOnce(projection({
+      currentTotalAmountMinor: 80,
+      paidAmountMinor: 100,
+    }));
+    const result = await subject.execute(businessId, bookingId);
+    expect(result).toMatchObject({
+      totalAmountMinor: 80,
+      paidAmountMinor: 100,
+      outstandingAmountMinor: 0,
+      creditAmountMinor: 20,
+      financialStatus: 'PAID',
+      needsReconciliation: true,
+      overdueAmountMinor: null,
+      nextDueDate: null,
+      nextDueAmountMinor: null,
+    });
+    expect(result.warning).toContain('conciliación');
+  });
+
+  it.each([
+    { currentTotalAmountMinor: 80 },
+    { currentTotalAmountMinor: 150 },
+    { planCurrency: 'USD' },
+    { paidAmountMinor: 50, appliedAmountMinor: 40 },
+  ])('requires reconciliation for a stale plan or unapplied recorded money (%#)', async (changes) => {
+    calculate.mockResolvedValueOnce(projection({
+      currentTotalAmountMinor: 100,
+      currentCurrency: 'PYG',
+      paymentPlanId: 'plan',
+      planCurrency: 'PYG',
+      paidAmountMinor: 40,
+      planTotalAmountMinor: 100,
+      installmentTotalAmountMinor: 100,
+      appliedAmountMinor: 40,
+      overdueAmountMinor: 20,
+      nextDueDate: new Date('2026-09-01'),
+      nextDueAmountMinor: 20,
+      ...changes,
+    }));
+    const result = await subject.execute(businessId, bookingId);
+    expect(result).toMatchObject({
+      needsReconciliation: true,
+      overdueAmountMinor: null,
+      nextDueDate: null,
+      nextDueAmountMinor: null,
+    });
+    expect(result.warning).toContain('conciliación');
+  });
+
+  it.each([
+    { paid: 40, expected: false },
+    { paid: 50, expected: true },
+  ])('rechecks a restored price by actual plan totals and unapplied money, not revision (%#)', async ({ paid, expected }) => {
+    calculate.mockResolvedValueOnce(projection({
+      currentTotalAmountMinor: 100,
+      currentPricingRevisionId: 'restored-price-revision',
+      paymentPlanId: 'original-plan',
+      planCurrency: 'PYG',
+      paidAmountMinor: paid,
+      planTotalAmountMinor: 100,
+      installmentTotalAmountMinor: 100,
+      appliedAmountMinor: 40,
+      overdueAmountMinor: 20,
+      nextDueDate: new Date('2026-09-01'),
+      nextDueAmountMinor: 20,
+    }));
+    const result = await subject.execute(businessId, bookingId);
+    expect(result.needsReconciliation).toBe(expected);
+    expect(result.overdueAmountMinor).toBe(expected ? null : 20);
+    expect(result.warning === null).toBe(!expected);
+  });
+
+  it('does not expose stale due values when a plan currency differs', async () => {
+    calculate.mockResolvedValueOnce(projection({
+      paymentPlanId: 'plan',
+      planCurrency: 'USD',
+      paidAmountMinor: 40,
+      planTotalAmountMinor: 100,
+      installmentTotalAmountMinor: 100,
+      appliedAmountMinor: 40,
+      overdueAmountMinor: 80,
+      nextDueDate: new Date('2026-09-01'),
+      nextDueAmountMinor: 80,
+    }));
+    await expect(subject.execute(businessId, bookingId)).resolves.toMatchObject({
+      outstandingAmountMinor: 60,
+      financialStatus: 'PARTIALLY_PAID',
+      needsReconciliation: true,
+      overdueAmountMinor: null,
+      nextDueDate: null,
+      nextDueAmountMinor: null,
+    });
+  });
+
+  it('keeps exact safe integer amounts without percentage or floating point conversion', async () => {
+    calculate.mockResolvedValueOnce(projection({
+      currentTotalAmountMinor: Number.MAX_SAFE_INTEGER,
+      paidAmountMinor: Number.MAX_SAFE_INTEGER - 1,
+    }));
+    await expect(subject.execute(businessId, bookingId)).resolves.toMatchObject({
+      totalAmountMinor: Number.MAX_SAFE_INTEGER,
+      paidAmountMinor: Number.MAX_SAFE_INTEGER - 1,
+      outstandingAmountMinor: 1,
+      creditAmountMinor: 0,
+    });
+  });
+
   it('uses the Business IANA timezone instead of the UTC calendar date', async () => {
     expect(
       localDateInTimeZone(
@@ -184,6 +313,7 @@ describe('GetOutstandingBalanceUseCase', () => {
   });
 
   it.each([
+    BookingStatus.PENDING,
     BookingStatus.CONFIRMED,
     BookingStatus.IN_PROGRESS,
     BookingStatus.COMPLETED,
@@ -213,7 +343,12 @@ describe('GetOutstandingBalanceUseCase', () => {
   });
 
   it.each([
-    projection({ paidAmountMinor: 101 }),
+    projection({ paidAmountMinor: -1 }),
+    projection({ paidAmountMinor: Number.MAX_SAFE_INTEGER + 1 }),
+    projection({ currentTotalAmountMinor: -1 }),
+    projection({ currentTotalAmountMinor: Number.MAX_SAFE_INTEGER + 1 }),
+    projection({ paidAmountMinor: 40, invalidMonetaryData: true }),
+    projection({ currentTotalAmountMinor: 80, paidAmountMinor: 100, paymentCurrencyMismatch: true }),
     projection({
       paymentPlanId: 'plan',
       paidAmountMinor: 40,
@@ -226,10 +361,20 @@ describe('GetOutstandingBalanceUseCase', () => {
       paidAmountMinor: 40,
       planTotalAmountMinor: 100,
       installmentTotalAmountMinor: 100,
-      appliedAmountMinor: 39,
+      appliedAmountMinor: 41,
+    }),
+    projection({
+      currentTotalAmountMinor: 80,
+      paymentPlanId: 'plan',
+      paidAmountMinor: 100,
+      planTotalAmountMinor: 100,
+      installmentTotalAmountMinor: 100,
+      appliedAmountMinor: 101,
     }),
     projection({ overdueAmountMinor: 1 }),
-  ])('rejects impossible persisted financial state', async (value) => {
+    projection({ nextDueAmountMinor: -1 }),
+    projection({ nextDueDate: new Date('invalid') }),
+  ])('rejects corrupted persisted financial state (%#)', async (value) => {
     calculate.mockResolvedValueOnce(value);
     await expect(subject.execute(businessId, bookingId)).rejects.toBeInstanceOf(
       OutstandingBalanceInvariantError,

@@ -1,0 +1,2 @@
+# El paquete usa bytes LF estables para verificar hashes en Windows y Linux.
+deploy/pilot/** text eol=lf

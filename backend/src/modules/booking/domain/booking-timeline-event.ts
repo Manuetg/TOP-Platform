@@ -3,6 +3,22 @@ export enum BookingTimelineEventType {
   BOOKING_SUBMITTED = 'BOOKING_SUBMITTED',
   BOOKING_CONFIRMED = 'BOOKING_CONFIRMED',
   BOOKING_CANCELLED = 'BOOKING_CANCELLED',
+  BOOKING_CHECKED_IN = 'BOOKING_CHECKED_IN',
+  BOOKING_CHECKED_OUT = 'BOOKING_CHECKED_OUT',
+  BOOKING_MARKED_NO_SHOW = 'BOOKING_MARKED_NO_SHOW',
+  BOOKING_AMENDED = 'BOOKING_AMENDED',
+}
+
+export interface BookingTimelineDetails {
+  [key: string]: unknown;
+  reason?: string;
+  paymentId?: string;
+  source?: 'MANUAL' | 'FREE_CONFIRM';
+  operation?: 'CHECK_IN' | 'CHECK_OUT' | 'NO_SHOW' | 'CONFIRM_WITHOUT_PAYMENT';
+  beforeStatus?: string;
+  afterStatus?: string;
+  beforeUpdatedAt?: string;
+  afterUpdatedAt?: string;
 }
 
 export interface BookingTimelineEvent {
@@ -12,7 +28,7 @@ export interface BookingTimelineEvent {
   type: BookingTimelineEventType;
   occurredAt: Date;
   actorUserId: string | null;
-  details: { reason?: string };
+  details: BookingTimelineDetails;
 }
 
 export interface BookingTimelineCursor {

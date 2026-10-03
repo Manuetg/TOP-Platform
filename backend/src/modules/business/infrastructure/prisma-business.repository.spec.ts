@@ -12,6 +12,10 @@ describe('PrismaBusinessRepository', () => {
     name: 'Cabañas del Lago',
     legalName: 'Cabañas del Lago S.R.L.',
     taxId: '80012345-6',
+    country: null,
+    region: null,
+    city: null,
+    address: null,
     timezone: 'America/Asuncion',
     currency: 'PYG',
     status: 'ACTIVE',
@@ -73,7 +77,15 @@ describe('PrismaBusinessRepository', () => {
     const update = jest.fn().mockResolvedValue({ ...record, name: 'Actualizado', legalName: null, taxId: null });
     const repository = new PrismaBusinessRepository({ business: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update } } as never);
     const business = await repository.update(Business.create({ ...record, name: 'Actualizado', legalName: null, taxId: null, status: BusinessStatus.ACTIVE }));
-    expect(update).toHaveBeenCalledWith({ where: { id: record.id }, data: { name: 'Actualizado', legalName: null, taxId: null, timezone: 'America/Asuncion', currency: 'PYG', status: BusinessStatus.ACTIVE } });
+    expect(update).toHaveBeenCalledWith({ where: { id: record.id }, data: { name: 'Actualizado', legalName: null, taxId: null, timezone: 'America/Asuncion', currency: 'PYG' } });
     expect(business.legalName).toBeNull(); expect(business.taxId).toBeNull(); expect(business.businessNumber).toBe(42);
+  });
+
+  it('el escritor legacy de archivo actualiza solo estado y nunca reescribe metadata del snapshot', async () => {
+    const update = jest.fn().mockResolvedValue({ ...record, name: 'Nombre más reciente', status: 'ARCHIVED' });
+    const repository = new PrismaBusinessRepository({ business: { update } } as never);
+    const archived = await repository.update(Business.create({ ...record, status: BusinessStatus.ARCHIVED }));
+    expect(update).toHaveBeenCalledWith({ where: { id: record.id }, data: { status: BusinessStatus.ARCHIVED } });
+    expect(archived.name).toBe('Nombre más reciente');
   });
 });

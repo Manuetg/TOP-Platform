@@ -1,5 +1,5 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, NotFoundException, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, HttpCode, HttpStatus, NotFoundException, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { ApiBadRequestResponse, ApiConflictResponse, ApiCreatedResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateBusinessUseCase, InvalidBusinessNameError } from '../application/create-business.use-case';
 import { ArchiveBusinessUseCase } from '../application/archive-business.use-case';
 import { BusinessNotFoundError, GetBusinessByIdUseCase } from '../application/get-business-by-id.use-case';
@@ -12,6 +12,7 @@ import { AuthenticatedUser } from '../../../shared/security/authenticated-user.d
 import type { AuthenticatedPrincipal } from '../../../shared/security/authenticated-principal';
 import { Authenticated, BusinessAccess, PlatformAuthorityRequired } from '../../../shared/security/security.decorators';
 import { Capability } from '../../../shared/application/authorization-policy';
+import { BusinessChangeConflictError, BusinessChangeForbiddenError, BusinessTimezoneHistoryError } from '../domain/business-change.repository';
 
 @ApiTags('Businesses')
 @Controller('businesses')
@@ -60,13 +61,14 @@ export class BusinessController {
   @ApiOkResponse({ type: BusinessResponseDto })
   @ApiBadRequestResponse({ description: 'El identificador del negocio no es un UUID válido.' })
   @ApiNotFoundResponse({ description: 'El negocio no existe.' })
-  async archive(@Param('id', new ParseUUIDPipe()) id: string): Promise<BusinessResponseDto> {
+  async archive(@Param('id', new ParseUUIDPipe()) id: string, @AuthenticatedUser() principal: AuthenticatedPrincipal): Promise<BusinessResponseDto> {
     try {
-      const business = await this.archiveBusinessUseCase.execute(id);
+      const business = await this.archiveBusinessUseCase.execute(id, principal.userId);
 
       return BusinessResponseDto.fromDomain(business);
     } catch (error: unknown) {
       if (error instanceof BusinessNotFoundError) throw new NotFoundException(error.message);
+      if (error instanceof BusinessChangeForbiddenError) throw new ForbiddenException(error.message);
       throw error;
     }
   }
@@ -75,15 +77,20 @@ export class BusinessController {
   @BusinessAccess('id', Capability.BUSINESS_UPDATE)
   @ApiOperation({ summary: 'Actualizar parcialmente un negocio' })
   @ApiOkResponse({ type: BusinessResponseDto })
-  @ApiBadRequestResponse({ description: 'La actualización del negocio no es válida.' })
+  @ApiBadRequestResponse({ description: 'La actualización es inválida o solicita cambiar zona horaria con historial operativo.' })
+  @ApiConflictResponse({ description: 'El establecimiento cambió; consultar la versión vigente antes de guardar.' })
+  @ApiForbiddenResponse({ description: 'El actor o su membresía vigente no permite editar el establecimiento.' })
   @ApiNotFoundResponse({ description: 'El negocio no existe.' })
-  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() request: UpdateBusinessRequestDto): Promise<BusinessResponseDto> {
+  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() request: UpdateBusinessRequestDto, @AuthenticatedUser() principal: AuthenticatedPrincipal): Promise<BusinessResponseDto> {
     try {
-      const business = await this.updateBusinessUseCase.execute(id, request);
+      const business = await this.updateBusinessUseCase.execute(id, request, principal.userId);
       return BusinessResponseDto.fromDomain(business);
     } catch (error: unknown) {
       if (error instanceof BusinessNotFoundError) throw new NotFoundException(error.message);
       if (error instanceof InvalidBusinessUpdateError) throw new BadRequestException(error.message);
+      if (error instanceof BusinessTimezoneHistoryError) throw new BadRequestException(error.message);
+      if (error instanceof BusinessChangeConflictError) throw new ConflictException(error.message);
+      if (error instanceof BusinessChangeForbiddenError) throw new ForbiddenException(error.message);
       throw error;
     }
   }

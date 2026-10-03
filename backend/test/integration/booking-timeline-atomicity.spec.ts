@@ -13,7 +13,13 @@ describeWithPostgres('Booking Timeline atomicity',()=>{
   afterEach(async()=>{await prisma.$executeRawUnsafe('DROP TRIGGER IF EXISTS fail_test_timeline_event_trigger ON "BookingTimelineEvent"');await prisma.$executeRawUnsafe('DROP FUNCTION IF EXISTS fail_test_timeline_event()');await cleanTestDatabase(prisma,databaseUrl);});
   afterAll(async()=>prisma.$disconnect());
   const business=()=>prisma.business.create({data:{name:`Business ${crypto.randomUUID()}`}});
-  const draft=async()=>{const owner=await business();const booking=await bookings.create({businessId:owner.id,contactId:null,resourceIds:[],checkInDate:null,checkOutDate:null,adults:null,children:null,notes:null,actorUserId:null});return{owner,booking};};
+  const draft=async()=>{
+    const owner=await business();
+    const contact=await prisma.contact.create({data:{businessId:owner.id,name:'Timeline guest',email:'timeline@example.invalid'}});
+    const resource=await prisma.resource.create({data:{businessId:owner.id,name:'Timeline room',internalCode:crypto.randomUUID(),capacityMaximum:2}});
+    const booking=await bookings.create({businessId:owner.id,contactId:contact.id,resourceIds:[resource.id],checkInDate:new Date('2026-06-10'),checkOutDate:new Date('2026-06-12'),adults:1,children:0,notes:null,actorUserId:null});
+    return{owner,booking};
+  };
   it('rolls back Create when BOOKING_CREATED fails',async()=>{const owner=await business();await expect(bookings.create({businessId:owner.id,contactId:null,resourceIds:[],checkInDate:null,checkOutDate:null,adults:null,children:null,notes:null,actorUserId:failingActor})).rejects.toThrow();await expect(prisma.booking.count({where:{businessId:owner.id}})).resolves.toBe(0);});
   it('rolls back Submit when BOOKING_SUBMITTED fails',async()=>{const value=await draft();await expect(bookings.markPending(value.booking.id,value.owner.id,failingActor)).rejects.toThrow();await expect(prisma.booking.findUnique({where:{id:value.booking.id}})).resolves.toMatchObject({status:BookingStatus.DRAFT});await expect(prisma.bookingTimelineEvent.count({where:{bookingId:value.booking.id,type:'BOOKING_SUBMITTED'}})).resolves.toBe(0);});
   it('rolls back Cancel when BOOKING_CANCELLED fails',async()=>{const value=await draft();await expect(bookings.markCancelled(value.booking.id,value.owner.id,failingActor,'Motivo')).rejects.toThrow();await expect(prisma.booking.findUnique({where:{id:value.booking.id}})).resolves.toMatchObject({status:BookingStatus.DRAFT});await expect(prisma.bookingTimelineEvent.count({where:{bookingId:value.booking.id,type:'BOOKING_CANCELLED'}})).resolves.toBe(0);});

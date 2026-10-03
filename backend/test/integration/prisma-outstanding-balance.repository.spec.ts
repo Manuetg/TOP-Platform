@@ -5,7 +5,7 @@ import { Business } from '../../src/modules/business/domain/business.entity';
 import { BusinessStatus } from '../../src/modules/business/domain/business-status.enum';
 import {
   GetOutstandingBalanceUseCase,
-  OutstandingBalanceInvariantError,
+  OutstandingBalanceConflictError,
 } from '../../src/modules/payment/application/get-outstanding-balance.use-case';
 import {
   PaymentMethod,
@@ -95,7 +95,13 @@ describeWithPostgres('Outstanding Balance projection with PostgreSQL', () => {
         bookingId: value.booking.id,
         businessLocalDate: '2026-09-10',
       }),
-    ).resolves.toEqual({
+    ).resolves.toMatchObject({
+      currentCurrency: 'PYG',
+      currentTotalAmountMinor: 100,
+      currentPricingRevisionId: null,
+      planCurrency: null,
+      paymentCurrencyMismatch: false,
+      invalidMonetaryData: false,
       paymentPlanId: null,
       paidAmountMinor: 40,
       planTotalAmountMinor: null,
@@ -207,14 +213,10 @@ describeWithPostgres('Outstanding Balance projection with PostgreSQL', () => {
         bookingId: owner.booking.id,
         businessLocalDate: '2026-09-10',
       }),
-    ).resolves.toMatchObject({
-      paymentPlanId: null,
-      paidAmountMinor: 0,
-      appliedAmountMinor: 0,
-    });
+    ).rejects.toBeInstanceOf(OutstandingBalanceConflictError);
   });
 
-  it('surfaces an impossible persisted overpayment instead of clamping the balance', async () => {
+  it('represents persisted excess as credit without erasing recorded payments', async () => {
     const value = await fixture();
     await prisma.payment.create({
       data: paymentData(value.business.id, value.booking.id, 'corrupt', 101),
@@ -265,7 +267,7 @@ describeWithPostgres('Outstanding Balance projection with PostgreSQL', () => {
     );
     await expect(
       useCase.execute(value.business.id, value.booking.id),
-    ).rejects.toBeInstanceOf(OutstandingBalanceInvariantError);
+    ).resolves.toMatchObject({ totalAmountMinor: 100, paidAmountMinor: 101, outstandingAmountMinor: 0, creditAmountMinor: 1, needsReconciliation: true, overdueAmountMinor: null, nextDueDate: null, nextDueAmountMinor: null });
   });
 
   it('returns one coherent statement snapshot during concurrent Payment registration', async () => {

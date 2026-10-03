@@ -90,7 +90,8 @@ describeWithPostgres('SubmitBookingUseCase', () => {
   it('keeps the DRAFT when an intersecting blocking booking conflicts', async () => {
     const { business, resource, booking } = await fixture('Booking conflict');
     const blocker = await bookings.create({ businessId: business.id, contactId: null, resourceIds: [resource.id], checkInDate: new Date('2026-06-09'), checkOutDate: new Date('2026-06-11'), adults: null, children: null, notes: null });
-    await bookings.markPending(blocker.id, business.id, null);
+    // Inject an existing blocking history for the availability test; production Submit revalidates its own minima.
+      await prisma.booking.update({ where: { id: blocker.id }, data: { status: 'PENDING' } });
 
     await expect(useCase.execute({ businessId: business.id, bookingId: booking.id })).rejects.toBeInstanceOf(BookingAvailabilityConflictError);
     await expect(prisma.booking.findUnique({ where: { id: booking.id } })).resolves.toMatchObject({ status: BookingStatus.DRAFT });

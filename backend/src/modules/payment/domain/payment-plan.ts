@@ -12,6 +12,8 @@ export interface PaymentPlan {
   bookingId: string;
   currency: string;
   totalAmountMinor: number;
+  needsReconciliation?: boolean;
+  warning?: string | null;
   createdByUserId: string;
   updatedByUserId: string;
   createdAt: Date;
@@ -30,6 +32,7 @@ export interface CreatePaymentPlanData {
   bookingId: string;
   currency: string;
   totalAmountMinor: number;
+  currentPricingId?: string;
   actorUserId: string;
   installments: PaymentPlanInstallmentInput[];
 }
@@ -37,6 +40,7 @@ export interface CreatePaymentPlanData {
 export const PAYMENT_PLAN_REPOSITORY = Symbol('PAYMENT_PLAN_REPOSITORY');
 
 export interface PaymentPlanRepository {
+  findCurrentPricing?(businessId: string, bookingId: string): Promise<{ id: string; currency: string; totalAmountMinor: number } | null>;
   create(data: CreatePaymentPlanData): Promise<PaymentPlan>;
   findByBooking(data: { businessId: string; bookingId: string }): Promise<PaymentPlan | null>;
   replace(data: CreatePaymentPlanData): Promise<PaymentPlan>;

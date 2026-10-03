@@ -3,10 +3,11 @@ import { ArrowRight, CalendarRange, CircleAlert, TrendingUp } from "lucide-react
 import { Link } from "react-router-dom";
 import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { DashboardResponse } from "../types/dashboard.types";
+import { bookingStatusLabels } from "../../bookings/booking-status";
 import { formatDashboardMonth } from "../period";
 import { occupancyLabel } from "./DashboardMetrics";
 
-const labels: Record<string, string> = { DRAFT: "Borrador", PENDING: "Pendiente", CONFIRMED: "Confirmada", IN_PROGRESS: "En curso", COMPLETED: "Completada", CANCELLED: "Cancelada", NO_SHOW: "No show" };
+const labels: Readonly<Record<string, string>> = bookingStatusLabels;
 const statusColors: Record<string, string> = { DRAFT: "#A7B5B1", PENDING: "#C99728", CONFIRMED: "#155C4C", IN_PROGRESS: "#3288A0", COMPLETED: "#2E8B67", CANCELLED: "#B85C38", NO_SHOW: "#6F7F83" };
 function percentage(value: number, total: number) { return total ? Math.round((value / total) * 100) : 0; }
 

@@ -28,7 +28,10 @@ export interface OutstandingBalance {
   totalAmountMinor: number;
   paidAmountMinor: number;
   outstandingAmountMinor: number;
-  overdueAmountMinor: number;
+  creditAmountMinor: number;
+  needsReconciliation: boolean;
+  warning: string | null;
+  overdueAmountMinor: number | null;
   financialStatus: FinancialStatus;
   nextDueDate: string | null;
   nextDueAmountMinor: number | null;
@@ -52,6 +55,8 @@ export interface PaymentPlan {
   installments: PaymentPlanInstallment[];
   createdAt: string;
   updatedAt: string;
+  needsReconciliation?: boolean;
+  warning?: string | null;
 }
 
 export interface PaymentPlanInput {

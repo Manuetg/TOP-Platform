@@ -18,6 +18,26 @@ function httpError(status: number, body: unknown): Response {
 }
 
 describe("apiRequest", () => {
+  it("interpreta solo el código de correo deshabilitado con texto fijo seguro", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(httpError(503, { code: "EMAIL_FEATURE_DISABLED", message: "SYNTHETIC_SECRET" })));
+    await expect(apiRequest("/auth/forgot-password")).rejects.toMatchObject({
+      status: 503, code: "EMAIL_FEATURE_DISABLED",
+      message: "El correo no está disponible en este piloto. Usa una cuenta existente y verificada.",
+    });
+  });
+
+  it.each([{}, { code: "OTHER", message: "SYNTHETIC_SECRET" }, { code: ["EMAIL_FEATURE_DISABLED"] }])(
+    "conserva fallback genérico para otros 503: %j", async (body) => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(httpError(503, body)));
+      await expect(apiRequest("/test")).rejects.toEqual(new ApiError(503, API_ERROR_MESSAGES.server));
+    },
+  );
+
+  it("conserva fallback genérico para un 503 sin JSON", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("SYNTHETIC_SECRET", { status: 503 })));
+    await expect(apiRequest("/test")).rejects.toEqual(new ApiError(503, API_ERROR_MESSAGES.server));
+  });
+
   it("adds the bearer token when an access token is provided", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('{"ok":true}', { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);

@@ -1,0 +1,28 @@
+.personal-profile { padding: var(--space-5); display: grid; gap: var(--space-5); min-width: 0; }
+.personal-profile header { display: grid; gap: var(--space-2); }
+.personal-profile h2 { margin: 0; font-size: 20px; line-height: 28px; }
+.personal-profile p { margin: 0; line-height: 1.5; }
+.personal-profile header p, .personal-profile__help { color: var(--color-text-secondary); }
+.personal-profile h2:focus, .personal-profile__form:focus { outline: 2px solid var(--color-brand-primary); outline-offset: 4px; }
+.personal-profile__form { display: grid; gap: var(--space-5); min-width: 0; }
+.personal-profile__form > div:first-child:empty { display: none; }
+.personal-profile__fields { display: grid; gap: var(--space-5); align-items: start; min-width: 0; }
+.personal-profile__field-help { display: grid; gap: var(--space-2); min-width: 0; }
+.personal-profile__avatars { margin: 0; padding: 0; border: 0; min-width: 0; }
+.personal-profile__avatars legend { margin-bottom: var(--space-2); padding: 0; font-size: 14px; font-weight: 600; }
+.personal-profile__avatar-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: var(--space-3); margin-top: var(--space-3); }
+.personal-profile__avatar-option { display: flex; align-items: center; gap: var(--space-2); min-height: 52px; padding: var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); cursor: pointer; }
+.personal-profile__avatar-option input { margin: 0; accent-color: var(--color-brand-primary); }
+.personal-profile__avatar-option svg { flex-shrink: 0; color: var(--color-brand-primary); }
+.personal-profile__avatar-option:has(input:checked) { border-color: var(--color-brand-primary); background: var(--color-action-soft); }
+.personal-profile__avatar-option:has(input:focus-visible) { outline: 2px solid var(--color-brand-primary); outline-offset: 4px; }
+.personal-profile__avatars:disabled .personal-profile__avatar-option { cursor: default; opacity: var(--opacity-disabled); }
+.personal-profile__email { display: grid; gap: var(--space-2); overflow-wrap: anywhere; }
+.personal-profile__email > span { font-size: 14px; font-weight: 600; }
+.personal-profile__help { font-size: 14px; }
+.personal-profile__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.personal-profile__current { display: grid; gap: var(--space-3); }
+.personal-profile__current dl { display: grid; gap: var(--space-3); margin: 0; overflow-wrap: anywhere; }
+.personal-profile__current dt { color: var(--color-text-secondary); font-size: 14px; }
+.personal-profile__current dd { margin: var(--space-1) 0 0; }
+@media (min-width: 768px) { .personal-profile { padding: var(--space-6); } .personal-profile__fields, .personal-profile__current dl { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

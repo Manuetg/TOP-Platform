@@ -1,4 +1,4 @@
-import { InvalidCredentialsError, InvalidLoginInputError, LoginUseCase, UserDisabledError } from './login.use-case';
+import { EmailNotVerifiedError, InvalidCredentialsError, InvalidLoginInputError, LoginUseCase, UserDisabledError } from './login.use-case';
 import type { AccessTokenIssuer } from '../domain/access-token-issuer';
 import type { AuthenticationRepository } from '../domain/authentication.repository';
 import { MembershipRole } from '../domain/membership-role.enum';
@@ -11,7 +11,7 @@ import type { RefreshSessionRepository } from '../domain/refresh-session.reposit
 import type { RefreshTokenExpiration, RefreshTokenGenerator, RefreshTokenHasher } from '../domain/refresh-token';
 import { RefreshSession } from '../domain/refresh-session.entity';
 
-const user = (status = UserStatus.ACTIVE): User => User.create({ id: '11111111-1111-4111-8111-111111111111', email: 'user@example.com', status, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-01-02') });
+const user = (status = UserStatus.ACTIVE): User => User.create({ id: '11111111-1111-4111-8111-111111111111', email: 'user@example.com', emailVerifiedAt: new Date('2026-01-01'), status, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-01-02') });
 const membership = (businessId: string, role: MembershipRole): UserBusinessMembership => UserBusinessMembership.create({ id: businessId, userId: user().id, businessId, role, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-01-02') });
 
 describe('LoginUseCase', () => {
@@ -91,6 +91,16 @@ describe('LoginUseCase', () => {
     await expect(useCase.execute({ email: 'user@example.com', password: 'contraseña' })).rejects.toEqual(new UserDisabledError('El usuario está deshabilitado.'));
     expect(verify).not.toHaveBeenCalled();
     expect(issue).not.toHaveBeenCalled();
+  });
+
+  it('rechaza una cuenta sin correo verificado sin emitir tokens ni crear sesión', async () => {
+    const unverified = User.create({ id: user().id, email: user().email, status: UserStatus.ACTIVE, emailVerifiedAt: null, createdAt: new Date(), updatedAt: new Date() });
+    findForLoginByEmail.mockResolvedValue({ user: unverified, passwordHash: 'hash' });
+    await expect(useCase.execute({ email: unverified.email, password: 'contraseña' })).rejects.toBeInstanceOf(EmailNotVerifiedError);
+    expect(verify).not.toHaveBeenCalled();
+    expect(issue).not.toHaveBeenCalled();
+    expect(generate).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   });
 
   it('propaga errores inesperados de los puertos', async () => {

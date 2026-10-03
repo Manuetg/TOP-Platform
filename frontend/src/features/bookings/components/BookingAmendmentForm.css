@@ -1,0 +1,17 @@
+.booking-amendment-price,
+.booking-amendment-review { display: grid; gap: var(--space-4, 16px); min-width: 0; color: var(--color-text-secondary); }
+.booking-amendment-price p,
+.booking-amendment-review p,
+.booking-amendment-review h3 { margin: 0; }
+.booking-amendment-toggle { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 600; }
+.booking-amendment-toggle input { width: 20px; height: 20px; accent-color: var(--color-primary); }
+.booking-amendment-modes { display: flex; flex-wrap: wrap; gap: 10px; }
+.booking-amendment-page .create-booking-summary dd { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.booking-amendment-page .create-booking-header p,
+.booking-amendment-page .create-booking-card__header p,
+.booking-amendment-page .create-booking-hint,
+.booking-amendment-page .create-booking-summary dt { color: var(--color-text-secondary); }
+@media (max-width: 767px) {
+  .booking-amendment-page .create-booking-form { grid-template-columns: minmax(0, 1fr); }
+  .booking-amendment-page .create-booking-sidebar { position: static; }
+}

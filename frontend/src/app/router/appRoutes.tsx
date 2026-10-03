@@ -24,7 +24,6 @@ const AvailabilityCalendarPage = lazy(() => import("../../features/availability/
 const BlockListPage = lazy(() => import("../../features/blocks/pages/BlockListPage").then((module) => ({ default: module.BlockListPage })));
 const BookingListPage = lazy(() => import("../../features/bookings/pages/BookingListPage").then((module) => ({ default: module.BookingListPage })));
 const BookingDetailPage = lazy(() => import("../../features/bookings/pages/BookingDetailPage").then((module) => ({ default: module.BookingDetailPage })));
-const CreateBookingPage = lazy(() => import("../../features/bookings/pages/CreateBookingPage").then((module) => ({ default: module.CreateBookingPage })));
 const EditBookingPage = lazy(() => import("../../features/bookings/pages/EditBookingPage").then((module) => ({ default: module.EditBookingPage })));
 const ConfirmBookingPage = lazy(() => import("../../features/bookings/pages/ConfirmBookingPage").then((module) => ({ default: module.ConfirmBookingPage })));
 const CreateBlockPage = lazy(() => import("../../features/blocks/pages/CreateBlockPage").then((module) => ({ default: module.CreateBlockPage })));
@@ -38,8 +37,19 @@ const BookingPaymentsPage = lazy(() => import("../../features/payments/pages/Boo
 import { ProtectedRoute, PublicRoute } from "./ProtectedRoute";
 
 import { ErrorFallback } from "../errors/ErrorFallback";
+import { privacyRoutes } from "../../features/privacy/routes";
+import { deploymentConfig } from "../../shared/config/deployment";
+import { EmailUnavailablePage } from "../../features/auth/pages/EmailUnavailablePage";
 
 function page(Component: ComponentType) { return <Suspense fallback={<p role="status" aria-live="polite">Cargando pantalla…</p>}><Component /></Suspense>; }
+
+function EmailCapabilityRoute() {
+  return deploymentConfig.profile === "lan-pilot" ? <EmailUnavailablePage /> : <PublicRoute />;
+}
+
+function ShowcaseRoute() {
+  return deploymentConfig.profile === "lan-pilot" ? <EmailUnavailablePage /> : page(SaasLaunchShowcasePage);
+}
 
 export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general />, children: [
   {
@@ -51,11 +61,12 @@ export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general 
     element: <PublicRoute />,
     children: [{ index: true, element: page(LoginPage) }],
   },
-  { path: "/forgot-password", element: <PublicRoute />, children: [{ index: true, element: page(ForgotPasswordPage) }] },
-  { path: "/reset-password", element: <PublicRoute />, children: [{ index: true, element: page(ResetPasswordPage) }] },
-  { path: "/signup", element: <PublicRoute />, children: [{ index: true, element: page(SignupPage) }] },
-  { path: "/verify-email", element: <PublicRoute />, children: [{ index: true, element: page(VerifyEmailPage) }] },
-  { path: "/showcase/saas-launch", element: page(SaasLaunchShowcasePage) },
+  { path: "/forgot-password", element: <EmailCapabilityRoute />, children: [{ index: true, element: page(ForgotPasswordPage) }] },
+  { path: "/reset-password", element: <EmailCapabilityRoute />, children: [{ index: true, element: page(ResetPasswordPage) }] },
+  { path: "/signup", element: <EmailCapabilityRoute />, children: [{ index: true, element: page(SignupPage) }] },
+  { path: "/verify-email", element: <EmailCapabilityRoute />, children: [{ index: true, element: page(VerifyEmailPage) }] },
+  { path: "/showcase/saas-launch", element: <ShowcaseRoute /> },
+  ...privacyRoutes,
   {
     path: "/app",
     element: <ProtectedRoute><AppLayout /></ProtectedRoute>,
@@ -74,7 +85,7 @@ export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general 
       },
       {
         path: "bookings/new",
-        element: page(CreateBookingPage),
+        element: <Navigate to="/app/calendar" replace />,
       },
       {
         path: "bookings/:bookingId",

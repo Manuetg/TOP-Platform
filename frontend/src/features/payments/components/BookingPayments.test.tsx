@@ -16,7 +16,7 @@ const refetchBalance = vi.fn();
 const refetchHistory = vi.fn();
 const fetchNextPage = vi.fn();
 const payment: PaymentHistoryItem = { id: "payment-1", bookingId: "booking", amountMinor: 300000, currency: "PYG", method: "CASH", reference: "REC-1", note: null, paidAt: "2026-09-02T12:00:00.000Z", createdAt: "2026-09-02T12:01:00.000Z", recordedByUserId: "user", status: "RECORDED" };
-const outstanding: OutstandingBalance = { bookingId: "booking", currency: "PYG", totalAmountMinor: 1000000, paidAmountMinor: 300000, outstandingAmountMinor: 700000, overdueAmountMinor: 0, financialStatus: "PARTIALLY_PAID", nextDueDate: null, nextDueAmountMinor: null };
+const outstanding: OutstandingBalance = { bookingId: "booking", currency: "PYG", totalAmountMinor: 1000000, paidAmountMinor: 300000, outstandingAmountMinor: 700000, creditAmountMinor: 0, needsReconciliation: false, warning: null, overdueAmountMinor: 0, financialStatus: "PARTIALLY_PAID", nextDueDate: null, nextDueAmountMinor: null };
 const firstPage: PaymentHistoryPage = { items: [payment], pageInfo: { hasNextPage: true, nextCursor: "opaque" } };
 const props = { userId: "user", businessId: "business", bookingId: "booking", accessToken: "token", timezone: "America/Asuncion", enabled: true };
 type BalanceResult = ReturnType<typeof useOutstandingBalance>;
@@ -53,6 +53,20 @@ describe("BookingPayments", () => {
     success({ data: undefined, isError: true, error: new ApiError(409, "snapshot") });
     show();
     expect(screen.getByRole("status")).toHaveTextContent("Saldo no disponible");
+    expect(within(screen.getByRole("region", { name: "Historial de pagos" })).getByText("Referencia: REC-1")).toBeVisible();
+  });
+
+  it("shows credit and an unknown overdue balance while retaining recorded payments", () => {
+    const warning = "El precio vigente y el plan de pagos requieren conciliación.";
+    success({ data: { ...outstanding, totalAmountMinor: 200000, paidAmountMinor: 300000, outstandingAmountMinor: 0, creditAmountMinor: 100000, overdueAmountMinor: null, needsReconciliation: true, warning, financialStatus: "PAID" } });
+    show();
+    const balanceSection = screen.getByRole("region", { name: "Resumen financiero" });
+    expect(within(balanceSection).getByText("₲ 100.000")).toBeVisible();
+    expect(within(balanceSection).getByText("Saldo a favor", { selector: "strong" })).toBeVisible();
+    expect(within(balanceSection).getByText("Pendiente de conciliación")).toBeVisible();
+    expect(within(balanceSection).getByRole("alert")).toHaveTextContent(warning);
+    expect(within(balanceSection).queryByText("Pagada")).not.toBeInTheDocument();
+    expect(within(balanceSection).queryByText(/Sin próximo vencimiento/)).not.toBeInTheDocument();
     expect(within(screen.getByRole("region", { name: "Historial de pagos" })).getByText("Referencia: REC-1")).toBeVisible();
   });
 

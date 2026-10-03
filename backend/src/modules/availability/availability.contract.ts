@@ -1,4 +1,6 @@
 import type { AvailabilityReason } from './application/availability.types';
+export { validateAvailabilityInTransaction } from './infrastructure/prisma-transactional-overbooking.validator';
+export { AvailabilityBusinessNotFoundError, AvailabilityBusinessUnavailableError, AvailabilityResourceNotFoundError, InvalidAvailabilityInputError } from './application/availability.errors';
 
 export interface OverbookingValidationInput {
   businessId: string;

@@ -1,11 +1,11 @@
 @security
-Feature: Actualización self-service de User
+Feature: Suspensión segura del cambio de correo de User
 
-  Scenario: User ACTIVE actualiza su propio email
+  Scenario: User ACTIVE conserva el correo actual ante un cambio suspendido
     Given existe un User ACTIVE autenticable para actualizar
-    When actualiza su propio email
-    Then recibo HTTP 200
-    And el nuevo email queda normalizado
+    When intenta cambiar su propio correo
+    Then recibo HTTP 409
+    And el cambio de correo queda suspendido y conserva la identidad
     And Update User conserva estado y campos protegidos
 
   Scenario: User no puede actualizar otra identidad global
@@ -18,8 +18,12 @@ Feature: Actualización self-service de User
     When intenta actualizarse con su access token
     Then recibo HTTP 401
 
-  Scenario: Cambiar email conserva la sesión vigente
+  Scenario: Cambio rechazado y no-op normalizado conservan la sesión vigente
     Given existe un User ACTIVE autenticable para actualizar
-    And inició sesión antes de cambiar email
-    When actualiza su propio email conservando la sesión
-    Then puede renovar la sesión previa
+    And inició sesión antes de intentar cambiar correo
+    When intenta cambiar su correo conservando la sesión
+    Then recibo HTTP 409
+    When solicita el mismo correo con espacios y mayúsculas
+    Then recibo HTTP 200
+    And el mismo correo queda normalizado
+    And puede renovar la sesión previa

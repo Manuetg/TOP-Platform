@@ -2,6 +2,8 @@ import {
   ArrowLeft,
   ClipboardList,
 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useIsPresent } from "motion/react";
 import {
   useNavigate,
   useParams,
@@ -14,6 +16,7 @@ import {
   type BookingDraftFormInitialValues,
 } from "../components/BookingDraftForm";
 import { useBooking } from "../queries/use-booking";
+import { BookingAmendmentForm } from "../components/BookingAmendmentForm";
 import { useUpdateBooking } from "../queries/use-update-booking";
 import type { CreateBookingInput } from "../types/booking.types";
 import "./CreateBookingPage.css";
@@ -25,12 +28,46 @@ interface EditBookingPageProps {
 
 export function EditBookingPage({
   businessId: suppliedBusinessId,
-}: EditBookingPageProps) {
+}: EditBookingPageProps = {}) {
   const navigate = useNavigate();
   const { bookingId = "" } = useParams();
-  const { session } = useAuth();
-  const { activeBusinessId } = useBusinessContext();
+  const { session, status: authStatus } = useAuth();
+  const { activeBusinessId, activeBusiness, activeRole, status: businessStatus } = useBusinessContext();
   const businessId = suppliedBusinessId ?? activeBusinessId;
+  const canEdit = authStatus === "authenticated" && Boolean(session?.user.id && session.accessToken && bookingId && businessId) &&
+    businessStatus === "ready" && activeBusiness?.id === businessId && activeBusinessId === businessId &&
+    (activeRole === "OWNER" || activeRole === "ADMIN" || activeRole === "RECEPTIONIST");
+
+  if (!canEdit) {
+    return <section className="create-booking-page">
+      <div className="create-booking-state" role="alert">
+        <h1>No tienes permiso para editar esta reserva.</h1>
+        <Button variant="secondary" onClick={() => navigate(bookingId ? `/app/bookings/${bookingId}` : "/app/bookings")}>Volver a la reserva</Button>
+      </div>
+    </section>;
+  }
+
+  return <EditBookingContent
+    key={`${session?.user.id}:${businessId}:${bookingId}:${activeRole}`}
+    businessId={businessId}
+  />;
+}
+
+function EditBookingContent({ businessId }: { businessId: string }) {
+  const navigate = useNavigate();
+  const { bookingId = "" } = useParams();
+  const { session, status: authStatus } = useAuth();
+  const { activeBusiness, activeRole, status: businessStatus } = useBusinessContext();
+  const isPresent = useIsPresent();
+  const present = useRef(isPresent);
+  present.current = isPresent;
+  const alive = useRef(false);
+  const canEdit = authStatus === "authenticated" && businessStatus === "ready" &&
+    (activeRole === "OWNER" || activeRole === "ADMIN" || activeRole === "RECEPTIONIST");
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; };
+  }, []);
 
   const {
     data: booking,
@@ -49,6 +86,16 @@ export function EditBookingPage({
     bookingId,
     accessToken: session?.accessToken,
   });
+
+  const [amendmentNotice, setAmendmentNotice] = useState<string | null>(null);
+  const observedVersion = useRef<string | null>(null);
+  useEffect(() => {
+    if (!booking || !["PENDING", "CONFIRMED"].includes(booking.status)) return;
+    if (observedVersion.current && observedVersion.current !== booking.updatedAt) {
+      setAmendmentNotice((previous) => previous ?? "La reserva cambió. Volvimos a cargar los datos actuales; revisá los cambios nuevamente.");
+    }
+    observedVersion.current = booking.updatedAt;
+  }, [booking]);
 
   if (isLoading) {
     return (
@@ -125,6 +172,18 @@ export function EditBookingPage({
 
   const currentBookingId = booking.id;
 
+  if (booking.id === bookingId && booking.businessId === businessId && booking.resourceIds.length === 1 &&
+    ["PENDING", "CONFIRMED"].includes(booking.status) && booking.financialSummary?.totalAmountMinor != null && activeBusiness?.status === "ACTIVE") {
+    return <BookingAmendmentForm key={`${session?.user.id}:${businessId}:${bookingId}:${activeRole}:${activeBusiness.status}:${booking.updatedAt}`} booking={booking} businessId={businessId}
+      notice={amendmentNotice} onStalePreview={async () => {
+        setAmendmentNotice("La reserva cambió antes de revisar. Cargá los datos actuales antes de revisar nuevamente.");
+        const response = await refetch();
+        if (response.isError) throw response.error;
+        if (!alive.current || !present.current || !canEdit) return;
+        setAmendmentNotice("La reserva cambió antes de revisar. Volvimos a cargar los datos actuales; revisá los cambios nuevamente.");
+      }} />;
+  }
+
   if (booking.status !== "DRAFT") {
     return (
       <section className="create-booking-page">
@@ -160,8 +219,7 @@ export function EditBookingPage({
           </h1>
 
           <p>
-            Sólo las reservas en estado Borrador
-            pueden modificarse.
+            Podés editar borradores o reservas Pendiente y Confirmada con precio acordado dentro de un negocio activo.
           </p>
 
           <Button
@@ -204,6 +262,7 @@ export function EditBookingPage({
   async function handleSubmit(
     input: CreateBookingInput,
   ) {
+    if (!alive.current || !present.current || !canEdit || booking?.status !== "DRAFT") return;
     updateMutation.reset();
 
     try {
@@ -211,6 +270,7 @@ export function EditBookingPage({
         input,
       );
 
+      if (!alive.current || !present.current) return;
       navigate(
         `/app/bookings/${currentBookingId}`,
       );
@@ -253,7 +313,7 @@ export function EditBookingPage({
           <h1>Editar borrador</h1>
 
           <p>
-            Modificá los datos antes de enviar
+            Modificá los datos antes de pasar a pendiente
             la reserva.
           </p>
         </div>

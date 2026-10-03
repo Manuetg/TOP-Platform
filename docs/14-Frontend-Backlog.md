@@ -1,6 +1,99 @@
 # TOP — Frontend Backlog
 
-Última actualización: 2026-09-28
+> Composición local del piloto (2026-10-02): contratos incorporados desde Settings FINAL61 a Reservas/LAN. Los controles locales actuales y sus límites se registran en docs/00-Current-Status.md y deploy/pilot/release-manifest.json. Frontend y proxy se aprobaron por composición, sin intento agregado completo verde. CI, validación del operador y release siguen pendientes. Los resultados históricos conservan sus fuentes y fechas; no aprueban merge o despliegue.
+
+### Tu establecimiento - contrato incorporado a la composición local (2026-10-02)
+
+Configurar nombre comercial, razón social, identificación fiscal y país/departamento o estado/ciudad/dirección opcionales mediante el PATCH Business existente, con expectedUpdatedAt ISO UTC exacto de milisegundos. Mantener cuenta independiente y establecimiento activo visible. Roles de lectura conservan valores sin edición. Ante refetch mantener borrador/versión; ante 409 consultar actual y descartar explícitamente para adoptar la nueva versión. Cancelar GET antiguos de perfil/lista antes de publicar el guardado. Moneda PYG de lectura; la explicación de timezone comunica la regla autorizada el 2026-10-02: solo cambia antes de tener recursos, reservas, bloqueos o pagos, incluidos archivados/cancelados. El backend aplica la regla sin decisiones de historial en frontend. Un rechazo 400 conserva borrador y versión; restaurar la zona vigente permite guardar los demás datos según permisos. Reutilizar tokens y componentes TOP, estados aplicables, teclado y móvil/desktop. Estado In Progress: controles y QA locales cerrados en los alcances de Current Status; continúan revisión humana y requisitos operativos, sin aprobación de release. Límites y semántica del request en Architecture.
+
+Evidencia de concurrencia del corte Settings: dos carreras PostgreSQL entre inserción de Resource y cambio de zona horaria, en ambos órdenes. No acredita todos los interleavings de Resource/Booking/Block/Payment ni vuelve atómicos los cálculos previos de otros casos de uso. La evidencia actual del árbol combinado y sus límites se registra en Current Status; CI y operación real siguen pendientes.
+
+## Ampliación de Tu cuenta — encargo del 2026-10-02
+
+Estado: **In Progress, composición local para revisión**. Fuente: contrato de Settings FINAL61, preparado originalmente desde 0dc22cd18c403fb0446818c7bb57b63e26820f0c. Esa referencia identifica su origen; los controles locales cerraron según los alcances de Current Status; el cierre de CI y operación se registra por separado, sin aprobación de release, merge ni despliegue.
+
+La solicitud explícita del titular amplía el contrato personal y sustituye el requisito de motivo manual del corte del 2026-10-01. `GET/PATCH /api/users/:id/profile` conservan scope `SELF`, UUID válido, actor `ACTIVE`, independencia del Business y `Cache-Control: no-store`. Nombre completo conserva `displayName` obligatorio, trim y 1..120 caracteres. Se incorporan `birthYear`, `username`, `phone` y `avatarId` opcionales: omitir preserva; `null` borra; usuarios legacy se leen como `null`, sin backfill.
+
+- `birthYear`: únicamente año entero entre 1 y el año UTC vigente; no fecha completa, edad mínima ni obligatoriedad.
+- `username`: alias de perfil opcional con trim y máximo técnico de 50 caracteres. Conserva la etiqueta visible «Nombre de usuario» y explica que es un alias; no cambia Login ni presupone unicidad.
+- `phone`: número internacional con `+`, sin extensión, validado con la dependencia existente y normalizado a E.164. Un string vacío se normaliza a `null`; no implica verificación ni capacidad de mensajería.
+- `avatarId`: catálogo cerrado local `user`, `leaf`, `sun`, `mountain` o `null`, con Lucide regular y tokens TOP. No acepta URLs ni archivos; no introduce almacenamiento externo.
+
+PATCH recibe `expectedUpdatedAt` exacto en ISO UTC con milisegundos; `reason` ya no se pide ni se acepta como fuente de auditoría. El backend genera el motivo `Actualización del perfil por su titular.`. BR-056 conserva entidad, sujeto, actor, instante y valores anteriores/nuevos. `UserProfileAudit` añade JSON diferencial de las claves cambiadas; `UserDisplayNameAudit` se conserva íntegra y sigue registrando cambios efectivos de nombre. Ambas escrituras y perfil comparten transacción con FK `RESTRICT`; un fallo revierte todo.
+
+Se conserva bloqueo `User FOR UPDATE`, revalidación SELF/ACTIVE y comparación de versión antes del no-op. Un conflicto responde `409`, incluso con valores idénticos. Un no-op con versión vigente no escribe ni audita; un cambio avanza la versión al menos un milisegundo. Se preservan correo, verificación, estado, credenciales, membresías, permisos, sesiones y tokens. El DTO añade exclusivamente los cuatro campos personales a `id`, `email`, `displayName`, `status`, `updatedAt`; Login/JWT no se amplían.
+
+La UI mantiene borrador y versión original ante refetch; ante conflicto consulta y permite descartar antes de guardar con la nueva versión. Campos opcionales pueden limpiarse; avatares usan radios nativos y foco visible. La cuenta permanece accesible sin Business y al cambiar de establecimiento. Año usa entrada textual con teclado numérico para no convertir tokens inválidos en borrado; teléfono conserva entradas formateadas completas antes de normalizar en backend.
+
+Correo sigue de lectura. Por instrucción explícita para el piloto LAN de Ema, sin servicio de envío, todo cambio efectivo mediante IAM-005 queda suspendido con `409 EMAIL_CHANGE_UNAVAILABLE`. La ruta valida SELF/ACTIVE y admite únicamente el no-op del mismo correo normalizado, sin escritura, auditoría ni cambio de versión. No consulta duplicados y no usa consoleOTP como prueba de entrega. La cuenta ya verificada conserva su acceso; diferir SMTP no bloquea su uso en el piloto. Esta suspensión no se levanta por cambiar variables de transporte: requiere implementar y revisar un flujo de reautenticación y verificación.
+
+El flujo seguro de correo, sesiones/tokens y la carga segura de foto/logo necesitan contrato y decisiones propios. El contrato de avatar es un catálogo local; la composición no declara aplicada ninguna propuesta separada de avatar en el header. Tu establecimiento conserva PYG como única moneda del MVP; la restricción de cambios de moneda/zona horaria con registros afectados fue autorizada explícitamente el 2026-10-02 y se describe en su contrato vigente. Configuración LAN, cookies y CORS globales pertenecen a otro delta y no se modifican.
+
+Última actualización: 2026-10-02
+
+## Integración local de reservas y criterios del conjunto (2026-10-02)
+
+Candidato `codex/reservations-pilot-20261002`, base `0dc22cd`, separado de develop y de los cambios externos LAN/Settings/Business. Los cortes de navegación y operaciones descritos abajo conservan su evidencia histórica; su integración local no equivale a publicación, merge o aprobación del piloto. Estado In Progress, controles completos del conjunto en curso. Fuente del handoff y límites: [Estado actual](00-Current-Status.md).
+
+| Frente | Criterio de aceptación del conjunto |
+|---|---|
+| Calendario | Un solo POST crea PENDING con precio y Snapshot; no pasa por Submit/Confirm legacy ni por estados intermedios persistidos. CTA/URL antigua y Back conservan el contrato de navegación. |
+| Primer cobro | Cualquier primer importe positivo efectivamente RECORDED confirma PENDING. Cero/fallo no confirma; idempotencia no duplica; estados terminales no se reabren. |
+| Listado y finanzas | Estado operativo separado de estado financiero; importe/porcentaje exactos, pago mínimo y saldo restante visibles. |
+| Operaciones manuales | Ingreso, salida y No show en sus estados permitidos; VIEWER sólo consulta. Confirmar sin cobro consulta total vigente cero, aunque el Snapshot original difiera. Versión, contexto, doble envío, foco y 401 sin replay protegidos. |
+| Edición con precio | PENDING/CONFIRMED y mismo Resource; contacto/fechas/tarifa/huéspedes/notas con preview antes de Save. Metadata conserva precio exacto sin PricingRevision; fechas/tarifa revalidan cotización y disponibilidad. Versiones obsoletas recargan y exigen nueva revisión. |
+| Crédito e historia | Snapshot y pagos anteriores preservados; deuda/crédito actualizados, conciliación de plan/cobros visible, sin reembolso ni reaplicación automática. Pagar de cuotas históricas queda deshabilitado y no abre modal con saldo vigente cero; con saldo positivo la conciliación no bloquea el cobro. |
+| Pagos HTTP LAN | Clave CSPRNG con fallback `getRandomValues`, misma intención ante respuesta incierta y cero POST sin CSPRNG. Cobros y altas/reemplazos de plan no recuperan/reproducen automáticamente 401 con otra sesión. El probe sintético y navegador loopback no acreditan una LAN física. |
+| Validación | Build/lint/suite completa sobre el conjunto y navegador en 390/1440 px, hashes antes/después y logs de intentos preservados. PostgreSQL real aislado se distingue de API mock; Node 22/CI y dependencias LAN pendientes. |
+
+Integración Operations/Amendments corregida: backend lee el precio vigente bajo los locks existentes y se agregan regresiones PostgreSQL original cero → revisión positiva (rechaza) y original positivo → revisión cero (confirma sin crear pago). Timeline conserva ocho tipos, incluido BOOKING_AMENDED, y frontend muestra el historial combinado. Mutaciones de operaciones, edición, cobros y altas/reemplazos de plan desactivan recuperación/replay automático de 401 mediante la opción compartida de API; lecturas y consumidores restantes conservan su comportamiento existente.
+
+## Entrada de creación de reservas desde Calendario (2026-10-02)
+
+Decisión confirmada por Rolo durante QA con Ema: conservar el listado y los botones **Crear reserva** del listado y del detalle de recurso, pero llevarlos a `/app/calendar`. El acceso rápido del Dashboard usa el mismo destino. Se retira la pantalla independiente de creación; `/app/bookings/new` conserva compatibilidad mediante redirección `replace` dentro de la protección de sesión y negocio, para que Back vuelva al origen sin bucles.
+
+Calendario conserva su asistente existente de contacto, fechas, tarifa configurada y precio manual. No admite un recurso desde URL/state; estos enlaces no introducen preselección ni apertura automática. OWNER/ADMIN/RECEPTIONIST pueden iniciar el asistente; VIEWER consulta Calendario sin acciones de creación. Un cambio de rol descarta el asistente y aborta sus operaciones anteriores. Los formularios de detalle, edición y confirmación siguen usando sus contratos actuales; se conserva el CSS compartido por edición.
+
+Este delta de navegación se revisa por separado de las nuevas reglas de alta Pendiente, confirmación por pago y edición posterior. No cambia estados persistidos, precios, cobros ni históricos. Criterios: botón y Back desde lista/recurso/Dashboard; URL antigua directa y Back/Forward; sesión/restauración y BusinessBoundary; permisos y flujo del asistente; móvil y desktop; build/lint/suite completa.
+
+Validación local del candidato: build y lint exit 0; 107 archivos y 896 pruebas PASS (`npm test -- --maxWorkers=1`); 24 escenarios únicos de navegador PASS en 390 y 1440 px sobre el mismo bundle. La API de navegador usa fixtures y no acredita el backend. Se conservan los intentos fallidos del runner y de tests; las consultas del asistente se acotaron al diálogo sin ampliar timeouts ni reducir comprobaciones. Lint conserva el aviso previo de `formatDashboardMonth` sin uso. Revisión independiente sin bloqueantes; integración, publicación y merge no realizados.
+
+## Operaciones manuales de reservas para el piloto (2026-10-02)
+
+Implementación local en `codex/booking-operations-20261002`, sobre `0dc22cd`, pendiente de integración y controles completos del candidato. No describe un merge o despliegue.
+
+| Acción | Transición y criterio |
+|---|---|
+| Registrar ingreso | CONFIRMED → IN_PROGRESS, decisión manual de OWNER, ADMIN o RECEPTIONIST. |
+| Registrar salida | IN_PROGRESS → COMPLETED, decisión manual de esos mismos roles. |
+| No show | CONFIRMED → NO_SHOW, con confirmación explícita. |
+| Confirmar sin cobro | PENDING → CONFIRMED sólo con precio acordado de total exacto cero y disponibilidad válida; no crea Payment. |
+
+Cada POST exige la versión `expectedUpdatedAt`; estado, versión monotónica y evento se guardan atómicamente. Un 409 requiere volver a consultar y revisar el detalle antes de elegir la acción nuevamente. El motivo es opcional, de 2 a 500 caracteres cuando se proporciona. No se agregan umbrales por deuda o fecha, reembolsos ni cambios automáticos de estado.
+
+Frontend: componentes del design system, teclado y foco, bloqueo de doble envío y aislamiento por usuario, negocio, reserva y rol. Un cambio de contexto aborta la solicitud; las respuestas conocidas invalidan el contexto original. La respuesta del POST conserva el resumen financiero del detalle hasta consultar el GET canónico. VIEWER conserva consulta sin operaciones.
+
+Evidencia local en `validation/booking-operations-20261002` del workspace de revisión: build, lint y arquitectura backend aprobados; 103 pruebas focalizadas de backend (43 unitarias, 13 HTTP y 47 PostgreSQL); 113 pruebas focalizadas de frontend en corridas separadas; build y lint frontend aprobados, con el aviso previo de DashboardHeader. Navegador Edge con API mock: 46 escenarios aprobados en 390 y 1440 píxeles, cero peticiones desconocidas, errores de página o desbordamientos. Migración final probada en PostgreSQL aislado con ocho tipos de evento y rollback limpio. Los intentos fallidos anteriores se conservan como evidencia; no se aumentaron timeouts.
+
+Pendiente histórico de este corte resuelto en el candidato integrado: confirmar sin cobro lee el precio vigente bajo los locks de Booking/Snapshot, con regresiones original cero revisado a positivo y original positivo revisado a cero. La migración, etiquetas y flujo integrado conservan BOOKING_AMENDED. Los controles completos y la QA del conjunto siguen en curso; esta validación focalizada no declara que el piloto esté listo.
+
+## Refinamientos locales de configuración, estados, Resources y web (2026-10-01)
+
+> Corte histórico del 2026-10-01. El criterio de Perfil con motivo manual se conserva como evidencia; para la composición actual rige la ampliación de Tu cuenta con motivo automático.
+
+Base vigente verificada: `develop@835b2a4`, con PR #97, #98 y #100 integradas. Los apartados siguientes conservan sus fechas y evidencias históricas; sus referencias a revisiones o merges pendientes no describen el remoto vigente. El precio manual libre ya está integrado. Se preservan los conteos históricos del MVP y la definición comercial pendiente de FE-SUB-001.
+
+Trabajo autorizado **In Progress**, en `codex/night-integration-20261001`, integrado con gates y QA locales completos. Publicación y PR DRAFT autorizadas el 01/10/2026 a las 12:06 UTC; revisión humana pendiente. No hay aprobación de reviews de PR, merge ni despliegue autorizado.
+
+| Frente | Criterio de aceptación |
+|---|---|
+| Etiquetas de Booking | Los siete códigos, filtros HTTP, transiciones e historial se conservan; listas, detalles, pagos, búsqueda, Dashboard y calendarios usan el mismo catálogo visible. |
+| Configuración y cuenta | Design system vigente; nombre personal editable por SELF ACTIVE con motivo real, versión exacta y auditoría atómica; correo de lectura; permisos de Business y respuestas de sesiones anteriores protegidos; cuenta y borrador personal accesibles sin Business activo y al cambiar de establecimiento. |
+| Detalle de Resources | Refinamiento sobre PR #100; permisos contractuales, fotos con carga/error/vacío separados, nombres largos, teclado y móviles; agenda diferenciada de Availability autoritativa. |
+| Cookies y almacenamiento | Ruta pública y enlaces reales; inventario de storage basado en implementación, expiración/eliminación precisas y pendientes legales explícitos, sin afirmar cumplimiento ni inventar proveedores o consentimiento. |
+| Validación del conjunto | Build, lint y suite completa sobre código integrado; navegador móvil/tablet/desktop; distinguir API real de fixtures/mocks y registrar PASS, FAIL, NOT RUN o BLOCKED. |
+
+El contrato de nombre y sus límites están en [Domain Bible](03-Domain-Bible.md), [Business Rules](04-Business-Rules.md) y [Architecture](05-Architecture.md). Resultados y dudas en [Estado actual](00-Current-Status.md); el cambio seguro de correo y los requisitos jurídicos permanecen pendientes.
 
 ## POST-MVP / PRODUCTION READINESS (2026-09-24)
 
@@ -117,6 +210,8 @@ Implementación validada en PR #90, HEAD `cca693894b76772902edae973583eb71662423
 - Hallazgo ajeno al cambio visual: una tarifa de demo se representa con distinta escala entre Dashboard y Pricing. Contrastar su contrato/formato en el quality gate final antes de afirmar cero regresiones conocidas; no se altera una regla monetaria durante este épico visual.
 
 ### Business Management — Completed, efectivo al integrarse la cadena aprobada en develop
+
+> Corte histórico de Business Management: sus campos y zona de solo lectura describen ese release. Tu establecimiento incorpora ahora ubicación opcional y edición de timezone únicamente sin registros afectados; PYG permanece de lectura. Los gates históricos siguientes no acreditan la nueva composición.
 
 - FE-BUS-002/003 entregadas juntas en `codex/business-management`, dependiente de Foundation #91 y mantenimiento #90. Foundation HEAD `a6906b0ba1b25807e7a7d7b5a3c47db8d115e1f1`: Frontend CI `35872648453` y Backend CI `35872648438` SUCCESS.
 - Selector real a partir de `GET /businesses` y memberships Auth. Un negocio se selecciona automáticamente; varios requieren decisión explícita. La selección vive en memoria durante la sesión y sobrevive al refresh del token, sin persistir credenciales ni reutilizar la selección de otra identidad. Al recargar con varios negocios se solicita selección de nuevo.

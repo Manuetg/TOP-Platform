@@ -17,8 +17,17 @@ export class OutstandingBalanceResponseDto {
   @ApiProperty({ example: 600_000 })
   outstandingAmountMinor!: number;
 
-  @ApiProperty({ example: 200_000 })
-  overdueAmountMinor!: number;
+  @ApiProperty({ example: 0 })
+  creditAmountMinor!: number;
+
+  @ApiProperty({ example: false })
+  needsReconciliation!: boolean;
+
+  @ApiProperty({ type: String, nullable: true })
+  warning!: string | null;
+
+  @ApiProperty({ type: Number, nullable: true, example: 200_000 })
+  overdueAmountMinor!: number | null;
 
   @ApiProperty({ enum: ['UNPAID', 'PARTIALLY_PAID', 'PAID', 'OVERDUE'] })
   financialStatus!: FinancialStatus;

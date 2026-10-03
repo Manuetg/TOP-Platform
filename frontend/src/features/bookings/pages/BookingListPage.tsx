@@ -20,6 +20,8 @@ import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useContacts } from "../../contacts/queries/use-contacts";
 import { useResources } from "../../resources/queries/use-resources";
 import { useBookings } from "../queries/use-bookings";
+import { bookingStatusOptions, getBookingStatusLabel } from "../booking-status";
+import { formatPaymentPercentage, getBookingFinancialLabel } from "../booking-financial-summary";
 import type {
   Booking,
   BookingStatus,
@@ -35,29 +37,6 @@ const ALL = "ALL";
 
 type StatusFilter = BookingStatus | typeof ALL;
 
-const STATUS_OPTIONS: Array<{
-  value: BookingStatus;
-  label: string;
-}> = [
-  { value: "DRAFT", label: "Borrador" },
-  { value: "PENDING", label: "Pendiente" },
-  { value: "CONFIRMED", label: "Confirmada" },
-  { value: "IN_PROGRESS", label: "En curso" },
-  { value: "COMPLETED", label: "Completada" },
-  { value: "CANCELLED", label: "Cancelada" },
-  { value: "NO_SHOW", label: "No show" },
-];
-
-function getStatusLabel(
-  status: BookingStatus,
-) {
-  return (
-    STATUS_OPTIONS.find(
-      (option) => option.value === status,
-    )?.label ?? status
-  );
-}
-
 function BookingStatusBadge({
   status,
 }: {
@@ -67,7 +46,7 @@ function BookingStatusBadge({
     <span
       className={`booking-list-status booking-list-status--${status.toLowerCase()}`}
     >
-      {getStatusLabel(status)}
+      {getBookingStatusLabel(status)}
     </span>
   );
 }
@@ -185,6 +164,8 @@ function BookingRow({
       <BookingStatusBadge
         status={booking.status}
       />
+      <span className="booking-list-row__financial-status">{getBookingFinancialLabel(booking.financialSummary)}</span>
+      <span className="booking-list-row__paid-percentage">{formatPaymentPercentage(booking.financialSummary?.paidAmountMinor ?? 0, booking.financialSummary?.totalAmountMinor ?? null)}</span>
     </button>
   );
 }
@@ -248,6 +229,10 @@ function BookingCard({
           booking.adults,
           booking.children,
         )}
+      </div>
+      <div className="booking-list-card__finances">
+        <span><small>Estado del pago</small><strong>{getBookingFinancialLabel(booking.financialSummary)}</strong></span>
+        <span><small>Porcentaje de pago</small><strong>{formatPaymentPercentage(booking.financialSummary?.paidAmountMinor ?? 0, booking.financialSummary?.totalAmountMinor ?? null)}</strong></span>
       </div>
     </button>
   );
@@ -362,6 +347,8 @@ export function BookingListPage({
           contactName,
           resourceNames,
           booking.status,
+          getBookingStatusLabel(booking.status),
+          getBookingFinancialLabel(booking.financialSummary),
           booking.checkInDate ?? "",
           booking.checkOutDate ?? "",
         ]
@@ -397,72 +384,8 @@ export function BookingListPage({
     isLoading ||
     contactsLoading ||
     resourcesLoading;
-
-  if (loading) {
-    return (
-      <section
-        className="booking-list-page"
-        aria-busy="true"
-      >
-        <div className="booking-list-state">
-          <div
-            className="booking-list-state__icon"
-            aria-hidden="true"
-          >
-            <ClipboardList size={28} />
-          </div>
-
-          <h1>Cargando reservas</h1>
-          <p>
-            Estamos preparando las reservas del
-            establecimiento.
-          </p>
-        </div>
-      </section>
-    );
-  }
-
-  if (isError || contactsError || resourcesError) {
-    const queryError = error ?? contactsQueryError ?? resourcesQueryError;
-
-    return (
-      <section className="booking-list-page">
-        <div
-          className="booking-list-state"
-          role="alert"
-        >
-          <div
-            className="booking-list-state__icon"
-            aria-hidden="true"
-          >
-            <ClipboardList size={28} />
-          </div>
-
-          <h1>
-            No pudimos cargar las reservas
-          </h1>
-
-          <p>
-            {queryError instanceof Error
-              ? queryError.message
-              : "Ocurrió un error inesperado."}
-          </p>
-
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              void refetch();
-              void refetchContacts();
-              void refetchResources();
-            }}
-          >
-            Reintentar
-          </Button>
-        </div>
-      </section>
-    );
-  }
+  const failed = isError || contactsError || resourcesError;
+  const queryError = error ?? contactsQueryError ?? resourcesQueryError;
 
   return (
     <section className="booking-list-page">
@@ -479,7 +402,7 @@ export function BookingListPage({
           type="button"
           className="booking-list-header__create"
           onClick={() =>
-            navigate("/app/bookings/new")
+            navigate("/app/calendar")
           }
         >
           <Plus
@@ -571,7 +494,7 @@ export function BookingListPage({
               Todos
             </option>
 
-            {STATUS_OPTIONS.map(
+            {bookingStatusOptions.map(
               (option) => (
                 <option
                   key={option.value}
@@ -662,7 +585,29 @@ export function BookingListPage({
         )}
       </div>
 
-      {visibleBookings.length === 0 ? (
+      <div role="region" aria-label="Resultados de reservas" aria-busy={loading}>
+      {loading ? (
+        <div className="booking-list-state" role="status">
+          <div className="booking-list-state__icon" aria-hidden="true">
+            <ClipboardList size={28} />
+          </div>
+          <h2>Cargando reservas</h2>
+          <p>Estamos preparando las reservas del establecimiento.</p>
+        </div>
+      ) : failed ? (
+        <div className="booking-list-state" role="alert">
+          <div className="booking-list-state__icon" aria-hidden="true">
+            <ClipboardList size={28} />
+          </div>
+          <h2>No pudimos cargar las reservas</h2>
+          <p>{queryError instanceof Error ? queryError.message : "Ocurrió un error inesperado."}</p>
+          <Button type="button" variant="secondary" onClick={() => {
+            void refetch();
+            void refetchContacts();
+            void refetchResources();
+          }}>Reintentar</Button>
+        </div>
+      ) : visibleBookings.length === 0 ? (
         <div className="booking-list-state booking-list-state--empty">
           <div
             className="booking-list-state__icon"
@@ -705,6 +650,8 @@ export function BookingListPage({
               <span>Estadía</span>
               <span>Ocupación</span>
               <span>Estado</span>
+              <span>Estado del pago</span>
+              <span>Porcentaje de pago</span>
             </div>
 
             <div className="booking-list-table__body">
@@ -777,6 +724,7 @@ export function BookingListPage({
           </div>
         </>
       )}
+      </div>
     </section>
   );
 }

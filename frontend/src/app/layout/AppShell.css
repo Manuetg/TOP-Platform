@@ -1004,30 +1004,12 @@
    FE-FND-005 — Header popovers
    ============================================================ */
 
-.top-header-popover-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  pointer-events: none;
-}
-
-
 .top-header-popover {
-  position: absolute;
-  z-index: 1;
-  top: 164px;
-  right: 16px;
-  left: 16px;
-  max-height: min(420px, calc(100dvh - 190px));
-  overflow-y: auto;
   padding: 12px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
-  box-shadow:
-    0 8px 18px rgb(23 32 29 / 8%),
-    0 20px 50px rgb(23 32 29 / 12%);
-  pointer-events: auto;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
 }
 
 .top-header-popover__heading {
@@ -1046,6 +1028,7 @@
 }
 
 .top-header-popover__heading strong {
+  overflow-wrap: anywhere;
   color: var(--color-text-primary);
   font-size: 15px;
   line-height: 21px;
@@ -1058,6 +1041,7 @@
 }
 
 .top-header-popover__item {
+  text-decoration: none;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1168,6 +1152,7 @@
 
 .top-header-popover__business-current span,
 .top-header-popover__profile-summary span {
+  overflow-wrap: anywhere;
   color: var(--color-text-secondary);
   font-size: 11px;
   line-height: 17px;
@@ -1178,15 +1163,6 @@
 }
 
 
-
-@media (min-width: 1024px) {
-  .top-header-popover {
-    top: 68px;
-    right: 32px;
-    left: auto;
-    width: min(360px, calc(100vw - 328px));
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .top-header-popover {
@@ -1205,123 +1181,6 @@
     position: relative;
     min-width: 0;
     width: 100%;
-  }
-}
-
-/* ============================================================
-   FE-FND-005 — Exact desktop search popover alignment
-   ============================================================ */
-
-@media (min-width: 1024px) {
-  .top-header-popover-layer--search {
-    top: 68px;
-    right: 0;
-    bottom: auto;
-    left: 264px;
-    display: grid;
-    grid-template-columns:
-      minmax(210px, 280px)
-      minmax(240px, 560px)
-      auto;
-    align-items: start;
-    gap: var(--space-5);
-    padding: 0 var(--space-8);
-  }
-
-  .top-header-popover-layer--search
-    .top-header-popover-backdrop {
-    position: fixed;
-    inset: 0;
-  }
-
-  .top-header-popover-layer--search
-    .top-header-popover--search {
-    position: relative;
-    top: auto;
-    right: auto;
-    left: auto;
-    grid-column: 2;
-    width: 100%;
-    max-width: 560px;
-    margin: 0;
-  }
-}
-
-@media (min-width: 1024px) and (max-width: 1199px) {
-  .top-header-popover-layer--search {
-    grid-template-columns:
-      minmax(190px, 230px)
-      minmax(180px, 1fr)
-      auto;
-    gap: var(--space-3);
-    padding-right: var(--space-5);
-    padding-left: var(--space-5);
-  }
-
-  .top-header-popover-layer--search
-    .top-header-popover--search {
-    max-width: none;
-  }
-}
-
-/* ============================================================
-   FE-FND-005 — Exact desktop business popover alignment
-   ============================================================ */
-
-@media (min-width: 1024px) {
-  .top-header-popover-layer--business {
-    top: 68px;
-    right: 0;
-    bottom: auto;
-    left: 264px;
-    display: grid;
-    grid-template-columns:
-      minmax(210px, 280px)
-      minmax(240px, 560px)
-      auto;
-    align-items: start;
-    gap: var(--space-5);
-    padding: 0 var(--space-8);
-  }
-
-  .top-header-popover-layer--business
-    .top-header-popover-backdrop {
-    position: fixed;
-    inset: 0;
-  }
-
-  .top-header-popover-layer--business
-    .top-header-popover--business {
-    position: relative;
-    top: auto;
-    right: auto;
-    left: auto;
-    grid-column: 1;
-    width: 100%;
-    max-width: 280px;
-    margin: 0;
-  }
-
-  .top-app-shell.is-sidebar-collapsed .top-header-popover-layer--search,
-  .top-app-shell.is-sidebar-collapsed .top-header-popover-layer--business {
-    left: 72px;
-  }
-}
-
-@media (min-width: 1024px) and (max-width: 1199px) {
-  .top-header-popover-layer--business {
-    grid-template-columns:
-      minmax(190px, 230px)
-      minmax(180px, 1fr)
-      auto;
-    gap: var(--space-3);
-    padding-right: var(--space-5);
-    padding-left: var(--space-5);
-  }
-
-  .top-header-popover-layer--business
-    .top-header-popover--business {
-    max-width: 230px;
   }
 }
 

@@ -30,29 +30,18 @@ import { useBookings } from "../../bookings/queries/use-bookings";
 import { useBlocks } from "../../blocks/queries/use-blocks";
 import { useContacts } from "../../contacts/queries/use-contacts";
 import { createContact } from "../../contacts/api/create-contact";
-import { createBooking } from "../../bookings/api/create-booking";
-import { submitBooking } from "../../bookings/api/submit-booking";
-import { confirmBooking } from "../../bookings/api/confirm-booking";
+import { createPendingBooking } from "../../bookings/api/create-pending-booking";
 import { useSelectableRatePlans } from "../../pricing/queries/use-selectable-rate-plans";
 import { useCalculatePrice } from "../../pricing/queries/use-calculate-price";
 import type { CalculatePriceResult } from "../../pricing/types/pricing.types";
-import type { Booking, BookingStatus } from "../../bookings/types/booking.types";
+import type { Booking } from "../../bookings/types/booking.types";
+import { bookingStatusLabels as bookingLabels } from "../../bookings/booking-status";
 import type { Block } from "../../blocks/types/block.types";
 import { useAvailabilityCalendar } from "../queries/use-availability-calendar";
 import "./AvailabilityCalendarPage.css";
 
 
 const DAY_MS = 86_400_000;
-
-const bookingLabels: Record<BookingStatus, string> = {
-  DRAFT: "Borrador",
-  PENDING: "Pendiente",
-  CONFIRMED: "Confirmada",
-  IN_PROGRESS: "En estadía",
-  COMPLETED: "Finalizada",
-  CANCELLED: "Cancelada",
-  NO_SHOW: "No presentada",
-};
 
 /** Soporte UTC para aritmética y etiquetas de fecha pura; nunca un instante del Business. */
 function calendarDateFromCarrier(date: Date) {
@@ -103,10 +92,10 @@ function selectedDiscountPercent(wizard: WizardState) {
 }
 
 export function AvailabilityCalendarPage() {
-  const { activeBusiness } = useBusinessContext();
+  const { activeBusiness, activeRole } = useBusinessContext();
   const { session } = useAuth();
   if (!activeBusiness) return <p role="status">Seleccioná un negocio para ver el calendario.</p>;
-  return <BusinessCalendar key={`${session?.user.id}:${activeBusiness.id}:${activeBusiness.timezone}`} businessId={activeBusiness.id} timezone={activeBusiness.timezone} currency={activeBusiness.currency} />;
+  return <BusinessCalendar key={`${session?.user.id}:${activeBusiness.id}:${activeBusiness.timezone}:${activeRole}`} businessId={activeBusiness.id} timezone={activeBusiness.timezone} currency={activeBusiness.currency} />;
 }
 
 function BusinessCalendar({ businessId, timezone, currency }: { businessId: string; timezone: string; currency: string }) {
@@ -114,6 +103,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
   const queryClient = useQueryClient();
   const { session } = useAuth();
   const { activeRole } = useBusinessContext();
+  const canOperate = Boolean(session?.user.id && session.accessToken) && (activeRole === "OWNER" || activeRole === "ADMIN" || activeRole === "RECEPTIONIST");
   const canOverride = activeRole === "OWNER" || activeRole === "ADMIN";
   const accessToken = session?.accessToken;
   const today = businessDateAt(new Date(), timezone);
@@ -323,6 +313,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
   }
 
   function openWizard(day?: string, resourceId?: string) {
+    if (!canOperate) return;
     wizardTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setWizard({
       ...emptyWizard,
@@ -337,7 +328,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
   }
 
   async function nextStep() {
-    if (saving) return;
+    if (!canOperate || saving) return;
     setError(null);
     if (step === 1) {
       const adults = Number(wizard.adults);
@@ -400,6 +391,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
   }
 
   async function handleCreateContact() {
+    if (!canOperate) return;
     setError(null);
     if (newContact.name.trim().length < 2 || newContact.lastName.trim().length < 2 || newContact.phone.trim().length < 6) {
       setError("Completá nombre, apellido y teléfono del contacto.");
@@ -453,15 +445,14 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
   }
 
   async function finishBooking() {
-    if (savingLock.current || !businessId || !pricingReady || ((wizard.mode !== "CONFIGURED" || selectedDiscountPercent(wizard) > 0) && !canOverride) || (wizard.mode === "CONFIGURED" && !preview)) return;
+    if (!canOperate || savingLock.current || !businessId || !pricingReady || ((wizard.mode !== "CONFIGURED" || selectedDiscountPercent(wizard) > 0) && !canOverride) || (wizard.mode === "CONFIGURED" && !preview)) return;
     savingLock.current = true;
     const controller = operation();
     const discount = selectedDiscountPercent(wizard);
-    let pendingBookingId: string | null = null;
     setSaving(true);
     setError(null);
     try {
-      const booking = await createBooking({
+      const booking = await createPendingBooking({
         businessId: businessId,
         accessToken,
         signal: controller.signal,
@@ -472,18 +463,6 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
           checkOutDate: wizard.checkOut,
           adults: Number(wizard.adults),
           children: Number(wizard.children),
-        },
-      });
-      if (controller.signal.aborted) return;
-      await submitBooking({ businessId: businessId, bookingId: booking.id, accessToken, signal: controller.signal });
-      if (controller.signal.aborted) return;
-      pendingBookingId = booking.id;
-      await confirmBooking({
-        businessId: businessId,
-        bookingId: booking.id,
-        accessToken,
-        signal: controller.signal,
-        input: {
           pricing: [{
             resourceId: wizard.resourceId,
             ...(wizard.mode === "MANUAL_NO_RATE_PLAN" ? { pricingMode: "MANUAL_NO_RATE_PLAN" as const, agreedAmountMinor: guaraniesToMinor(wizard.agreedAmountMinor)!, overrideReason: wizard.overrideReason.trim() } : { ratePlanId: wizard.ratePlanId,
@@ -498,19 +477,17 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
         },
       });
       if (controller.signal.aborted) return;
-      await queryClient.invalidateQueries({ queryKey: ["bookings", businessId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["bookings", businessId] }),
+        queryClient.invalidateQueries({ queryKey: ["availability", "calendar", businessId] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard", businessId] }),
+      ]);
       if (controller.signal.aborted) return;
       setWizardOpen(false);
       navigate(`/app/bookings/${booking.id}`);
     } catch (cause) {
       if (controller.signal.aborted) return;
-      const message = cause instanceof Error ? cause.message : "No pudimos confirmar la reserva.";
-      if (pendingBookingId) {
-        await queryClient.invalidateQueries({ queryKey: ["bookings", businessId] });
-        if (controller.signal.aborted) return;
-        setWizardOpen(false);
-        navigate(`/app/bookings/${pendingBookingId}/confirm`, { state: { confirmationError: message } });
-      } else setError(message);
+      setError(cause instanceof Error ? cause.message : "No pudimos crear la reserva.");
     } finally {
       operations.current.delete(controller);
       if (!controller.signal.aborted) { savingLock.current = false; setSaving(false); }
@@ -528,7 +505,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
           <h1>Calendario</h1>
           <p>Reservas, disponibilidad y bloqueos en una sola vista.</p>
         </div>
-        <Button type="button" onClick={() => openWizard()}><Plus size={17} />Nueva reserva</Button>
+        {canOperate ? <Button type="button" onClick={() => openWizard()}><Plus size={17} />Nueva reserva</Button> : null}
       </header>
 
       <div className="availability-calendar-toolbar">
@@ -638,17 +615,17 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
                 </strong>
               </div>
 
-              <button
+              {canOperate ? <button
                 type="button"
                 className="availability-mobile-new-booking"
                 onClick={() => openWizard(selectedDay)}
               >
                 <Plus size={16} />
                 Reserva
-              </button>
+              </button> : null}
             </header>
 
-            {selectedDayAgenda.length === 0 ? (
+            {selectedDayAgenda.length === 0 ? canOperate ? (
               <button
                 type="button"
                 className="availability-mobile-empty-day"
@@ -660,7 +637,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
                   <small>Crear una reserva para este día</small>
                 </span>
               </button>
-            ) : (
+            ) : <div className="availability-mobile-empty-day" role="status"><strong>Sin movimientos</strong></div> : (
               <div className="availability-mobile-events">
                 {selectedDayAgenda.map((item) =>
                   item.kind === "booking" ? (
@@ -727,6 +704,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
                         booking={booking}
                         block={block}
                         free={free}
+                        canCreate={canOperate}
                         onFreeClick={openWizard}
                         onBookingClick={openBooking}
                       />
@@ -736,14 +714,14 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
               })}
             </div>
           </div>
-          <footer className="availability-calendar-legend"><span><i className="is-confirmed" />Confirmada</span><span><i className="is-pending" />Pendiente</span><span><i className="is-stay" />En estadía</span><span><i className="is-block" />Bloqueo</span><small>Seleccioná un día libre para iniciar una reserva.</small></footer>
+          <footer className="availability-calendar-legend"><span><i className="is-confirmed" />{bookingLabels.CONFIRMED}</span><span><i className="is-pending" />{bookingLabels.PENDING}</span><span><i className="is-stay" />{bookingLabels.IN_PROGRESS}</span><span><i className="is-block" />Bloqueo</span><small>{canOperate ? "Seleccioná un día libre para iniciar una reserva." : "Consulta las reservas y los bloqueos de este mes."}</small></footer>
         </div>
         </div>
         </>
 
       )}
 
-      <OverlayPanel open={wizardOpen} label="Nueva reserva" className="booking-wizard" layerClassName="booking-wizard-layer" closeLabel="Cerrar asistente de reserva" triggerRef={wizardTrigger} onClose={closeWizard}>
+      <OverlayPanel open={wizardOpen && canOperate} label="Nueva reserva" className="booking-wizard" layerClassName="booking-wizard-layer" closeLabel="Cerrar asistente de reserva" triggerRef={wizardTrigger} onClose={closeWizard}>
             <header><div><span>Paso {step} de 5</span><h2 id="booking-wizard-title">Nueva reserva</h2></div><button type="button" aria-label="Cerrar" onClick={closeWizard}><X size={20} /></button></header>
             <div className="booking-wizard-progress" aria-hidden="true">{[1,2,3,4,5].map((item) => <i key={item} className={item <= step ? "is-active" : ""} />)}</div>
             <div className="booking-wizard-body">
@@ -771,7 +749,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
               ) : (
                 <span aria-hidden="true" />
               )}
-              {step < 5 ? <Button type="button" disabled={saving || (step === 1 && stayAvailability.isLoading) || (step === 4 && (!pricingReady || (wizard.mode !== "CONFIGURED" && guaraniesToMinor(wizard.agreedAmountMinor) === null) || (wizard.mode === "CONFIGURED" && (wizard.discountPercent === "OTHER" && (!Number.isInteger(Number(wizard.customDiscountPercent)) || Number(wizard.customDiscountPercent) < 1 || Number(wizard.customDiscountPercent) > 100)))))} onClick={() => void nextStep()}>{step === 1 ? "Buscar disponibilidad" : "Continuar"}<ArrowRight size={16} /></Button> : <Button type="button" disabled={saving || !pricingReady || (wizard.mode === "CONFIGURED" && !preview)} onClick={() => void finishBooking()}>{saving ? "Confirmando…" : "Confirmar reserva"}<Check size={16} /></Button>}
+              {step < 5 ? <Button type="button" disabled={saving || (step === 1 && stayAvailability.isLoading) || (step === 4 && (!pricingReady || (wizard.mode !== "CONFIGURED" && guaraniesToMinor(wizard.agreedAmountMinor) === null) || (wizard.mode === "CONFIGURED" && (wizard.discountPercent === "OTHER" && (!Number.isInteger(Number(wizard.customDiscountPercent)) || Number(wizard.customDiscountPercent) < 1 || Number(wizard.customDiscountPercent) > 100)))))} onClick={() => void nextStep()}>{step === 1 ? "Buscar disponibilidad" : "Continuar"}<ArrowRight size={16} /></Button> : <Button type="button" disabled={saving || !pricingReady || (wizard.mode === "CONFIGURED" && !preview)} onClick={() => void finishBooking()}>{saving ? "Guardando…" : "Crear reserva"}<Check size={16} /></Button>}
             </footer>
       </OverlayPanel>
     </section>
@@ -784,6 +762,7 @@ function CalendarCell({
   booking,
   block,
   free,
+  canCreate,
   onFreeClick,
   onBookingClick,
 }: {
@@ -792,6 +771,7 @@ function CalendarCell({
   booking?: Booking;
   block?: Block;
   free: boolean;
+  canCreate: boolean;
   onFreeClick: (
     day?: string,
     resourceId?: string,
@@ -832,15 +812,15 @@ function CalendarCell({
     <button
       type="button"
       className={`availability-calendar-cell${weekend ? " is-weekend" : ""}${free ? " is-free" : " is-unavailable"}`}
-      disabled={!free}
+      disabled={!free || !canCreate}
       aria-label={
         free
-          ? `Crear reserva para ${formatDateForDisplay(day)}`
+          ? `${canCreate ? "Crear reserva para" : "Disponible el"} ${formatDateForDisplay(day)}`
           : `No disponible el ${formatDateForDisplay(day)}`
       }
       onClick={() => onFreeClick(day, resourceId)}
     >
-      {free && <Plus size={14} />}
+      {free && canCreate && <Plus size={14} />}
     </button>
   );
 }
@@ -1153,5 +1133,5 @@ function RateStep({ wizard, ratePlans, loading, failed, retry, canOverride, prev
 function ReviewStep({ wizard, resourceName, contactName, rateName, preview, currency }: { wizard: WizardState; resourceName?: string; contactName?: string; rateName?: string; preview: CalculatePriceResult | null; currency: string }) {
   const discount = selectedDiscountPercent(wizard);
   const total = wizard.mode !== "CONFIGURED" ? guaraniesToMinor(wizard.agreedAmountMinor) ?? 0 : preview ? Math.round(preview.totalAmountMinor * (100 - discount) / 100) : 0;
-  return <><div className="booking-wizard-heading"><Check size={22} /><div><h3>Revisá y confirmá</h3><p>TOP volverá a validar disponibilidad y precio al confirmar.</p></div></div><dl className="booking-wizard-review"><div><dt>Contacto</dt><dd>{contactName}</dd></div><div><dt>Alojamiento</dt><dd>{resourceName}</dd></div><div><dt>Estadía</dt><dd>{formatDateForDisplay(wizard.checkIn)} → {formatDateForDisplay(wizard.checkOut)}</dd></div><div><dt>Huéspedes</dt><dd>{wizard.adults} adultos · {wizard.children} niños</dd></div><div><dt>Precio</dt><dd>{wizard.mode === "MANUAL_NO_RATE_PLAN" ? "Precio manual" : rateName}</dd></div>{wizard.mode === "MANUAL_NO_RATE_PLAN" && <div><dt>Motivo</dt><dd>{wizard.overrideReason.trim()}</dd></div>}<div className="is-total"><dt>Total acordado</dt><dd>{formatMoney(total, currency)}</dd></div></dl></>;
+  return <><div className="booking-wizard-heading"><Check size={22} /><div><h3>Revisá y creá la reserva</h3><p>La reserva quedará Pendiente. Un pago registrado confirmará la reserva. TOP valida disponibilidad y precio al guardar.</p></div></div><dl className="booking-wizard-review"><div><dt>Contacto</dt><dd>{contactName}</dd></div><div><dt>Alojamiento</dt><dd>{resourceName}</dd></div><div><dt>Estadía</dt><dd>{formatDateForDisplay(wizard.checkIn)} → {formatDateForDisplay(wizard.checkOut)}</dd></div><div><dt>Huéspedes</dt><dd>{wizard.adults} adultos · {wizard.children} niños</dd></div><div><dt>Precio</dt><dd>{wizard.mode === "MANUAL_NO_RATE_PLAN" ? "Precio manual" : rateName}</dd></div>{wizard.mode === "MANUAL_NO_RATE_PLAN" && <div><dt>Motivo</dt><dd>{wizard.overrideReason.trim()}</dd></div>}<div className="is-total"><dt>Total acordado</dt><dd>{formatMoney(total, currency)}</dd></div></dl></>;
 }

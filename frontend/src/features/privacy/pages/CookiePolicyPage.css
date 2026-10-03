@@ -1,0 +1,42 @@
+.top-privacy-page { min-height: 100vh; background: var(--color-background); color: var(--color-text-primary); }
+.top-privacy-header, .top-privacy-content, .top-privacy-footer { width: min(100% - var(--space-6), 880px); margin-inline: auto; }
+.top-privacy-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding-block: var(--space-5); }
+.top-privacy-page a { color: var(--color-brand-primary); text-underline-offset: 3px; }
+.top-privacy-page a:focus-visible { outline: 2px solid var(--color-brand-primary); outline-offset: 3px; border-radius: var(--radius-sm); }
+.top-privacy-brand { display: inline-flex; align-items: center; min-height: 44px; font-size: 24px; font-weight: 700; text-decoration: none; }
+.top-privacy-back { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; font-size: 14px; }
+.top-privacy-skip { position: absolute; top: var(--space-2); left: var(--space-4); z-index: 1; padding: var(--space-3); transform: translateY(-200%); background: var(--color-surface); }
+.top-privacy-skip:focus { transform: none; }
+.top-privacy-intro { padding-block: var(--space-5); }
+.top-privacy-intro > svg { color: var(--color-brand-primary); }
+.top-privacy-intro h1 { margin: var(--space-3) 0 var(--space-4); font-size: 28px; line-height: 36px; font-weight: 700; }
+.top-privacy-page p, .top-privacy-page li, .top-privacy-page dd { font-size: 16px; line-height: 24px; }
+.top-privacy-page p { margin-block: var(--space-3); }
+.top-privacy-intro .top-privacy-date { color: var(--color-text-secondary); font-size: 14px; line-height: 20px; }
+.top-privacy-notice { display: flex; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.top-privacy-notice > svg { flex: 0 0 auto; margin-top: 2px; color: var(--color-info); }
+.top-privacy-notice p { margin: 0; }
+.top-privacy-index { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); padding-block: var(--space-5); }
+.top-privacy-index a { display: inline-flex; align-items: center; min-height: 44px; }
+.top-privacy-section { padding-block: var(--space-5); border-top: 1px solid var(--color-border); scroll-margin-top: var(--space-5); }
+.top-privacy-section h2 { margin: 0 0 var(--space-4); color: var(--color-brand-secondary); font-size: 20px; line-height: 28px; }
+.top-privacy-inventory { display: grid; gap: var(--space-4); margin-top: var(--space-5); }
+.top-privacy-entry { padding: var(--space-4); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+.top-privacy-entry h3 { margin: 0 0 var(--space-4); font-size: 16px; line-height: 24px; font-weight: 600; }
+.top-privacy-entry dl { margin: 0; }
+.top-privacy-entry dl > div + div { margin-top: var(--space-3); }
+.top-privacy-entry dt { color: var(--color-text-secondary); font-size: 14px; line-height: 20px; font-weight: 600; }
+.top-privacy-entry dd { margin: var(--space-1) 0 0; overflow-wrap: anywhere; }
+.top-privacy-entry code { font-size: 14px; }
+.top-privacy-list { margin-block: var(--space-4); padding-left: var(--space-5); }
+.top-privacy-list li + li { margin-top: var(--space-3); }
+.top-privacy-pending { padding-bottom: var(--space-7); }
+.top-privacy-footer { padding-block: var(--space-5); border-top: 1px solid var(--color-border); }
+.top-privacy-footer a { display: inline-flex; align-items: center; min-height: 44px; }
+@media (min-width: 768px) {
+  .top-privacy-header, .top-privacy-content, .top-privacy-footer { width: min(100% - var(--space-10), 880px); }
+  .top-privacy-intro h1 { font-size: 32px; line-height: 40px; }
+  .top-privacy-entry { padding: var(--space-5); }
+  .top-privacy-entry dl > div { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: var(--space-4); }
+  .top-privacy-entry dd { margin-top: 0; }
+}

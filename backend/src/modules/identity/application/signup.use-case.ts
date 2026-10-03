@@ -7,6 +7,7 @@ import { EMAIL_SENDER, type EmailSender } from '../domain/email-sender';
 import { CryptoEmailVerificationTokenService } from '../infrastructure/crypto-email-verification-token.service';
 import { SignupRateLimiter } from './signup-rate-limiter';
 import { readAppPublicUrl } from '../../../config/environment';
+import { EmailFeaturePolicy } from './email-feature-policy';
 
 export interface SignupRequest { displayName: unknown; email: unknown; password: unknown; businessName: unknown; timezone: unknown; }
 export interface SignupResponse { status: 'EMAIL_VERIFICATION_REQUIRED'; email: string; }
@@ -17,10 +18,11 @@ export class SignupEmailConflictError extends Error {}
 export class SignupUseCase {
   private readonly logger = new Logger(SignupUseCase.name);
   private readonly publicUrl: string;
-  constructor(private readonly prisma: PrismaIdentityService, @Inject(PASSWORD_HASHER) private readonly passwordHasher: PasswordHasher, @Inject(EMAIL_SENDER) private readonly email: EmailSender, private readonly tokenService: CryptoEmailVerificationTokenService, private readonly limiter: SignupRateLimiter, config: ConfigService = new ConfigService()) {
+  constructor(private readonly prisma: PrismaIdentityService, @Inject(PASSWORD_HASHER) private readonly passwordHasher: PasswordHasher, @Inject(EMAIL_SENDER) private readonly email: EmailSender, private readonly tokenService: CryptoEmailVerificationTokenService, private readonly limiter: SignupRateLimiter, config: ConfigService = new ConfigService(), private readonly emailFeatures: EmailFeaturePolicy = new EmailFeaturePolicy(config)) {
     this.publicUrl = readAppPublicUrl(config);
   }
   async execute(input: SignupRequest): Promise<SignupResponse> {
+    this.emailFeatures.assertAvailable();
     const data = this.validate(input);
     if (!this.limiter.allow(data.email)) throw new InvalidSignupInputError('Demasiados intentos. Esperá unos minutos e intentá nuevamente.');
     const passwordHash = await this.passwordHasher.hash(data.password);

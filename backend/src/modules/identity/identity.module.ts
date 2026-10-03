@@ -10,6 +10,9 @@ import { RefreshTokenUseCase } from './application/refresh-token.use-case';
 import { LogoutUseCase } from './application/logout.use-case';
 import { DisableUserUseCase } from './application/disable-user.use-case';
 import { UpdateUserUseCase } from './application/update-user.use-case';
+import { GetUserProfileUseCase } from './application/get-user-profile.use-case';
+import { UpdateUserProfileUseCase } from './application/update-user-profile.use-case';
+import { USER_PROFILE_CHANGE_REPOSITORY } from './domain/user-profile-change.repository';
 import { ACCESS_TOKEN_ISSUER, ACCESS_TOKEN_VERIFIER } from './domain/access-token-issuer';
 import { AUTHENTICATION_REPOSITORY } from './domain/authentication.repository';
 import { BUSINESS_LOOKUP, MEMBERSHIP_REPOSITORY, USER_LOOKUP } from './domain/membership.repository';
@@ -46,17 +49,20 @@ import { SignupRateLimiter } from './application/signup-rate-limiter';
 import { CryptoEmailVerificationTokenService } from './infrastructure/crypto-email-verification-token.service';
 import { ResendVerificationUseCase } from './application/resend-verification.use-case';
 import { readEmailDeliveryMode } from '../../config/environment';
+import { EmailFeaturePolicy } from './application/email-feature-policy';
+import { DisabledEmailSender } from './infrastructure/disabled-email-sender';
 
 export function createEmailSender(config: ConfigService): EmailSender {
-  return readEmailDeliveryMode(config) === 'smtp'
-    ? new SmtpEmailSender(config)
-    : new ConsoleEmailSender();
+  const mode = readEmailDeliveryMode(config);
+  if (mode === 'disabled') return new DisabledEmailSender();
+  return mode === 'smtp' ? new SmtpEmailSender(config) : new ConsoleEmailSender();
 }
 
 @Module({
   imports: [ConfigModule, JwtModule.register({})],
   controllers: [UserController, MembershipController, AuthController],
   providers: [GetBusinessCapabilitiesUseCase, AuthorizationPolicy,
+    EmailFeaturePolicy,
     PrismaIdentityService,
     PrismaMembershipRepository,
     PrismaUserRepository,
@@ -71,6 +77,7 @@ export function createEmailSender(config: ConfigService): EmailSender {
     JwtAccessTokenIssuer,
     CryptoRefreshTokenService,
     { provide: USER_REPOSITORY, useExisting: PrismaUserRepository },
+    { provide: USER_PROFILE_CHANGE_REPOSITORY, useExisting: PrismaUserRepository },
     { provide: AUTHENTICATION_REPOSITORY, useExisting: PrismaUserRepository },
     { provide: USER_BY_ID_LOOKUP, useExisting: PrismaUserRepository },
     { provide: USER_STATUS_REPOSITORY, useExisting: PrismaUserRepository },
@@ -91,6 +98,8 @@ export function createEmailSender(config: ConfigService): EmailSender {
     LogoutUseCase,
     DisableUserUseCase,
     UpdateUserUseCase,
+    GetUserProfileUseCase,
+    UpdateUserProfileUseCase,
     ForgotPasswordUseCase,
     ResetPasswordUseCase,
     VerifyResetCodeUseCase,

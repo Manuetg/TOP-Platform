@@ -3,6 +3,10 @@ import type { BookingRepository } from '../../booking/booking.contract';
 import type { BusinessRepository } from '../../business/business.contract';
 import type { PricingSnapshotRepository } from '../../pricing/pricing.contract';
 import {
+  needsPaymentReconciliation,
+  PAYMENT_RECONCILIATION_WARNING,
+} from '../domain/financial-reconciliation';
+import {
   OUTSTANDING_BALANCE_REPOSITORY,
   type OutstandingBalanceProjection,
   type OutstandingBalanceRepository,
@@ -20,7 +24,10 @@ export interface OutstandingBalanceResponse {
   totalAmountMinor: number;
   paidAmountMinor: number;
   outstandingAmountMinor: number;
-  overdueAmountMinor: number;
+  creditAmountMinor: number;
+  needsReconciliation: boolean;
+  warning: string | null;
+  overdueAmountMinor: number | null;
   financialStatus: FinancialStatus;
   nextDueDate: string | null;
   nextDueAmountMinor: number | null;
@@ -74,33 +81,40 @@ export class GetOutstandingBalanceUseCase {
       bookingId,
       businessLocalDate: localDateInTimeZone(new Date(), business.timezone),
     });
-    const outstandingAmountMinor =
-      snapshot.totalAmountMinor - projection.paidAmountMinor;
+    const totalAmountMinor =
+      projection.currentTotalAmountMinor ?? snapshot.totalAmountMinor;
+    const currency = projection.currentCurrency ?? snapshot.currency;
+    const outstandingAmountMinor = Math.max(
+      totalAmountMinor - projection.paidAmountMinor,
+      0,
+    );
+    const creditAmountMinor = Math.max(
+      projection.paidAmountMinor - totalAmountMinor,
+      0,
+    );
+    const needsReconciliation = requiresReconciliation(
+      totalAmountMinor,
+      currency,
+      projection,
+    );
 
     this.assertInvariants(
       businessId,
       bookingId,
-      snapshot.totalAmountMinor,
+      totalAmountMinor,
       outstandingAmountMinor,
       projection,
+      needsReconciliation,
     );
-
-    return {
+    return balanceResponse({
       bookingId,
-      currency: snapshot.currency,
-      totalAmountMinor: snapshot.totalAmountMinor,
-      paidAmountMinor: projection.paidAmountMinor,
+      currency,
+      totalAmountMinor,
       outstandingAmountMinor,
-      overdueAmountMinor: projection.overdueAmountMinor,
-      financialStatus: financialStatus(
-        projection.paidAmountMinor,
-        outstandingAmountMinor,
-        projection.overdueAmountMinor,
-      ),
-      nextDueDate:
-        projection.nextDueDate?.toISOString().slice(0, 10) ?? null,
-      nextDueAmountMinor: projection.nextDueAmountMinor,
-    };
+      creditAmountMinor,
+      needsReconciliation,
+      projection,
+    });
   }
 
   private assertInvariants(
@@ -109,11 +123,13 @@ export class GetOutstandingBalanceUseCase {
     totalAmountMinor: number,
     outstandingAmountMinor: number,
     projection: OutstandingBalanceProjection,
+    needsReconciliation: boolean,
   ): void {
     const reason = invariantViolation(
       totalAmountMinor,
       outstandingAmountMinor,
       projection,
+      needsReconciliation,
     );
 
     if (reason) {
@@ -149,6 +165,7 @@ function invariantViolation(
   totalAmountMinor: number,
   outstandingAmountMinor: number,
   projection: OutstandingBalanceProjection,
+  needsReconciliation: boolean,
 ): string | null {
   const money = [
     totalAmountMinor,
@@ -157,16 +174,23 @@ function invariantViolation(
     projection.appliedAmountMinor,
     projection.overdueAmountMinor,
   ];
-  if (!money.every(isValidMoney)) return 'INVALID_MONETARY_AGGREGATE';
-  if (
-    projection.paidAmountMinor > totalAmountMinor ||
-    outstandingAmountMinor < 0
-  ) {
-    return 'PAYMENTS_EXCEED_PRICING_SNAPSHOT';
+  if (projection.planTotalAmountMinor !== null) {
+    money.push(projection.planTotalAmountMinor);
   }
+  if (projection.nextDueAmountMinor !== null) {
+    money.push(projection.nextDueAmountMinor);
+  }
+  if (!money.every(isValidMoney)) return 'INVALID_MONETARY_AGGREGATE';
+  if (projection.invalidMonetaryData) return 'INVALID_PERSISTED_MONEY';
+  if (projection.paymentCurrencyMismatch) return 'PAYMENT_CURRENCY_MISMATCH';
+  if (invalidDueDate(projection.nextDueDate)) return 'INVALID_NEXT_DUE_DATE';
   return projection.paymentPlanId === null
     ? invariantWithoutPlan(projection)
-    : invariantWithPlan(totalAmountMinor, outstandingAmountMinor, projection);
+    : invariantWithPlan(outstandingAmountMinor, projection, needsReconciliation);
+}
+
+function invalidDueDate(value: Date | null): boolean {
+  return value !== null && !Number.isFinite(value.getTime());
 }
 
 function invariantWithoutPlan(
@@ -174,6 +198,7 @@ function invariantWithoutPlan(
 ): string | null {
   const hasPlanDetails =
     projection.planTotalAmountMinor !== null ||
+    (projection.planCurrency !== undefined && projection.planCurrency !== null) ||
     projection.installmentTotalAmountMinor !== 0 ||
     projection.appliedAmountMinor !== 0 ||
     projection.overdueAmountMinor !== 0 ||
@@ -183,25 +208,82 @@ function invariantWithoutPlan(
 }
 
 function invariantWithPlan(
-  totalAmountMinor: number,
   outstandingAmountMinor: number,
   projection: OutstandingBalanceProjection,
+  needsReconciliation: boolean,
 ): string | null {
-  if (
-    projection.planTotalAmountMinor !== totalAmountMinor ||
-    projection.installmentTotalAmountMinor !== totalAmountMinor
-  ) {
-    return 'PAYMENT_PLAN_TOTAL_MISMATCH';
+  if (projection.planTotalAmountMinor === null) {
+    return 'PAYMENT_PLAN_TOTAL_MISSING';
   }
-  if (projection.appliedAmountMinor !== projection.paidAmountMinor) {
-    return 'PAYMENT_APPLICATION_TOTAL_MISMATCH';
+  if (projection.installmentTotalAmountMinor !== projection.planTotalAmountMinor) {
+    return 'PAYMENT_PLAN_INSTALLMENT_TOTAL_MISMATCH';
   }
+  if (projection.appliedAmountMinor > projection.paidAmountMinor) {
+    return 'PAYMENT_APPLICATIONS_EXCEED_PAYMENTS';
+  }
+  if (needsReconciliation) return null;
   if (projection.overdueAmountMinor > outstandingAmountMinor) {
     return 'OVERDUE_EXCEEDS_OUTSTANDING';
   }
   return invalidNextDue(outstandingAmountMinor, projection)
     ? 'INVALID_NEXT_DUE'
     : null;
+}
+
+function requiresReconciliation(
+  totalAmountMinor: number,
+  currency: string,
+  projection: OutstandingBalanceProjection,
+): boolean {
+  return needsPaymentReconciliation(
+    { currency, totalAmountMinor },
+    projection.paidAmountMinor,
+    projection.paymentPlanId === null
+      ? null
+      : {
+          currency: projection.planCurrency ?? currency,
+          totalAmountMinor: projection.planTotalAmountMinor ?? totalAmountMinor,
+          installmentTotalAmountMinor: projection.installmentTotalAmountMinor,
+          appliedAmountMinor: projection.appliedAmountMinor,
+        },
+  );
+}
+
+function balanceResponse(input: {
+  bookingId: string;
+  currency: string;
+  totalAmountMinor: number;
+  outstandingAmountMinor: number;
+  creditAmountMinor: number;
+  needsReconciliation: boolean;
+  projection: OutstandingBalanceProjection;
+}): OutstandingBalanceResponse {
+  const { projection, needsReconciliation } = input;
+  const overdueAmountMinor = needsReconciliation
+    ? null
+    : projection.overdueAmountMinor;
+  return {
+    bookingId: input.bookingId,
+    currency: input.currency,
+    totalAmountMinor: input.totalAmountMinor,
+    paidAmountMinor: projection.paidAmountMinor,
+    outstandingAmountMinor: input.outstandingAmountMinor,
+    creditAmountMinor: input.creditAmountMinor,
+    needsReconciliation,
+    warning: needsReconciliation ? PAYMENT_RECONCILIATION_WARNING : null,
+    overdueAmountMinor,
+    financialStatus: financialStatus(
+      projection.paidAmountMinor,
+      input.outstandingAmountMinor,
+      overdueAmountMinor ?? 0,
+    ),
+    nextDueDate: needsReconciliation
+      ? null
+      : (projection.nextDueDate?.toISOString().slice(0, 10) ?? null),
+    nextDueAmountMinor: needsReconciliation
+      ? null
+      : projection.nextDueAmountMinor,
+  };
 }
 
 function invalidNextDue(

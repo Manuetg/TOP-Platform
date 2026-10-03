@@ -1,4 +1,6 @@
 import { GlobalSearch } from "../../features/search/components/GlobalSearch";
+import { UserAvatar } from "../../features/profile/components/UserAvatar";
+import type { ProfileAvatarId } from "../../features/profile/api/user-profile";
 import {
   useRef,
   useEffect,
@@ -21,12 +23,14 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
+  ShieldCheck,
   Tags,
   WalletCards,
   X,
 } from "lucide-react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { OverlayPanel } from "../../shared/ui/OverlayPanel";
+import { AnchoredPopover } from "../../shared/ui/AnchoredPopover";
 import { Button } from "../../shared/ui/Button";
 import "./AppShell.css";
 
@@ -50,6 +54,8 @@ interface AppShellProps extends PropsWithChildren {
   activeSection: AppSection;
   businessName: string;
   userName: string;
+  userEmail?: string;
+  userAvatarId?: ProfileAvatarId | null;
   userRole: string;
   onNavigate?: (target: AppNavigationTarget) => void;
   onBusinessMenuOpen?: () => void;
@@ -100,6 +106,8 @@ export function AppShell({
   renderBusinessMenu,
   businessName,
   userName,
+  userEmail,
+  userAvatarId,
   userRole,
   onNavigate,
   onBusinessMenuOpen,
@@ -176,6 +184,7 @@ export function AppShell({
       return;
     }
 
+    if (headerMenu) headerTrigger.current?.focus({ preventScroll: true });
     setIsMoreOpen(false);
     closeHeader();
     onNavigate?.(target);
@@ -314,7 +323,7 @@ export function AppShell({
               className="top-global-header__avatar"
               aria-hidden="true"
             >
-              {userInitials || "TOP"}
+              <UserAvatar avatarId={userAvatarId} fallback={userInitials || "TOP"} />
             </span>
 
             <span className="top-global-header__profile-copy">
@@ -361,7 +370,7 @@ export function AppShell({
             }}
             >
               <span aria-hidden="true">
-                {userInitials || "TOP"}
+                <UserAvatar avatarId={userAvatarId} fallback={userInitials || "TOP"} />
               </span>
             </button>
           </div>
@@ -396,8 +405,9 @@ export function AppShell({
       </header>
 
 
-      <OverlayPanel open={headerState.open} label="Panel del encabezado" closeLabel="Cerrar panel del encabezado" triggerRef={headerTrigger} onClose={closeHeader}
-        layerClassName={`top-header-popover-layer${headerState.mode === "business" ? " top-header-popover-layer--business" : ""}`}
+      <AnchoredPopover key={headerState.mode} open={headerState.open} label="Panel del encabezado" triggerRef={headerTrigger} onClose={closeHeader}
+        onAnchorHidden={() => document.getElementById("top-main-content")?.focus({ preventScroll: true })}
+        align={headerState.mode === "business" ? "start" : "end"}
         className={`top-header-popover${headerState.mode === "business" ? " top-header-popover--business" : ""}`}>
             <Button variant="tertiary" size="sm" iconOnly aria-label="Cerrar panel del encabezado" className="top-panel-close" onClick={() => { headerTrigger.current?.focus(); closeHeader(); }}><X size={20} aria-hidden="true" /></Button>            {headerState.mode === "business" && renderBusinessMenu ? <><div className="top-header-popover__heading"><span>Establecimientos</span><strong>Tu negocio activo</strong></div>{renderBusinessMenu(() => { headerTrigger.current?.focus(); closeHeader(); })}</> : headerState.mode === "business" ? (
               <>
@@ -426,8 +436,8 @@ export function AppShell({
 
                 <div className="top-header-popover__empty">
                   <Bell size={20} aria-hidden="true" />
-                  <strong>Todo al día</strong>
-                  <span>No tenés notificaciones nuevas.</span>
+                  <strong>Notificaciones aún no disponibles</strong>
+                  <span>Por ahora, revisa la actividad en Calendario, Reservas y Pagos.</span>
                 </div>
               </>
             ) : (
@@ -439,11 +449,12 @@ export function AppShell({
 
                 <div className="top-header-popover__profile-summary">
                   <span className="top-header-popover__avatar">
-                    {userInitials || "TOP"}
+                    <UserAvatar avatarId={userAvatarId} fallback={userInitials || "TOP"} />
                   </span>
 
                   <div>
                     <strong>{userName}</strong>
+                    {userEmail && userEmail !== userName ? <span>{userEmail}</span> : null}
                     <span>{userRole}</span>
                   </div>
                 </div>
@@ -457,6 +468,10 @@ export function AppShell({
                     <Settings size={18} aria-hidden="true" />
                     <span>Configuración</span>
                   </button>
+                  <a className="top-header-popover__item" href="/cookies">
+                    <ShieldCheck size={18} aria-hidden="true" />
+                    <span>Cookies y almacenamiento</span>
+                  </a>
                   <button type="button" className="top-header-popover__item top-header-popover__item--danger" onClick={onLogout} disabled={isLoggingOut}>
                     <LogOut size={18} aria-hidden="true" />
                     <span>{isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}</span>
@@ -464,7 +479,7 @@ export function AppShell({
                 </div>
               </>
             )}
-      </OverlayPanel>
+      </AnchoredPopover>
 
       <div className={`top-app-shell__body${contextRail ? " top-app-shell__body--with-rail" : ""}`}>
         <main id="top-main-content" tabIndex={-1} className="top-app-shell__content">

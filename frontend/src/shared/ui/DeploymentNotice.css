@@ -1,0 +1,26 @@
+.top-deployment-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 2px solid var(--color-warning);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.top-deployment-notice > svg {
+  flex: 0 0 auto;
+  color: var(--color-warning);
+}
+
+.top-deployment-notice strong {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.top-deployment-notice p {
+  margin: var(--space-1) 0 0;
+  max-width: 100ch;
+}

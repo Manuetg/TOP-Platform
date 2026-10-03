@@ -21,3 +21,4 @@ export const REVENUE_PROJECTION_READER = Symbol(
 export interface RevenueProjectionReader {
   read(input: RevenueProjectionInput): Promise<RevenueProjection>;
 }
+export { needsPaymentReconciliation, PAYMENT_RECONCILIATION_WARNING } from './domain/financial-reconciliation';

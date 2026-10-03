@@ -36,6 +36,7 @@ export function savePaymentPlan(
     {
       method: options.replace ? "PUT" : "POST",
       accessToken: options.accessToken,
+      skipUnauthorizedRecovery: true,
       body: JSON.stringify(options.input),
     },
   );
@@ -60,6 +61,7 @@ export function registerPayment(
     {
       method: "POST",
       accessToken: options.accessToken,
+      skipUnauthorizedRecovery: true,
       headers: { "Idempotency-Key": options.idempotencyKey },
       body: JSON.stringify(options.input),
     },

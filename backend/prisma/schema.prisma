@@ -90,6 +90,10 @@ model User {
   id              String                   @id @default(uuid())
   email           String                   @unique
   displayName      String?
+  birthYear        Int?
+  username         String?
+  phone            String?
+  avatarId         String?
   emailVerifiedAt  DateTime?
   status          UserStatus               @default(ACTIVE)
   createdAt       DateTime                 @default(now())
@@ -100,6 +104,40 @@ model User {
   passwordResetTokens PasswordResetToken[]
   passwordResetChallenges PasswordResetChallenge[]
   emailVerificationTokens EmailVerificationToken[]
+  displayNameAudits UserDisplayNameAudit[] @relation("DisplayNameAuditSubject")
+  displayNameAuditActions UserDisplayNameAudit[] @relation("DisplayNameAuditActor")
+  profileAudits UserProfileAudit[] @relation("ProfileAuditSubject")
+  profileAuditActions UserProfileAudit[] @relation("ProfileAuditActor")
+  businessProfileAuditActions BusinessProfileAudit[] @relation("BusinessProfileAuditActor")
+  pricingRevisionActions PricingRevision[]
+}
+
+model UserDisplayNameAudit {
+  id          String   @id @default(uuid())
+  userId      String
+  actorUserId String
+  occurredAt  DateTime @default(now())
+  beforeName  String?
+  afterName   String
+  reason      String
+  user        User     @relation("DisplayNameAuditSubject", fields: [userId], references: [id], onDelete: Restrict)
+  actor       User     @relation("DisplayNameAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([userId, occurredAt, id])
+}
+
+model UserProfileAudit {
+  id          String   @id @default(uuid())
+  userId      String
+  actorUserId String
+  occurredAt  DateTime @default(now())
+  beforeData  Json
+  afterData   Json
+  reason      String
+  user        User     @relation("ProfileAuditSubject", fields: [userId], references: [id], onDelete: Restrict)
+  actor       User     @relation("ProfileAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([userId, occurredAt, id])
 }
 
 model UserBusinessMembership {
@@ -187,6 +225,10 @@ model Business {
   name                  String
   legalName             String?
   taxId                 String?
+  country               String?
+  region                String?
+  city                  String?
+  address               String?
   timezone              String                   @default("America/Asuncion")
   currency              String                   @default("PYG")
   status                BusinessStatus           @default(ACTIVE)
@@ -200,12 +242,28 @@ model Business {
   blocks                Block[]
   bookings              Booking[]
   pricingSnapshots      PricingSnapshot[]
+  pricingRevisions      PricingRevision[]
   bookingTimelineEvents BookingTimelineEvent[]
   availabilityRule      AvailabilityRule?
   amenities             Amenity[]
   payments              Payment[]
   paymentPlans          PaymentPlan[]
   subscription          BusinessSubscription?
+  profileAudits         BusinessProfileAudit[]
+}
+
+model BusinessProfileAudit {
+  id          String   @id @default(uuid())
+  businessId  String
+  actorUserId String
+  occurredAt  DateTime @default(now())
+  beforeData  Json
+  afterData   Json
+  reason      String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  actor       User     @relation("BusinessProfileAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, occurredAt, id])
 }
 
 model SubscriptionPlan {
@@ -419,6 +477,7 @@ model Booking {
   contact         Contact?               @relation(fields: [contactId], references: [id], onDelete: Restrict)
   resources       BookingResource[]
   pricingSnapshot PricingSnapshot?
+  pricingRevisions PricingRevision[]
   payments        Payment[]
   paymentPlan     PaymentPlan?
   timelineEvents  BookingTimelineEvent[]
@@ -529,6 +588,33 @@ model PricingSnapshot {
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
   booking  Booking  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  revisions PricingRevision[]
 
+  @@unique([id, businessId, bookingId])
   @@index([businessId, createdAt])
+}
+
+model PricingRevision {
+  id String @id @default(uuid())
+  businessId String
+  bookingId String
+  originalSnapshotId String
+  revisionNumber Int
+  currency String
+  totalAmountMinor BigInt
+  items Json
+  previousPricing Json
+  beforeContext Json
+  afterContext Json
+  paidAmountMinorAtSave BigInt
+  reason String?
+  actorUserId String
+  createdAt DateTime @default(now())
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  booking Booking @relation(fields: [bookingId, businessId], references: [id, businessId], onDelete: Restrict)
+  originalSnapshot PricingSnapshot @relation(fields: [originalSnapshotId, businessId, bookingId], references: [id, businessId, bookingId], onDelete: Restrict)
+  actor User @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@unique([bookingId, revisionNumber])
+  @@index([businessId, bookingId, revisionNumber])
 }

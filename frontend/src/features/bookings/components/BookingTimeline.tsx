@@ -3,6 +3,7 @@ import { formatBusinessInstant } from "../../../shared/utils/date-format";
 import {
   CheckCircle2,
   Circle,
+  Pencil,
   Send,
   XCircle,
 } from "lucide-react";
@@ -24,9 +25,13 @@ const EVENT_LABELS: Record<
   string
 > = {
   BOOKING_CREATED: "Reserva creada",
-  BOOKING_SUBMITTED: "Reserva enviada",
+  BOOKING_SUBMITTED: "Reserva pasó a pendiente",
   BOOKING_CONFIRMED: "Reserva confirmada",
+  BOOKING_CHECKED_IN: "Ingreso registrado",
+  BOOKING_CHECKED_OUT: "Salida registrada",
+  BOOKING_MARKED_NO_SHOW: "No show registrado",
   BOOKING_CANCELLED: "Reserva cancelada",
+  BOOKING_AMENDED: "Reserva modificada",
 };
 
 
@@ -36,6 +41,8 @@ function EventIcon({
   type: BookingTimelineEventType;
 }) {
   switch (type) {
+    case "BOOKING_AMENDED":
+      return <Pencil size={16} aria-hidden="true" />;
     case "BOOKING_SUBMITTED":
       return (
         <Send
@@ -45,6 +52,8 @@ function EventIcon({
       );
 
     case "BOOKING_CONFIRMED":
+    case "BOOKING_CHECKED_IN":
+    case "BOOKING_CHECKED_OUT":
       return (
         <CheckCircle2
           size={16}
@@ -53,6 +62,7 @@ function EventIcon({
       );
 
     case "BOOKING_CANCELLED":
+    case "BOOKING_MARKED_NO_SHOW":
       return (
         <XCircle
           size={16}
@@ -90,7 +100,7 @@ function TimelineItem({
       <div className="booking-timeline-item__content">
         <div className="booking-timeline-item__header">
           <strong>
-            {EVENT_LABELS[item.type]}
+            {item.type === "BOOKING_CONFIRMED" && item.details.source === "FREE_CONFIRM" ? "Reserva confirmada sin cobro" : EVENT_LABELS[item.type]}
           </strong>
 
           <time dateTime={item.occurredAt}>
