@@ -1,5 +1,34 @@
 # TOP — Frontend Backlog
 
+> Composición local del piloto (2026-10-02): contratos incorporados desde Settings FINAL61 a Reservas/LAN. Los controles locales actuales y sus límites se registran en docs/00-Current-Status.md y deploy/pilot/release-manifest.json. Frontend y proxy se aprobaron por composición, sin intento agregado completo verde. CI, validación del operador y release siguen pendientes. Los resultados históricos conservan sus fuentes y fechas; no aprueban merge o despliegue.
+
+### Tu establecimiento - contrato incorporado a la composición local (2026-10-02)
+
+Configurar nombre comercial, razón social, identificación fiscal y país/departamento o estado/ciudad/dirección opcionales mediante el PATCH Business existente, con expectedUpdatedAt ISO UTC exacto de milisegundos. Mantener cuenta independiente y establecimiento activo visible. Roles de lectura conservan valores sin edición. Ante refetch mantener borrador/versión; ante 409 consultar actual y descartar explícitamente para adoptar la nueva versión. Cancelar GET antiguos de perfil/lista antes de publicar el guardado. Moneda PYG de lectura; la explicación de timezone comunica la regla autorizada el 2026-10-02: solo cambia antes de tener recursos, reservas, bloqueos o pagos, incluidos archivados/cancelados. El backend aplica la regla sin decisiones de historial en frontend. Un rechazo 400 conserva borrador y versión; restaurar la zona vigente permite guardar los demás datos según permisos. Reutilizar tokens y componentes TOP, estados aplicables, teclado y móvil/desktop. Estado In Progress: controles y QA locales cerrados en los alcances de Current Status; continúan revisión humana y requisitos operativos, sin aprobación de release. Límites y semántica del request en Architecture.
+
+Evidencia de concurrencia del corte Settings: dos carreras PostgreSQL entre inserción de Resource y cambio de zona horaria, en ambos órdenes. No acredita todos los interleavings de Resource/Booking/Block/Payment ni vuelve atómicos los cálculos previos de otros casos de uso. La evidencia actual del árbol combinado y sus límites se registra en Current Status; CI y operación real siguen pendientes.
+
+## Ampliación de Tu cuenta — encargo del 2026-10-02
+
+Estado: **In Progress, composición local para revisión**. Fuente: contrato de Settings FINAL61, preparado originalmente desde 0dc22cd18c403fb0446818c7bb57b63e26820f0c. Esa referencia identifica su origen; los controles locales cerraron según los alcances de Current Status; el cierre de CI y operación se registra por separado, sin aprobación de release, merge ni despliegue.
+
+La solicitud explícita del titular amplía el contrato personal y sustituye el requisito de motivo manual del corte del 2026-10-01. `GET/PATCH /api/users/:id/profile` conservan scope `SELF`, UUID válido, actor `ACTIVE`, independencia del Business y `Cache-Control: no-store`. Nombre completo conserva `displayName` obligatorio, trim y 1..120 caracteres. Se incorporan `birthYear`, `username`, `phone` y `avatarId` opcionales: omitir preserva; `null` borra; usuarios legacy se leen como `null`, sin backfill.
+
+- `birthYear`: únicamente año entero entre 1 y el año UTC vigente; no fecha completa, edad mínima ni obligatoriedad.
+- `username`: alias de perfil opcional con trim y máximo técnico de 50 caracteres. Conserva la etiqueta visible «Nombre de usuario» y explica que es un alias; no cambia Login ni presupone unicidad.
+- `phone`: número internacional con `+`, sin extensión, validado con la dependencia existente y normalizado a E.164. Un string vacío se normaliza a `null`; no implica verificación ni capacidad de mensajería.
+- `avatarId`: catálogo cerrado local `user`, `leaf`, `sun`, `mountain` o `null`, con Lucide regular y tokens TOP. No acepta URLs ni archivos; no introduce almacenamiento externo.
+
+PATCH recibe `expectedUpdatedAt` exacto en ISO UTC con milisegundos; `reason` ya no se pide ni se acepta como fuente de auditoría. El backend genera el motivo `Actualización del perfil por su titular.`. BR-056 conserva entidad, sujeto, actor, instante y valores anteriores/nuevos. `UserProfileAudit` añade JSON diferencial de las claves cambiadas; `UserDisplayNameAudit` se conserva íntegra y sigue registrando cambios efectivos de nombre. Ambas escrituras y perfil comparten transacción con FK `RESTRICT`; un fallo revierte todo.
+
+Se conserva bloqueo `User FOR UPDATE`, revalidación SELF/ACTIVE y comparación de versión antes del no-op. Un conflicto responde `409`, incluso con valores idénticos. Un no-op con versión vigente no escribe ni audita; un cambio avanza la versión al menos un milisegundo. Se preservan correo, verificación, estado, credenciales, membresías, permisos, sesiones y tokens. El DTO añade exclusivamente los cuatro campos personales a `id`, `email`, `displayName`, `status`, `updatedAt`; Login/JWT no se amplían.
+
+La UI mantiene borrador y versión original ante refetch; ante conflicto consulta y permite descartar antes de guardar con la nueva versión. Campos opcionales pueden limpiarse; avatares usan radios nativos y foco visible. La cuenta permanece accesible sin Business y al cambiar de establecimiento. Año usa entrada textual con teclado numérico para no convertir tokens inválidos en borrado; teléfono conserva entradas formateadas completas antes de normalizar en backend.
+
+Correo sigue de lectura. Por instrucción explícita para el piloto LAN de Ema, sin servicio de envío, todo cambio efectivo mediante IAM-005 queda suspendido con `409 EMAIL_CHANGE_UNAVAILABLE`. La ruta valida SELF/ACTIVE y admite únicamente el no-op del mismo correo normalizado, sin escritura, auditoría ni cambio de versión. No consulta duplicados y no usa consoleOTP como prueba de entrega. La cuenta ya verificada conserva su acceso; diferir SMTP no bloquea su uso en el piloto. Esta suspensión no se levanta por cambiar variables de transporte: requiere implementar y revisar un flujo de reautenticación y verificación.
+
+El flujo seguro de correo, sesiones/tokens y la carga segura de foto/logo necesitan contrato y decisiones propios. El contrato de avatar es un catálogo local; la composición no declara aplicada ninguna propuesta separada de avatar en el header. Tu establecimiento conserva PYG como única moneda del MVP; la restricción de cambios de moneda/zona horaria con registros afectados fue autorizada explícitamente el 2026-10-02 y se describe en su contrato vigente. Configuración LAN, cookies y CORS globales pertenecen a otro delta y no se modifican.
+
 Última actualización: 2026-10-02
 
 ## Integración local de reservas y criterios del conjunto (2026-10-02)
@@ -49,6 +78,8 @@ Evidencia local en `validation/booking-operations-20261002` del workspace de rev
 Pendiente histórico de este corte resuelto en el candidato integrado: confirmar sin cobro lee el precio vigente bajo los locks de Booking/Snapshot, con regresiones original cero revisado a positivo y original positivo revisado a cero. La migración, etiquetas y flujo integrado conservan BOOKING_AMENDED. Los controles completos y la QA del conjunto siguen en curso; esta validación focalizada no declara que el piloto esté listo.
 
 ## Refinamientos locales de configuración, estados, Resources y web (2026-10-01)
+
+> Corte histórico del 2026-10-01. El criterio de Perfil con motivo manual se conserva como evidencia; para la composición actual rige la ampliación de Tu cuenta con motivo automático.
 
 Base vigente verificada: `develop@835b2a4`, con PR #97, #98 y #100 integradas. Los apartados siguientes conservan sus fechas y evidencias históricas; sus referencias a revisiones o merges pendientes no describen el remoto vigente. El precio manual libre ya está integrado. Se preservan los conteos históricos del MVP y la definición comercial pendiente de FE-SUB-001.
 
@@ -179,6 +210,8 @@ Implementación validada en PR #90, HEAD `cca693894b76772902edae973583eb71662423
 - Hallazgo ajeno al cambio visual: una tarifa de demo se representa con distinta escala entre Dashboard y Pricing. Contrastar su contrato/formato en el quality gate final antes de afirmar cero regresiones conocidas; no se altera una regla monetaria durante este épico visual.
 
 ### Business Management — Completed, efectivo al integrarse la cadena aprobada en develop
+
+> Corte histórico de Business Management: sus campos y zona de solo lectura describen ese release. Tu establecimiento incorpora ahora ubicación opcional y edición de timezone únicamente sin registros afectados; PYG permanece de lectura. Los gates históricos siguientes no acreditan la nueva composición.
 
 - FE-BUS-002/003 entregadas juntas en `codex/business-management`, dependiente de Foundation #91 y mantenimiento #90. Foundation HEAD `a6906b0ba1b25807e7a7d7b5a3c47db8d115e1f1`: Frontend CI `35872648453` y Backend CI `35872648438` SUCCESS.
 - Selector real a partir de `GET /businesses` y memberships Auth. Un negocio se selecciona automáticamente; varios requieren decisión explícita. La selección vive en memoria durante la sesión y sobrevive al refresh del token, sin persistir credenciales ni reutilizar la selección de otra identidad. Al recargar con varios negocios se solicita selección de nuevo.

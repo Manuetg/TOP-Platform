@@ -38,6 +38,8 @@ Identity & Access, Contact y Block son dominios y capacidades técnicas necesari
 
 El Backend MVP completó las 53 de 53 capacidades aprobadas (100%). La última historia completada es DSH-001 — Business Dashboard. Dashboard tiene sus 4 capacidades completadas (100%): DSH-002 — Occupancy KPI, DSH-003 — Revenue KPI, DSH-004 — Reservations KPI y DSH-001 como agregador público de las tres proyecciones. No quedan capacidades backend planificadas dentro del backlog MVP actual. Este cierre no declara completado el frontend, el quality gate preproducción ni el producto completo.
 
+**Corte histórico del backlog inicial:** los conteos 53/53 y «No quedan capacidades backend planificadas» anteriores describen ese cierre. La decisión posterior NOT-001 conserva notificaciones como Planned, fuera de esta implementación y posteriores al piloto; no está incluida en esos conteos ni se declara implementada. Consultar la entrada vigente de [Backlog](07-Backlog.md) y el candidato de [Estado actual](00-Current-Status.md).
+
 El estado operativo de cada capacidad se mantiene en el [Backlog](07-Backlog.md). [Estado actual](00-Current-Status.md) ofrece el handoff resumido vigente.
 
 ## Progreso por dominio del backlog backend

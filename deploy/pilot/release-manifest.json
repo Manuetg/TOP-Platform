@@ -1,0 +1,803 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "2d2d74c3544e5b4a264a3d65227834ac36e9ba63",
+  "candidateUncommitted": false,
+  "releaseApproved": false,
+  "deploymentProfile": "lan-pilot",
+  "operatorApproval": null,
+  "images": {
+    "API_IMAGE": "",
+    "FRONTEND_IMAGE": "",
+    "POSTGRES_IMAGE": "",
+    "MINIO_IMAGE": "",
+    "HELPER_IMAGE": ""
+  },
+  "files": {
+    ".env.pilot.example": "f50b394c4182d424e9bb202ca50a30c170329df176764106391100b0a28c4042",
+    "README.md": "ebd87f3d0e32a20edbd4d8c6660004aa5911c302b2242d4aa93c7a8f2c9436aa",
+    "compose.pilot.yml": "307adc78ee2b3c7a3de33f5faa149379e168e51162e9af052f17b329e6adb38e",
+    "compose.restore.yml": "a2c52fa352f81fbf2b658687e8eb90068b3ad4d788ae24eb715996a623d7bdd8",
+    "gateway.conf.template": "c5e2901650424555b6fa774120def848f5225df6bcd378352bd408fd15d6def9",
+    "sql/provision-app-role.sql": "bf980e43423d160aa0cd377702d18e48cae5dcb33e7bd5d3d3ec0a0e30cedce5",
+    "storage-policy.template.json": "3825dbec0befbc4b7de15da7343e6a64f3b1062fbd781fed2a00528a960ea784",
+    "windows/Backup.ps1": "d41afc48c98124609f438ce0e63cbbe5e85d6f81df8c7fc36498f34a24686220",
+    "windows/Common.ps1": "e26f56af406bd84bcfdf99ae7056ea39dd2d82435cb1d2002bd619082396fc91",
+    "windows/InspectFirewall.ps1": "713acd6169ba8d94f4f78f1d4402c752934d6e1d9044eb38f4975c93ff6c9a05",
+    "windows/Migrate.ps1": "0f0ddbcf070a008afa0c51c2fabad1edf50ee5623f09f6487d0d9158c15d9ac1",
+    "windows/PrepareData.ps1": "ba4c2c6dfc41d9487fdd3916e6d7ffabd106790b4d82200b2a63e1551ed278a1",
+    "windows/Provision-AppRole.ps1": "43ef89f0daf11b07f73fdcceff5ae204a627d45c1aee02498d05d5745c642eaf",
+    "windows/Restore.ps1": "d71ee279a3dd766be3fd0d194e72a8adea6d43841bc224f8f7accc7800c3f2ba",
+    "windows/Start.ps1": "62d060d36020e72e15931efdc7e0cb2324801020c635c99285958c18cf3a0fe8",
+    "windows/Stop.ps1": "953f4696ed43022d2aa7bd5de688516cdc336dbd1226dab630650f9ec34f9e18",
+    "windows/Test-Safety.ps1": "2f3a7d8c2a1abfbc2fd3be46276b97f1c5c20145e08aee8ef6026c2bfc6d2e4e",
+    "windows/Validate.ps1": "b2541f115c3cc320845bad02225355bc8dcaef352b0371d7241d455bb5537c2a"
+  },
+  "gates": {
+    "backendBuild": {
+      "status": "PASS",
+      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
+        "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
+      }
+    },
+    "backendLint": {
+      "status": "PASS",
+      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
+        "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
+      }
+    },
+    "backendUnit": {
+      "status": "PASS",
+      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
+        "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
+      },
+      "tests": {
+        "passed": 1823,
+        "failed": 0,
+        "pending": 0,
+        "todo": 0,
+        "total": 1823
+      },
+      "suites": {
+        "passed": 138,
+        "failed": 0,
+        "pending": 0,
+        "total": 138
+      }
+    },
+    "backendLanHttpInMemory": {
+      "status": "PASS",
+      "scope": "E2E lan-pilot-auth real del árbol actual con repositorios en memoria; no acredita runtime, DB o imagen productiva LAN.",
+      "tests": 12,
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/e2e-attempt1-jest.json",
+        "sha256": "c9f93e955a494e7730c36aa23db0981b207bd54a83b7c306f99714bfad6e3555"
+      }
+    },
+    "backendArchitecture": {
+      "status": "PASS",
+      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
+        "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
+      },
+      "architecture": "✔ no dependency violations found (363 modules, 869 dependencies cruised)"
+    },
+    "productionPrismaGuard": {
+      "status": "PASS",
+      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
+        "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
+      }
+    },
+    "backendSyntheticMigrations": {
+      "status": "PASS",
+      "migrations": 30,
+      "models": 32,
+      "tables": 33,
+      "scope": "PostgreSQL16.15 nuevo, propio y sintético; validate/generate/deploy/catálogo.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/db-ready.json",
+        "sha256": "b096cadbd5280c1585483c2d047b6b3451f68c395a575a83a17dba4ddfb5889d"
+      }
+    },
+    "backendPostgresIntegration": {
+      "status": "PASS",
+      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
+        "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
+      },
+      "tests": {
+        "passed": 324,
+        "failed": 0,
+        "pending": 0,
+        "todo": 0,
+        "total": 324
+      },
+      "suites": {
+        "passed": 39,
+        "failed": 0,
+        "pending": 0,
+        "total": 39
+      }
+    },
+    "backendPostgresE2E": {
+      "status": "PASS",
+      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
+        "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
+      },
+      "tests": {
+        "passed": 610,
+        "failed": 0,
+        "pending": 0,
+        "todo": 0,
+        "total": 610
+      },
+      "suites": {
+        "passed": 32,
+        "failed": 0,
+        "pending": 0,
+        "total": 32
+      }
+    },
+    "backendAcceptance": {
+      "status": "PASS",
+      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
+        "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
+      },
+      "acceptance": {
+        "scenarioLine": "196 scenarios (196 passed)",
+        "stepLine": "781 steps (781 passed)",
+        "scenarios": {
+          "total": 196,
+          "passed": 196
+        },
+        "steps": {
+          "total": 781,
+          "passed": 781
+        }
+      }
+    },
+    "fullTopPostgresIntegrationAndAcceptance": {
+      "status": "PASS",
+      "scope": "Integración PostgreSQL39/324; E2E32/610 con repositorios mixtos; aceptación196/781. Sin datos reales del operador.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
+        "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
+      }
+    },
+    "fullTopPostgresSyntheticRestore": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "tables": 33,
+      "rows": 84,
+      "checksPerPhase": 61,
+      "deniedPerPhase": 46,
+      "scope": "Dos clusters propios sólo socket; fingerprints/catálogo idénticos y reprovisionamiento. PricingRevision tiene trigger append-only; Snapshot/pagos/auditorías conservan DML permitido. Sin prueba de readers API, LOGIN de operador o MinIO/S3.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/postgres-role-restore/final-summary.json",
+        "sha256": "af43ffb03b452ae7abd0b27850c9cdad7e9c4993e9174c10f91a70133b35975b"
+      }
+    },
+    "frontendBuildStandardAndLan": {
+      "status": "PASS",
+      "scope": "Build finalr5 TSC/Vite LAN/api real; STANDARD r4 conserva producción/configuración/bundle con un único delta posterior de fixture de prueba.",
+      "standardBundle": {
+        "files": 144,
+        "sha256": "e8ce1bba5a2ff611a958ff637a9e602cb20d56416d5c5e2f1e68ac4fed53c0b7"
+      },
+      "lanBundle": {
+        "files": 144,
+        "sha256": "3698795ca9d58b387639750adc80fe86059bfc4463284f9777b42565b08ddf60"
+      },
+      "evidence": [
+        {
+          "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/frontend/final-r5/build-lan-result.json",
+          "sha256": "3a5fdfca74aa2f40972708029a7305e4f5f61f2a1a0f8350466b4b37aa922ebf"
+        },
+        {
+          "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/frontend/final-r4/build-standard-result.json",
+          "sha256": "05514544e7cff68db1a6251fd47496e572781c10f692a7e9432070b3fad58f42"
+        },
+        {
+          "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/calendar-fixture-root-review.json",
+          "sha256": "ca3be6ff6cddb6417b0636bc6936258c90180f48c6af34fae2ae3aa81f9bb295"
+        }
+      ]
+    },
+    "frontendLint": {
+      "status": "PASS",
+      "scope": "Finalr5 actual; permanece el warning previo del formatter sin uso en DashboardHeader.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/frontend/final-r5/lint-result.json",
+        "sha256": "420b34e38043afb12263303682246d6d2aec940b16677c78c5e3b4f90f2f2833"
+      }
+    },
+    "frontendFullTestFinal": {
+      "status": "PASS_BY_COMPOSITION",
+      "files": 126,
+      "tests": 1188,
+      "completeGreenAttempt": false,
+      "originalAggregateRuntimeErrors": "NOT_DETERMINED",
+      "originalGlobalTeardown": "NOT_DETERMINED",
+      "scope": "55 archivos previos aprobados,41 casos Calendar previos,70 archivos recuperados442tests y1 caso con fixture corregido. Se preservan desaparición del proceso y dos timeouts Calendar. Sin intento agregado completo verde.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/frontend/final-r5/full-consolidated-final.json",
+        "sha256": "50135b13194a026c06cc3ca39c5aa354cb39ed5b6b087ee1c70c27d3a1dab11f"
+      }
+    },
+    "frontendBrowserMocks": {
+      "status": "PASS_BY_COMPOSITION",
+      "cases": 162,
+      "totals": {
+        "cases": 162,
+        "passed": 162,
+        "failed": 0,
+        "requests": 1737,
+        "unknown": 0,
+        "blocked": 0,
+        "pageErrors": 0,
+        "unexpectedConsoleErrors": 0
+      },
+      "completeGreenAttempt": false,
+      "scope": "Bundle LAN final real,81 escenarios en390/1440; sólo mocks estrictos de API en el mismo origen. Sin acreditar persistencia backend, S3, LAN física, touch o certificación WCAG.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/browser/final-summary.json",
+        "sha256": "10a35f621ded5cab7cd534854b391976d82858734e375cb72c60d15ad34d6b93"
+      },
+      "fixtureRecovery": "Original158/162 plus targeted4/4; only profile mock changed. Each attempt runner stable, different between attempts by reviewed fixture patch. Raw startup2GETs/1bootstrap abort plus1shared active query are all recorded; logout assertion binds actual active GET cancellation."
+    },
+    "windowsSafety": {
+      "status": "PASS",
+      "assertions": 219,
+      "scope": "Root already executed current Common/Test-Safety exact bytes under PS7; source SHA checked, not rerun",
+      "evidence": {
+        "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\windows-safety-ps7.json",
+        "sha256": "4b8dae6fcf61e5fa28bc5322defbaac32744dcf4b28112e0dded8c0976926751"
+      }
+    },
+    "windowsStartSourceFlowMocks": {
+      "status": "PASS_MOCK_ONLY",
+      "scenarios": 16,
+      "assertions": 140,
+      "runtime": "7.6.5",
+      "scope": "Current literal Start body with admission/Docker/network/HTTP boundaries simulated; no services launched",
+      "actualDatabaseAuthentication": false,
+      "evidence": {
+        "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\deployment-local\\evidence-20261002T230244Z-36079d6274e545358dfad0595483f7d9\\result.json",
+        "sha256": "b2e63d6f8450c7de523a82f3ec38ad9f059c86a77910096cd79ccf7cfdbe7e27"
+      }
+    },
+    "windowsPrivateDatabaseProbeNode": {
+      "status": "PASS_FAKE_PRISMA_ONLY",
+      "scenarios": 12,
+      "assertions": 102,
+      "runtime": "v22.23.2",
+      "scope": "Current Common authentication code executed in Node22 VM with fake Prisma/process/timers; owned native CLI timeout verified separately",
+      "databaseConnected": false,
+      "credentialsCreated": false,
+      "evidence": {
+        "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\deployment-local\\auth-code-20261002T230250Z-69a9b0bd6c6d48ea90e8e477e4fd8fc8\\result.json",
+        "sha256": "d8f6a704be6ea787d4edbca96d6d10795b6b4c1a7a3a7c4805fa6f5356570ed9"
+      },
+      "nativeTimeout": {
+        "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\deployment-local\\auth-code-20261002T230250Z-69a9b0bd6c6d48ea90e8e477e4fd8fc8\\transport.json",
+        "sha256": "a179e3e942c7ed57efbe41372b824bc0dde5e6e07090c807f9845629c7019e30"
+      }
+    },
+    "windowsBackupRestoreSourceFlowMocks": {
+      "status": "PASS_MOCK_ONLY",
+      "scenarios": 19,
+      "runtime": "7.6.5",
+      "scope": "Current literal Backup/Restore bodies and current Common helpers; explicit Docker/SQL/ACL/MinIO/helper mocks only",
+      "realPostgresOrMinioRestore": false,
+      "evidence": {
+        "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\deployment-local\\evidence-20261002T230253Z-3781eaee620747279d1a72cd6ccd90df\\result.json",
+        "sha256": "bb6483e65d8505dbebcce516abb7b220f2907c06aab10b63a7fd79a889f16c88"
+      }
+    },
+    "windowsSyntax": {
+      "status": "PASS_PARSER_ONLY",
+      "files": 11,
+      "utf8BomFiles": 11,
+      "runtimes": [
+        "7.6.5",
+        "5.1.26100.9549"
+      ],
+      "policies": [
+        "RemoteSigned",
+        "AllSigned"
+      ],
+      "operationalScriptsExecutedByParser": false,
+      "evidence": [
+        {
+          "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\deployment-local\\ps7-parser.json",
+          "sha256": "eae006c745e681ae588f0abebb7752df4b0ff211542be7be11f69eb2111a8958"
+        },
+        {
+          "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\deployment-local\\ps51-parser.json",
+          "sha256": "0bb2fb72f1f27b2631edf297239b3968ae37b681efcabf9c1c4233d830d7a346"
+        },
+        {
+          "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\deployment-local\\bom.json",
+          "sha256": "512f3bc4fcdd837c9650b277f3c678488e8d9a0056e99fcf1909cd8dc7b566e0"
+        }
+      ]
+    },
+    "windowsPowerShell51FinalExecution": {
+      "status": "NOT_RUN",
+      "scope": "AllSigned left intact; AST parsing only does not prove operational execution or Ema host behavior"
+    },
+    "postgresLeastPrivilegeRole": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "tables": 33,
+      "rows": 84,
+      "checksPerPhase": 61,
+      "deniedPerPhase": 46,
+      "scope": "Dos clusters propios sólo socket; fingerprints/catálogo idénticos y reprovisionamiento. PricingRevision tiene trigger append-only; Snapshot/pagos/auditorías conservan DML permitido. Sin prueba de readers API, LOGIN de operador o MinIO/S3.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/postgres-role-restore/final-summary.json",
+        "sha256": "af43ffb03b452ae7abd0b27850c9cdad7e9c4993e9174c10f91a70133b35975b"
+      }
+    },
+    "nginxSyntax": {
+      "status": "PASS_CURRENT_TEMPLATE_CACHED_IMAGE",
+      "scope": "Actual nginx -t on current template rendered only LAN_IP/S3_BUCKET under disposable wrapper, cached exact nginx image; no final release image claim",
+      "finalReleaseImage": false,
+      "sourceSha256": "055dc7a0def900d29ee5afc5dc557a0fc79da51805ec2bc258a4b7c9d0d0cd0b",
+      "evidence": {
+        "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\deployment-local\\gateway-attempt-1\\gateway-result.json",
+        "sha256": "c503d9fc74ba9257e253de8ae730f6265479ad065cfba8030c89f45f3710651b"
+      }
+    },
+    "gatewayProxySynthetic": {
+      "status": "PASS_BY_COMPOSITION_SYNTHETIC_PROXY_ONLY",
+      "semanticControls": 20,
+      "initialPassedControlsUsed": 4,
+      "targetedRemainingPassedControls": 16,
+      "completeGreenAttempt": false,
+      "originalAttempt": {
+        "status": "FAIL_PRESERVED",
+        "assertionAttempts": 26,
+        "passedChecks": 25,
+        "error": "Synthetic gateway assertion: api privacy response headers",
+        "evidence": {
+          "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\deployment-local\\gateway-attempt-1\\gateway-result.json",
+          "sha256": "c503d9fc74ba9257e253de8ae730f6265479ad065cfba8030c89f45f3710651b"
+        }
+      },
+      "targetedRecovery": {
+        "status": "PASS_TARGETED_SYNTHETIC_REMAINING",
+        "assertionAttempts": 40,
+        "passedChecks": 40,
+        "evidence": {
+          "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\deployment-local\\gateway-targeted-recovery\\gateway-result.json",
+          "sha256": "910a13ea340aa6d57607c56c2314e9fb9d833abd673793d7c5edab5e4d27fab7"
+        }
+      },
+      "scope": "Current template with public HTTP echo API/object fixtures; prefix/Host/forwarding, exact no-store for source-aligned no-cache API, object URI/query/Host/HEAD/cache overrides, PUT/console/bareAPI/wrongHost rejection, no upstream forwarding of denied requests, internal network/no host ports/mounts",
+      "controls": [
+        {
+          "name": "own gateway health",
+          "status": "PASS",
+          "attempt": "original"
+        },
+        {
+          "name": "api prefix and query preserved",
+          "status": "PASS",
+          "attempt": "original"
+        },
+        {
+          "name": "host and forwarded profile set from gateway",
+          "status": "PASS",
+          "attempt": "original"
+        },
+        {
+          "name": "injected forwarding IP discarded",
+          "status": "PASS",
+          "attempt": "original"
+        },
+        {
+          "name": "api privacy response headers",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "synthetic signed-shaped object path encoding query and host preserved",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "object upstream public cache replaced",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "object HEAD forwarded without body",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "object PUT blocked before upstream",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "object console blocked before upstream",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "bare API prefix rejected",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "unexpected Host connection rejected /api/resources",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "unexpected Host connection rejected /top-pilot-public-fixture/folder/object%20name%2B%C3%B1.jpg?X-Amz-Credential=PUBLIC%2FSCOPE&X-Amz-Signature=SYNTHETIC&part=a&part=b",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "unexpected Host connection rejected /",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "rejected requests never reach fake upstream",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "no host ports top-pilot-gateway-echo-010f1bf0b39346e097809b968b6d2008",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "no volumes host mounts or writable root top-pilot-gateway-echo-010f1bf0b39346e097809b968b6d2008",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "no host ports top-pilot-gateway-nginx-010f1bf0b39346e097809b968b6d2008",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "no volumes host mounts or writable root top-pilot-gateway-nginx-010f1bf0b39346e097809b968b6d2008",
+          "status": "PASS",
+          "attempt": "targeted"
+        },
+        {
+          "name": "network has no external route",
+          "status": "PASS",
+          "attempt": "targeted"
+        }
+      ],
+      "realS3Signature": false,
+      "realMinio": false,
+      "finalReleaseImage": false,
+      "originalMismatchRetained": "Initial generic echo added public,max-age=3600 to API without source basis. Actual nginx response combined public,max-age=3600, no-store failed unchanged exact comparison. Targeted correction removes only mock API public header; public object override test remains. No claim of exact no-store replacement for arbitrary public upstream API headers.",
+      "correctionPlan": {
+        "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\deployment-local\\gateway-recovery-plan.json",
+        "sha256": "081984bca13654340610542e823c39032c97d7cd96f1c81484369acc84964167"
+      },
+      "helperPatch": {
+        "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\deployment-local\\gateway-recovery-helper.patch",
+        "sha256": "e50350bc5b42984ddf1bbe223251d0ccaf7b54e3d826ff1042cfcee2feccbdf4"
+      }
+    },
+    "syntheticOwnershipRestore": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "tables": 33,
+      "rows": 84,
+      "checksPerPhase": 61,
+      "deniedPerPhase": 46,
+      "scope": "Dos clusters propios sólo socket; fingerprints/catálogo idénticos y reprovisionamiento. PricingRevision tiene trigger append-only; Snapshot/pagos/auditorías conservan DML permitido. Sin prueba de readers API, LOGIN de operador o MinIO/S3.",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/postgres-role-restore/final-summary.json",
+        "sha256": "af43ffb03b452ae7abd0b27850c9cdad7e9c4993e9174c10f91a70133b35975b"
+      }
+    },
+    "independentStaticReview": {
+      "status": "PASS_NO_REMAINING_HIGH_IN_REVIEWED_SCOPE",
+      "scope": "Revisión independiente32 archivos y fixes API causales, más revisión root del único fixture Calendar; sin aprobación humana de release.",
+      "evidence": [
+        {
+          "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/independent-review.json",
+          "sha256": "460c85d3dbae30f22478fe54fce49b31c0a850d1bfcc0dbee2c4263e34fed1cb"
+        },
+        {
+          "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/calendar-fixture-root-review.json",
+          "sha256": "ca3be6ff6cddb6417b0636bc6936258c90180f48c6af34fae2ae3aa81f9bb295"
+        }
+      ]
+    },
+    "node22ReleaseImagesAndOfficialCI": {
+      "status": "NOT_RUN",
+      "scope": "Árbol combinado Reservas4d + LAN112 + Settings61 + avatar; evidencias previas en priorLanReview"
+    },
+    "fullOperationalScriptsWithOperatorEnvironment": {
+      "status": "NOT_RUN"
+    },
+    "finalImagesAndRealMinio": {
+      "status": "NOT_RUN"
+    },
+    "emaHostAndRealLanFirewall": {
+      "status": "NOT_RUN"
+    },
+    "reservationsSuccessorIntegrated": {
+      "status": "LOCAL_SCOPED_VALIDATION_CLOSED",
+      "scope": "Base4d includes7c application and35f current-price fix; global checks above validate reviewed file composition. Frontend tests by composition and operator/CI limitations retained."
+    },
+    "backendCoverage": {
+      "status": "PASS",
+      "scope": "Umbrales originales; cobertura repite209 suites/2757 pruebas, sin contarlas como adicionales.",
+      "metrics": {
+        "lines": {
+          "total": 5595,
+          "covered": 5488,
+          "skipped": 0,
+          "pct": 98.08
+        },
+        "statements": {
+          "total": 7409,
+          "covered": 7144,
+          "skipped": 0,
+          "pct": 96.42
+        },
+        "functions": {
+          "total": 1283,
+          "covered": 1258,
+          "skipped": 0,
+          "pct": 98.05
+        },
+        "branches": {
+          "total": 2125,
+          "covered": 1899,
+          "skipped": 0,
+          "pct": 89.36
+        },
+        "branchesTrue": {
+          "total": 0,
+          "covered": 0,
+          "skipped": 0,
+          "pct": "Unknown"
+        }
+      },
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
+        "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
+      }
+    },
+    "officialCI": {
+      "status": "PENDING_AT_COMMIT",
+      "recordedAtUtc": "2026-10-03T11:37:42.209Z",
+      "pullRequest": "https://github.com/Manuetg/TOP-Platform/pull/101",
+      "applicationCommit": "2d2d74c3544e5b4a264a3d65227834ac36e9ba63",
+      "workflowFixCommit": "35d7f5de7c17f416466da813d79e89f69be79acd",
+      "scope": "Backend verify y Frontend verify del HEAD publicado; registrar head exacto y checkout merge provisional. Mutation skipped en PR. Los workflows no publican imágenes finales ni prueban LAN/MinIO/S3/PS/Ema. Resultados terminales e intentos se guardan externamente y en PR sin anticiparlos aquí."
+    },
+    "pilotPackageRepresentation": {
+      "status": "PASS_EOL_EQUIVALENCE_BLOB_HASHES_AND_AST_ONLY",
+      "files": 18,
+      "machineBlobs": 17,
+      "parserScriptsPerRuntime": 11,
+      "evidence": [
+        {
+          "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/package-normalization.json",
+          "sha256": "b52b4ce8a86ec8e90386ce8f42f9295eaff6b64f57734f038bbc22d5d6aca676"
+        },
+        {
+          "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/normalized-ps7-parser.json",
+          "sha256": "de9c08251a45ae049ca5cfe79c0274c5037da29cb08c8485d3acc5a8776bacce"
+        },
+        {
+          "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/normalized-ps51-parser.json",
+          "sha256": "e12b70cea903820ed4d73277e4917a173842b4319093b905108353dae7da9ee8"
+        }
+      ],
+      "scope": "Paquete LF estable por atributos; 17 archivos máquina exactos a blobs2d, BOM preservado, AST posterior PS7/PS5.1 sin ejecución operativa ni cambio de política. Gates originales raw previos intactos."
+    }
+  },
+  "integrationPrerequisites": [
+    "Controles locales del árbol combinado cerrados con hashes propios; frontend y proxy por composición, sin intento agregado completo verde. CI/global teardown/final images/operator validation remain pending.",
+    "Settings final confirmado en34bf7142/d59e19b8; intake61 idéntico. Usuario autorizó commits de integración y push a PR101 Draft para CI el03/10. Sin autorización de merge o despliegue.",
+    "Artefactos finales: cinco imágenes/digests, bundle LAN /api, CI/revisión oficiales y ensayo real MinIO/S3/restore con los mismos digests.",
+    "El operador aporta entorno privado, cuenta ACTIVE/verificada en DB piloto, bucket/política, IP/clientes y firewall específicamente aprobados; no se aprovisionan desde este trabajo."
+  ],
+  "remainingLocalChecks": [
+    "Arranque/parada y backup/restore completos sobre proyecto nuevo con entorno privado del operador e imágenes elegidas; PostgreSQL sintético completo y helpers no reemplazan esta prueba.",
+    "MinIO/S3 autenticado: subida por API con permiso de Business, lectura firmada por gateway, rechazo anónimo/cross-bucket y objetos reconciliados tras restore.",
+    "PC Windows Ema y clientes Wi-Fi reales: listener/IP exactos, regla de firewall concreta aprobada, red Private y acceso restringido; sin publicar en Internet/router.",
+    "Cuenta/origen de datos autorizados en DB piloto; responsables, horarios y destino protegido fuera del disco activo; RPO/RTO y aceptación explícita del riesgo HTTP."
+  ],
+  "limitations": [
+    "HTTP no cifra contraseñas, tokens, fotos o datos y no autentica al servidor ante intermediarios. No equivale a HTTPS.",
+    "Sin despliegue en Ema, cambios reales de firewall/router/certificados/trust, credenciales de operador creadas o uso/modificación de datos reales/DockerQA.",
+    "La clave de intención de pago vive en memoria: salida, recarga o cambio de contexto la pierde. Ante resultado incierto fuera de ese alcance, consultar saldo/historial antes de otra operación.",
+    "Diagnóstico inicial PS5.1 usó ExecutionPolicy Bypass sólo en un proceso, contra la restricción del encargo; terminó sin cambio persistente ni repetición. Runtime finalPS5.1 NOT_RUN bajoAllSigned.",
+    "Ensayo inicial conservado conFAIL y dos posibles volúmenes anónimos vacíos de identidad no probada; no se inspeccionaron/eliminaron recursos sin ownership.",
+    "El baseSHA identifica el punto de partida, no un commit final del candidato. Sin commit, push o merge; releaseApproved=false e imágenes vacías.",
+    "La evidencia histórica LAN/Settings/Reservas no acredita la composición nueva; sus gates requieren el freeze propio. sourceCommit identifica sólo la base mientras candidateUncommitted sea true.",
+    "Frontend final126files1188tests PASS_BY_COMPOSITION: original aggregate runtime errors/global teardown NOT_DETERMINED; no complete green attempt. Original failures and retries remain external evidence.",
+    "Gateway20 semantic controls PASS_BY_COMPOSITION_SYNTHETIC_PROXY_ONLY: original wrong echo API public-cache header failure retained; source-aligned mock correction only. No real S3 signature or MinIO claim."
+  ],
+  "candidateSourceFiles": [],
+  "preservedFailedAttempts": [
+    {
+      "evidence": {
+        "file": "C:/Users/Sady/AppData/Local/Temp/TOP-pilot-backend-combined-node22-08e47ad7d7ef4cd6b4238a6a3b5b8207/summary.json",
+        "sha256": "ec64e28c4eaadda3154c63eb92544578914f274901f608403ccbf75cdf212f53"
+      },
+      "result": "FAIL_FIXTURE_HBA",
+      "correction": "Static build/lint/unit/http/architecture/guard passed. Migration initially failed because host trust only allowed loopback; corrected on unique synthetic network only."
+    },
+    {
+      "evidence": {
+        "file": "C:/Users/Sady/AppData/Local/Temp/TOP-pilot-backend-db-node22-98539a6cefe141a1bf166b130f7aa11d/summary.json",
+        "sha256": "b2204710605b787074a364e91ae159e754fe46c3c89b2d7c60802bedbd3fef34"
+      },
+      "result": "FAIL_FIXTURE_MISSING_JWT",
+      "correction": "33 integration suites passed, two setup failures lacked JWT_ACCESS_SECRET. Final isolated run reused existing public CI fixture and passed35/204."
+    },
+    {
+      "evidence": {
+        "file": "C:/Users/Sady/AppData/Local/Temp/TOP-pilot-new-frontend-qa-node22-20261002/failure-initial-focus-race.txt",
+        "sha256": "7847f3119f4bc7982b958c3def9d2d8a4c569ee471506414d877048cffda7047"
+      },
+      "result": "FAIL_DRIVER_INITIAL_RACE",
+      "correction": "Temporary browser driver waited for lazy login readiness. Final source unchanged and strict assertions retained."
+    },
+    {
+      "evidence": {
+        "file": "C:/Users/Sady/AppData/Local/Temp/TOP-pilot-new-frontend-qa-node22-20261002/failure-desktop-focus-before-diagnostic.txt",
+        "sha256": "7f453676e2fce71c18dfd387d14e96248f9132dcbe56c8c6000d3d35394cfd33"
+      },
+      "result": "FAIL_DRIVER_SCREENSHOT_FOCUS",
+      "correction": "Temporary screenshot capture used viewport and reasserted focus; final source unchanged."
+    }
+  ],
+  "sourceEvidence": {
+    "backendBefore": {
+      "file": "C:/Users/Sady/AppData/Local/Temp/TOP-pilot-backend-db-node22-668c4741d71246fbbda61273dbb5ae9c/source-before.json",
+      "sha256": "c6f50fdeb553db2c413d4f692f32c9d83d9b075fa543e85e9766f629a19cbf16"
+    },
+    "backendAfter": {
+      "file": "C:/Users/Sady/AppData/Local/Temp/TOP-pilot-backend-db-node22-668c4741d71246fbbda61273dbb5ae9c/source-after.json",
+      "sha256": "c6f50fdeb553db2c413d4f692f32c9d83d9b075fa543e85e9766f629a19cbf16"
+    },
+    "frontendBefore": {
+      "file": "C:/Users/Sady/AppData/Local/Temp/TOP-pilot-new-frontend-source-before-20261002.json",
+      "sha256": "5942ba55f3fce8b344870454fc8d6bc2288e8317b22eabdcbaf931982d1514cb"
+    },
+    "frontendAfter": {
+      "file": "C:/Users/Sady/AppData/Local/Temp/TOP-pilot-new-frontend-source-after-20261002.json",
+      "sha256": "5942ba55f3fce8b344870454fc8d6bc2288e8317b22eabdcbaf931982d1514cb"
+    },
+    "backendOrchestration": {
+      "file": "C:/Users/Sady/AppData/Local/Temp/TOP-pilot-backend-db-node22-668c4741d71246fbbda61273dbb5ae9c/orchestration.json",
+      "sha256": "119b2285a130a101439d9652cf66d7314d78cdb0eac0d7a4e060a33a410c38ea"
+    },
+    "backendCleanup": {
+      "file": "C:/Users/Sady/AppData/Local/Temp/TOP-pilot-backend-db-node22-668c4741d71246fbbda61273dbb5ae9c/cleanup-verification.json",
+      "sha256": "edaaba26c61510b046ae190923c8f9e3bf8405fdbaae6ba3718f07bd5cd52fdc"
+    },
+    "originalCandidateRetained": "C:/Users/Sady/AppData/Local/Temp/TOP-pilot-lan-20261002"
+  },
+  "dependencyIntegration": {
+    "worktree": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/TOP-Pilot-Release-Integrated",
+    "mode": "REVIEWED_FILE_COMPOSITION",
+    "releaseApproved": false,
+    "reservations": {
+      "sourceCommit": "4dadd51248922574297dc02802052d3f00ff2489",
+      "currentPriceFix": "35f2e0b13fa22d8e075c03c6d917081dbd660ec1",
+      "applicationCommit": "7c481c03313d07a3e88f4f86581dc882d5a5c994",
+      "applied": true,
+      "globalGates": "LOCAL_SCOPED_VALIDATION_CLOSED; see current gates, not inherited PASS"
+    },
+    "lan": {
+      "files": 112,
+      "patchSha256": "b23896cb416ea3ffbe49cc536315c0bdaab74e02ba0ed5db8f09d15e15fe5366",
+      "appliedByFiles": true
+    },
+    "settings": {
+      "files": 61,
+      "patchSha256": "496afaf1b98ea770d2b0c7b48f121805983fa87f0aea3196762c6b1b2f5ac807",
+      "appliedByFiles": true,
+      "pendingCommitsAuthorized": true,
+      "commitHashes": [
+        "34bf7142aca9ea6ecf404afc7663669cbfe57810",
+        "d59e19b8f79bc333d2301998fd90a433eac8db65"
+      ],
+      "finalHead": "d59e19b8f79bc333d2301998fd90a433eac8db65",
+      "finalPatchSha256": "496afaf1b98ea770d2b0c7b48f121805983fa87f0aea3196762c6b1b2f5ac807"
+    },
+    "avatar": {
+      "patchSha256": "19ea66f2b0b1a1870ea95f38384e3979d0661e5687ed73c83db9286847bd1cb3",
+      "appliedByFiles": true,
+      "globalGates": "LOCAL_SCOPED_VALIDATION_CLOSED; see current gates, not inherited PASS"
+    }
+  },
+  "priorLanReview": {
+    "scope": "LAN112 congelado, anterior a unión Reservas4d/Settings61/avatar; PASS no transferidos",
+    "manifest": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/incoming-lan-release-manifest.json",
+    "sha256": "eb2d056382d9c7b9fc27ca44d6eabe55946e87b0e45815df8dedebbb4ec7ce9f",
+    "originalSourceCommit": "0dc22cd18c403fb0446818c7bb57b63e26820f0c"
+  },
+  "sourceCommitRole": "APPLICATION_COMMIT_METADATA_AND_CI_FOLLOW",
+  "currentSourceEvidence": {
+    "status": "LOCAL_SCOPED_VALIDATION_CLOSED",
+    "candidateUncommitted": false,
+    "backend": {
+      "files": 712,
+      "sha256": "32da748d5679cfb996fc3cd074b937db14271b1b3e08d0113a9d98f22e28f748",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
+        "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
+      }
+    },
+    "frontend": {
+      "allFiles": 412,
+      "allSha256": "7b3f659314ffbb62203410e6dc76d9b9281f9dc8453266e3e9c06d438302e4c3",
+      "productionFiles": 269,
+      "productionSha256": "d93774d19e1f704602dc4abddafeea184e65f50dcabcd3014943c5d9829cfb60",
+      "sourceAndVerificationSha256": "ef15f5e7a37d2317a0e6824dc541d5b042d37a9119a2aef7a8ea21855f25dc8a",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/frontend/final-r5/source-freeze.json",
+        "sha256": "52cc7e7114eee013fa005b9ca7fd82ce9c8d68cb8ba27da3348cc52901114811"
+      }
+    },
+    "lanBundle": {
+      "files": 144,
+      "sha256": "3698795ca9d58b387639750adc80fe86059bfc4463284f9777b42565b08ddf60"
+    },
+    "scope": "Freezes exactos de fuentes/config/tests; el cierre posterior de metadatos no altera entradas de aplicación backend/frontend. Patch/ZIP del delta y hashes completos externos tras cerrar metadatos."
+  },
+  "localValidatedAtUtc": "2026-10-02T23:45:33.533Z",
+  "currentPreservedFailedAttempts": {
+    "frontend": {
+      "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/frontend/final-r5/full-consolidated-final.json",
+      "sha256": "50135b13194a026c06cc3ca39c5aa354cb39ed5b6b087ee1c70c27d3a1dab11f"
+    },
+    "postgresRoleRestore": {
+      "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/postgres-role-restore/final-summary.json",
+      "sha256": "af43ffb03b452ae7abd0b27850c9cdad7e9c4993e9174c10f91a70133b35975b"
+    },
+    "deploymentProxy": {
+      "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/deployment-local/gate-summary.json",
+      "sha256": "bdabc74ac16345ee6160d13d76154f6994cf3d9f4f7743573bdbcd65db6f621a"
+    },
+    "backendCleanup": {
+      "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/cleanup-verification.json",
+      "sha256": "eaf46336e40b0a08d90304eb7eb7b64251e185a9f0e4279c8aa0b54e586fd912"
+    },
+    "browser": {
+      "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/browser/final-summary.json",
+      "sha256": "10a35f621ded5cab7cd534854b391976d82858734e375cb72c60d15ad34d6b93"
+    },
+    "scope": "Original results remain intact, including infrastructure/helper failures, Calendar timeouts and targeted fixture recovery, proxy wrong-mock header, original158/162 browser with4 profile fixture failures, and helper loading/cleanup errors. No original failure is rewritten as PASS."
+  },
+  "integrationBaseCommit": "4dadd51248922574297dc02802052d3f00ff2489",
+  "packageRepresentation": {
+    "lineEndings": "LF",
+    "attributes": "deploy/pilot/** text eol=lf",
+    "preserveUtf8Bom": true,
+    "equivalenceReceipt": "validation/pilot-release-integration-20261002/package-normalization.json",
+    "scope": "Only CRLF to LF; BOM retained; no application/SQL/script semantic changes and no runtime test repeated."
+  }
+}
