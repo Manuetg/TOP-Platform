@@ -191,7 +191,7 @@ El perfil temporal explícito TOP_DEPLOYMENT_PROFILE=lan-pilot conserva NODE_ENV
 
 CORS compara orígenes completos, sin comodines ni fallback abierto. Orígenes ajenos no reciben permiso ni producen 500; preflight conserva autenticación e idempotencia. Guards y aislamiento por Business siguen siendo la autoridad, también sin Origin. Swagger UI/JSON/YAML no se generan ni registran en producción. La auditoría de controladores registrados no encontró rutas HTTP exclusivas debug/test/seed; seed y aprovisionamiento siguen siendo CLI controladas.
 
-Imagen con NODE_ENV=production después de instalación/build; Compose declara development y conserva volúmenes. Ignore Git/Docker excluye env y credenciales; `.env` local se preserva fuera del índice. Este corte cubre B3/B4/B6 y configuración/empaquetado de B2: no modifica dominio, contratos, esquema ni proveedor cloud y no acredita todo B ni Production Ready.
+Imagen Node22 Alpine con OpenSSL y NODE_ENV=production en el stage final; compilación y dependencias operativas se resuelven en stages separados. El runtime instala con omit=dev/optional, conserva Prisma CLI6.19.3 explícitamente para migraciones de API_IMAGE, copia el cliente generado limpio, dist/src sin pruebas, schema/migraciones y package.json; excluye fuentes, seed y herramientas de desarrollo. Los tipos transitivos exigidos por dependencias productivas se conservan. Compose declara development y conserva volúmenes. Ignore Git/Docker excluye env y credenciales; `.env` local se preserva fuera del índice. Este corte cubre B3/B4/B6 y configuración/empaquetado de B2: no modifica dominio, contratos, esquema ni proveedor cloud y no acredita todo B ni Production Ready.
 
 ## 19. Testing
 

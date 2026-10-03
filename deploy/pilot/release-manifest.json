@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "2d2d74c3544e5b4a264a3d65227834ac36e9ba63",
+  "sourceCommit": "dc775f03730d5d0ec623b0e6806f2d483b692ef1",
   "candidateUncommitted": false,
   "releaseApproved": false,
   "deploymentProfile": "lan-pilot",
@@ -35,7 +35,7 @@
   "gates": {
     "backendBuild": {
       "status": "PASS",
-      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "scope": "Antecedente anterior a dc775f0: Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
         "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
@@ -43,7 +43,7 @@
     },
     "backendLint": {
       "status": "PASS",
-      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "scope": "Antecedente anterior a dc775f0: Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
         "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
@@ -51,7 +51,7 @@
     },
     "backendUnit": {
       "status": "PASS",
-      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "scope": "Antecedente anterior a dc775f0: Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
         "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
@@ -72,7 +72,7 @@
     },
     "backendLanHttpInMemory": {
       "status": "PASS",
-      "scope": "E2E lan-pilot-auth real del árbol actual con repositorios en memoria; no acredita runtime, DB o imagen productiva LAN.",
+      "scope": "Antecedente anterior a dc775f0: E2E lan-pilot-auth real del árbol actual con repositorios en memoria; no acredita runtime, DB o imagen productiva LAN.",
       "tests": 12,
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/e2e-attempt1-jest.json",
@@ -81,7 +81,7 @@
     },
     "backendArchitecture": {
       "status": "PASS",
-      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "scope": "Antecedente anterior a dc775f0: Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
         "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
@@ -90,7 +90,7 @@
     },
     "productionPrismaGuard": {
       "status": "PASS",
-      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "scope": "Antecedente anterior a dc775f0: Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
         "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
@@ -101,7 +101,7 @@
       "migrations": 30,
       "models": 32,
       "tables": 33,
-      "scope": "PostgreSQL16.15 nuevo, propio y sintético; validate/generate/deploy/catálogo.",
+      "scope": "Antecedente anterior a dc775f0: PostgreSQL16.15 nuevo, propio y sintético; validate/generate/deploy/catálogo.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/db-ready.json",
         "sha256": "b096cadbd5280c1585483c2d047b6b3451f68c395a575a83a17dba4ddfb5889d"
@@ -109,7 +109,7 @@
     },
     "backendPostgresIntegration": {
       "status": "PASS",
-      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "scope": "Antecedente anterior a dc775f0: Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
         "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
@@ -130,7 +130,7 @@
     },
     "backendPostgresE2E": {
       "status": "PASS",
-      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "scope": "Antecedente anterior a dc775f0: Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
         "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
@@ -151,7 +151,7 @@
     },
     "backendAcceptance": {
       "status": "PASS",
-      "scope": "Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
+      "scope": "Antecedente anterior a dc775f0: Backend combinado actual712 archivos, Node22.23.2. E2E combina PostgreSQL y repositorios en memoria; el total no acredita persistencia real completa.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
         "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
@@ -171,7 +171,7 @@
     },
     "fullTopPostgresIntegrationAndAcceptance": {
       "status": "PASS",
-      "scope": "Integración PostgreSQL39/324; E2E32/610 con repositorios mixtos; aceptación196/781. Sin datos reales del operador.",
+      "scope": "Antecedente anterior a dc775f0: Integración PostgreSQL39/324; E2E32/610 con repositorios mixtos; aceptación196/781. Sin datos reales del operador.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
         "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
@@ -183,7 +183,7 @@
       "rows": 84,
       "checksPerPhase": 61,
       "deniedPerPhase": 46,
-      "scope": "Dos clusters propios sólo socket; fingerprints/catálogo idénticos y reprovisionamiento. PricingRevision tiene trigger append-only; Snapshot/pagos/auditorías conservan DML permitido. Sin prueba de readers API, LOGIN de operador o MinIO/S3.",
+      "scope": "Antecedente anterior a dc775f0: Dos clusters propios sólo socket; fingerprints/catálogo idénticos y reprovisionamiento. PricingRevision tiene trigger append-only; Snapshot/pagos/auditorías conservan DML permitido. Sin prueba de readers API, LOGIN de operador o MinIO/S3.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/postgres-role-restore/final-summary.json",
         "sha256": "af43ffb03b452ae7abd0b27850c9cdad7e9c4993e9174c10f91a70133b35975b"
@@ -191,7 +191,7 @@
     },
     "frontendBuildStandardAndLan": {
       "status": "PASS",
-      "scope": "Build finalr5 TSC/Vite LAN/api real; STANDARD r4 conserva producción/configuración/bundle con un único delta posterior de fixture de prueba.",
+      "scope": "Antecedente anterior a dc775f0: Build finalr5 TSC/Vite LAN/api real; STANDARD r4 conserva producción/configuración/bundle con un único delta posterior de fixture de prueba.",
       "standardBundle": {
         "files": 144,
         "sha256": "e8ce1bba5a2ff611a958ff637a9e602cb20d56416d5c5e2f1e68ac4fed53c0b7"
@@ -217,7 +217,7 @@
     },
     "frontendLint": {
       "status": "PASS",
-      "scope": "Finalr5 actual; permanece el warning previo del formatter sin uso en DashboardHeader.",
+      "scope": "Antecedente anterior a dc775f0: Finalr5 actual; permanece el warning previo del formatter sin uso en DashboardHeader.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/frontend/final-r5/lint-result.json",
         "sha256": "420b34e38043afb12263303682246d6d2aec940b16677c78c5e3b4f90f2f2833"
@@ -230,7 +230,7 @@
       "completeGreenAttempt": false,
       "originalAggregateRuntimeErrors": "NOT_DETERMINED",
       "originalGlobalTeardown": "NOT_DETERMINED",
-      "scope": "55 archivos previos aprobados,41 casos Calendar previos,70 archivos recuperados442tests y1 caso con fixture corregido. Se preservan desaparición del proceso y dos timeouts Calendar. Sin intento agregado completo verde.",
+      "scope": "Antecedente anterior a dc775f0: 55 archivos previos aprobados,41 casos Calendar previos,70 archivos recuperados442tests y1 caso con fixture corregido. Se preservan desaparición del proceso y dos timeouts Calendar. Sin intento agregado completo verde.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/frontend/final-r5/full-consolidated-final.json",
         "sha256": "50135b13194a026c06cc3ca39c5aa354cb39ed5b6b087ee1c70c27d3a1dab11f"
@@ -250,7 +250,7 @@
         "unexpectedConsoleErrors": 0
       },
       "completeGreenAttempt": false,
-      "scope": "Bundle LAN final real,81 escenarios en390/1440; sólo mocks estrictos de API en el mismo origen. Sin acreditar persistencia backend, S3, LAN física, touch o certificación WCAG.",
+      "scope": "Antecedente anterior a dc775f0: Bundle LAN final real,81 escenarios en390/1440; sólo mocks estrictos de API en el mismo origen. Sin acreditar persistencia backend, S3, LAN física, touch o certificación WCAG.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/browser/final-summary.json",
         "sha256": "10a35f621ded5cab7cd534854b391976d82858734e375cb72c60d15ad34d6b93"
@@ -260,7 +260,7 @@
     "windowsSafety": {
       "status": "PASS",
       "assertions": 219,
-      "scope": "Root already executed current Common/Test-Safety exact bytes under PS7; source SHA checked, not rerun",
+      "scope": "Antecedente anterior a dc775f0: Root already executed current Common/Test-Safety exact bytes under PS7; source SHA checked, not rerun",
       "evidence": {
         "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\windows-safety-ps7.json",
         "sha256": "4b8dae6fcf61e5fa28bc5322defbaac32744dcf4b28112e0dded8c0976926751"
@@ -271,7 +271,7 @@
       "scenarios": 16,
       "assertions": 140,
       "runtime": "7.6.5",
-      "scope": "Current literal Start body with admission/Docker/network/HTTP boundaries simulated; no services launched",
+      "scope": "Antecedente anterior a dc775f0: Current literal Start body with admission/Docker/network/HTTP boundaries simulated; no services launched",
       "actualDatabaseAuthentication": false,
       "evidence": {
         "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\deployment-local\\evidence-20261002T230244Z-36079d6274e545358dfad0595483f7d9\\result.json",
@@ -283,7 +283,7 @@
       "scenarios": 12,
       "assertions": 102,
       "runtime": "v22.23.2",
-      "scope": "Current Common authentication code executed in Node22 VM with fake Prisma/process/timers; owned native CLI timeout verified separately",
+      "scope": "Antecedente anterior a dc775f0: Current Common authentication code executed in Node22 VM with fake Prisma/process/timers; owned native CLI timeout verified separately",
       "databaseConnected": false,
       "credentialsCreated": false,
       "evidence": {
@@ -299,7 +299,7 @@
       "status": "PASS_MOCK_ONLY",
       "scenarios": 19,
       "runtime": "7.6.5",
-      "scope": "Current literal Backup/Restore bodies and current Common helpers; explicit Docker/SQL/ACL/MinIO/helper mocks only",
+      "scope": "Antecedente anterior a dc775f0: Current literal Backup/Restore bodies and current Common helpers; explicit Docker/SQL/ACL/MinIO/helper mocks only",
       "realPostgresOrMinioRestore": false,
       "evidence": {
         "file": "C:\\Users\\Sady\\Documents\\Codex\\2026-09-30\\task-2\\validation\\pilot-release-integration-20261002\\deployment-local\\evidence-20261002T230253Z-3781eaee620747279d1a72cd6ccd90df\\result.json",
@@ -336,7 +336,7 @@
     },
     "windowsPowerShell51FinalExecution": {
       "status": "NOT_RUN",
-      "scope": "AllSigned left intact; AST parsing only does not prove operational execution or Ema host behavior"
+      "scope": "Antecedente anterior a dc775f0: AllSigned left intact; AST parsing only does not prove operational execution or Ema host behavior"
     },
     "postgresLeastPrivilegeRole": {
       "status": "PASS_SYNTHETIC_ONLY",
@@ -344,7 +344,7 @@
       "rows": 84,
       "checksPerPhase": 61,
       "deniedPerPhase": 46,
-      "scope": "Dos clusters propios sólo socket; fingerprints/catálogo idénticos y reprovisionamiento. PricingRevision tiene trigger append-only; Snapshot/pagos/auditorías conservan DML permitido. Sin prueba de readers API, LOGIN de operador o MinIO/S3.",
+      "scope": "Antecedente anterior a dc775f0: Dos clusters propios sólo socket; fingerprints/catálogo idénticos y reprovisionamiento. PricingRevision tiene trigger append-only; Snapshot/pagos/auditorías conservan DML permitido. Sin prueba de readers API, LOGIN de operador o MinIO/S3.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/postgres-role-restore/final-summary.json",
         "sha256": "af43ffb03b452ae7abd0b27850c9cdad7e9c4993e9174c10f91a70133b35975b"
@@ -352,7 +352,7 @@
     },
     "nginxSyntax": {
       "status": "PASS_CURRENT_TEMPLATE_CACHED_IMAGE",
-      "scope": "Actual nginx -t on current template rendered only LAN_IP/S3_BUCKET under disposable wrapper, cached exact nginx image; no final release image claim",
+      "scope": "Antecedente anterior a dc775f0: Actual nginx -t on current template rendered only LAN_IP/S3_BUCKET under disposable wrapper, cached exact nginx image; no final release image claim",
       "finalReleaseImage": false,
       "sourceSha256": "055dc7a0def900d29ee5afc5dc557a0fc79da51805ec2bc258a4b7c9d0d0cd0b",
       "evidence": {
@@ -385,7 +385,7 @@
           "sha256": "910a13ea340aa6d57607c56c2314e9fb9d833abd673793d7c5edab5e4d27fab7"
         }
       },
-      "scope": "Current template with public HTTP echo API/object fixtures; prefix/Host/forwarding, exact no-store for source-aligned no-cache API, object URI/query/Host/HEAD/cache overrides, PUT/console/bareAPI/wrongHost rejection, no upstream forwarding of denied requests, internal network/no host ports/mounts",
+      "scope": "Antecedente anterior a dc775f0: Current template with public HTTP echo API/object fixtures; prefix/Host/forwarding, exact no-store for source-aligned no-cache API, object URI/query/Host/HEAD/cache overrides, PUT/console/bareAPI/wrongHost rejection, no upstream forwarding of denied requests, internal network/no host ports/mounts",
       "controls": [
         {
           "name": "own gateway health",
@@ -507,7 +507,7 @@
       "rows": 84,
       "checksPerPhase": 61,
       "deniedPerPhase": 46,
-      "scope": "Dos clusters propios sólo socket; fingerprints/catálogo idénticos y reprovisionamiento. PricingRevision tiene trigger append-only; Snapshot/pagos/auditorías conservan DML permitido. Sin prueba de readers API, LOGIN de operador o MinIO/S3.",
+      "scope": "Antecedente anterior a dc775f0: Dos clusters propios sólo socket; fingerprints/catálogo idénticos y reprovisionamiento. PricingRevision tiene trigger append-only; Snapshot/pagos/auditorías conservan DML permitido. Sin prueba de readers API, LOGIN de operador o MinIO/S3.",
       "evidence": {
         "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/postgres-role-restore/final-summary.json",
         "sha256": "af43ffb03b452ae7abd0b27850c9cdad7e9c4993e9174c10f91a70133b35975b"
@@ -515,7 +515,7 @@
     },
     "independentStaticReview": {
       "status": "PASS_NO_REMAINING_HIGH_IN_REVIEWED_SCOPE",
-      "scope": "Revisión independiente32 archivos y fixes API causales, más revisión root del único fixture Calendar; sin aprobación humana de release.",
+      "scope": "Antecedente anterior a dc775f0: Revisión independiente32 archivos y fixes API causales, más revisión root del único fixture Calendar; sin aprobación humana de release.",
       "evidence": [
         {
           "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/independent-review.json",
@@ -529,7 +529,7 @@
     },
     "node22ReleaseImagesAndOfficialCI": {
       "status": "NOT_RUN",
-      "scope": "Árbol combinado Reservas4d + LAN112 + Settings61 + avatar; evidencias previas en priorLanReview"
+      "scope": "Antecedente anterior a dc775f0: Árbol combinado Reservas4d + LAN112 + Settings61 + avatar; evidencias previas en priorLanReview"
     },
     "fullOperationalScriptsWithOperatorEnvironment": {
       "status": "NOT_RUN"
@@ -542,11 +542,11 @@
     },
     "reservationsSuccessorIntegrated": {
       "status": "LOCAL_SCOPED_VALIDATION_CLOSED",
-      "scope": "Base4d includes7c application and35f current-price fix; global checks above validate reviewed file composition. Frontend tests by composition and operator/CI limitations retained."
+      "scope": "Antecedente anterior a dc775f0: Base4d includes7c application and35f current-price fix; global checks above validate reviewed file composition. Frontend tests by composition and operator/CI limitations retained."
     },
     "backendCoverage": {
       "status": "PASS",
-      "scope": "Umbrales originales; cobertura repite209 suites/2757 pruebas, sin contarlas como adicionales.",
+      "scope": "Antecedente anterior a dc775f0: Umbrales originales; cobertura repite209 suites/2757 pruebas, sin contarlas como adicionales.",
       "metrics": {
         "lines": {
           "total": 5595,
@@ -586,11 +586,10 @@
     },
     "officialCI": {
       "status": "PENDING_AT_COMMIT",
-      "recordedAtUtc": "2026-10-03T11:37:42.209Z",
+      "recordedAtUtc": "2026-10-03T13:04:37.680Z",
       "pullRequest": "https://github.com/Manuetg/TOP-Platform/pull/101",
-      "applicationCommit": "2d2d74c3544e5b4a264a3d65227834ac36e9ba63",
-      "workflowFixCommit": "35d7f5de7c17f416466da813d79e89f69be79acd",
-      "scope": "Backend verify y Frontend verify del HEAD publicado; registrar head exacto y checkout merge provisional. Mutation skipped en PR. Los workflows no publican imágenes finales ni prueban LAN/MinIO/S3/PS/Ema. Resultados terminales e intentos se guardan externamente y en PR sin anticiparlos aquí."
+      "applicationCommit": "dc775f03730d5d0ec623b0e6806f2d483b692ef1",
+      "scope": "Backend/Frontend verify del HEAD que publique este sucesor documental. Registrar exact head/merge, intentos y terminales externamente; no transfiere CI0640 ni publica imágenes."
     },
     "pilotPackageRepresentation": {
       "status": "PASS_EOL_EQUIVALENCE_BLOB_HASHES_AND_AST_ONLY",
@@ -611,7 +610,7 @@
           "sha256": "e12b70cea903820ed4d73277e4917a173842b4319093b905108353dae7da9ee8"
         }
       ],
-      "scope": "Paquete LF estable por atributos; 17 archivos máquina exactos a blobs2d, BOM preservado, AST posterior PS7/PS5.1 sin ejecución operativa ni cambio de política. Gates originales raw previos intactos."
+      "scope": "Antecedente anterior a dc775f0: Paquete LF estable por atributos; 17 archivos máquina exactos a blobs2d, BOM preservado, AST posterior PS7/PS5.1 sin ejecución operativa ni cambio de política. Gates originales raw previos intactos."
     }
   },
   "integrationPrerequisites": [
@@ -739,34 +738,26 @@
     "sha256": "eb2d056382d9c7b9fc27ca44d6eabe55946e87b0e45815df8dedebbb4ec7ce9f",
     "originalSourceCommit": "0dc22cd18c403fb0446818c7bb57b63e26820f0c"
   },
-  "sourceCommitRole": "APPLICATION_COMMIT_METADATA_AND_CI_FOLLOW",
+  "sourceCommitRole": "SECURITY_RUNTIME_APPLICATION_COMMIT_METADATA_FOLLOWS",
   "currentSourceEvidence": {
-    "status": "LOCAL_SCOPED_VALIDATION_CLOSED",
-    "candidateUncommitted": false,
-    "backend": {
-      "files": 712,
-      "sha256": "32da748d5679cfb996fc3cd074b937db14271b1b3e08d0113a9d98f22e28f748",
-      "evidence": {
-        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
-        "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
-      }
+    "applicationCommit": "dc775f03730d5d0ec623b0e6806f2d483b692ef1",
+    "baseCommit": "0640c34ec2466a4a99b5f19d58bf51f8b371bc71",
+    "status": "SCOPED_DEPENDENCY_RUNTIME_VALIDATION_CLOSED_WITH_REMAINING_ADVISORY",
+    "backendInputs": {
+      "Dockerfile": "ef3d601642473fc2e76df919063209f626a415f80e3e191e70e0ac8c103e2509",
+      "package.json": "958b14837bad61e7263830781525d0d8f6c434c47af391862e1dac901dba8b10",
+      "package-lock.json": "311a11e4f42cba83286ea2a61d0439bc2f88d738211fdfc8fa1a892bcea10863",
+      "tsconfig.json": "7d6c65a71cb8dbf4b1a93c5f60598c2cf4afde51ae95ebe869cb6a23b21b6871",
+      "tsconfig.build.json": "27efa8a5abebae96744c1b51d72ea9822ce5e65c2d3cb81bfd8a0c3c5cc0fe19",
+      "nest-cli.json": "61deff62708e95c88cc06616c33c303a7e7b7a54ef160914cfe95662f760cd7f",
+      "test/packaging/production-image.smoke.mjs": "c8422b26a76255d9722e3616dc18defa2ee5adbef152232874d1f1077a1d2cfc"
     },
-    "frontend": {
-      "allFiles": 412,
-      "allSha256": "7b3f659314ffbb62203410e6dc76d9b9281f9dc8453266e3e9c06d438302e4c3",
-      "productionFiles": 269,
-      "productionSha256": "d93774d19e1f704602dc4abddafeea184e65f50dcabcd3014943c5d9829cfb60",
-      "sourceAndVerificationSha256": "ef15f5e7a37d2317a0e6824dc541d5b042d37a9119a2aef7a8ea21855f25dc8a",
-      "evidence": {
-        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/frontend/final-r5/source-freeze.json",
-        "sha256": "52cc7e7114eee013fa005b9ca7fd82ce9c8d68cb8ba27da3348cc52901114811"
-      }
+    "frontendChanged": false,
+    "evidence": {
+      "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/security-remediation-20261003/attempt3-docker-smoke-result.json",
+      "sha256": "c06b39bf0db52aea93b1c46f1747990ca51f37e07dd53c4fd96bd48cafda1c60"
     },
-    "lanBundle": {
-      "files": 144,
-      "sha256": "3698795ca9d58b387639750adc80fe86059bfc4463284f9777b42565b08ddf60"
-    },
-    "scope": "Freezes exactos de fuentes/config/tests; el cierre posterior de metadatos no altera entradas de aplicación backend/frontend. Patch/ZIP del delta y hashes completos externos tras cerrar metadatos."
+    "scope": "Entradas de imagen y cambios acotados; gates backend completos históricos no se transfieren. CI final se registra por separado."
   },
   "localValidatedAtUtc": "2026-10-02T23:45:33.533Z",
   "currentPreservedFailedAttempts": {
@@ -799,5 +790,93 @@
     "preserveUtf8Bom": true,
     "equivalenceReceipt": "validation/pilot-release-integration-20261002/package-normalization.json",
     "scope": "Only CRLF to LF; BOM retained; no application/SQL/script semantic changes and no runtime test repeated."
+  },
+  "preRemediationSourceEvidence": {
+    "status": "LOCAL_SCOPED_VALIDATION_CLOSED",
+    "candidateUncommitted": false,
+    "backend": {
+      "files": 712,
+      "sha256": "32da748d5679cfb996fc3cd074b937db14271b1b3e08d0113a9d98f22e28f748",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/backend/gate-results.json",
+        "sha256": "e603de513fdc77b4d8b722e7bd4322b98fd86003a4c192621ce0553c365af30f"
+      }
+    },
+    "frontend": {
+      "allFiles": 412,
+      "allSha256": "7b3f659314ffbb62203410e6dc76d9b9281f9dc8453266e3e9c06d438302e4c3",
+      "productionFiles": 269,
+      "productionSha256": "d93774d19e1f704602dc4abddafeea184e65f50dcabcd3014943c5d9829cfb60",
+      "sourceAndVerificationSha256": "ef15f5e7a37d2317a0e6824dc541d5b042d37a9119a2aef7a8ea21855f25dc8a",
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/pilot-release-integration-20261002/frontend/final-r5/source-freeze.json",
+        "sha256": "52cc7e7114eee013fa005b9ca7fd82ce9c8d68cb8ba27da3348cc52901114811"
+      }
+    },
+    "lanBundle": {
+      "files": 144,
+      "sha256": "3698795ca9d58b387639750adc80fe86059bfc4463284f9777b42565b08ddf60"
+    },
+    "scope": "Antecedente exacto anterior a los cambios de dependencias/runtime; no acredita los nuevos archivos o lock. Frontend no cambia en la remediación.",
+    "referenceCommit": "0640c34ec2466a4a99b5f19d58bf51f8b371bc71"
+  },
+  "dependencyRemediation": {
+    "applicationCommit": "dc775f03730d5d0ec623b0e6806f2d483b692ef1",
+    "date": "2026-10-03T13:04:37.691Z",
+    "changes": [
+      "platform-express11.2.6/multer2.4.0",
+      "qs6.16.0 limitado a Express/body-parser",
+      "js-yaml5.4.1 limitado a Swagger",
+      "Prisma CLI6.19.3 operativo explícito; runtime sin devtools"
+    ],
+    "audit": {
+      "npmAffectedProductionEntriesBefore": 8,
+      "npmAffectedProductionEntriesAfter": 3,
+      "remainingUniqueAdvisories": [
+        "https://github.com/RebeccaStevens/deepmerge-ts/security/advisories/GHSA-ggr8-5vv4-36mx"
+      ],
+      "high": 3,
+      "moderate": 0,
+      "exploitableHttpFlowDemonstrated": false,
+      "evidence": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/security-remediation-20261003/audit-runtime.json",
+        "sha256": "79dcc244a0b4522d24133b614f495301219dcf12818335168983fda40c20f2a8"
+      }
+    },
+    "validation": {
+      "local": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/security-remediation-20261003/attempt3-local-gate-results.json",
+        "sha256": "dc20314ac182f1ef251c23d71b6e0cd12785d88f29b7ee78f1c975c531b35279"
+      },
+      "unit": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/security-remediation-20261003/unit-relevant-jest.json",
+        "sha256": "d46b0cd0b135618ce05b1989d2c66ec721dbbe3faf985c21094cc59e377d6fe3"
+      },
+      "e2e": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/security-remediation-20261003/e2e-relevant-jest.json",
+        "sha256": "f6576eddb3f7d48a4f5b3c313c85de62037603ef4852c23a8ebead36a603f60a"
+      },
+      "parser": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/security-remediation-20261003/parser-regression.json",
+        "sha256": "0f1164bea50fff735121cb3b1222c0cfab22b9cb714bcbd4ee949686ef203134"
+      },
+      "docker": {
+        "file": "C:/Users/Sady/Documents/Codex/2026-09-30/task-2/validation/security-remediation-20261003/attempt3-docker-smoke-result.json",
+        "sha256": "c06b39bf0db52aea93b1c46f1747990ca51f37e07dd53c4fd96bd48cafda1c60"
+      }
+    },
+    "localImage": {
+      "tag": "top-production-startup-smoke:016644b57e3b4f8f8376b05caa4f556c",
+      "id": "sha256:c74e773743d14777ed04d04ffc8791907aeae3347f254ac2cccb912e8cb94d1d",
+      "published": false,
+      "approvedForPilot": false
+    },
+    "limits": [
+      "No overrides major de deepmerge ni upgrade Prisma",
+      "Firma S3 local no acredita almacenamiento remoto",
+      "Auditoría npm no incluye vulnerabilidades del sistema operativo",
+      "CI del head sucesor pendiente al guardar esta metadata",
+      "No merge/deploy/firewall/trust/credenciales"
+    ]
   }
 }
