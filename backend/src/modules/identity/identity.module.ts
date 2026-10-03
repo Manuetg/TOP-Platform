@@ -49,17 +49,20 @@ import { SignupRateLimiter } from './application/signup-rate-limiter';
 import { CryptoEmailVerificationTokenService } from './infrastructure/crypto-email-verification-token.service';
 import { ResendVerificationUseCase } from './application/resend-verification.use-case';
 import { readEmailDeliveryMode } from '../../config/environment';
+import { EmailFeaturePolicy } from './application/email-feature-policy';
+import { DisabledEmailSender } from './infrastructure/disabled-email-sender';
 
 export function createEmailSender(config: ConfigService): EmailSender {
-  return readEmailDeliveryMode(config) === 'smtp'
-    ? new SmtpEmailSender(config)
-    : new ConsoleEmailSender();
+  const mode = readEmailDeliveryMode(config);
+  if (mode === 'disabled') return new DisabledEmailSender();
+  return mode === 'smtp' ? new SmtpEmailSender(config) : new ConsoleEmailSender();
 }
 
 @Module({
   imports: [ConfigModule, JwtModule.register({})],
   controllers: [UserController, MembershipController, AuthController],
   providers: [GetBusinessCapabilitiesUseCase, AuthorizationPolicy,
+    EmailFeaturePolicy,
     PrismaIdentityService,
     PrismaMembershipRepository,
     PrismaUserRepository,

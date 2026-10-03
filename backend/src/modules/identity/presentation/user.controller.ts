@@ -1,7 +1,7 @@
 import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, Header, HttpCode, HttpStatus, NotFoundException, Param, Patch, Post } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiConflictResponse, ApiCreatedResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateUserUseCase, InvalidUserInputError, UserAlreadyExistsError } from '../application/create-user.use-case';
-import { InvalidUserUpdateError, UpdateUserForbiddenError, UpdateUserNotFoundError, UpdateUserUseCase, UserEmailAlreadyExistsError } from '../application/update-user.use-case';
+import { InvalidUserUpdateError, UpdateUserForbiddenError, UpdateUserNotFoundError, UpdateUserUseCase, UserEmailChangeUnavailableError } from '../application/update-user.use-case';
 import { CreateUserRequestDto } from './dto/create-user.request.dto';
 import { UserResponseDto } from './dto/user.response.dto';
 import { DisableUserResponseDto } from './dto/disable-user.response.dto';
@@ -39,15 +39,17 @@ export class UserController {
   }
   @Patch(':id/profile') @Authenticated() @HttpCode(HttpStatus.OK)
   @Header('Cache-Control', 'no-store')
-  @ApiOperation({ summary: 'Actualizar el nombre del propio perfil personal con motivo e historial' })
+  @ApiOperation({ summary: 'Actualizar el propio perfil personal con auditoría automática' })
   @ApiOkResponse({ type: UserProfileResponseDto })
-  @ApiBadRequestResponse({ description: 'Nombre, motivo o versión inválidos.' })
+  @ApiBadRequestResponse({ description: 'Campo de perfil o versión inválidos.' })
   @ApiForbiddenResponse({ description: 'Solo se permite actualizar el propio perfil ACTIVE.' })
   @ApiNotFoundResponse({ description: 'El usuario no existe.' })
   @ApiConflictResponse({ description: 'La versión del perfil consultado quedó desactualizada.' })
   async updateProfile(@Param('id') id: string, @Body() request: UpdateUserProfileRequestDto, @AuthenticatedUser() principal: AuthenticatedPrincipal): Promise<UserProfileResponseDto> {
     try { return UserProfileResponseDto.fromDomain(await this.updateUserProfileUseCase.execute({
-      id, actorUserId: principal.userId, displayName: request.displayName, reason: request.reason, expectedUpdatedAt: request.expectedUpdatedAt,
+      id, actorUserId: principal.userId, displayName: request.displayName,
+      birthYear: request.birthYear, username: request.username, phone: request.phone, avatarId: request.avatarId,
+      expectedUpdatedAt: request.expectedUpdatedAt,
     })); }
     catch (error: unknown) { return this.profileError(error); }
   }
@@ -72,19 +74,19 @@ export class UserController {
     }
   }
   @Patch(':id') @Authenticated() @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Actualizar el email de un usuario' })
-  @ApiOkResponse({ type: UserResponseDto })
+  @ApiOperation({ summary: 'Cambio de correo suspendido; admite únicamente no-op sobre el correo propio vigente' })
+  @ApiOkResponse({ type: UserResponseDto, description: 'El correo normalizado coincide con el vigente; no modifica datos ni sesiones.' })
   @ApiBadRequestResponse({ description: 'Identificador o email inválido.' })
   @ApiForbiddenResponse({ description: 'El User autenticado solo puede actualizar su propia identidad ACTIVE.' })
   @ApiNotFoundResponse({ description: 'El usuario no existe.' })
-  @ApiConflictResponse({ description: 'El email ya está registrado.' })
+  @ApiConflictResponse({ description: 'EMAIL_CHANGE_UNAVAILABLE: todo cambio efectivo está suspendido hasta contar con un flujo seguro de entrega y verificación.' })
   async update(@Param('id') id: string, @Body() request: UpdateUserRequestDto, @AuthenticatedUser() principal: AuthenticatedPrincipal): Promise<UserResponseDto> {
     try { return UserResponseDto.fromDomain(await this.updateUserUseCase.execute({ id, actorUserId: principal.userId, email: request.email })); }
     catch (error: unknown) {
       if (error instanceof InvalidUserUpdateError) throw new BadRequestException(error.message);
       if (error instanceof UpdateUserForbiddenError) throw new ForbiddenException(error.message);
       if (error instanceof UpdateUserNotFoundError) throw new NotFoundException(error.message);
-      if (error instanceof UserEmailAlreadyExistsError) throw new ConflictException(error.message);
+      if (error instanceof UserEmailChangeUnavailableError) throw new ConflictException({ code: 'EMAIL_CHANGE_UNAVAILABLE', message: error.message });
       throw error;
     }
   }

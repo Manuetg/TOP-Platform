@@ -1,12 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { USER_BY_ID_LOOKUP, type UserByIdLookup } from '../domain/user-by-id.lookup';
-import { USER_REPOSITORY, UserEmailConflictError, type UserRepository } from '../domain/user.repository';
 import { User } from '../domain/user.entity';
 import { UserStatus } from '../domain/user-status.enum';
 
 export class InvalidUserUpdateError extends Error {}
 export class UpdateUserNotFoundError extends Error {}
-export class UserEmailAlreadyExistsError extends Error {}
+export class UserEmailChangeUnavailableError extends Error {
+  constructor() { super('El cambio de correo no está disponible. El correo actual se conserva.'); }
+}
 export class UpdateUserForbiddenError extends Error {}
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -14,7 +15,7 @@ const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
 @Injectable()
 export class UpdateUserUseCase {
-  constructor(@Inject(USER_BY_ID_LOOKUP) private readonly users: UserByIdLookup, @Inject(USER_REPOSITORY) private readonly repository: UserRepository) {}
+  constructor(@Inject(USER_BY_ID_LOOKUP) private readonly users: UserByIdLookup) {}
 
   async execute(input: { id: string; actorUserId: string; email?: unknown }): Promise<User> {
     this.validateActor(input.id, input.actorUserId);
@@ -23,9 +24,7 @@ export class UpdateUserUseCase {
     if (!user) throw new UpdateUserNotFoundError('El usuario no existe.');
     if (user.status !== UserStatus.ACTIVE) throw new UpdateUserForbiddenError('Un usuario deshabilitado no puede actualizarse.');
     if (user.email === normalizedEmail) return user;
-    const existing = await this.repository.findByEmail(normalizedEmail);
-    if (existing && existing.id !== user.id) throw new UserEmailAlreadyExistsError('El email ya está registrado.');
-    return this.persistEmail(user.updateEmail(normalizedEmail));
+    throw new UserEmailChangeUnavailableError();
   }
 
   private validateActor(id: string, actorUserId: string): void {
@@ -41,11 +40,4 @@ export class UpdateUserUseCase {
     return normalized;
   }
 
-  private async persistEmail(user: User): Promise<User> {
-    try { return await this.repository.updateEmail(user); }
-    catch (error: unknown) {
-      if (error instanceof UserEmailConflictError) throw new UserEmailAlreadyExistsError('El email ya está registrado.');
-      throw error;
-    }
-  }
 }

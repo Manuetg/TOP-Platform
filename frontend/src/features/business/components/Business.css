@@ -2,10 +2,17 @@
 .business-profile h1 { margin: 0; font-size: 24px; line-height: 32px; letter-spacing: -.025em; }
 .business-profile > header p { color: var(--color-text-secondary); line-height: 1.6; }
 .business-profile__card h2 { margin: 0; font-size: 20px; line-height: 28px; }
-.business-profile__card { padding: var(--space-5); display: grid; gap: var(--space-5); }
-.business-profile__grid { display: grid; gap: var(--space-5); }
+.business-profile__card { padding: var(--space-5); display: grid; gap: var(--space-5); min-width: 0; }
+.business-profile__card:focus { outline: 2px solid var(--color-brand-primary); outline-offset: 4px; }
+.business-profile__grid { display: grid; gap: var(--space-5); align-items: start; min-width: 0; }
+.business-profile__location { margin: 0; padding: 0; border: 0; min-width: 0; }
+.business-profile__location legend { margin-bottom: var(--space-4); padding: 0; font-weight: 600; }
+.business-profile__current { display: grid; gap: var(--space-3); }
+.business-profile__current dl { display: grid; gap: var(--space-3); margin: 0; overflow-wrap: anywhere; }
+.business-profile__current dt { color: var(--color-text-secondary); font-size: 14px; }
+.business-profile__current dd { margin: var(--space-1) 0 0; }
 .business-profile__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
-.business-profile__notice { margin: 0; color: var(--color-text-secondary); font-size: 14px; line-height: 1.6; }
+.business-profile__notice { margin: 0; color: var(--color-text-secondary); font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
 .business-profile__message { scroll-margin-top: 100px; }
 .business-profile__message:empty { display: none; }
 .business-profile__message:focus { outline: 2px solid var(--color-brand-primary); outline-offset: 4px; }
@@ -15,4 +22,4 @@
 .business-single { display: grid; gap: var(--space-2); overflow-wrap: anywhere; }
 .business-single span { font-size: 12px; color: var(--color-text-secondary); }
 .business-selection-page { max-width: 600px; margin: var(--space-5) auto; }
-@media (min-width: 768px) { .business-profile__grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .business-profile__card { padding: var(--space-6); } }
+@media (min-width: 768px) { .business-profile__grid, .business-profile__current dl { grid-template-columns: repeat(2,minmax(0,1fr)); } .business-profile__card { padding: var(--space-6); } }

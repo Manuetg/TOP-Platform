@@ -190,14 +190,34 @@ describe('Protección JWT y membresía', () => {
     await request(app.getHttpServer()).post('/api/auth/logout').send({}).expect(400);
   });
 
-  it('protege Update User como self-service ACTIVE sin depender de roles tenant', async () => {
+  it.each([undefined, ...Object.values(MembershipRole)])('bloquea cambios de correo y mantiene SELF ACTIVE sin depender del rol %s', async (role) => {
     const endpoint = `/api/users/${userId}`;
-    await request(app.getHttpServer()).patch(endpoint).send({ email: 'new@example.com' }).expect(401);
+    const originalEmail = userEmail;
+    const unavailable = {
+      code: 'EMAIL_CHANGE_UNAVAILABLE',
+      message: 'El cambio de correo no está disponible. El correo actual se conserva.',
+    };
+    if (role) memberships = [membership(businessId, role)];
+    await request(app.getHttpServer()).patch(endpoint).send({ email: 'new@example.test' }).expect(401);
     const token = await bearer();
-    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${token}`).send({ email: ' NEW@EXAMPLE.COM ' }).expect(200).expect(({ body }) => expect(body.email).toBe('new@example.com'));
-    await request(app.getHttpServer()).patch('/api/users/22222222-2222-4222-8222-222222222222').set('Authorization', `Bearer ${token}`).send({ email: 'other@example.com' }).expect(403);
+    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${token}`)
+      .send({ email: ' NEW@EXAMPLE.TEST ' }).expect(409, unavailable);
+    expect(userEmail).toBe(originalEmail);
+    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${token}`)
+      .send({ email: ` ${originalEmail.toUpperCase()} ` }).expect(200)
+      .expect(({ body }) => {
+        expect(body.email).toBe(originalEmail);
+        expect(body.status).toBe(UserStatus.ACTIVE);
+        expect(body).not.toHaveProperty('passwordHash');
+        expect(body).not.toHaveProperty('refreshToken');
+      });
+    expect(userEmail).toBe(originalEmail);
+    await request(app.getHttpServer()).patch('/api/users/22222222-2222-4222-8222-222222222222')
+      .set('Authorization', `Bearer ${token}`).send({ email: originalEmail }).expect(403);
     userStatus = UserStatus.DISABLED;
-    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${token}`).send({ email: 'blocked@example.com' }).expect(401);
+    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${token}`).send({ email: originalEmail }).expect(401);
+    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${token}`).send({ email: 'blocked@example.test' }).expect(401);
+    expect(userEmail).toBe(originalEmail);
   });
   it.each([MembershipRole.OWNER, MembershipRole.ADMIN, MembershipRole.RECEPTIONIST, MembershipRole.VIEWER])('archives Contact using contact.write for %s', async (role) => {
     memberships = [membership(businessId, role)]; archiveContact.mockReset();

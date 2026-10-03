@@ -1,0 +1,146 @@
+# Independiente del Compose de desarrollo. Ejecutar con los scripts Windows.
+name: ${PILOT_PROJECT:?Seleccione un proyecto exclusivo del piloto}
+
+x-pilot-labels: &pilot-labels
+  com.top.pilot.scope: lan-pilot
+  com.top.pilot.source: ${PILOT_SOURCE_COMMIT:?Falta el commit del artefacto aprobado}
+
+x-api-environment: &api-environment
+  NODE_ENV: production
+  TOP_DEPLOYMENT_PROFILE: lan-pilot
+  PORT: "3000"
+  DATABASE_URL: ${DATABASE_URL:?El operador debe suministrar la conexion del rol top_pilot_app}
+  JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?El operador debe suministrar el secreto JWT}
+  PASSWORD_RESET_OTP_SECRET: ${PASSWORD_RESET_OTP_SECRET:?El operador debe suministrar un secreto OTP independiente}
+  APP_PUBLIC_URL: http://${LAN_IP:?Seleccione la IPv4 privada del servidor}:3001
+  CORS_ORIGIN: http://${LAN_IP:?Seleccione la IPv4 privada del servidor}:3001
+  EMAIL_DELIVERY_MODE: disabled
+  S3_ENDPOINT: http://minio:9000
+  S3_PUBLIC_ENDPOINT: http://${LAN_IP:?Seleccione la IPv4 privada del servidor}:3001
+  S3_REGION: us-east-1
+  S3_BUCKET: ${S3_BUCKET:?Seleccione el bucket privado del piloto}
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY:?El operador debe suministrar la credencial limitada al bucket}
+  S3_SECRET_KEY: ${S3_SECRET_KEY:?El operador debe suministrar la credencial limitada al bucket}
+  S3_FORCE_PATH_STYLE: "true"
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:?Falta una imagen PostgreSQL16 fijada y local}
+    pull_policy: never
+    restart: unless-stopped
+    labels: *pilot-labels
+    environment:
+      POSTGRES_USER: top_pilot
+      POSTGRES_DB: top_pilot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?El operador debe suministrar la contrasena PostgreSQL}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [db]
+    logging: { driver: none }
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U top_pilot -d top_pilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    stop_grace_period: 60s
+
+  minio:
+    image: ${MINIO_IMAGE:?Falta una imagen MinIO fijada y local}
+    pull_policy: never
+    restart: unless-stopped
+    labels: *pilot-labels
+    command: [server, /data, --console-address, ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?El operador debe suministrar el administrador MinIO}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?El operador debe suministrar la contrasena de administrador MinIO}
+    volumes:
+      - minio_data:/data
+    networks: [app]
+    logging: { driver: none }
+    healthcheck:
+      test: [CMD, curl, -fsS, http://127.0.0.1:9000/minio/health/live]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    stop_grace_period: 60s
+
+  api:
+    image: ${API_IMAGE:?Falta una imagen API del release fijada y local}
+    pull_policy: never
+    restart: unless-stopped
+    labels: *pilot-labels
+    environment: *api-environment
+    command: [node, dist/src/main.js]
+    networks: [app, db]
+    depends_on:
+      postgres: { condition: service_healthy }
+      minio: { condition: service_healthy }
+    logging: { driver: none }
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    stop_grace_period: 60s
+
+  gateway:
+    # Esta imagen contiene la UI compilada con VITE_API_URL=/api y perfil lan-pilot.
+    image: ${FRONTEND_IMAGE:?Falta una imagen frontend del piloto fijada y local}
+    pull_policy: never
+    restart: unless-stopped
+    labels: *pilot-labels
+    environment:
+      LAN_IP: ${LAN_IP:?Seleccione la IPv4 privada del servidor}
+      S3_BUCKET: ${S3_BUCKET:?Seleccione el bucket privado del piloto}
+      NGINX_ENVSUBST_FILTER: "^(LAN_IP|S3_BUCKET)$$"
+    volumes:
+      - type: bind
+        source: ./gateway.conf.template
+        target: /etc/nginx/templates/default.conf.template
+        read_only: true
+    ports:
+      - target: 80
+        published: "3001"
+        host_ip: ${LAN_IP:?Seleccione la IPv4 privada del servidor}
+        protocol: tcp
+    networks: [ingress, app]
+    depends_on:
+      api: { condition: service_healthy }
+    logging: { driver: none }
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1/health]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    stop_grace_period: 60s
+
+  migrate:
+    profiles: [maintenance]
+    image: ${API_IMAGE:?Falta una imagen API del release fijada y local}
+    pull_policy: never
+    restart: "no"
+    labels: *pilot-labels
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${MIGRATION_DATABASE_URL:?El operador debe suministrar la conexion propietaria top_pilot}
+    command: [./node_modules/.bin/prisma, migrate, deploy]
+    networks: [db]
+    depends_on:
+      postgres: { condition: service_healthy }
+    logging: { driver: none }
+
+networks:
+  ingress:
+    labels: *pilot-labels
+  app:
+    internal: true
+    labels: *pilot-labels
+  db:
+    internal: true
+    labels: *pilot-labels
+
+volumes:
+  postgres_data:
+    labels: *pilot-labels
+  minio_data:
+    labels: *pilot-labels

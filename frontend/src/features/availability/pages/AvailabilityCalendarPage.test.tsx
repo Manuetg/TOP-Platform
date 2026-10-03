@@ -749,7 +749,12 @@ describe("AvailabilityCalendarPage", () => {
     const input = wizardQueries().getByLabelText("Precio final");
     await user.type(wizardQueries().getByLabelText("Motivo del precio manual"), "Acuerdo directo");
     expect(wizardQueries().getByRole("button", { name: /Continuar/i })).toBeDisabled();
-    await user.type(input, value);
+    if (value === "9007199254740992") {
+      await user.click(input);
+      await user.paste(value);
+    } else {
+      await user.type(input, value);
+    }
     expect(input).toHaveValue(value);
     expect(wizardQueries().getByRole("button", { name: /Continuar/i })).toBeDisabled();
     expect(createPendingBookingMock).not.toHaveBeenCalled();

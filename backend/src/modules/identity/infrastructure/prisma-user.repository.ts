@@ -42,16 +42,35 @@ export class PrismaUserRepository implements UserRepository, AuthenticationRepos
       if (!current) throw new UserProfileNotFoundError('El usuario no existe.');
       if (current.status !== 'ACTIVE') throw new UserProfileForbiddenError('Un usuario deshabilitado no puede actualizar su perfil.');
       if (current.updatedAt.getTime() !== input.expectedUpdatedAt.getTime()) throw new UserProfileConflictError('El perfil cambió. Consultá los datos actuales antes de guardar.');
-      if (current.displayName === input.displayName) return current;
+      const { changes, beforeData, afterData } = this.profileChanges(current, input);
+      if (Object.keys(changes).length === 0) return current;
       const updatedAt = new Date(Math.max(Date.now(), current.updatedAt.getTime() + 1));
-      const updated = await transaction.user.update({ where: { id: input.id }, data: { displayName: input.displayName, updatedAt } });
-      await transaction.userDisplayNameAudit.create({ data: {
+      const updated = await transaction.user.update({ where: { id: input.id }, data: { ...changes, updatedAt } });
+      if (changes.displayName !== undefined) await transaction.userDisplayNameAudit.create({ data: {
         userId: input.id, actorUserId: input.actorUserId, occurredAt: updatedAt,
         beforeName: current.displayName, afterName: input.displayName, reason: input.reason,
+      } });
+      await transaction.userProfileAudit.create({ data: {
+        userId: input.id, actorUserId: input.actorUserId, occurredAt: updatedAt,
+        beforeData, afterData, reason: input.reason,
       } });
       return updated;
     });
     return this.toDomain(user);
+  }
+  private profileChanges(current: PrismaUser, input: UserProfileChange) {
+    const fields = ['displayName', 'birthYear', 'username', 'phone', 'avatarId'] as const;
+    const changes: Pick<Prisma.UserUpdateInput, typeof fields[number]> = {};
+    const beforeData: Record<string, string | number | null> = {};
+    const afterData: Record<string, string | number | null> = {};
+    for (const field of fields) {
+      const value = input[field];
+      if (value === undefined || (current[field] ?? null) === value) continue;
+      Object.assign(changes, { [field]: value });
+      beforeData[field] = current[field] ?? null;
+      afterData[field] = value;
+    }
+    return { changes, beforeData, afterData };
   }
   async create(data: CreateUserData): Promise<User> {
     const user = await this.prisma.$transaction(async (tx) => {
@@ -62,6 +81,6 @@ export class PrismaUserRepository implements UserRepository, AuthenticationRepos
     return this.toDomain(user);
   }
   private toDomain(user: PrismaUser): User {
-    return User.create({ id: user.id, email: user.email, displayName: user.displayName, emailVerifiedAt: user.emailVerifiedAt, status: user.status as UserStatus, createdAt: user.createdAt, updatedAt: user.updatedAt });
+    return User.create({ id: user.id, email: user.email, displayName: user.displayName, birthYear: user.birthYear, username: user.username, phone: user.phone, avatarId: user.avatarId, emailVerifiedAt: user.emailVerifiedAt, status: user.status as UserStatus, createdAt: user.createdAt, updatedAt: user.updatedAt });
   }
 }

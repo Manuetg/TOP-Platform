@@ -5,6 +5,7 @@ import { GetBusinessByIdUseCase } from '../../src/modules/business/application/g
 import { BUSINESS_REPOSITORY } from '../../src/modules/business/domain/business.repository';
 import { PrismaBusinessRepository } from '../../src/modules/business/infrastructure/prisma-business.repository';
 import { PrismaService } from '../../src/modules/business/infrastructure/prisma.service';
+import { BUSINESS_CHANGE_REPOSITORY } from '../../src/modules/business/domain/business-change.repository';
 
 describe('BusinessModule', () => {
   let module: TestingModule;
@@ -27,5 +28,6 @@ describe('BusinessModule', () => {
     expect(repository).toBeInstanceOf(PrismaBusinessRepository);
     expect(useCase).toBeInstanceOf(CreateBusinessUseCase);
     expect(getBusinessByIdUseCase).toBeInstanceOf(GetBusinessByIdUseCase);
+    expect(module.get(BUSINESS_CHANGE_REPOSITORY)).toBe(repository);
   });
 });

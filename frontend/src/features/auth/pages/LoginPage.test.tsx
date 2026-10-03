@@ -16,6 +16,12 @@ import { LoginPage } from "./LoginPage";
 const dependencies = vi.hoisted(() => ({
   login: vi.fn(),
   recovery: vi.fn(),
+  deployment: { profile: "standard", apiUrl: "http://localhost:3000/api" },
+}));
+
+vi.mock("../../../shared/config/deployment", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../../shared/config/deployment")>(),
+  deploymentConfig: dependencies.deployment,
 }));
 
 vi.mock("../api/login", () => ({ login: dependencies.login }));
@@ -83,10 +89,48 @@ function renderLogin(initialEntry: string) {
 
 describe("LoginPage routing", () => {
   beforeEach(() => {
+    dependencies.deployment.profile = "standard";
     sessionStorage.clear();
     localStorage.clear();
     dependencies.login.mockReset();
     dependencies.recovery.mockReset();
+  });
+
+  it("conserva los enlaces de correo en el despliegue estándar", () => {
+    renderLogin("/login");
+    expect(screen.getByRole("link", { name: "Crear cuenta" })).toHaveAttribute("href", "/signup");
+    expect(screen.getByRole("link", { name: "¿Olvidaste tu contraseña?" })).toHaveAttribute("href", "/forgot-password");
+  });
+
+  it("explica el correo deshabilitado y oculta sus enlaces en el piloto", () => {
+    dependencies.deployment.profile = "lan-pilot";
+    renderLogin("/login");
+    expect(screen.queryByRole("link", { name: "Crear cuenta" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "¿Olvidaste tu contraseña?" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Acceso seguro para tu equipo.")).not.toBeInTheDocument();
+    expect(screen.getByText(/Usa una cuenta existente y verificada/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Cookies y almacenamiento" })).toHaveAttribute("href", "/cookies");
+  });
+
+  it("conserva login y destino privado en el piloto", async () => {
+    dependencies.deployment.profile = "lan-pilot";
+    dependencies.login.mockResolvedValue(session);
+    const router = renderLogin("/login?next=%2Fapp%2Fcalendar");
+    fireEvent.change(screen.getByLabelText("Correo electrónico"), { target: { value: "jeni@example.com" } });
+    fireEvent.change(screen.getByLabelText("Contraseña"), { target: { value: "TopPassword123!" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/app/calendar"));
+    expect(dependencies.login).toHaveBeenCalledOnce();
+  });
+
+  it("muestra el aviso fijo para EMAIL_FEATURE_DISABLED sin exponer el mensaje interno", async () => {
+    dependencies.login.mockRejectedValue(new ApiError(503, "SYNTHETIC_SECRET", "EMAIL_FEATURE_DISABLED"));
+    renderLogin("/login");
+    fireEvent.change(screen.getByLabelText("Correo electrónico"), { target: { value: "jeni@example.com" } });
+    fireEvent.change(screen.getByLabelText("Contraseña"), { target: { value: "TopPassword123!" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("El correo no está disponible en este piloto");
+    expect(document.body.textContent).not.toContain("SYNTHETIC_SECRET");
   });
 
   it("establishes the session and returns to the requested private destination", async () => {

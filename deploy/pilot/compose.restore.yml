@@ -1,0 +1,51 @@
+# Destino NUEVO exclusivamente. No publica servicios ni inicia API/correo.
+name: ${PILOT_PROJECT:?Seleccione un proyecto nuevo top-pilot-restore-*}
+x-restore-labels: &restore-labels
+  com.top.pilot.scope: restore
+  com.top.pilot.source: ${PILOT_SOURCE_COMMIT:?Falta el commit del artefacto}
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:?Falta una imagen PostgreSQL16 fijada y local}
+    pull_policy: never
+    restart: "no"
+    labels: *restore-labels
+    environment:
+      POSTGRES_USER: top_pilot
+      POSTGRES_DB: top_pilot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?El operador debe suministrar la contrasena PostgreSQL}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [isolated]
+    logging: { driver: none }
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U top_pilot -d top_pilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  minio:
+    image: ${MINIO_IMAGE:?Falta una imagen MinIO fijada y local}
+    pull_policy: never
+    restart: "no"
+    labels: *restore-labels
+    command: [server, /data, --console-address, ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?El operador debe suministrar el administrador MinIO}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?El operador debe suministrar la contrasena de administrador MinIO}
+    volumes:
+      - minio_data:/data
+    networks: [isolated]
+    logging: { driver: none }
+    healthcheck:
+      test: [CMD, curl, -fsS, http://127.0.0.1:9000/minio/health/live]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+networks:
+  isolated:
+    internal: true
+    labels: *restore-labels
+volumes:
+  postgres_data:
+    labels: *restore-labels
+  minio_data:
+    labels: *restore-labels

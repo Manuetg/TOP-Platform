@@ -3,17 +3,31 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Leaf, Mountain, Sun, UserRound } from "lucide-react";
 import { useAuth } from "../../auth/context/AuthContext";
 import { ApiError } from "../../../shared/api/api-client";
 import { Button } from "../../../shared/ui/Button";
 import { Input } from "../../../shared/ui/Input";
-import { updateUserProfile, type UserProfile } from "../api/user-profile";
+import { PROFILE_AVATAR_IDS, updateUserProfile, type UserProfile } from "../api/user-profile";
 import { useUserProfile, userProfileKey } from "../queries/use-user-profile";
 import "./PersonalProfile.css";
 
-const schema = z.object({ displayName: z.string().trim().min(1, "Ingresa tu nombre.").max(120, "Usa hasta 120 caracteres."), reason: z.string().trim().min(1, "Ingresa el motivo del cambio.") });
+const schema = z.object({
+  displayName: z.string().trim().min(1, "Ingresa tu nombre.").max(120, "Usa hasta 120 caracteres."),
+  birthYear: z.string().trim().refine((value) => value === "" || /^\d{1,4}$/.test(value), "Ingresa un año entero."),
+  username: z.string().trim(),
+  phone: z.string().trim(),
+  avatarId: z.enum(["", ...PROFILE_AVATAR_IDS]),
+});
 type Fields = z.infer<typeof schema>;
-const fields = (profile: UserProfile): Fields => ({ displayName: profile.displayName ?? "", reason: "" });
+const fields = (profile: UserProfile): Fields => ({ displayName: profile.displayName ?? "", birthYear: profile.birthYear == null ? "" : String(profile.birthYear), username: profile.username ?? "", phone: profile.phone ?? "", avatarId: profile.avatarId ?? "" });
+const avatars = [
+  { id: "", label: "Sin avatar", Icon: UserRound },
+  { id: "user", label: "Persona", Icon: UserRound },
+  { id: "leaf", label: "Hoja", Icon: Leaf },
+  { id: "sun", label: "Sol", Icon: Sun },
+  { id: "mountain", label: "Montaña", Icon: Mountain },
+] as const;
 const inaccessible = (error: unknown) => error instanceof ApiError && [403, 404].includes(error.status);
 
 export function PersonalProfile({ onSaved }: { onSaved?: (profile: UserProfile) => boolean | void }) {
@@ -46,10 +60,10 @@ function ProfileForm({ profile, accessToken, onSaved, onReload }: { profile: Use
   useEffect(() => { alive.current = true; return () => { alive.current = false; controller.current?.abort(); }; }, []);
   const mutation = useMutation({ retry: false, mutationFn: (values: Fields) => {
     controller.current = new AbortController();
-    return updateUserProfile(profile.id, { ...values, expectedUpdatedAt: version.current }, accessToken, controller.current.signal);
+    return updateUserProfile(profile.id, { displayName: values.displayName, birthYear: values.birthYear ? Number(values.birthYear) : null, username: values.username || null, phone: values.phone || null, avatarId: values.avatarId || null, expectedUpdatedAt: version.current }, accessToken, controller.current.signal);
   } });
   const pending = mutation.isPending || isSubmitting;
-  useEffect(() => { if (!isDirty && !pending && !conflict) { form.reset(fields(profile)); version.current = profile.updatedAt; } }, [profile.displayName, profile.updatedAt, isDirty, pending, conflict, form.reset]);
+  useEffect(() => { if (!isDirty && !pending && !conflict) { form.reset(fields(profile)); version.current = profile.updatedAt; } }, [profile.displayName, profile.birthYear, profile.username, profile.phone, profile.avatarId, profile.updatedAt, isDirty, pending, conflict, form.reset]);
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (locked.current || blocked || conflict || !isDirty) return;
@@ -89,13 +103,40 @@ function ProfileForm({ profile, accessToken, onSaved, onReload }: { profile: Use
     mutation.reset(); setConflict(false); setFreshConflict(false); setSaved(false);
   };
   return <form ref={element} tabIndex={-1} aria-label="Datos de tu cuenta" className="personal-profile__form" onSubmit={submit} noValidate>
-    <div aria-live="polite">{saved && !isDirty ? <p role="status">Tu nombre se guardó.</p> : null}{mutation.isError ? <p role="alert">{blocked ? "No puedes editar este perfil. Actualiza la información para revisar tu acceso." : conflict ? "Tu perfil cambió desde que empezaste a editar. Consulta los datos actuales antes de volver a guardar." : mutation.error.message}</p> : null}</div>
+    <div aria-live="polite">{saved && !isDirty ? <p role="status">Los cambios de tu cuenta se guardaron.</p> : null}{mutation.isError ? <p role="alert">{blocked ? "No puedes editar este perfil. Actualiza la información para revisar tu acceso." : conflict ? "Tu perfil cambió desde que empezaste a editar. Consulta los datos actuales antes de volver a guardar." : mutation.error.message}</p> : null}</div>
     {blocked ? <Button variant="secondary" loading={reloading} loadingLabel="Actualizando." onClick={() => { void reload(); }}>Actualizar cuenta</Button> : <>
-      <Input id="personal-display-name" label="Nombre completo" autoComplete="name" required maxLength={120} {...form.register("displayName")} error={form.formState.errors.displayName?.message} disabled={pending} />
-      <Input id="personal-name-reason" label="Motivo del cambio" required {...form.register("reason")} error={form.formState.errors.reason?.message} disabled={pending} />
+      <fieldset className="personal-profile__avatars" role="radiogroup" disabled={pending} aria-describedby="personal-avatar-help">
+        <legend>Avatar de perfil (opcional)</legend>
+        <p id="personal-avatar-help" className="personal-profile__help">Elige una imagen para tu cuenta.</p>
+        <div className="personal-profile__avatar-options">
+          {avatars.map(({ id, label, Icon }) => <label key={id} className="personal-profile__avatar-option">
+            <input type="radio" value={id} {...form.register("avatarId")} />
+            <Icon size={24} strokeWidth={2} aria-hidden="true" />
+            <span>{label}</span>
+          </label>)}
+        </div>
+      </fieldset>
+      <div className="personal-profile__fields">
+        <Input id="personal-display-name" label="Nombre completo" autoComplete="name" required maxLength={120} {...form.register("displayName")} error={form.formState.errors.displayName?.message} disabled={pending} />
+        <div className="personal-profile__field-help">
+          <Input id="personal-username" label="Nombre de usuario (opcional)" maxLength={50} autoComplete="off" aria-describedby="personal-username-help" {...form.register("username")} error={form.formState.errors.username?.message} disabled={pending} />
+          <p id="personal-username-help" className="personal-profile__help">Es un alias de tu perfil. Para iniciar sesión usa tu correo.</p>
+        </div>
+        <div className="personal-profile__field-help">
+          <Input id="personal-birth-year" label="Año de nacimiento (opcional)" type="text" inputMode="numeric" autoComplete="bday-year" placeholder="Ej.: 1990" aria-describedby="personal-birth-year-help" {...form.register("birthYear")} error={form.formState.errors.birthYear?.message} disabled={pending} />
+          <p id="personal-birth-year-help" className="personal-profile__help">Solo el año, sin día ni mes.</p>
+        </div>
+        <div className="personal-profile__field-help">
+          <Input id="personal-phone" label="Teléfono (opcional)" type="tel" autoComplete="tel" placeholder="+595…" aria-describedby="personal-phone-help" {...form.register("phone")} error={form.formState.errors.phone?.message} disabled={pending} />
+          <p id="personal-phone-help" className="personal-profile__help">Usa el formato internacional, con + y código de país.</p>
+        </div>
+      </div>
       <div className="personal-profile__email"><span>Correo electrónico</span><p>{profile.email}</p><p className="personal-profile__help">Este correo se usa para iniciar sesión. Su cambio todavía no está disponible: requiere un proceso seguro de verificación.</p></div>
-      <div className="personal-profile__actions"><Button type="submit" disabled={!isDirty || conflict} loading={pending} loadingLabel="Guardando nombre.">Guardar nombre</Button>{conflict ? <Button type="button" variant="secondary" loading={reloading} loadingLabel="Actualizando." onClick={() => { void reload(); }}>Consultar nombre actual</Button> : null}<Button type="button" variant="secondary" disabled={pending || reloading || (conflict ? !freshConflict : !isDirty)} onClick={discard}>Descartar nombre</Button></div>
-      {conflict && freshConflict ? <p className="personal-profile__help">Nombre consultado: {profile.displayName ?? "Sin nombre registrado"}. Usa «Descartar nombre» para comenzar de nuevo con estos datos.</p> : null}
+      <div className="personal-profile__actions"><Button type="submit" disabled={!isDirty || conflict} loading={pending} loadingLabel="Guardando cambios.">Guardar cambios</Button>{conflict ? <Button type="button" variant="secondary" loading={reloading} loadingLabel="Actualizando." onClick={() => { void reload(); }}>Consultar perfil actual</Button> : null}<Button type="button" variant="secondary" disabled={pending || reloading || (conflict ? !freshConflict : !isDirty)} onClick={discard}>Descartar cambios</Button></div>
+      {conflict && freshConflict ? <div className="personal-profile__current" role="region" aria-label="Perfil actual consultado">
+        <p className="personal-profile__help">Perfil consultado. Usa «Descartar cambios» para comenzar de nuevo con estos datos.</p>
+        <dl><div><dt>Nombre completo</dt><dd>{profile.displayName ?? "Sin nombre registrado"}</dd></div><div><dt>Nombre de usuario</dt><dd>{profile.username ?? "Sin registrar"}</dd></div><div><dt>Año de nacimiento</dt><dd>{profile.birthYear ?? "Sin registrar"}</dd></div><div><dt>Teléfono</dt><dd>{profile.phone ?? "Sin registrar"}</dd></div><div><dt>Avatar</dt><dd>{avatars.find((avatar) => avatar.id === (profile.avatarId ?? ""))?.label}</dd></div></dl>
+      </div> : null}
     </>}
   </form>;
 }

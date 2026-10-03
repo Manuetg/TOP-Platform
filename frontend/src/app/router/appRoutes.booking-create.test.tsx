@@ -9,6 +9,13 @@ const context = vi.hoisted(() => ({
   authStatus: "authenticated", businessStatus: "ready", businessId: "business-2", role: "OWNER",
   calendarRenders: 0,
 }));
+vi.mock("../../features/profile/api/user-profile", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../features/profile/api/user-profile")>(),
+  getUserProfile: vi.fn(async (id: string) => ({
+    id, email: "test@example.invalid", displayName: null, birthYear: null, username: null, phone: null,
+    avatarId: null, status: "ACTIVE", updatedAt: "2026-10-02T00:00:00.000Z",
+  })),
+}));
 vi.mock("../../features/auth/context/AuthContext", () => ({
   useAuth: () => ({ status: context.authStatus, session: context.authStatus === "authenticated" ? {
     accessToken: "test-token", user: { id: "user-1", email: "test@example.invalid" },

@@ -74,7 +74,8 @@ When('intenta administrar memberships de Business A', async function (this: TopW
 });
 
 When('modifica Business A', async function (this: TopWorld) {
-  this.response = await request(this.app?.getHttpServer()).patch(`/api/businesses/${businessA}`).set('Authorization', `Bearer ${this.accessToken}`).send({ name: 'Business autorizado' });
+  const currentBusiness = await request(this.app?.getHttpServer()).get(`/api/businesses/${businessA}`).set('Authorization', `Bearer ${this.accessToken}`);
+  this.response = await request(this.app?.getHttpServer()).patch(`/api/businesses/${businessA}`).set('Authorization', `Bearer ${this.accessToken}`).send({ name: 'Business autorizado', expectedUpdatedAt: currentBusiness.body.updatedAt });
 });
 
 When('crea una Booking operativa en Business A', async function (this: TopWorld) { this.response = await request(this.app?.getHttpServer()).post(`/api/businesses/${businessA}/bookings`).set('Authorization', `Bearer ${this.accessToken}`).send({}); });

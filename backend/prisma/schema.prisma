@@ -90,6 +90,10 @@ model User {
   id              String                   @id @default(uuid())
   email           String                   @unique
   displayName      String?
+  birthYear        Int?
+  username         String?
+  phone            String?
+  avatarId         String?
   emailVerifiedAt  DateTime?
   status          UserStatus               @default(ACTIVE)
   createdAt       DateTime                 @default(now())
@@ -102,6 +106,9 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   displayNameAudits UserDisplayNameAudit[] @relation("DisplayNameAuditSubject")
   displayNameAuditActions UserDisplayNameAudit[] @relation("DisplayNameAuditActor")
+  profileAudits UserProfileAudit[] @relation("ProfileAuditSubject")
+  profileAuditActions UserProfileAudit[] @relation("ProfileAuditActor")
+  businessProfileAuditActions BusinessProfileAudit[] @relation("BusinessProfileAuditActor")
   pricingRevisionActions PricingRevision[]
 }
 
@@ -115,6 +122,20 @@ model UserDisplayNameAudit {
   reason      String
   user        User     @relation("DisplayNameAuditSubject", fields: [userId], references: [id], onDelete: Restrict)
   actor       User     @relation("DisplayNameAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([userId, occurredAt, id])
+}
+
+model UserProfileAudit {
+  id          String   @id @default(uuid())
+  userId      String
+  actorUserId String
+  occurredAt  DateTime @default(now())
+  beforeData  Json
+  afterData   Json
+  reason      String
+  user        User     @relation("ProfileAuditSubject", fields: [userId], references: [id], onDelete: Restrict)
+  actor       User     @relation("ProfileAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
 
   @@index([userId, occurredAt, id])
 }
@@ -204,6 +225,10 @@ model Business {
   name                  String
   legalName             String?
   taxId                 String?
+  country               String?
+  region                String?
+  city                  String?
+  address               String?
   timezone              String                   @default("America/Asuncion")
   currency              String                   @default("PYG")
   status                BusinessStatus           @default(ACTIVE)
@@ -224,6 +249,21 @@ model Business {
   payments              Payment[]
   paymentPlans          PaymentPlan[]
   subscription          BusinessSubscription?
+  profileAudits         BusinessProfileAudit[]
+}
+
+model BusinessProfileAudit {
+  id          String   @id @default(uuid())
+  businessId  String
+  actorUserId String
+  occurredAt  DateTime @default(now())
+  beforeData  Json
+  afterData   Json
+  reason      String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  actor       User     @relation("BusinessProfileAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, occurredAt, id])
 }
 
 model SubscriptionPlan {

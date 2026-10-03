@@ -15,5 +15,6 @@ export function createPendingBooking({ businessId, input, accessToken, signal }:
     body: JSON.stringify(input),
     accessToken,
     signal,
+    skipUnauthorizedRecovery: true,
   });
 }

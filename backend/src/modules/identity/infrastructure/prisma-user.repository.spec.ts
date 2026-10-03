@@ -17,6 +17,7 @@ describe('PrismaUserRepository', () => {
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt,
       displayName: null,
+      birthYear: null, username: null, phone: null, avatarId: null,
       emailVerifiedAt: null,
     });
     const repository = new PrismaUserRepository(prisma);
@@ -27,7 +28,7 @@ describe('PrismaUserRepository', () => {
   });
   it('persiste exclusivamente el email y mapea el conflicto unique', async () => {
     const prisma = new PrismaIdentityService();
-    const update = jest.spyOn(prisma.user, 'update').mockResolvedValue({ id: '11111111-1111-4111-8111-111111111111', email: 'new@example.com', status: UserStatus.ACTIVE, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-09-01'), displayName: null, emailVerifiedAt: null });
+    const update = jest.spyOn(prisma.user, 'update').mockResolvedValue({ id: '11111111-1111-4111-8111-111111111111', email: 'new@example.com', status: UserStatus.ACTIVE, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-09-01'), displayName: null, birthYear: null, username: null, phone: null, avatarId: null, emailVerifiedAt: null });
     const repository = new PrismaUserRepository(prisma);
     const changed = User.create({ id: '11111111-1111-4111-8111-111111111111', email: 'new@example.com', status: UserStatus.ACTIVE, createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-09-01') });
     await expect(repository.updateEmail(changed)).resolves.toMatchObject({ email: 'new@example.com', status: UserStatus.ACTIVE });
@@ -50,6 +51,7 @@ describe('PrismaUserRepository changeDisplayName', () => {
     $queryRaw: jest.fn<Promise<{ id: string }[]>, [Prisma.Sql]>(),
     user: { findUnique: jest.fn(), update: jest.fn() },
     userDisplayNameAudit: { create: jest.fn() },
+    userProfileAudit: { create: jest.fn() },
   };
   const prisma = { $transaction: jest.fn() };
   const repository = new PrismaUserRepository(prisma as unknown as PrismaIdentityService);
@@ -57,6 +59,10 @@ describe('PrismaUserRepository changeDisplayName', () => {
     id,
     email: 'perfil@example.com',
     displayName: 'Nombre anterior' as string | null,
+    birthYear: null as number | null,
+    username: null as string | null,
+    phone: null as string | null,
+    avatarId: null as string | null,
     emailVerifiedAt: new Date('2026-08-02T12:00:00.000Z'),
     status: UserStatus.ACTIVE,
     createdAt: new Date('2026-08-01T12:00:00.000Z'),
@@ -66,6 +72,7 @@ describe('PrismaUserRepository changeDisplayName', () => {
   const expectNoWrites = () => {
     expect(transaction.user.update).not.toHaveBeenCalled();
     expect(transaction.userDisplayNameAudit.create).not.toHaveBeenCalled();
+    expect(transaction.userProfileAudit.create).not.toHaveBeenCalled();
   };
 
   beforeEach(() => {
@@ -76,6 +83,7 @@ describe('PrismaUserRepository changeDisplayName', () => {
     transaction.user.findUnique.mockResolvedValue(row());
     transaction.user.update.mockImplementation(({ data }: { data: { displayName: string; updatedAt: Date } }) => Promise.resolve({ ...row(), ...data }));
     transaction.userDisplayNameAudit.create.mockResolvedValue({ id: 'audit-id' });
+    transaction.userProfileAudit.create.mockResolvedValue({ id: 'profile-audit-id' });
   });
 
   afterEach(() => jest.restoreAllMocks());
@@ -102,6 +110,10 @@ describe('PrismaUserRepository changeDisplayName', () => {
       afterName: input().displayName,
       reason,
     } });
+    expect(transaction.userProfileAudit.create).toHaveBeenCalledWith({ data: {
+      userId: id, actorUserId: id, occurredAt: now,
+      beforeData: { displayName: row().displayName }, afterData: { displayName: input().displayName }, reason,
+    } });
     expect(transaction.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(transaction.user.findUnique.mock.invocationCallOrder[0]);
     expect(transaction.user.findUnique.mock.invocationCallOrder[0]).toBeLessThan(transaction.user.update.mock.invocationCallOrder[0]);
     expect(transaction.user.update.mock.invocationCallOrder[0]).toBeLessThan(transaction.userDisplayNameAudit.create.mock.invocationCallOrder[0]);
@@ -109,6 +121,10 @@ describe('PrismaUserRepository changeDisplayName', () => {
       id: result.id,
       email: result.email,
       displayName: result.displayName,
+      birthYear: result.birthYear,
+      username: result.username,
+      phone: result.phone,
+      avatarId: result.avatarId,
       emailVerifiedAt: result.emailVerifiedAt,
       status: result.status,
       createdAt: result.createdAt,
@@ -224,5 +240,62 @@ describe('PrismaUserRepository changeDisplayName', () => {
     expect(transaction.$queryRaw).not.toHaveBeenCalled();
     expect(transaction.user.findUnique).not.toHaveBeenCalled();
     expectNoWrites();
+  });
+
+  it('actualiza los campos opcionales y audita solo diferencias sin duplicar historial del nombre', async () => {
+    const changed = { birthYear: 1990, username: 'Alias', phone: '+595981123456', avatarId: 'leaf' };
+    const result = await repository.changeDisplayName({ ...input(), displayName: row().displayName!, ...changed });
+
+    expect(result).toMatchObject(changed);
+    expect(transaction.user.update).toHaveBeenCalledWith({ where: { id }, data: { ...changed, updatedAt: now } });
+    expect(transaction.userDisplayNameAudit.create).not.toHaveBeenCalled();
+    expect(transaction.userProfileAudit.create).toHaveBeenCalledWith({ data: {
+      userId: id, actorUserId: id, occurredAt: now,
+      beforeData: { birthYear: null, username: null, phone: null, avatarId: null }, afterData: changed, reason,
+    } });
+  });
+
+  it('preserva campos omitidos y omite valores iguales de la escritura y auditoría', async () => {
+    const current = { ...row(), birthYear: 1980, username: 'Alias vigente', phone: '+595981123456', avatarId: 'sun' };
+    transaction.user.findUnique.mockResolvedValue(current);
+    transaction.user.update.mockImplementation(({ data }: { data: Partial<ReturnType<typeof row>> }) => Promise.resolve({ ...current, ...data }));
+
+    const result = await repository.changeDisplayName({ ...input(), birthYear: undefined, username: current.username, avatarId: 'mountain' });
+
+    expect(result).toMatchObject({ birthYear: 1980, username: current.username, phone: current.phone, avatarId: 'mountain' });
+    expect(transaction.user.update).toHaveBeenCalledWith({ where: { id }, data: { displayName: input().displayName, avatarId: 'mountain', updatedAt: now } });
+    expect(transaction.userProfileAudit.create).toHaveBeenCalledWith({ data: {
+      userId: id, actorUserId: id, occurredAt: now,
+      beforeData: { displayName: current.displayName, avatarId: 'sun' },
+      afterData: { displayName: input().displayName, avatarId: 'mountain' }, reason,
+    } });
+  });
+
+  it('permite borrar campos opcionales con null y mantiene un no-op completo sin auditoría', async () => {
+    const current = { ...row(), birthYear: 1980, username: 'Alias', phone: '+595981123456', avatarId: 'sun' };
+    transaction.user.findUnique.mockResolvedValue(current);
+    transaction.user.update.mockImplementation(({ data }: { data: Partial<ReturnType<typeof row>> }) => Promise.resolve({ ...current, ...data }));
+    const cleared = { birthYear: null, username: null, phone: null, avatarId: null };
+
+    await repository.changeDisplayName({ ...input(), displayName: current.displayName!, ...cleared });
+
+    expect(transaction.userProfileAudit.create).toHaveBeenCalledWith({ data: {
+      userId: id, actorUserId: id, occurredAt: now,
+      beforeData: { birthYear: 1980, username: 'Alias', phone: '+595981123456', avatarId: 'sun' }, afterData: cleared, reason,
+    } });
+    jest.clearAllMocks();
+    await repository.changeDisplayName({ ...input(), displayName: current.displayName!, birthYear: current.birthYear, username: current.username, phone: current.phone, avatarId: current.avatarId });
+    expectNoWrites();
+  });
+
+  it('propaga el fallo de auditoría general para revertir campos, versión e historial del nombre', async () => {
+    const failure = new Error('Fallo de auditoría general');
+    transaction.userProfileAudit.create.mockRejectedValue(failure);
+
+    await expect(repository.changeDisplayName({ ...input(), birthYear: 1990 })).rejects.toBe(failure);
+
+    expect(transaction.user.update).toHaveBeenCalledTimes(1);
+    expect(transaction.userDisplayNameAudit.create).toHaveBeenCalledTimes(1);
+    expect(transaction.userProfileAudit.create).toHaveBeenCalledTimes(1);
   });
 });

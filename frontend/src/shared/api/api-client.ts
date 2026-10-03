@@ -1,5 +1,6 @@
-const API_URL =
-  import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
+import { deploymentConfig, EMAIL_UNAVAILABLE_MESSAGE } from "../config/deployment";
+
+const API_URL = deploymentConfig.apiUrl;
 
 export const API_ERROR_MESSAGES = {
   http: "No pudimos completar la solicitud. Intentá nuevamente.",
@@ -10,11 +11,13 @@ export const API_ERROR_MESSAGES = {
 
 export class ApiError extends Error {
   readonly status: number;
+  readonly code?: "EMAIL_FEATURE_DISABLED";
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code?: "EMAIL_FEATURE_DISABLED") {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -154,7 +157,21 @@ async function createHttpError(
   signal: AbortSignal | null | undefined,
 ): Promise<ApiError> {
   // Internal server details are not a user-facing contract.
-  if (response.status >= 500) return new ApiError(response.status, API_ERROR_MESSAGES.server);
+  if (response.status >= 500) {
+    if (response.status === 503) {
+      try {
+        const body: unknown = await response.json();
+        throwIfAborted(signal);
+        if (body !== null && typeof body === "object" && "code" in body && body.code === "EMAIL_FEATURE_DISABLED") {
+          return new ApiError(response.status, EMAIL_UNAVAILABLE_MESSAGE, "EMAIL_FEATURE_DISABLED");
+        }
+      } catch (error) {
+        throwIfAborted(signal);
+        if (isAbortError(error)) throw error;
+      }
+    }
+    return new ApiError(response.status, API_ERROR_MESSAGES.server);
+  }
 
   let message: string = API_ERROR_MESSAGES.http;
   try {

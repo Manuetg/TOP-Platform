@@ -3,6 +3,8 @@ import { isIP } from 'node:net';
 import addressparser from 'nodemailer/lib/addressparser';
 
 export type NodeEnvironment = 'development' | 'test' | 'production';
+export type DeploymentProfile = 'standard' | 'lan-pilot';
+export type EmailDeliveryMode = 'console' | 'smtp' | 'disabled';
 type EnvironmentInput = Record<string, unknown>;
 interface ConfigurationReader { get(key: string): unknown }
 // Capturar runtime antes de importar módulos que puedan cargar dotenv (Prisma).
@@ -81,6 +83,24 @@ export function readNodeEnvironment(config: ConfigurationReader): NodeEnvironmen
   return nodeEnvironment(config.get('NODE_ENV'));
 }
 
+export function readDeploymentProfile(config: ConfigurationReader): DeploymentProfile {
+  const value = config.get('TOP_DEPLOYMENT_PROFILE');
+  const profile = value === undefined ? 'standard' : value;
+  if (profile !== 'standard' && profile !== 'lan-pilot') invalid('TOP_DEPLOYMENT_PROFILE', 'debe ser standard o lan-pilot.');
+  if (profile === 'lan-pilot' && readNodeEnvironment(config) !== 'production') invalid('TOP_DEPLOYMENT_PROFILE', 'lan-pilot requiere NODE_ENV=production.');
+  return profile;
+}
+
+function pilotOrigin(input: EnvironmentInput, key: string): string {
+  const value = text(input, key);
+  const match = /^http:\/\/((?:\d{1,3}\.){3}\d{1,3}):3001$/.exec(value);
+  if (!match || isIP(match[1]) !== 4) invalid(key, 'lan-pilot requiere un origen canónico http://IPv4-privada:3001, sin path ni sufijo.');
+  const octets = match[1].split('.').map(Number);
+  const privateAddress = octets[0] === 10 || (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) || (octets[0] === 192 && octets[1] === 168);
+  if (!privateAddress) invalid(key, 'lan-pilot requiere una IPv4 privada RFC1918.');
+  return value;
+}
+
 function webUrl(input: EnvironmentInput, key: string, production: boolean, fallback?: string): URL {
   const value = text(input, key, fallback);
   let url: URL;
@@ -96,15 +116,25 @@ function invalidWebUrl(url: URL, value: string): boolean {
   return !/^https?:\/\/[^/]/i.test(value) || !['http:', 'https:'].includes(url.protocol) || !url.hostname || url.hostname.includes('*') || Boolean(url.username || url.password) || /[?#\s\\]/.test(value);
 }
 
-function databaseUrl(input: EnvironmentInput, production: boolean): string {
+function databaseUrl(input: EnvironmentInput, production: boolean, profile: DeploymentProfile): string {
   const value = productionValue(input, 'DATABASE_URL', production);
   let url: URL;
   try { url = new URL(value); } catch { return invalid('DATABASE_URL', 'debe ser una conexión PostgreSQL válida.'); }
   if (!['postgresql:', 'postgres:'].includes(url.protocol) || !url.hostname || url.pathname.length < 2 || url.hash || /[\s\\]/.test(value)) {
     invalid('DATABASE_URL', 'debe ser una conexión PostgreSQL con host y base de datos.');
   }
+  if (profile === 'lan-pilot') validatePilotDatabaseUrl(value, url);
   // No reconstruir: conservar parámetros de Prisma, socket, pooling y SSL.
   return value;
+}
+
+function validatePilotDatabaseUrl(value: string, url: URL): void {
+  if (!/^postgres(?:ql)?:\/\/top_pilot_app:[^/@?#\\]+@postgres:5432\/top_pilot(?:\?schema=public)?$/.test(value)) {
+    invalid('DATABASE_URL', 'lan-pilot requiere el rol limitado top_pilot_app, contraseña explícita, host postgres:5432 y base top_pilot; solo admite schema=public opcional.');
+  }
+  let password: string;
+  try { password = decodeURIComponent(url.password); } catch { return invalid('DATABASE_URL', 'la contraseña debe usar un escape URI válido.'); }
+  if (Buffer.byteLength(password, 'utf8') < 32 || placeholder(password)) invalid('DATABASE_URL', 'lan-pilot requiere una contraseña propia de al menos 32 bytes, sin valores de desarrollo ni ejemplos.');
 }
 
 function secret(input: EnvironmentInput, key: string, production: boolean, fallback?: string): string {
@@ -119,11 +149,16 @@ export function readPasswordResetOtpSecret(config: ConfigurationReader): string 
 }
 
 export function readAppPublicUrl(config: ConfigurationReader): string {
+  if (readDeploymentProfile(config) === 'lan-pilot') return pilotOrigin(inputFrom(config, ['APP_PUBLIC_URL']), 'APP_PUBLIC_URL');
   const production = readNodeEnvironment(config) === 'production';
   return webUrl({ APP_PUBLIC_URL: config.get('APP_PUBLIC_URL') }, 'APP_PUBLIC_URL', production, production ? undefined : 'http://localhost:3001').href.replace(/\/+$/, '');
 }
 
-export function readEmailDeliveryMode(config: ConfigurationReader): 'console' | 'smtp' {
+export function readEmailDeliveryMode(config: ConfigurationReader): EmailDeliveryMode {
+  if (readDeploymentProfile(config) === 'lan-pilot') {
+    if (config.get('EMAIL_DELIVERY_MODE') !== 'disabled') invalid('EMAIL_DELIVERY_MODE', 'lan-pilot requiere disabled explícito; no permite SMTP ni console.');
+    return 'disabled';
+  }
   const production = readNodeEnvironment(config) === 'production';
   const mode = config.get('EMAIL_DELIVERY_MODE') ?? (production ? undefined : 'console');
   if (mode !== 'console' && mode !== 'smtp') return invalid('EMAIL_DELIVERY_MODE', 'debe ser console o smtp; smtp explícito es obligatorio en producción.');
@@ -176,24 +211,43 @@ export interface S3Configuration {
   accessKeyId: string; secretAccessKey: string; forcePathStyle: boolean;
 }
 
-function s3Configuration(input: EnvironmentInput, production: boolean): S3Configuration {
+function s3Endpoints(input: EnvironmentInput, production: boolean, profile: DeploymentProfile): Pick<S3Configuration, 'endpoint' | 'publicEndpoint'> {
+  if (profile === 'lan-pilot') {
+    const endpoint = text(input, 'S3_ENDPOINT');
+    if (endpoint !== 'http://minio:9000') invalid('S3_ENDPOINT', 'lan-pilot requiere exactamente http://minio:9000 en la red privada de Docker.');
+    const publicEndpoint = pilotOrigin(input, 'S3_PUBLIC_ENDPOINT');
+    if (publicEndpoint !== pilotOrigin(input, 'APP_PUBLIC_URL')) invalid('S3_PUBLIC_ENDPOINT', 'lan-pilot requiere el mismo origen exacto que APP_PUBLIC_URL.');
+    return { endpoint, publicEndpoint };
+  }
   const endpoint = webUrl(input, 'S3_ENDPOINT', production).href.replace(/\/+$/, '');
   const publicEndpoint = webUrl(input, 'S3_PUBLIC_ENDPOINT', production, endpoint).href.replace(/\/+$/, '');
+  return { endpoint, publicEndpoint };
+}
+
+function s3Configuration(input: EnvironmentInput, production: boolean, profile: DeploymentProfile): S3Configuration {
+  const { endpoint, publicEndpoint } = s3Endpoints(input, production, profile);
   const region = productionValue(input, 'S3_REGION', production);
   if (!/^[a-z\d][a-z\d-]*$/i.test(region)) invalid('S3_REGION', 'debe ser un identificador de región válido.');
   const bucket = productionValue(input, 'S3_BUCKET', production);
   if (!/^[a-z\d][a-z\d.-]{1,61}[a-z\d]$/.test(bucket) || /\.\.|-\.|\.-/.test(bucket) || isIP(bucket)) invalid('S3_BUCKET', 'debe ser un nombre de bucket S3 válido (3 a 63 caracteres).');
+  if (profile === 'lan-pilot' && !/^top-pilot-[a-z\d](?:[a-z\d-]*[a-z\d])?$/.test(bucket)) invalid('S3_BUCKET', 'lan-pilot requiere un bucket top-pilot-<sufijo> con minúsculas, dígitos y guiones.');
   const accessKeyId = productionValue(input, 'S3_ACCESS_KEY', production);
   const secretAccessKey = productionValue(input, 'S3_SECRET_KEY', production);
   const forcePathStyle = boolean(input, 'S3_FORCE_PATH_STYLE', false);
+  if (profile === 'lan-pilot' && !forcePathStyle) invalid('S3_FORCE_PATH_STYLE', 'lan-pilot requiere true explícito.');
   return { endpoint, publicEndpoint, region, bucket, accessKeyId, secretAccessKey, forcePathStyle };
 }
 
 export function readS3Configuration(config: ConfigurationReader): S3Configuration {
-  return s3Configuration(inputFrom(config, ['S3_ENDPOINT', 'S3_PUBLIC_ENDPOINT', 'S3_REGION', 'S3_BUCKET', 'S3_ACCESS_KEY', 'S3_SECRET_KEY', 'S3_FORCE_PATH_STYLE']), readNodeEnvironment(config) === 'production');
+  return s3Configuration(inputFrom(config, ['APP_PUBLIC_URL', 'S3_ENDPOINT', 'S3_PUBLIC_ENDPOINT', 'S3_REGION', 'S3_BUCKET', 'S3_ACCESS_KEY', 'S3_SECRET_KEY', 'S3_FORCE_PATH_STYLE']), readNodeEnvironment(config) === 'production', readDeploymentProfile(config));
 }
 
-function corsOrigins(input: EnvironmentInput, production: boolean): string[] {
+function corsOrigins(input: EnvironmentInput, production: boolean, profile: DeploymentProfile): string[] {
+  if (profile === 'lan-pilot') {
+    const origin = pilotOrigin(input, 'CORS_ORIGIN');
+    if (origin !== pilotOrigin(input, 'APP_PUBLIC_URL')) invalid('CORS_ORIGIN', 'lan-pilot requiere el mismo origen exacto que APP_PUBLIC_URL.');
+    return [origin];
+  }
   if (input.CORS_ORIGIN === undefined && !production) return [];
   const value = text(input, 'CORS_ORIGIN');
   return [...new Set(value.split(',').map((entry) => {
@@ -206,9 +260,9 @@ function corsOrigins(input: EnvironmentInput, production: boolean): string[] {
 }
 
 export interface EnvironmentConfiguration extends EnvironmentInput {
-  NODE_ENV: NodeEnvironment; PORT: number; DATABASE_URL: string; CORS_ORIGINS: string[];
+  NODE_ENV: NodeEnvironment; TOP_DEPLOYMENT_PROFILE: DeploymentProfile; PORT: number; DATABASE_URL: string; CORS_ORIGINS: string[];
   JWT_ACCESS_SECRET: string; PASSWORD_RESET_OTP_SECRET: string; APP_PUBLIC_URL: string;
-  EMAIL_DELIVERY_MODE: 'console' | 'smtp';
+  EMAIL_DELIVERY_MODE: EmailDeliveryMode;
 }
 
 const numericDefaults = {
@@ -243,14 +297,17 @@ function numericConfiguration(input: EnvironmentInput): Record<string, number> {
 export function validateEnvironment(input: EnvironmentInput): EnvironmentConfiguration {
   const env = nodeEnvironment(input.NODE_ENV);
   const production = env === 'production';
+  const reader: ConfigurationReader = { get: (key: string) => input[key] };
+  const profile = readDeploymentProfile(reader);
   const jwt = secret(input, 'JWT_ACCESS_SECRET', production);
   const otp = secret(input, 'PASSWORD_RESET_OTP_SECRET', production, production ? undefined : 'development-only-reset-secret');
   if (production && jwt === otp) invalid('PASSWORD_RESET_OTP_SECRET', 'debe ser independiente de JWT_ACCESS_SECRET.');
-  const reader: ConfigurationReader = { get: (key: string) => input[key] };
   const mode = readEmailDeliveryMode(reader);
+  const port = integer(input, 'PORT', 3000, 1, 65535);
+  if (profile === 'lan-pilot' && port !== 3000) invalid('PORT', 'lan-pilot requiere el puerto interno 3000.');
   const result: EnvironmentConfiguration = {
-    ...input, NODE_ENV: env, PORT: integer(input, 'PORT', 3000, 1, 65535),
-    DATABASE_URL: databaseUrl(input, production), CORS_ORIGINS: corsOrigins(input, production),
+    ...input, NODE_ENV: env, TOP_DEPLOYMENT_PROFILE: profile, PORT: port,
+    DATABASE_URL: databaseUrl(input, production, profile), CORS_ORIGINS: corsOrigins(input, production, profile),
     JWT_ACCESS_SECRET: jwt, PASSWORD_RESET_OTP_SECRET: otp,
     APP_PUBLIC_URL: readAppPublicUrl(reader), EMAIL_DELIVERY_MODE: mode,
     ...numericConfiguration(input),
@@ -261,7 +318,7 @@ export function validateEnvironment(input: EnvironmentInput): EnvironmentConfigu
   }
   const storageSelected = input.S3_BUCKET !== undefined;
   if (production || storageSelected) {
-    const storage = s3Configuration(input, production);
+    const storage = s3Configuration(input, production, profile);
     result.S3_ENDPOINT = storage.endpoint; result.S3_PUBLIC_ENDPOINT = storage.publicEndpoint;
     result.S3_FORCE_PATH_STYLE = storage.forcePathStyle;
   } else if (input.S3_FORCE_PATH_STYLE !== undefined) result.S3_FORCE_PATH_STYLE = boolean(input, 'S3_FORCE_PATH_STYLE', false);
@@ -270,7 +327,7 @@ export function validateEnvironment(input: EnvironmentInput): EnvironmentConfigu
 
 export function configurationFrom(config: ConfigurationReader): EnvironmentConfiguration {
   return validateEnvironment(inputFrom(config, [
-    'NODE_ENV', 'PORT', 'DATABASE_URL', 'JWT_ACCESS_SECRET', 'PASSWORD_RESET_OTP_SECRET',
+    'NODE_ENV', 'TOP_DEPLOYMENT_PROFILE', 'PORT', 'DATABASE_URL', 'JWT_ACCESS_SECRET', 'PASSWORD_RESET_OTP_SECRET',
     'APP_PUBLIC_URL', 'CORS_ORIGIN', 'EMAIL_DELIVERY_MODE', ...Object.keys(numericDefaults),
     'SMTP_HOST', 'SMTP_PORT', 'SMTP_FROM', 'SMTP_USER', 'SMTP_PASSWORD',
     'S3_ENDPOINT', 'S3_PUBLIC_ENDPOINT', 'S3_REGION', 'S3_BUCKET', 'S3_ACCESS_KEY', 'S3_SECRET_KEY', 'S3_FORCE_PATH_STYLE',

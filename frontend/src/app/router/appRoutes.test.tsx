@@ -11,6 +11,13 @@ const state = vi.hoisted(() => ({
   status: "authenticated", businessStatus: "ready", userId: "user-1", businessId: "business-1",
   pageFails: true, shellFails: false, pageRenders: 0, logout: vi.fn(), mutation: vi.fn(),
 }));
+vi.mock("../../features/profile/api/user-profile", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../features/profile/api/user-profile")>(),
+  getUserProfile: vi.fn(async (id: string) => ({
+    id, email: "demo@example.test", displayName: null, birthYear: null, username: null, phone: null,
+    avatarId: null, status: "ACTIVE", updatedAt: "2026-10-02T00:00:00.000Z",
+  })),
+}));
 vi.mock("../../features/auth/context/AuthContext", () => ({
   useAuth: () => ({ status: state.status, session: { user: { id: state.userId, email: "demo@example.test" } }, logout: state.logout }),
 }));

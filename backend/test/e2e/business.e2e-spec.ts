@@ -6,6 +6,8 @@ import { configureApplication } from '../../src/config/configure-application';
 import { Business } from '../../src/modules/business/domain/business.entity';
 import { BusinessStatus } from '../../src/modules/business/domain/business-status.enum';
 import { BUSINESS_REPOSITORY } from '../../src/modules/business/domain/business.repository';
+import { BUSINESS_CHANGE_REPOSITORY, type BusinessProfileChange } from '../../src/modules/business/domain/business-change.repository';
+import { BusinessNotFoundError } from '../../src/modules/business/application/get-business-by-id.use-case';
 import { UpdateBusinessUseCase } from '../../src/modules/business/application/update-business.use-case';
 import type { NextFunction, Response } from 'express';
 import type { AuthenticatedRequest } from '../../src/shared/security/authenticated-principal';
@@ -50,9 +52,17 @@ describe('Business endpoint', () => {
       findById: (id: string): Promise<Business | null> => Promise.resolve(id === business.id ? business : null),
       list: (): Promise<Business[]> => Promise.resolve(listedBusinesses),
       update: repositoryUpdate,
+      changeProfile: (input: BusinessProfileChange): Promise<Business> => input.id === business.id
+        ? repositoryUpdate(business.update(input.changes))
+        : Promise.reject(new BusinessNotFoundError('El negocio no existe.')),
+      archive: (input: { id: string; actorUserId: string }): Promise<Business> => input.id === business.id
+        ? repositoryUpdate(business.archive())
+        : Promise.reject(new BusinessNotFoundError('El negocio no existe.')),
     };
     const module: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(BUSINESS_REPOSITORY)
+      .useValue(repository)
+      .overrideProvider(BUSINESS_CHANGE_REPOSITORY)
       .useValue(repository)
       .compile();
 
@@ -96,6 +106,10 @@ describe('Business endpoint', () => {
           name: 'Cabañas del Lago',
           legalName: 'Cabañas del Lago S.R.L.',
           taxId: '80000000-0',
+          country: null,
+          region: null,
+          city: null,
+          address: null,
           timezone: 'America/Asuncion',
           currency: 'PYG',
           status: 'ACTIVE',
@@ -116,7 +130,7 @@ describe('Business endpoint', () => {
   });
 
   it('actualiza parcialmente un negocio sin exponer businessNumber', async () => {
-    await request(app.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001').send({ name: 'Cabañas Actualizadas' }).expect(200).expect(({ body }: { body: Record<string, unknown> }) => {
+    await request(app.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001').send({ name: 'Cabañas Actualizadas', expectedUpdatedAt: '2026-08-01T00:00:00.000Z' }).expect(200).expect(({ body }: { body: Record<string, unknown> }) => {
       expect(body.name).toBe('Cabañas Actualizadas');
       expect(body.legalName).toBe('Cabañas del Lago S.R.L.');
       expect(body).not.toHaveProperty('businessNumber');
@@ -143,7 +157,7 @@ describe('Business endpoint', () => {
   });
 
   it.each<{ url: string; body: Record<string, string> }>([
-    { url: '/api/businesses/no-es-uuid', body: { name: 'Válido' } },
+    { url: '/api/businesses/no-es-uuid', body: { name: 'Válido', expectedUpdatedAt: '2026-08-01T00:00:00.000Z' } },
   ])('rechaza actualizaciones inválidas', async ({ url, body }) => {
     await request(app.getHttpServer()).patch(url).send(body).expect(400);
   });
@@ -154,19 +168,15 @@ describe('Business endpoint', () => {
     try {
       await request(app.getHttpServer())
         .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
-        .send({})
+        .send({ expectedUpdatedAt: '2026-08-01T00:00:00.000Z' })
         .expect(400)
         .expect(({ body }: { body: { message: string } }) => {
           expect(body.message).toBe('Se requiere al menos un campo actualizable.');
         });
 
-      expect(executeSpy).toHaveBeenCalledWith('f8c49800-e50e-4d0e-b82b-0b51c09a0001', {
-        name: undefined,
-        legalName: undefined,
-        taxId: undefined,
-        timezone: undefined,
-        currency: undefined,
-      });
+      expect(executeSpy).toHaveBeenCalledWith('f8c49800-e50e-4d0e-b82b-0b51c09a0001',
+        expect.objectContaining({ expectedUpdatedAt: '2026-08-01T00:00:00.000Z' }),
+        '11111111-1111-4111-8111-111111111111');
       expect(repositoryUpdate).not.toHaveBeenCalled();
     } finally {
       executeSpy.mockRestore();
@@ -179,13 +189,15 @@ describe('Business endpoint', () => {
     try {
       await request(app.getHttpServer())
         .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
-        .send({ name: ' ' })
+        .send({ name: ' ', expectedUpdatedAt: '2026-08-01T00:00:00.000Z' })
         .expect(400)
         .expect(({ body }: { body: { message: string } }) => {
           expect(body.message).toBe('El nombre del negocio es obligatorio.');
         });
 
-      expect(executeSpy).toHaveBeenCalledWith('f8c49800-e50e-4d0e-b82b-0b51c09a0001', { name: ' ' });
+      expect(executeSpy).toHaveBeenCalledWith('f8c49800-e50e-4d0e-b82b-0b51c09a0001',
+        expect.objectContaining({ name: ' ', expectedUpdatedAt: '2026-08-01T00:00:00.000Z' }),
+        '11111111-1111-4111-8111-111111111111');
       expect(repositoryUpdate).not.toHaveBeenCalled();
     } finally {
       executeSpy.mockRestore();
@@ -195,7 +207,7 @@ describe('Business endpoint', () => {
   it('rechaza una zona horaria inválida', async () => {
     await request(app.getHttpServer())
       .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
-      .send({ timezone: 'invalid' })
+      .send({ timezone: 'invalid', expectedUpdatedAt: '2026-08-01T00:00:00.000Z' })
       .expect(400)
       .expect(({ body }: { body: { message: string } }) => {
         expect(body.message).toBe('La zona horaria no es válida.');
@@ -205,7 +217,7 @@ describe('Business endpoint', () => {
   it('acepta una zona horaria IANA válida', async () => {
     await request(app.getHttpServer())
       .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
-      .send({ timezone: 'America/Asuncion' })
+      .send({ timezone: 'America/Asuncion', expectedUpdatedAt: '2026-08-01T00:00:00.000Z' })
       .expect(200)
       .expect(({ body }: { body: { timezone: string } }) => {
         expect(body.timezone).toBe('America/Asuncion');
@@ -215,7 +227,7 @@ describe('Business endpoint', () => {
   it('acepta PYG como moneda de actualización', async () => {
     await request(app.getHttpServer())
       .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
-      .send({ currency: 'PYG' })
+      .send({ currency: 'PYG', expectedUpdatedAt: '2026-08-01T00:00:00.000Z' })
       .expect(200)
       .expect(({ body }: { body: { currency: string } }) => {
         expect(body.currency).toBe('PYG');
@@ -225,7 +237,7 @@ describe('Business endpoint', () => {
   it.each(['USD', 'EUR', ''])('rechaza %s como moneda de actualización', async (currency) => {
     await request(app.getHttpServer())
       .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
-      .send({ currency })
+      .send({ currency, expectedUpdatedAt: '2026-08-01T00:00:00.000Z' })
       .expect(400)
       .expect(({ body }: { body: { message: string } }) => {
         expect(body.message).toBe('La moneda debe ser PYG.');
@@ -235,7 +247,7 @@ describe('Business endpoint', () => {
   it('rechaza null como moneda de actualización', async () => {
     await request(app.getHttpServer())
       .patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001')
-      .send({ currency: null })
+      .send({ currency: null, expectedUpdatedAt: '2026-08-01T00:00:00.000Z' })
       .expect(400)
       .expect(({ body }: { body: { message: string } }) => {
         expect(body.message).toBe('La moneda debe ser PYG.');
@@ -243,7 +255,7 @@ describe('Business endpoint', () => {
   });
 
   it('responde 404 al actualizar un negocio inexistente', async () => {
-    await request(app.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0002').send({ name: 'Nuevo' }).expect(404);
+    await request(app.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0002').send({ name: 'Nuevo', expectedUpdatedAt: '2026-08-01T00:00:00.000Z' }).expect(404);
   });
 
   it('retorna una lista vacía mediante HTTP', async () => {

@@ -34,6 +34,20 @@ const createdAt = new Date('2026-09-01T00:00:00.000Z');
 const emailVerifiedAt = new Date('2026-09-02T00:00:00.000Z');
 const endpoint = `/api/users/${userId}/profile`;
 const methods = ['get', 'patch'] as const;
+const auditReason = 'Actualización del perfil por su titular.';
+const profileValues = (user: User) => ({
+  birthYear: user.birthYear ?? null, username: user.username ?? null, phone: user.phone ?? null, avatarId: user.avatarId ?? null,
+});
+
+function updatedProfileValues(input: UserProfileChange, previous: User): ReturnType<typeof profileValues> {
+  const current = profileValues(previous);
+  return {
+    birthYear: input.birthYear === undefined ? current.birthYear : input.birthYear,
+    username: input.username === undefined ? current.username : input.username,
+    phone: input.phone === undefined ? current.phone : input.phone,
+    avatarId: input.avatarId === undefined ? current.avatarId : input.avatarId,
+  };
+}
 
 interface ProfileAudit {
   entity: 'User';
@@ -43,12 +57,14 @@ interface ProfileAudit {
   previousDisplayName: string | null;
   displayName: string;
   reason: string;
+  previousProfile: ReturnType<typeof profileValues>;
+  profile: ReturnType<typeof profileValues>;
 }
 
 function createUser(overrides: Partial<UserProps> = {}): User {
   return User.create({
     id: userId,
-    email: 'perfil@example.com',
+    email: 'perfil@example.test',
     displayName: 'Nombre vigente',
     emailVerifiedAt,
     status: UserStatus.ACTIVE,
@@ -76,12 +92,12 @@ describe('Perfil personal auditado con JWT, SELF y control de versión', () => {
     id: userId,
     email: persistedUser.email,
     displayName,
+    ...profileValues(persistedUser),
     status: UserStatus.ACTIVE,
     updatedAt: persistedUser.updatedAt.toISOString(),
   });
   const validChange = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
     displayName: 'Nuevo nombre',
-    reason: 'Corrección del nombre',
     expectedUpdatedAt: persistedUser.updatedAt.toISOString(),
     ...overrides,
   });
@@ -122,7 +138,7 @@ describe('Perfil personal auditado con JWT, SELF y control de versión', () => {
     memberships = [];
     auditEvents = [];
     lookup.findById.mockReset().mockImplementation((id) => Promise.resolve(
-      id === userId ? persistedUser : id === otherUserId ? createUser({ id: otherUserId, email: 'otra-persona@example.com' }) : null,
+      id === userId ? persistedUser : id === otherUserId ? createUser({ id: otherUserId, email: 'otra-persona@example.test' }) : null,
     ));
     profileChanges.changeDisplayName.mockReset().mockImplementation((input) => {
       if (input.id !== userId) return Promise.reject(new UserProfileNotFoundError('El usuario no existe.'));
@@ -132,16 +148,21 @@ describe('Perfil personal auditado con JWT, SELF y control de versión', () => {
       if (input.expectedUpdatedAt.getTime() !== persistedUser.updatedAt.getTime()) {
         return Promise.reject(new UserProfileConflictError('El perfil fue actualizado.'));
       }
-      if (input.displayName === persistedUser.displayName) return Promise.resolve(persistedUser);
+      const optionalFields = ['birthYear', 'username', 'phone', 'avatarId'] as const;
+      if (input.displayName === persistedUser.displayName && optionalFields.every(
+        (field) => input[field] === undefined || input[field] === (persistedUser[field] ?? null),
+      )) return Promise.resolve(persistedUser);
       const previous = persistedUser;
       const nextUpdatedAt = new Date(previous.updatedAt.getTime() + 1);
       persistedUser = User.create({
         id: previous.id, email: previous.email, displayName: input.displayName, emailVerifiedAt: previous.emailVerifiedAt,
+        ...updatedProfileValues(input, previous),
         status: previous.status, createdAt: previous.createdAt, updatedAt: nextUpdatedAt,
       });
       auditEvents.push({
         entity: 'User', entityId: input.id, actorUserId: input.actorUserId, occurredAt: nextUpdatedAt.toISOString(),
         previousDisplayName: previous.displayName ?? null, displayName: input.displayName, reason: input.reason,
+        previousProfile: profileValues(previous), profile: profileValues(persistedUser),
       });
       return Promise.resolve(persistedUser);
     });
@@ -157,7 +178,8 @@ describe('Perfil personal auditado con JWT, SELF y control de versión', () => {
   it('lee los datos vigentes y devuelve únicamente el contrato público de perfil', async () => {
     const token = await bearer();
     persistedUser = createUser({
-      displayName: 'Nombre actualizado en persistencia', email: 'correo-vigente@example.com', updatedAt: emailVerifiedAt,
+      displayName: 'Nombre actualizado en persistencia', email: 'correo-vigente@example.test', updatedAt: emailVerifiedAt,
+      birthYear: 1990, username: 'alias vigente', phone: '+595981123456', avatarId: 'sun',
     });
     await request(app.getHttpServer()).get(endpoint).set('Authorization', `Bearer ${token}`)
       .expect('Cache-Control', 'no-store')
@@ -234,19 +256,22 @@ describe('Perfil personal auditado con JWT, SELF y control de versión', () => {
     expect(lookup.findById).toHaveBeenCalledTimes(2);
   });
 
-  it('normaliza nombre y motivo, audita el cambio y devuelve la nueva versión sin exponer auditoría', async () => {
+  it('normaliza nombre y alias, audita con motivo automático y devuelve la nueva versión sin exponer auditoría', async () => {
     const token = await bearer();
     const initialVersion = persistedUser.updatedAt;
     await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${token}`)
-      .send(validChange({ displayName: '  María López  ', reason: '  Corrección del nombre  ' }))
+      .send(validChange({ displayName: '  María López  ', birthYear: 1990, username: '  maria  ', phone: '+595981123456', avatarId: 'leaf' }))
       .expect('Cache-Control', 'no-store').expect(200)
       .expect(({ body }) => expect(body).toEqual(expectedProfile('María López')));
     expect(profileChanges.changeDisplayName).toHaveBeenCalledWith({
-      id: userId, actorUserId: userId, displayName: 'María López', reason: 'Corrección del nombre', expectedUpdatedAt: initialVersion,
+      id: userId, actorUserId: userId, displayName: 'María López', reason: auditReason, expectedUpdatedAt: initialVersion,
+      birthYear: 1990, username: 'maria', phone: '+595981123456', avatarId: 'leaf',
     });
     expect(auditEvents).toEqual([{
       entity: 'User', entityId: userId, actorUserId: userId, occurredAt: persistedUser.updatedAt.toISOString(),
-      previousDisplayName: 'Nombre vigente', displayName: 'María López', reason: 'Corrección del nombre',
+      previousDisplayName: 'Nombre vigente', displayName: 'María López', reason: auditReason,
+      previousProfile: { birthYear: null, username: null, phone: null, avatarId: null },
+      profile: { birthYear: 1990, username: 'maria', phone: '+595981123456', avatarId: 'leaf' },
     }]);
     expect(persistedUser.updatedAt.getTime()).toBeGreaterThan(initialVersion.getTime());
     await request(app.getHttpServer()).get(endpoint).set('Authorization', `Bearer ${token}`).expect(200, expectedProfile('María López'));
@@ -259,7 +284,9 @@ describe('Perfil personal auditado con JWT, SELF y control de versión', () => {
     await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${token}`).send(validChange({
       id: otherUserId,
       actorUserId: otherUserId,
-      email: 'sin-verificar@example.com',
+      reason: 'Motivo inyectado',
+      unknownField: 'dato desconocido',
+      email: 'sin-verificar@example.test',
       emailVerifiedAt: null,
       status: 'DISABLED',
       updatedAt: '2030-01-01T00:00:00.000Z',
@@ -276,8 +303,9 @@ describe('Perfil personal auditado con JWT, SELF y control de versión', () => {
     expect(persistedUser.status).toBe(UserStatus.ACTIVE);
     expect(persistedUser.createdAt).toEqual(createdAt);
     expect(auditEvents[0].actorUserId).toBe(userId);
+    expect(auditEvents[0].reason).toBe(auditReason);
     expect(profileChanges.changeDisplayName).toHaveBeenCalledWith({
-      id: userId, actorUserId: userId, displayName: 'Nuevo nombre', reason: 'Corrección del nombre', expectedUpdatedAt: createdAt,
+      id: userId, actorUserId: userId, displayName: 'Nuevo nombre', reason: auditReason, expectedUpdatedAt: createdAt,
     });
     expect(membershipRepository.create).not.toHaveBeenCalled();
     await request(app.getHttpServer()).get(endpoint).set('Authorization', `Bearer ${token}`)
@@ -310,27 +338,116 @@ describe('Perfil personal auditado con JWT, SELF y control de versión', () => {
     expect(auditEvents).toEqual([]);
   });
 
-  it.each([1, 501])('acepta motivo de %i caracteres sin heredar límites de otros dominios', async (length) => {
-    const reason = 'r'.repeat(length);
+  it('conserva todos los opcionales omitidos al actualizar solamente el nombre', async () => {
+    persistedUser = createUser({ birthYear: 1990, username: 'alias vigente', phone: '+595981123456', avatarId: 'sun' });
+    const initialValues = profileValues(persistedUser);
     await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${await bearer()}`)
-      .send(validChange({ reason: ` ${reason} ` })).expect(200);
-    expect(auditEvents[0].reason).toBe(reason);
+      .send(validChange()).expect(200).expect(({ body }) => expect(body).toEqual(expectedProfile()));
+    expect(profileValues(persistedUser)).toEqual(initialValues);
+    expect(auditEvents[0].previousProfile).toEqual(initialValues);
+    expect(auditEvents[0].profile).toEqual(initialValues);
+  });
+
+  it.each(['birthYear', 'username', 'phone', 'avatarId'] as const)('borra únicamente %s con null explícito y conserva el resto', async (field) => {
+    persistedUser = createUser({ birthYear: 1990, username: 'alias vigente', phone: '+595981123456', avatarId: 'sun' });
+    const previous = profileValues(persistedUser);
+    const initialVersion = persistedUser.updatedAt;
+    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${await bearer()}`)
+      .send(validChange({ displayName: persistedUser.displayName, [field]: null })).expect(200)
+      .expect(({ body }) => expect(body).toEqual(expectedProfile()));
+    expect(profileValues(persistedUser)).toEqual({ ...previous, [field]: null });
+    expect(auditEvents).toHaveLength(1);
+    expect(auditEvents[0].previousProfile).toEqual(previous);
+    expect(auditEvents[0].profile).toEqual({ ...previous, [field]: null });
+    expect(auditEvents[0].reason).toBe(auditReason);
+    expect(persistedUser.updatedAt.getTime()).toBeGreaterThan(initialVersion.getTime());
   });
 
   it.each([
-    { name: 'ausente', value: undefined },
-    { name: 'vacío', value: '' },
-    { name: 'solo espacios', value: ' \t\n ' },
-    { name: 'null', value: null },
-    { name: 'número', value: 123 },
-    { name: 'booleano', value: true },
-    { name: 'array', value: ['Motivo'] },
-    { name: 'objeto', value: { value: 'Motivo' } },
-  ])('rechaza motivo $name sin cambios ni evento', async ({ value }) => {
+    { field: 'birthYear', value: 1 }, { field: 'birthYear', value: new Date().getUTCFullYear() },
+    { field: 'username', value: ' A ' }, { field: 'username', value: 'a'.repeat(50) },
+    { field: 'phone', value: '+595981123456' }, { field: 'phone', value: '+14155552671' },
+    ...['user', 'leaf', 'sun', 'mountain'].map((value) => ({ field: 'avatarId', value })),
+  ])('admite $field=$value como cambio efectivo sin cambiar el nombre', async ({ field, value }) => {
     await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${await bearer()}`)
-      .send(validChange({ reason: value })).expect(400);
+      .send(validChange({ displayName: persistedUser.displayName, [field]: value })).expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(expectedProfile('Nombre vigente'));
+        expect(body[field]).toBe(field === 'username' ? String(value).trim() : value);
+      });
+    expect(auditEvents).toHaveLength(1);
+    expect(auditEvents[0].reason).toBe(auditReason);
+  });
+
+  it.each([
+    ...[0, -1, 1990.5, new Date().getUTCFullYear() + 1, '1990', '', true, [], {}].map((value) => ({ field: 'birthYear', value })),
+    ...['a'.repeat(51), 123, true, [], {}].map((value) => ({ field: 'username', value })),
+    ...['0981123456', '595981123456', '+5959', '+999123456789', '+0123456789', '+14155552671 ext 1', '+14155552671123456', 123, true, [], {}].map((value) => ({ field: 'phone', value })),
+    ...['', ' leaf ', 'USER', 'unknown', 'https://example.test/avatar.png', 'data:image/png;base64,AAAA', '../../private', 123, true, [], {}].map((value) => ({ field: 'avatarId', value })),
+  ])('rechaza $field=$value sin cambios ni evento', async ({ field, value }) => {
+    const initialProfile = expectedProfile();
+    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${await bearer()}`)
+      .send(validChange({ [field]: value })).expect(400);
     expect(profileChanges.changeDisplayName).not.toHaveBeenCalled();
+    expect(expectedProfile()).toEqual(initialProfile);
     expect(auditEvents).toEqual([]);
+  });
+
+  it.each(['', ' \t\n '])('normaliza alias y teléfono vacíos a null sin exigir datos opcionales', async (value) => {
+    persistedUser = createUser({ username: 'alias vigente', phone: '+595981123456' });
+    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${await bearer()}`)
+      .send(validChange({ displayName: persistedUser.displayName, username: value, phone: value })).expect(200)
+      .expect(({ body }) => expect(body).toEqual(expectedProfile('Nombre vigente')));
+    expect(persistedUser.username).toBeNull();
+    expect(persistedUser.phone).toBeNull();
+    expect(auditEvents).toHaveLength(1);
+  });
+
+  it('normaliza teléfono internacional con separadores a E.164', async () => {
+    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${await bearer()}`)
+      .send(validChange({ phone: ' +1 415 555 2671 ' })).expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(expectedProfile());
+        expect(body.phone).toBe('+14155552671');
+      });
+  });
+
+  it('conserva versión y auditoría cuando todos los valores normalizados coinciden', async () => {
+    persistedUser = createUser({ birthYear: 1990, username: 'alias vigente', phone: '+14155552671', avatarId: 'sun' });
+    const initialProfile = expectedProfile();
+    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${await bearer()}`)
+      .send(validChange({ displayName: ' Nombre vigente ', birthYear: 1990, username: ' alias vigente ', phone: '+1 415 555 2671', avatarId: 'sun' }))
+      .expect(200, initialProfile);
+    expect(expectedProfile()).toEqual(initialProfile);
+    expect(auditEvents).toEqual([]);
+  });
+
+  it('rechaza versión obsoleta aunque los valores opcionales solicitados coincidan', async () => {
+    const token = await bearer();
+    const body = validChange({ displayName: persistedUser.displayName, birthYear: 1990 });
+    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${token}`).send(body).expect(200);
+    const initialProfile = expectedProfile();
+    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${token}`).send(body).expect(409);
+    expect(expectedProfile()).toEqual(initialProfile);
+    expect(auditEvents).toHaveLength(1);
+  });
+
+  it('admite un solo cambio opcional para dos peticiones de la misma versión', async () => {
+    const token = await bearer();
+    const initialVersion = persistedUser.updatedAt.toISOString();
+    const responses = await Promise.all(['leaf', 'mountain'].map((avatarId) =>
+      request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${token}`)
+        .send(validChange({ displayName: 'Nombre vigente', avatarId, expectedUpdatedAt: initialVersion })),
+    ));
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
+    expect(auditEvents).toHaveLength(1);
+    expect(auditEvents[0].profile.avatarId).toBe(persistedUser.avatarId);
+  });
+
+  it.each(['', ' \t\n ', null, 123, true, [], {}, 'Motivo controlado por el cliente'])('descarta el motivo cliente %s y genera la auditoría automática', async (reason) => {
+    await request(app.getHttpServer()).patch(endpoint).set('Authorization', `Bearer ${await bearer()}`)
+      .send(validChange({ reason })).expect(200);
+    expect(auditEvents[0].reason).toBe(auditReason);
   });
 
   it.each([

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, HttpCode, HttpStatus, Post, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, HttpCode, HttpStatus, Post, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { EmailNotVerifiedError, InvalidCredentialsError, InvalidLoginInputError, LoginUseCase, UserDisabledError } from '../application/login.use-case';
 import { InvalidRefreshTokenError, InvalidRefreshTokenInputError, RefreshTokenUseCase, RefreshUserDisabledError } from '../application/refresh-token.use-case';
@@ -26,6 +26,11 @@ import { VerifyEmailResponseDto } from './dto/verify-email.response.dto';
 import { ResendVerificationUseCase } from '../application/resend-verification.use-case';
 import { ResendVerificationRequestDto } from './dto/resend-verification.request.dto';
 import { ResendVerificationResponseDto } from './dto/resend-verification.response.dto';
+import { EmailFeatureDisabledError } from '../domain/email-feature-disabled.error';
+
+function rejectDisabledEmail(error: unknown): void {
+  if (error instanceof EmailFeatureDisabledError) throw new ServiceUnavailableException({ code: error.code, message: error.message });
+}
 
 @ApiTags('Authentication')
 @Public()
@@ -39,20 +44,20 @@ export class AuthController {
   @ApiOkResponse({ type: SignupResponseDto })
   async signup(@Body() request: SignupRequestDto): Promise<SignupResponseDto> {
     try { return await this.signupUseCase.execute(request); }
-    catch (error: unknown) { if (error instanceof InvalidSignupInputError) throw new BadRequestException(error.message); if (error instanceof SignupEmailConflictError) throw new ConflictException({ code: 'EMAIL_ALREADY_REGISTERED', message: error.message }); throw error; }
+    catch (error: unknown) { rejectDisabledEmail(error); if (error instanceof InvalidSignupInputError) throw new BadRequestException(error.message); if (error instanceof SignupEmailConflictError) throw new ConflictException({ code: 'EMAIL_ALREADY_REGISTERED', message: error.message }); throw error; }
   }
 
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verificar correo electrónico' })
   @ApiOkResponse({ type: VerifyEmailResponseDto })
-  async verifyEmail(@Body() request: VerifyEmailRequestDto): Promise<VerifyEmailResponseDto> { try { return await this.verifyEmailUseCase.execute(request.token); } catch (error: unknown) { if (error instanceof InvalidEmailVerificationTokenError) throw new BadRequestException(error.message); throw error; } }
+  async verifyEmail(@Body() request: VerifyEmailRequestDto): Promise<VerifyEmailResponseDto> { try { return await this.verifyEmailUseCase.execute(request.token); } catch (error: unknown) { rejectDisabledEmail(error); if (error instanceof InvalidEmailVerificationTokenError) throw new BadRequestException(error.message); throw error; } }
 
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reenviar verificación de correo sin revelar elegibilidad' })
   @ApiOkResponse({ type: ResendVerificationResponseDto })
-  async resendVerification(@Body() request: ResendVerificationRequestDto): Promise<ResendVerificationResponseDto> { return this.resendVerificationUseCase.execute(request.email); }
+  async resendVerification(@Body() request: ResendVerificationRequestDto): Promise<ResendVerificationResponseDto> { try { return await this.resendVerificationUseCase.execute(request.email); } catch (error: unknown) { rejectDisabledEmail(error); throw error; } }
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
@@ -60,14 +65,14 @@ export class AuthController {
   @ApiOkResponse({ type: ForgotPasswordResponseDto })
   async forgotPassword(@Body() request: ForgotPasswordRequestDto): Promise<ForgotPasswordResponseDto> {
     try { return await this.forgotPasswordUseCase.execute(request); }
-    catch (error: unknown) { if (error instanceof InvalidForgotPasswordInputError) throw new BadRequestException(error.message); throw error; }
+    catch (error: unknown) { rejectDisabledEmail(error); if (error instanceof InvalidForgotPasswordInputError) throw new BadRequestException(error.message); throw error; }
   }
 
   @Post('verify-reset-code')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verificar código de recuperación' })
   @ApiOkResponse({ type: VerifyResetCodeResponseDto })
-  async verifyResetCode(@Body() request: VerifyResetCodeRequestDto): Promise<VerifyResetCodeResponseDto> { try { return await this.verifyResetCodeUseCase.execute(request); } catch (error: unknown) { if (error instanceof InvalidResetCodeError) throw new BadRequestException(error.message); throw error; } }
+  async verifyResetCode(@Body() request: VerifyResetCodeRequestDto): Promise<VerifyResetCodeResponseDto> { try { return await this.verifyResetCodeUseCase.execute(request); } catch (error: unknown) { rejectDisabledEmail(error); if (error instanceof InvalidResetCodeError) throw new BadRequestException(error.message); throw error; } }
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
@@ -75,7 +80,7 @@ export class AuthController {
   @ApiOkResponse({ type: ResetPasswordResponseDto })
   async resetPassword(@Body() request: ResetPasswordRequestDto): Promise<ResetPasswordResponseDto> {
     try { await this.resetPasswordUseCase.execute(request); return { message: 'Contraseña restablecida correctamente.' }; }
-    catch (error: unknown) { if (error instanceof InvalidResetPasswordInputError) throw new BadRequestException(error.message); if (error instanceof InvalidPasswordResetTokenError) throw new BadRequestException(error.message); throw error; }
+    catch (error: unknown) { rejectDisabledEmail(error); if (error instanceof InvalidResetPasswordInputError) throw new BadRequestException(error.message); if (error instanceof InvalidPasswordResetTokenError) throw new BadRequestException(error.message); throw error; }
   }
 
   @Post('login')

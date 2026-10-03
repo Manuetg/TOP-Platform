@@ -6,6 +6,10 @@ export interface BusinessProps {
   name: string;
   legalName: string | null;
   taxId: string | null;
+  country?: string | null;
+  region?: string | null;
+  city?: string | null;
+  address?: string | null;
   timezone: string;
   currency: string;
   status: BusinessStatus;
@@ -17,6 +21,10 @@ export interface BusinessUpdate {
   name?: string;
   legalName?: string | null;
   taxId?: string | null;
+  country?: string | null;
+  region?: string | null;
+  city?: string | null;
+  address?: string | null;
   timezone?: string;
   currency?: string;
 }
@@ -63,6 +71,11 @@ export class Business {
   get timezone(): string {
     return this.props.timezone;
   }
+
+  get country(): string | null { return this.props.country ?? null; }
+  get region(): string | null { return this.props.region ?? null; }
+  get city(): string | null { return this.props.city ?? null; }
+  get address(): string | null { return this.props.address ?? null; }
 
   get currency(): string {
     return this.props.currency;

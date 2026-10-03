@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaIdentityService } from '../infrastructure/prisma-identity.service';
 import { CryptoEmailVerificationTokenService } from '../infrastructure/crypto-email-verification-token.service';
+import { EmailFeaturePolicy } from './email-feature-policy';
 export class InvalidEmailVerificationTokenError extends Error {}
 @Injectable()
 export class VerifyEmailUseCase {
-  constructor(private readonly prisma: PrismaIdentityService, private readonly tokens: CryptoEmailVerificationTokenService) {}
+  constructor(private readonly prisma: PrismaIdentityService, private readonly tokens: CryptoEmailVerificationTokenService, private readonly emailFeatures: EmailFeaturePolicy = new EmailFeaturePolicy()) {}
   async execute(rawToken: unknown): Promise<{ status: 'EMAIL_VERIFIED' }> {
+    this.emailFeatures.assertAvailable();
     if (typeof rawToken !== 'string' || !rawToken.trim()) throw new InvalidEmailVerificationTokenError('El enlace de verificación no es válido.');
     const now = new Date();
     const token = await this.prisma.emailVerificationToken.findUnique({ where: { tokenHash: this.tokens.hash(rawToken.trim()) } });

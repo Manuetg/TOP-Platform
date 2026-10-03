@@ -4,6 +4,10 @@ export interface UserProps {
   id: string;
   email: string;
   displayName?: string | null;
+  birthYear?: number | null;
+  username?: string | null;
+  phone?: string | null;
+  avatarId?: string | null;
   emailVerifiedAt?: Date | null;
   status: UserStatus;
   createdAt: Date;
@@ -20,6 +24,10 @@ export class User {
   get id(): string { return this.props.id; }
   get email(): string { return this.props.email; }
   get displayName(): string | null | undefined { return this.props.displayName; }
+  get birthYear(): number | null | undefined { return this.props.birthYear; }
+  get username(): string | null | undefined { return this.props.username; }
+  get phone(): string | null | undefined { return this.props.phone; }
+  get avatarId(): string | null | undefined { return this.props.avatarId; }
   get emailVerifiedAt(): Date | null | undefined { return this.props.emailVerifiedAt; }
   get status(): UserStatus { return this.props.status; }
   get createdAt(): Date { return this.props.createdAt; }

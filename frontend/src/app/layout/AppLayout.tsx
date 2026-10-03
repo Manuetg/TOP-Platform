@@ -8,6 +8,7 @@ import {
   type AppSection,
 } from "./AppShell";
 import { useAuth } from "../../features/auth/context/AuthContext";
+import { useUserProfile } from "../../features/profile/queries/use-user-profile";
 import { useBusinessContext } from "../../features/business/context/BusinessContext";
 import { BusinessBoundary } from "../../features/business/components/BusinessBoundary";
 import { BusinessSelector } from "../../features/business/components/BusinessSelector";
@@ -133,7 +134,9 @@ function getBreadcrumbItems(pathname: string): readonly TopBreadcrumbItem[] | nu
 export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { session, logout, isLoggingOut } = useAuth();
+  const { session, logout, isLoggingOut, status: authStatus } = useAuth();
+  const profile = useUserProfile();
+  const userAvatarId = authStatus === "authenticated" && !profile.isError && profile.data?.id === session?.user.id && profile.data?.status === "ACTIVE" ? profile.data.avatarId : null;
   const { activeBusiness, activeRole, status } = useBusinessContext();
   const userDisplayName = typeof session?.user.displayName === "string" ? session.user.displayName.trim() : "";
 
@@ -166,6 +169,7 @@ export function AppLayout() {
       businessName={activeBusiness?.name ?? (status === "empty" ? "Sin negocio activo" : status === "error" ? "No disponible" : "Seleccioná un negocio")}
       userName={userDisplayName || session?.user.email || "Usuario"}
       userEmail={session?.user.email}
+      userAvatarId={userAvatarId}
       userRole={activeRole ?? "Sin rol"}
       onNavigate={handleNavigate}
       onSearchNavigate={(path) => { void navigate(path); }}

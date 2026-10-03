@@ -1,4 +1,6 @@
 import { GlobalSearch } from "../../features/search/components/GlobalSearch";
+import { UserAvatar } from "../../features/profile/components/UserAvatar";
+import type { ProfileAvatarId } from "../../features/profile/api/user-profile";
 import {
   useRef,
   useEffect,
@@ -53,6 +55,7 @@ interface AppShellProps extends PropsWithChildren {
   businessName: string;
   userName: string;
   userEmail?: string;
+  userAvatarId?: ProfileAvatarId | null;
   userRole: string;
   onNavigate?: (target: AppNavigationTarget) => void;
   onBusinessMenuOpen?: () => void;
@@ -104,6 +107,7 @@ export function AppShell({
   businessName,
   userName,
   userEmail,
+  userAvatarId,
   userRole,
   onNavigate,
   onBusinessMenuOpen,
@@ -319,7 +323,7 @@ export function AppShell({
               className="top-global-header__avatar"
               aria-hidden="true"
             >
-              {userInitials || "TOP"}
+              <UserAvatar avatarId={userAvatarId} fallback={userInitials || "TOP"} />
             </span>
 
             <span className="top-global-header__profile-copy">
@@ -366,7 +370,7 @@ export function AppShell({
             }}
             >
               <span aria-hidden="true">
-                {userInitials || "TOP"}
+                <UserAvatar avatarId={userAvatarId} fallback={userInitials || "TOP"} />
               </span>
             </button>
           </div>
@@ -445,7 +449,7 @@ export function AppShell({
 
                 <div className="top-header-popover__profile-summary">
                   <span className="top-header-popover__avatar">
-                    {userInitials || "TOP"}
+                    <UserAvatar avatarId={userAvatarId} fallback={userInitials || "TOP"} />
                   </span>
 
                   <div>

@@ -1,7 +1,7 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaUserRepository } from '../../src/modules/identity/infrastructure/prisma-user.repository';
 import { PrismaIdentityService } from '../../src/modules/identity/infrastructure/prisma-identity.service';
-import { cleanTestDatabase } from './support/clean-test-database';
+import { assertTestDatabase, cleanTestDatabase } from './support/clean-test-database';
 import { UserStatus } from '../../src/modules/identity/domain/user-status.enum';
 import { UserEmailConflictError } from '../../src/modules/identity/domain/user.repository';
 import { UserProfileConflictError, UserProfileForbiddenError, UserProfileNotFoundError } from '../../src/modules/identity/application/user-profile.errors';
@@ -15,10 +15,15 @@ const isTestDatabase = databaseUrl ? new URL(databaseUrl).pathname.toLowerCase()
 describeWithPostgres('PrismaUserRepository con PostgreSQL', () => {
   const prisma = new PrismaIdentityService();
   const repository = new PrismaUserRepository(prisma);
+  const cleanIdentityDatabase = async (): Promise<void> => {
+    assertTestDatabase(databaseUrl);
+    await prisma.userProfileAudit.deleteMany();
+    await cleanTestDatabase(prisma, databaseUrl);
+  };
   beforeAll(async () => { if (!isTestDatabase) throw new Error('Las pruebas de integración de Identity requieren una DATABASE_URL cuyo nombre incluya "test".'); await prisma.$connect(); });
-  beforeEach(async () => { await cleanTestDatabase(prisma, databaseUrl); });
-  afterEach(async () => { await cleanTestDatabase(prisma, databaseUrl); });
-  afterAll(async () => { if (isTestDatabase) await cleanTestDatabase(prisma, databaseUrl); await prisma.$disconnect(); });
+  beforeEach(async () => { await cleanIdentityDatabase(); });
+  afterEach(async () => { await cleanIdentityDatabase(); });
+  afterAll(async () => { if (isTestDatabase) await cleanIdentityDatabase(); await prisma.$disconnect(); });
   it('persiste User ACTIVE y LocalCredential de forma uno a uno', async () => {
     const user = await repository.create({ email: 'user@example.com', passwordHash: 'hash-secreto' });
     const persisted = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, include: { localCredential: true } });
@@ -299,7 +304,7 @@ describeWithPostgres('PrismaUserRepository con PostgreSQL', () => {
         const disablingPid = await locked;
         pendingChange = updateProfile.execute({
           id: user.id, actorUserId: user.id, displayName: 'Cambio que no debe persistir',
-          reason: 'Formulario abierto antes de deshabilitar', expectedUpdatedAt: before.updatedAt.toISOString(),
+          expectedUpdatedAt: before.updatedAt.toISOString(),
         }).then(() => ({ error: null }), (error: unknown) => ({ error }));
 
         // La condición de PostgreSQL confirma la espera real; no se sincroniza por tiempo transcurrido.

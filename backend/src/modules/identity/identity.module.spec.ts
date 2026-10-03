@@ -8,6 +8,7 @@ import { GetUserProfileUseCase } from './application/get-user-profile.use-case';
 import { UpdateUserProfileUseCase } from './application/update-user-profile.use-case';
 import { USER_PROFILE_CHANGE_REPOSITORY } from './domain/user-profile-change.repository';
 import { PrismaUserRepository } from './infrastructure/prisma-user.repository';
+import { DisabledEmailSender } from './infrastructure/disabled-email-sender';
 
 describe('selección de correo en IdentityModule', () => {
   const config = (values: Record<string, unknown>): ConfigService => {
@@ -31,6 +32,10 @@ describe('selección de correo en IdentityModule', () => {
 
   it.each(['development', 'test'])('conserva console por omisión en %s', (environment) => {
     expect(createEmailSender(config({ NODE_ENV: environment }))).toBeInstanceOf(ConsoleEmailSender);
+  });
+
+  it('selecciona disabled en el piloto sin construir SMTP ni console', () => {
+    expect(createEmailSender(config({ NODE_ENV: 'production', TOP_DEPLOYMENT_PROFILE: 'lan-pilot', EMAIL_DELIVERY_MODE: 'disabled' }))).toBeInstanceOf(DisabledEmailSender);
   });
 
   it.each([undefined, '', 'console', 'unknown'])('rechaza correo no SMTP en producción: %s', (mode) => {

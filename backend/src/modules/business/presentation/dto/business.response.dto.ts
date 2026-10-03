@@ -14,6 +14,18 @@ export class BusinessResponseDto {
   @ApiPropertyOptional({ nullable: true })
   taxId!: string | null;
 
+  @ApiPropertyOptional({ nullable: true })
+  country!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  region!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  city!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  address!: string | null;
+
   @ApiProperty({ example: 'America/Asuncion' })
   timezone!: string;
 
@@ -35,6 +47,10 @@ export class BusinessResponseDto {
       name: business.name,
       legalName: business.legalName,
       taxId: business.taxId,
+      country: business.country,
+      region: business.region,
+      city: business.city,
+      address: business.address,
       timezone: business.timezone,
       currency: business.currency,
       status: business.status,

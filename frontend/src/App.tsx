@@ -4,10 +4,12 @@ import { AppRouter } from "./app/router/AppRouter";
 import { QueryProvider } from "./app/providers/QueryProvider";
 import { AuthProvider } from "./features/auth/context/AuthContext";
 import { BusinessProvider } from "./features/business/context/BusinessContext";
+import { DeploymentNotice } from "./shared/ui/DeploymentNotice";
 
 function App() {
   return (
     <ErrorBoundary fallback={() => <ErrorFallback general />}>
+      <DeploymentNotice />
       <QueryProvider>
         <AuthProvider>
           <BusinessProvider><AppRouter /></BusinessProvider>
