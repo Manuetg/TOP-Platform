@@ -9,6 +9,7 @@ export function isBusinessQuery(key: QueryKey, businessId: string): boolean {
   if (!businessId) return false;
   if (["resources", "amenities", "contacts", "bookings", "blocks", "dashboard", "seasonal-rates"].includes(String(prefix))) return key[1] === businessId;
   if (prefix === "rate-plans") return key[key[1] === "selectable" ? 2 : 1] === businessId;
-  if (["availability", "payments", "global-search", "payment-history", "outstanding-balance", "business-profile", "subscription", "messaging"].includes(String(prefix))) return key[2] === businessId;
+  if (["availability", "payments", "global-search", "payment-history", "outstanding-balance", "business-profile", "subscription"].includes(String(prefix))) return key[2] === businessId;
+  if (prefix === "messaging") return key[1] === "inbox" ? key[3] === businessId : key[2] === businessId;
   return false;
 }

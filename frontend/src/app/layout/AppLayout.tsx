@@ -20,6 +20,7 @@ import {
   ContactRound,
   Gauge,
   Hotel,
+  MessageCircle,
   Settings,
   Tags,
   WalletCards,
@@ -37,6 +38,7 @@ const sectionPaths: Record<AppSection, string> = {
   pricing: "/app/pricing",
   payments: "/app/payments",
   blocks: "/app/blocks",
+  whatsapp: "/app/whatsapp",
   settings: "/app/settings",
 };
 
@@ -77,6 +79,7 @@ const breadcrumbSections: Record<
   pricing: { label: "Precios", icon: Tags },
   payments: { label: "Pagos", icon: WalletCards },
   blocks: { label: "Bloqueos", icon: Blocks },
+  whatsapp: { label: "WhatsApp", icon: MessageCircle },
   settings: { label: "Configuración", icon: Settings },
 };
 

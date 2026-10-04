@@ -17,6 +17,7 @@ import {
   Hotel,
   LayoutDashboard,
   LogOut,
+  MessageCircle,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
@@ -40,6 +41,7 @@ export type AppSection =
   | "pricing"
   | "payments"
   | "blocks"
+  | "whatsapp"
   | "settings";
 
 export type AppNavigationTarget = AppSection | "more";
@@ -73,6 +75,7 @@ const managementItems = [
   { id: "pricing", label: "Precios", icon: Tags },
   { id: "payments", label: "Pagos", icon: WalletCards },
   { id: "blocks", label: "Bloqueos", icon: Blocks },
+  { id: "whatsapp", label: "WhatsApp", icon: MessageCircle },
 ] as const;
 
 const mobileItems = [
@@ -89,6 +92,7 @@ const moreItems = [
   { id: "pricing", label: "Precios", icon: Tags },
   { id: "payments", label: "Pagos", icon: WalletCards },
   { id: "blocks", label: "Bloqueos", icon: Blocks },
+  { id: "whatsapp", label: "WhatsApp", icon: MessageCircle },
   { id: "settings", label: "Configuración", icon: Settings },
 ] as const;
 
