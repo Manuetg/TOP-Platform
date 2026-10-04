@@ -55,13 +55,22 @@ export class MetaWhatsAppProvider implements MessagingProvider {
     if (!selected || selected.provider !== MessagingConnectionProvider.META_WHATSAPP || selected.channel !== MessagingChannel.WHATSAPP) {
       throw new MetaWhatsAppProviderError('configuration', 'La conexión seleccionada no es compatible con Meta WhatsApp.');
     }
-    const credentials = this.credentials ? await this.credentials.resolve({ connectionId: selected.connectionId, businessId: selected.businessId, provider: selected.provider }) : { accessToken: this.configuration.accessToken };
+    const credentials = this.credentials
+      ? await this.credentials.resolve({ connectionId: selected.connectionId, businessId: selected.businessId, provider: selected.provider })
+      : connection
+        ? (() => { throw new MetaWhatsAppProviderError('configuration', 'La conexión de Messaging requiere un resolver de credenciales.'); })()
+        : this.legacyCredentials();
     return this.sendTextWithRouting(selected.providerPhoneNumberId, credentials.accessToken, message.recipient, text);
   }
 
   async sendText(recipient: string, text: string): Promise<MessagingProviderResult> {
     if (!this.configuration.phoneNumberId) throw new MetaWhatsAppProviderError('configuration', 'META_WHATSAPP_PHONE_NUMBER_ID solo está disponible para el smoke manual de una conexión.');
-    return this.sendTextWithRouting(this.configuration.phoneNumberId, this.configuration.accessToken, recipient, text);
+    return this.sendTextWithRouting(this.configuration.phoneNumberId, this.legacyCredentials().accessToken, recipient, text);
+  }
+
+  private legacyCredentials(): { accessToken: string } {
+    if (!this.configuration.accessToken) throw new MetaWhatsAppProviderError('configuration', 'META_WHATSAPP_ACCESS_TOKEN solo está disponible para el smoke manual legacy.');
+    return { accessToken: this.configuration.accessToken };
   }
 
   private async sendTextWithRouting(phoneNumberId: string, accessToken: string, recipient: string, text: string): Promise<MessagingProviderResult> {

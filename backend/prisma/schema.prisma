@@ -96,6 +96,16 @@ enum MessagingConnectionStatus {
   INACTIVE
 }
 
+enum MessagingProviderCredentialType {
+  BUSINESS_TOKEN
+}
+
+enum MessagingProviderCredentialStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
 enum ConversationMode {
   BOT
   HUMAN
@@ -323,17 +333,42 @@ model MessagingConnection {
   channel               MessagingChannel
   provider              MessagingProvider
   providerPhoneNumberId String
+  providerWabaId        String?
+  providerBusinessPortfolioId String?
   status                MessagingConnectionStatus @default(ACTIVE)
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
   business              Business                  @relation(fields: [businessId], references: [id], onDelete: Restrict)
   conversations         Conversation[]
   outboundMessages      OutboundMessage[]
+  providerCredentials   MessagingProviderCredential[]
 
   @@unique([provider, channel, providerPhoneNumberId])
   @@unique([id, businessId])
   @@index([businessId, channel, status])
   @@index([provider, channel, status])
+}
+
+model MessagingProviderCredential {
+  id               String                           @id @default(uuid())
+  connectionId     String
+  provider         MessagingProvider
+  credentialType   MessagingProviderCredentialType
+  secretReference  String
+  secretFingerprint String?
+  status           MessagingProviderCredentialStatus @default(ACTIVE)
+  issuedAt         DateTime?
+  expiresAt        DateTime?
+  lastValidatedAt  DateTime?
+  rotatedAt        DateTime?
+  revokedAt        DateTime?
+  createdAt        DateTime                         @default(now())
+  updatedAt        DateTime                         @updatedAt
+  connection       MessagingConnection             @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+
+  @@unique([connectionId, credentialType])
+  @@index([connectionId, status])
+  @@index([provider, status])
 }
 
 model MessagingAutomationRule {
