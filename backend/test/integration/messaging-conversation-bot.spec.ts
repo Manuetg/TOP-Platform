@@ -34,6 +34,7 @@ import { PrismaIntegrationEventOutbox } from '../../src/shared/infrastructure/pr
 import { PrismaIntegrationOutboxRepository } from '../../src/shared/infrastructure/prisma-integration-outbox.repository';
 import { cleanTestDatabase } from './support/clean-test-database';
 import { FakeMessagingProvider } from './support/fake-messaging.provider';
+import { PrismaMessagingSettingsRepository } from '../../src/modules/messaging/infrastructure/prisma-messaging-settings.repository';
 
 const databaseUrl = process.env.DATABASE_URL;
 const describeWithPostgres = databaseUrl?.includes('test') ? describe : describe.skip;
@@ -50,6 +51,7 @@ describeWithPostgres('Messaging conversation bot', () => {
   const resources = new PrismaResourceRepository(prisma);
   const ratePlans = new PrismaRatePlanRepository(prisma);
   const seasonalRates = new PrismaSeasonalRateRepository(prisma);
+  const messagingSettings = new PrismaMessagingSettingsRepository(prisma);
   const availability = new ListAvailableResourcesUseCase(
     new ListAvailabilityCalendarUseCase(businesses, resources, new PrismaBookingRepository(prisma), new PrismaBlockRepository(prisma), new PrismaAvailabilityRulesRepository(prisma)),
     resources,
@@ -90,7 +92,7 @@ describeWithPostgres('Messaging conversation bot', () => {
     const registry = new IntegrationEventConsumerRegistry();
     const bookingCreation = new PrismaBookingPendingCreationTransaction(transactionalAvailability, bookingRepository);
     const transaction = new PrismaConversationBotTransaction(prisma, new PrismaOutboundMessageRepository(prisma), query, quote, contactRepository, contactRepository, bookingCreation);
-    const consumer = new ConversationBotConsumer(businesses, transaction, registry);
+    const consumer = new ConversationBotConsumer(businesses, transaction, registry, messagingSettings);
     const dispatcher = new IntegrationEventDispatcher(outbox, [consumer], { baseBackoffMs: 0 });
     return { consumer, dispatcher };
   }
@@ -116,6 +118,17 @@ describeWithPostgres('Messaging conversation bot', () => {
     await expect(dispatcher.dispatchOnce()).resolves.toBe('PROCESSED');
     await expect(prisma.conversationSession.findUniqueOrThrow({ where: { conversationId_businessId: { conversationId: result.conversation.id, businessId: owner.id } } })).resolves.toMatchObject({ businessId: owner.id, state: 'MAIN_MENU' });
     await expect(prisma.outboundMessage.findMany({ where: { businessId: owner.id } })).resolves.toEqual([expect.objectContaining({ status: 'PENDING', messageType: 'CONVERSATION_REPLY', payload: expect.objectContaining({ text: expect.stringContaining(owner.name) }) })]);
+  });
+
+  it('respeta botEnabled sin bloquear el resto de automatizaciones de Messaging', async () => {
+    const owner = await business('Bot deshabilitado');
+    await prisma.messagingSettings.create({ data: { businessId: owner.id, botEnabled: false } });
+    const { result } = await receive(owner.id, 'wamid-bot-disabled');
+
+    await expect(bot().dispatcher.dispatchOnce()).resolves.toBe('PROCESSED');
+
+    await expect(prisma.conversationSession.findUnique({ where: { conversationId_businessId: { conversationId: result.conversation.id, businessId: owner.id } } })).resolves.toBeNull();
+    await expect(prisma.outboundMessage.count({ where: { businessId: owner.id } })).resolves.toBe(0);
   });
 
   it('no repite la bienvenida en el segundo mensaje y conserva la sesión', async () => {

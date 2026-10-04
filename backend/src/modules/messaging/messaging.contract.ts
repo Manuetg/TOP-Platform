@@ -14,3 +14,8 @@ export type { InboundMessage } from './domain/inbound-message.entity';
 export { CONVERSATION_REPOSITORY, type ConversationRepository } from './domain/conversation.repository';
 export { INBOUND_MESSAGE_REPOSITORY, type InboundMessageRepository } from './domain/inbound-message.repository';
 export { RECEIVE_INBOUND_MESSAGE_TRANSACTION, type InboundMessageEnvelope, type ReceiveInboundMessageInput, type ReceiveInboundMessageResult, type ReceiveInboundMessageTransaction } from './application/receive-inbound-message.contract';
+export { MessagingAutomationType } from './domain/messaging-automation-type.enum';
+export { MESSAGING_SETTINGS_REPOSITORY, type MessagingSettings, type MessagingSettingsRepository } from './domain/messaging-settings.repository';
+export { MESSAGING_AUTOMATION_RULE_REPOSITORY, type MessagingAutomationRule, type MessagingAutomationRuleRepository } from './domain/messaging-automation-rule.repository';
+export { MESSAGING_MESSAGE_TEMPLATE_REPOSITORY, type MessagingMessageTemplate, type MessagingMessageTemplateRepository } from './domain/messaging-message-template.repository';
+export { MESSAGING_AUTOMATION_CONFIGURATION, type MessagingAutomationConfigurationReader, type ResolvedMessagingAutomation } from './application/messaging-automation-configuration';

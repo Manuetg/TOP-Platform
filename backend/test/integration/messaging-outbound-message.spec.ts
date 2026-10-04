@@ -16,6 +16,11 @@ import type { IntegrationEvent } from '../../src/shared/integration-events/integ
 import { PrismaIntegrationOutboxRepository } from '../../src/shared/infrastructure/prisma-integration-outbox.repository';
 import { cleanTestDatabase } from './support/clean-test-database';
 import { FakeMessagingProvider } from './support/fake-messaging.provider';
+import { MessagingAutomationType } from '../../src/modules/messaging/domain/messaging-automation-type.enum';
+import { MessagingAutomationConfigurationService, type MessagingAutomationConfigurationReader } from '../../src/modules/messaging/application/messaging-automation-configuration';
+import { MessagingChannel } from '../../src/modules/messaging/domain/messaging-channel.enum';
+import { PrismaMessagingAutomationRuleRepository } from '../../src/modules/messaging/infrastructure/prisma-messaging-automation-rule.repository';
+import { PrismaMessagingMessageTemplateRepository } from '../../src/modules/messaging/infrastructure/prisma-messaging-message-template.repository';
 
 const databaseUrl = process.env.DATABASE_URL;
 const describeWithPostgres = databaseUrl?.includes('test') ? describe : describe.skip;
@@ -29,6 +34,8 @@ describeWithPostgres('Messaging outbound messages', () => {
   const snapshots = new PrismaPricingSnapshotRepository(prisma);
   const messages = new PrismaOutboundMessageRepository(prisma);
   const outbox = new PrismaIntegrationOutboxRepository(prisma);
+  const automationRules = new PrismaMessagingAutomationRuleRepository(prisma);
+  const messageTemplates = new PrismaMessagingMessageTemplateRepository(prisma);
 
   beforeAll(async () => prisma.$connect());
   beforeEach(async () => cleanTestDatabase(prisma, databaseUrl));
@@ -69,6 +76,10 @@ describeWithPostgres('Messaging outbound messages', () => {
 
   function consumer(): MessagingIntegrationEventConsumer {
     return new MessagingIntegrationEventConsumer(bookings, businesses, contacts, resources, snapshots, messages, new IntegrationEventConsumerRegistry());
+  }
+
+  function consumerWithConfiguration(configuration: MessagingAutomationConfigurationReader): MessagingIntegrationEventConsumer {
+    return new MessagingIntegrationEventConsumer(bookings, businesses, contacts, resources, snapshots, messages, new IntegrationEventConsumerRegistry(), configuration);
   }
 
   it('creates one PENDING BOOKING_CONFIRMATION message from BOOKING_CONFIRMED', async () => {
@@ -236,6 +247,51 @@ describeWithPostgres('Messaging outbound messages', () => {
     await send.execute({ id: row.id, businessId: fixture.business.id });
 
     expect(provider.sent).toHaveLength(1);
+  });
+
+  it('creates a configurable BOOKING_CANCELLATION without requiring a PricingSnapshot', async () => {
+    const fixture = await confirmedFixture();
+    await bookings.markCancelled(fixture.booking.id, fixture.business.id, null, 'Cambio de planes');
+    const row = await prisma.integrationOutboxEvent.findFirstOrThrow({ where: { businessId: fixture.business.id, eventType: 'BOOKING_CANCELLED', aggregateId: fixture.booking.id } });
+
+    await consumer().handle(toIntegrationEvent(row));
+
+    await expect(prisma.outboundMessage.findFirstOrThrow({ where: { integrationEventId: row.eventId } })).resolves.toMatchObject({ messageType: 'BOOKING_CANCELLATION', recipient: fixture.contact.whatsapp, payload: expect.objectContaining({ status: 'CANCELLED', text: expect.stringContaining('fue cancelada') }) });
+  });
+
+  it('does not create an outbound message when the automation is disabled', async () => {
+    const fixture = await confirmedFixture();
+    const resolve = jest.fn().mockResolvedValue({ businessId: fixture.business.id, automationType: MessagingAutomationType.BOOKING_CONFIRMED, enabled: false, templateType: MessagingAutomationType.BOOKING_CONFIRMED, content: 'ignored' });
+    const configuration: MessagingAutomationConfigurationReader = {
+      resolve,
+    };
+
+    await consumerWithConfiguration(configuration).handle(fixture.event);
+
+    expect(resolve).toHaveBeenCalledWith({ businessId: fixture.business.id, automationType: MessagingAutomationType.BOOKING_CONFIRMED, channel: MessagingChannel.WHATSAPP });
+    await expect(prisma.outboundMessage.count()).resolves.toBe(0);
+  });
+
+  it('renders a tenant configuration at event-consumer time', async () => {
+    const fixture = await confirmedFixture();
+    const configuration: MessagingAutomationConfigurationReader = {
+      resolve: jest.fn().mockResolvedValue({ businessId: fixture.business.id, automationType: MessagingAutomationType.BOOKING_CONFIRMED, enabled: true, templateType: MessagingAutomationType.BOOKING_CONFIRMED, content: 'Confirmada para {{guestName}} en {{businessName}}.' }),
+    };
+
+    await consumerWithConfiguration(configuration).handle(fixture.event);
+
+    await expect(prisma.outboundMessage.findFirstOrThrow({ where: { integrationEventId: fixture.event.eventId } })).resolves.toMatchObject({ payload: { text: `Confirmada para ${fixture.contact.name} ${fixture.contact.lastName} en ${fixture.business.name}.` } });
+  });
+
+  it('resolves a persisted tenant template and automation rule', async () => {
+    const fixture = await confirmedFixture();
+    const template = await messageTemplates.save({ businessId: fixture.business.id, templateType: MessagingAutomationType.BOOKING_CONFIRMED, channel: MessagingChannel.WHATSAPP, content: 'Configurada: {{guestName}}' });
+    await automationRules.save({ businessId: fixture.business.id, automationType: MessagingAutomationType.BOOKING_CONFIRMED, enabled: true, templateId: template.id });
+    const configuration = new MessagingAutomationConfigurationService(automationRules, messageTemplates);
+
+    await consumerWithConfiguration(configuration).handle(fixture.event);
+
+    await expect(prisma.outboundMessage.findFirstOrThrow({ where: { integrationEventId: fixture.event.eventId } })).resolves.toMatchObject({ payload: { text: `Configurada: ${fixture.contact.name} ${fixture.contact.lastName}` } });
   });
 });
 

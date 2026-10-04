@@ -107,7 +107,18 @@ enum InboundMessageType {
 
 enum OutboundMessageType {
   BOOKING_CONFIRMATION
+  BOOKING_CANCELLATION
   CONVERSATION_REPLY
+}
+
+enum MessagingAutomationType {
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+}
+
+enum MessagingTemplateType {
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
 }
 
 enum OutboundMessageStatus {
@@ -252,6 +263,9 @@ model Business {
   inboundMessages       InboundMessage[]
   conversationSessions   ConversationSession[]
   conversationBotEvents  ConversationBotEvent[]
+  messagingSettings      MessagingSettings?
+  messagingAutomationRules MessagingAutomationRule[]
+  messagingMessageTemplates MessagingMessageTemplate[]
 }
 
 model SubscriptionPlan {
@@ -280,6 +294,46 @@ model AvailabilityRule {
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
   business                  Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model MessagingSettings {
+  businessId  String   @id
+  botEnabled  Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model MessagingAutomationRule {
+  id             String                  @id @default(uuid())
+  businessId     String
+  automationType MessagingAutomationType
+  enabled        Boolean                 @default(true)
+  templateId     String?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  business       Business                @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  template       MessagingMessageTemplate? @relation("MessagingAutomationTemplate", fields: [templateId, businessId], references: [id, businessId], onDelete: Restrict)
+
+  @@unique([businessId, automationType])
+  @@unique([id, businessId])
+  @@index([businessId])
+}
+
+model MessagingMessageTemplate {
+  id             String                 @id @default(uuid())
+  businessId     String
+  templateType   MessagingTemplateType
+  channel        MessagingChannel
+  content        String
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  business       Business               @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  automationRules MessagingAutomationRule[] @relation("MessagingAutomationTemplate")
+
+  @@unique([businessId, templateType, channel])
+  @@unique([id, businessId])
+  @@index([businessId, templateType])
 }
 
 model Contact {

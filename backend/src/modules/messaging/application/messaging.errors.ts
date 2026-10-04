@@ -6,3 +6,4 @@ export class MessagingPricingSnapshotNotFoundError extends Error {}
 export class MessagingRecipientNotFoundError extends Error {}
 export class MessagingOutboundMessageNotFoundError extends Error {}
 export class MessagingOutboundMessageBusinessMismatchError extends Error {}
+export class MessagingConfigurationError extends Error {}

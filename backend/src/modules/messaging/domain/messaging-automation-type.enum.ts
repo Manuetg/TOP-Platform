@@ -1,0 +1,4 @@
+export enum MessagingAutomationType {
+  BOOKING_CONFIRMED = 'BOOKING_CONFIRMED',
+  BOOKING_CANCELLED = 'BOOKING_CANCELLED',
+}

@@ -42,6 +42,8 @@ export enum Capability {
   PAYMENT_READ = 'payment.read',
   PAYMENT_RECORD = 'payment.record',
   DASHBOARD_READ = 'dashboard.read',
+  MESSAGING_READ = 'messaging.read',
+  MESSAGING_WRITE = 'messaging.write',
 }
 
 const allRoles = [MembershipRole.OWNER, MembershipRole.ADMIN, MembershipRole.RECEPTIONIST, MembershipRole.VIEWER] as const;
@@ -86,6 +88,8 @@ const roleCapabilities: Readonly<Record<Capability, readonly MembershipRole[]>> 
   [Capability.PAYMENT_READ]: allRoles,
   [Capability.PAYMENT_RECORD]: operational,
   [Capability.DASHBOARD_READ]: allRoles,
+  [Capability.MESSAGING_READ]: allRoles,
+  [Capability.MESSAGING_WRITE]: ownerAdmin,
 });
 
 export class AuthorizationPolicy {

@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { BOOKING_REPOSITORY, type BookingRepository } from '../../booking/booking.contract';
 import { BUSINESS_REPOSITORY, type BusinessRepository } from '../../business/business.contract';
 import { CONTACT_LOOKUP, type ContactLookup } from '../../contact/contact.contract';
@@ -10,13 +10,18 @@ import { IntegrationEventConsumerRegistry } from '../../../shared/integration-ev
 import { OUTBOUND_MESSAGE_REPOSITORY, type OutboundMessageRepository } from '../domain/outbound-message.repository';
 import { MessagingChannel } from '../domain/messaging-channel.enum';
 import { OutboundMessageType } from '../domain/outbound-message-type.enum';
+import { MessagingAutomationType } from '../domain/messaging-automation-type.enum';
+import { DEFAULT_MESSAGING_TEMPLATES } from './messaging-template.defaults';
+import { MESSAGING_AUTOMATION_CONFIGURATION, type MessagingAutomationConfigurationReader } from './messaging-automation-configuration';
+import { MessagingTemplateRenderer } from './messaging-template-renderer';
 import { MessagingBookingNotFoundError, MessagingBusinessNotFoundError, MessagingContactNotFoundError, MessagingPricingSnapshotNotFoundError, MessagingRecipientNotFoundError, MessagingResourceNotFoundError } from './messaging.errors';
 import type { Booking } from '../../booking/domain/booking.entity';
 import type { Business } from '../../business/domain/business.entity';
+import type { Contact } from '../../contact/domain/contact.entity';
 
 @Injectable()
 export class MessagingIntegrationEventConsumer implements IntegrationEventConsumer, OnModuleInit {
-  readonly eventTypes = ['BOOKING_CONFIRMED'] as const;
+  readonly eventTypes = ['BOOKING_CONFIRMED', 'BOOKING_CANCELLED'] as const;
 
   constructor(
     @Inject(BOOKING_REPOSITORY) private readonly bookings: BookingRepository,
@@ -26,6 +31,7 @@ export class MessagingIntegrationEventConsumer implements IntegrationEventConsum
     @Inject(PRICING_SNAPSHOT_REPOSITORY) private readonly snapshots: PricingSnapshotRepository,
     @Inject(OUTBOUND_MESSAGE_REPOSITORY) private readonly messages: OutboundMessageRepository,
     private readonly registry: IntegrationEventConsumerRegistry,
+    @Optional() @Inject(MESSAGING_AUTOMATION_CONFIGURATION) private readonly configuration?: MessagingAutomationConfigurationReader,
   ) {}
 
   onModuleInit(): void {
@@ -36,25 +42,42 @@ export class MessagingIntegrationEventConsumer implements IntegrationEventConsum
     return this.eventTypes.includes(eventType as (typeof this.eventTypes)[number]);
   }
 
+  // Coordina consultas tenant-scoped antes de crear un único mensaje idempotente.
+  // eslint-disable-next-line complexity
   async handle(event: IntegrationEvent): Promise<void> {
     if (!this.supports(event.eventType)) return;
+    const automationType = event.eventType as MessagingAutomationType;
+    const configuration = this.configuration
+      ? await this.configuration.resolve({ businessId: event.businessId, automationType, channel: MessagingChannel.WHATSAPP })
+      : { businessId: event.businessId, automationType, enabled: true, templateType: automationType, content: DEFAULT_MESSAGING_TEMPLATES[automationType] };
+    if (!configuration.enabled) return;
     const bookingId = this.bookingId(event);
     const booking = await this.booking(bookingId, event.businessId);
     const business = await this.business(event.businessId);
-    const recipient = await this.recipient(booking, event.businessId);
+    const contact = await this.contact(booking, event.businessId);
     const resources = await this.resourceNames(booking, event.businessId);
-    const snapshot = await this.snapshot(booking.id, event.businessId);
+    const snapshot = automationType === MessagingAutomationType.BOOKING_CONFIRMED ? await this.snapshot(booking.id, event.businessId) : null;
+    const values = {
+      businessName: business.name,
+      guestName: contact.fullName,
+      resourceName: resources.join(', '),
+      checkIn: booking.checkInDate ? formatDate(booking.checkInDate) : '',
+      checkOut: booking.checkOutDate ? formatDate(booking.checkOutDate) : '',
+      guests: guestCount(booking.adults, booking.children) === null ? '' : `${guestCount(booking.adults, booking.children)} huésped${guestCount(booking.adults, booking.children) === 1 ? '' : 'es'}`,
+      ...(snapshot ? { total: formatNumber(snapshot.totalAmountMinor), currency: snapshot.currency === 'PYG' ? 'Gs' : snapshot.currency } : {}),
+    };
+    const text = new MessagingTemplateRenderer().render(configuration.templateType, configuration.content, values);
 
     await this.messages.createPending({
       businessId: event.businessId,
       integrationEventId: event.eventId,
       channel: MessagingChannel.WHATSAPP,
-      recipient,
-      messageType: OutboundMessageType.BOOKING_CONFIRMATION,
+      recipient: contact.recipient,
+      messageType: automationType === MessagingAutomationType.BOOKING_CONFIRMED ? OutboundMessageType.BOOKING_CONFIRMATION : OutboundMessageType.BOOKING_CANCELLATION,
       payload: {
         bookingId,
-        status: 'CONFIRMED',
-        text: confirmationText({ businessName: business.name, booking, resourceNames: resources, totalAmountMinor: snapshot.totalAmountMinor, currency: snapshot.currency }),
+        status: automationType === MessagingAutomationType.BOOKING_CONFIRMED ? 'CONFIRMED' : 'CANCELLED',
+        text,
       },
     });
   }
@@ -77,13 +100,13 @@ export class MessagingIntegrationEventConsumer implements IntegrationEventConsum
     return business;
   }
 
-  private async recipient(booking: Booking, businessId: string): Promise<string> {
+  private async contact(booking: Booking, businessId: string): Promise<Contact & { recipient: string }> {
     if (!booking.contactId) throw new MessagingContactNotFoundError('La reserva no tiene un contacto asociado.');
     const contact = await this.contacts.findByIdAndBusinessId(booking.contactId, businessId);
     if (!contact || contact.businessId !== businessId) throw new MessagingContactNotFoundError('El contacto del evento no existe.');
     const recipient = contact.whatsapp ?? contact.phone;
     if (!recipient) throw new MessagingRecipientNotFoundError('El contacto no tiene un destinatario de WhatsApp.');
-    return recipient;
+    return Object.assign(contact, { recipient });
   }
 
   private async resourceNames(booking: Booking, businessId: string): Promise<string[]> {
@@ -103,27 +126,6 @@ export class MessagingIntegrationEventConsumer implements IntegrationEventConsum
   }
 }
 
-function confirmationText(input: {
-  businessName: string;
-  booking: Booking;
-  resourceNames: string[];
-  totalAmountMinor: number;
-  currency: string;
-}): string {
-  const lines = [
-    `Tu reserva en ${input.businessName} fue confirmada.`,
-    '',
-    input.resourceNames.join(', '),
-  ];
-  if (input.booking.checkInDate && input.booking.checkOutDate) {
-    lines.push(`${formatDate(input.booking.checkInDate)} → ${formatDate(input.booking.checkOutDate)}`);
-  }
-  const guests = guestCount(input.booking.adults, input.booking.children);
-  if (guests !== null) lines.push(`${guests} huésped${guests === 1 ? '' : 'es'}`);
-  lines.push('', `Total confirmado: ${formatAmount(input.totalAmountMinor, input.currency)}.`);
-  return lines.join('\n');
-}
-
 function guestCount(adults: number | null, children: number | null): number | null {
   if (adults === null || children === null) return null;
   return adults + children;
@@ -135,7 +137,6 @@ function formatDate(value: Date): string {
   return `${day}/${month}/${year}`;
 }
 
-function formatAmount(amountMinor: number, currency: string): string {
-  const formatted = new Intl.NumberFormat('es-PY', { maximumFractionDigits: 0 }).format(amountMinor);
-  return `${formatted} ${currency === 'PYG' ? 'Gs' : currency}`;
+function formatNumber(amountMinor: number): string {
+  return new Intl.NumberFormat('es-PY', { maximumFractionDigits: 0 }).format(amountMinor);
 }
