@@ -8,6 +8,13 @@ import { ListAvailabilityCalendarUseCase } from '../../src/modules/availability/
 import { PrismaAvailabilityRulesRepository } from '../../src/modules/availability/infrastructure/prisma-availability-rules.repository';
 import { PrismaResourceRepository } from '../../src/modules/resource/infrastructure/prisma-resource.repository';
 import type { AvailabilityQuery } from '../../src/modules/availability/availability.contract';
+import type { PricingQuote } from '../../src/modules/pricing/pricing.contract';
+import { PricingQuoteUseCase } from '../../src/modules/pricing/application/pricing-quote.use-case';
+import { CalculatePriceUseCase } from '../../src/modules/pricing/application/calculate-price.use-case';
+import { ListRatePlansUseCase } from '../../src/modules/pricing/application/list-rate-plans.use-case';
+import { PricingCalculator } from '../../src/modules/pricing/domain/pricing-calculator';
+import { PrismaRatePlanRepository } from '../../src/modules/pricing/infrastructure/prisma-rate-plan.repository';
+import { PrismaSeasonalRateRepository } from '../../src/modules/pricing/infrastructure/prisma-seasonal-rate.repository';
 import { ChangeConversationModeUseCase } from '../../src/modules/messaging/application/change-conversation-mode.use-case';
 import { ConversationBotConsumer } from '../../src/modules/messaging/application/conversation-bot.consumer';
 import { PrismaConversationBotTransaction } from '../../src/modules/messaging/infrastructure/prisma-conversation-bot.transaction';
@@ -36,9 +43,15 @@ describeWithPostgres('Messaging conversation bot', () => {
   const conversations = new PrismaConversationRepository(prisma);
   const businesses = new PrismaBusinessRepository(prisma);
   const resources = new PrismaResourceRepository(prisma);
+  const ratePlans = new PrismaRatePlanRepository(prisma);
+  const seasonalRates = new PrismaSeasonalRateRepository(prisma);
   const availability = new ListAvailableResourcesUseCase(
     new ListAvailabilityCalendarUseCase(businesses, resources, new PrismaBookingRepository(prisma), new PrismaBlockRepository(prisma), new PrismaAvailabilityRulesRepository(prisma)),
     resources,
+  );
+  const pricing = new PricingQuoteUseCase(
+    new ListRatePlansUseCase(businesses, resources, ratePlans),
+    new CalculatePriceUseCase(businesses, resources, ratePlans, ratePlans, seasonalRates, new PricingCalculator()),
   );
 
   beforeAll(async () => prisma.$connect());
@@ -58,12 +71,12 @@ describeWithPostgres('Messaging conversation bot', () => {
   }
 
   function bot() {
-    return botWithAvailability(availability);
+    return botWithAvailability(availability, pricing);
   }
 
-  function botWithAvailability(query: AvailabilityQuery) {
+  function botWithAvailability(query: AvailabilityQuery, quote: PricingQuote = pricing) {
     const registry = new IntegrationEventConsumerRegistry();
-    const transaction = new PrismaConversationBotTransaction(prisma, new PrismaOutboundMessageRepository(prisma), query);
+    const transaction = new PrismaConversationBotTransaction(prisma, new PrismaOutboundMessageRepository(prisma), query, quote);
     const consumer = new ConversationBotConsumer(businesses, transaction, registry);
     const dispatcher = new IntegrationEventDispatcher(outbox, [consumer], { baseBackoffMs: 0 });
     return { consumer, dispatcher };
@@ -146,6 +159,10 @@ describeWithPostgres('Messaging conversation bot', () => {
     return prisma.resource.create({ data: { businessId: ownerId, name, internalCode: `${name}-${randomUUID()}`, capacityMaximum, capacityMaximumChildren: 0 }, select: { id: true, name: true } });
   }
 
+  async function ratePlan(ownerId: string, resourceId: string, name = 'Plan base', amountMinor = 450000): Promise<{ id: string; name: string }> {
+    return prisma.ratePlan.create({ data: { businessId: ownerId, name, baseNightlyAmountMinor: amountMinor, resources: { create: { resourceId } } }, select: { id: true, name: true } });
+  }
+
   async function beginAvailability(ownerId: string, worker: IntegrationEventDispatcher, prefix: string): Promise<void> {
     await sendAndDispatch(ownerId, worker, `${prefix}-hello`, 'Hola');
     await sendAndDispatch(ownerId, worker, `${prefix}-menu`, '1');
@@ -197,6 +214,119 @@ describeWithPostgres('Messaging conversation bot', () => {
     await sendAndDispatch(owner.id, worker, 'wamid-results-cancel-zero', '0');
 
     await expect(prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } })).resolves.toMatchObject({ state: 'MAIN_MENU', context: {} });
+  });
+
+  it('selecciona Resource, revalida Availability y persiste una cotización real', async () => {
+    const owner = await business('Pricing Quote');
+    const selected = await resource(owner.id, 'Cabaña Premium', 4);
+    const plan = await ratePlan(owner.id, selected.id, 'Plan estándar', 625000);
+    const worker = bot().dispatcher;
+
+    await beginAvailability(owner.id, worker, 'wamid-quote');
+    await sendAndDispatch(owner.id, worker, 'wamid-quote-guests', '4');
+    const selectedEvent = await receive(owner.id, 'wamid-quote-selection', '1');
+    await expect(worker.dispatchOnce()).resolves.toBe('PROCESSED');
+
+    const message = await prisma.outboundMessage.findFirstOrThrow({ where: { businessId: owner.id }, orderBy: { createdAt: 'desc' } });
+    const text = (message.payload as { text: string }).text;
+    expect(text).toContain('Cabaña Premium');
+    expect(text).toContain('1.250.000 Gs.');
+    expect(text).not.toContain(selected.id);
+    expect(text).not.toContain(plan.id);
+    await expect(prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } })).resolves.toMatchObject({ state: 'PRICING_QUOTE', context: { selection: { resourceId: selected.id, resourceName: selected.name }, pricing: { ratePlanId: plan.id, currency: 'PYG', nights: 2, totalAmountMinor: 1250000 } } });
+
+    const before = await prisma.outboundMessage.count({ where: { businessId: owner.id } });
+    const consumer = bot().consumer;
+    await consumer.handle(await eventAsContract(selectedEvent.event.eventId));
+    await expect(prisma.outboundMessage.count({ where: { businessId: owner.id } })).resolves.toBe(before);
+  });
+
+  it('no llama Pricing para una opción inexistente', async () => {
+    const owner = await business('Invalid Pricing Option');
+    await resource(owner.id, 'Cabaña única', 2);
+    const quote = { quote: jest.fn() } as never;
+    const worker = botWithAvailability(availability, quote).dispatcher;
+
+    await beginAvailability(owner.id, worker, 'wamid-invalid-option');
+    await sendAndDispatch(owner.id, worker, 'wamid-invalid-option-guests', '2');
+    await sendAndDispatch(owner.id, worker, 'wamid-invalid-option-selection', '2');
+
+    expect((quote as { quote: jest.Mock }).quote).not.toHaveBeenCalled();
+    await expect(prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } })).resolves.toMatchObject({ state: 'AVAILABILITY_RESULTS' });
+  });
+
+  it('actualiza las opciones si el Resource seleccionado quedó ocupado', async () => {
+    const owner = await business('Stale Selection');
+    const selected = await resource(owner.id, 'Cabaña A', 2);
+    await resource(owner.id, 'Cabaña B', 2);
+    const quote = { quote: jest.fn() } as never;
+    const worker = botWithAvailability(availability, quote).dispatcher;
+
+    await beginAvailability(owner.id, worker, 'wamid-stale-selection');
+    await sendAndDispatch(owner.id, worker, 'wamid-stale-selection-guests', '2');
+    await prisma.block.create({ data: { businessId: owner.id, resourceId: selected.id, type: 'MAINTENANCE', reason: 'Mantenimiento', startsAt: new Date('2026-10-15T00:00:00.000Z'), endsAt: new Date('2026-10-17T00:00:00.000Z') } });
+    await sendAndDispatch(owner.id, worker, 'wamid-stale-selection-choice', '1');
+
+    expect((quote as { quote: jest.Mock }).quote).not.toHaveBeenCalled();
+    const session = await prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } });
+    expect(session.state).toBe('AVAILABILITY_RESULTS');
+    expect(session.context).toMatchObject({ availability: { options: [{ option: 1, name: 'Cabaña B' }] } });
+    const message = await prisma.outboundMessage.findFirstOrThrow({ where: { businessId: owner.id }, orderBy: { createdAt: 'desc' } });
+    expect((message.payload as { text: string }).text).toContain('ya no está disponible');
+    expect((message.payload as { text: string }).text).toContain('Cabaña B');
+  });
+
+  it('rechaza un resourceId de otro Business antes de Pricing', async () => {
+    const first = await business('Pricing Tenant A');
+    const second = await business('Pricing Tenant B');
+    const foreign = await resource(second.id, 'Resource privado B', 2);
+    const quote = { quote: jest.fn() } as never;
+    const worker = botWithAvailability(availability, quote).dispatcher;
+
+    await beginAvailability(first.id, worker, 'wamid-cross-tenant');
+    await sendAndDispatch(first.id, worker, 'wamid-cross-tenant-guests', '2');
+    const conversation = await prisma.conversation.findFirstOrThrow({ where: { businessId: first.id } });
+    await prisma.conversationSession.update({ where: { conversationId_businessId: { conversationId: conversation.id, businessId: first.id } }, data: { context: { availability: { checkIn: '2026-10-15', checkOut: '2026-10-17', guests: 2, options: [{ option: 1, resourceId: foreign.id, name: foreign.name }] } } } });
+    await sendAndDispatch(first.id, worker, 'wamid-cross-tenant-choice', '1');
+
+    expect((quote as { quote: jest.Mock }).quote).not.toHaveBeenCalled();
+    await expect(prisma.conversationSession.findFirstOrThrow({ where: { businessId: first.id } })).resolves.toMatchObject({ state: 'AVAILABILITY_RESULTS' });
+    const message = await prisma.outboundMessage.findFirstOrThrow({ where: { businessId: first.id }, orderBy: { createdAt: 'desc' } });
+    expect((message.payload as { text: string }).text).not.toContain('Resource privado B');
+  });
+
+  it('maneja la ausencia de tarifas sin confundirla con falta de Availability', async () => {
+    const owner = await business('No Pricing');
+    await resource(owner.id, 'Cabaña sin tarifa', 2);
+    const worker = bot().dispatcher;
+
+    await beginAvailability(owner.id, worker, 'wamid-no-pricing');
+    await sendAndDispatch(owner.id, worker, 'wamid-no-pricing-guests', '2');
+    await sendAndDispatch(owner.id, worker, 'wamid-no-pricing-choice', '1');
+
+    const session = await prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } });
+    expect(session.state).toBe('AVAILABILITY_RESULTS');
+    const message = await prisma.outboundMessage.findFirstOrThrow({ where: { businessId: owner.id }, orderBy: { createdAt: 'desc' } });
+    expect((message.payload as { text: string }).text).toContain('No pude obtener una cotización');
+    expect((message.payload as { text: string }).text).not.toContain('No encontré disponibilidad');
+  });
+
+  it('0 desde Pricing refresca Availability y limpia selection/pricing', async () => {
+    const owner = await business('Quote Back');
+    const selected = await resource(owner.id, 'Cabaña con tarifa', 2);
+    await ratePlan(owner.id, selected.id);
+    const worker = bot().dispatcher;
+
+    await beginAvailability(owner.id, worker, 'wamid-quote-back');
+    await sendAndDispatch(owner.id, worker, 'wamid-quote-back-guests', '2');
+    await sendAndDispatch(owner.id, worker, 'wamid-quote-back-choice', '1');
+    await sendAndDispatch(owner.id, worker, 'wamid-quote-back-zero', '0');
+
+    const session = await prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } });
+    expect(session.state).toBe('AVAILABILITY_RESULTS');
+    expect(session.context).not.toHaveProperty('selection');
+    expect(session.context).not.toHaveProperty('pricing');
+    expect(session.context).toMatchObject({ availability: { options: [{ resourceId: selected.id }] } });
   });
 
   it('aisla la consulta de Availability por Business', async () => {
@@ -271,7 +401,7 @@ describeWithPostgres('Messaging conversation bot', () => {
     const owner = await business();
     const received = await receive(owner.id, 'wamid-atomic-bot');
     const failingMessages = { createPendingInTransaction: jest.fn().mockRejectedValue(new Error('forced outbound failure')) } as never;
-    const transaction = new PrismaConversationBotTransaction(prisma, failingMessages, availability);
+    const transaction = new PrismaConversationBotTransaction(prisma, failingMessages, availability, pricing);
 
     await expect(transaction.process({ event: await eventAsContract(received.event.eventId), businessName: owner.name, businessTimeZone: 'America/Asuncion' })).rejects.toThrow('forced outbound failure');
     await expect(prisma.conversationSession.count({ where: { businessId: owner.id } })).resolves.toBe(0);

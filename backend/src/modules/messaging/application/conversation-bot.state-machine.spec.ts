@@ -92,12 +92,81 @@ describe('conversation bot state machine', () => {
   });
 
   it('supports searching other dates and human handoff without running bot logic', () => {
-    const searchAgain = decideConversationBotResponse({ ...common, state: ConversationSessionState.AVAILABILITY_RESULTS, text: '1', context: { availability: { checkIn: '2026-10-15' } } });
+    const searchAgain = decideConversationBotResponse({ ...common, state: ConversationSessionState.AVAILABILITY_RESULTS, text: '1', context: { availability: { checkIn: '2026-10-15', checkOut: '2026-10-17', guests: 2, options: [] } } });
     const human = decideConversationBotResponse({ ...common, mode: ConversationMode.HUMAN, state: ConversationSessionState.AVAILABILITY_ASK_CHECK_IN, text: '15/10/2026' });
 
     expect(searchAgain.nextState).toBe(ConversationSessionState.AVAILABILITY_ASK_CHECK_IN);
     expect(searchAgain.context).toEqual({});
     expect(human.response).toBeNull();
+  });
+
+  it('resuelve una selección por option y no por nombre', () => {
+    const decision = decideConversationBotResponse({
+      ...common,
+      state: ConversationSessionState.AVAILABILITY_RESULTS,
+      text: '2',
+      context: {
+        availability: {
+          checkIn: '2026-10-15',
+          checkOut: '2026-10-17',
+          guests: 2,
+          options: [
+            { option: 1, resourceId: 'resource-a', name: 'Cabaña A' },
+            { option: 2, resourceId: 'resource-b', name: 'Cabaña B' },
+          ],
+        },
+      },
+    });
+
+    expect(decision.availabilitySelectionRequest).toEqual({ resourceId: 'resource-b', resourceName: 'Cabaña B', checkIn: '2026-10-15', checkOut: '2026-10-17', guests: 2 });
+    expect(decision.response).toBeNull();
+  });
+
+  it('mantiene resultados y no solicita Pricing para una opción inexistente', () => {
+    const decision = decideConversationBotResponse({
+      ...common,
+      state: ConversationSessionState.AVAILABILITY_RESULTS,
+      text: '3',
+      context: {
+        availability: {
+          checkIn: '2026-10-15',
+          checkOut: '2026-10-17',
+          guests: 2,
+          options: [{ option: 1, resourceId: 'resource-a', name: 'Cabaña A' }],
+        },
+      },
+    });
+
+    expect(decision.nextState).toBe(ConversationSessionState.AVAILABILITY_RESULTS);
+    expect(decision.availabilitySelectionRequest).toBeUndefined();
+    expect(decision.response).toContain('Esa opción no existe');
+  });
+
+  it('presenta una cotización sin exponer IDs y persiste selección y pricing', () => {
+    const decision = decideConversationBotResponse({ ...common, state: ConversationSessionState.AVAILABILITY_RESULTS, text: '1', context: { availability: { checkIn: '2026-10-15', checkOut: '2026-10-17', guests: 2, options: [{ option: 1, resourceId: 'resource-a', name: 'Cabaña A' }] }, }, pricingQuote: { resourceId: 'resource-a', resourceName: 'Cabaña A', checkIn: '2026-10-15', checkOut: '2026-10-17', guests: 2, ratePlanId: 'plan-a', ratePlanName: 'Plan base', currency: 'PYG', nights: 2, totalAmountMinor: 1250000 } });
+
+    expect(decision.nextState).toBe(ConversationSessionState.PRICING_QUOTE);
+    expect(decision.response).toContain('Cabaña A');
+    expect(decision.response).toContain('1.250.000 Gs.');
+    expect(decision.response).not.toContain('resource-a');
+    expect(decision.response).not.toContain('plan-a');
+    expect(decision.context).toMatchObject({ selection: { resourceId: 'resource-a', resourceName: 'Cabaña A' }, pricing: { ratePlanId: 'plan-a', currency: 'PYG', totalAmountMinor: 1250000 } });
+  });
+
+  it('desde la cotización vuelve a resultados solicitando Availability fresca', () => {
+    const decision = decideConversationBotResponse({ ...common, state: ConversationSessionState.PRICING_QUOTE, text: '0', context: { availability: { checkIn: '2026-10-15', checkOut: '2026-10-17', guests: 2, options: [{ option: 1, resourceId: 'resource-a', name: 'Cabaña A' }] }, selection: { resourceId: 'resource-a', resourceName: 'Cabaña A' }, pricing: { ratePlanId: 'plan-a', ratePlanName: 'Plan base', currency: 'PYG', nights: 2, totalAmountMinor: 1250000 } } });
+
+    expect(decision.nextState).toBe(ConversationSessionState.AVAILABILITY_RESULTS);
+    expect(decision.availabilityRefreshRequest).toEqual({ checkIn: '2026-10-15', checkOut: '2026-10-17', guests: 2 });
+    expect(decision.context).not.toHaveProperty('selection');
+    expect(decision.context).not.toHaveProperty('pricing');
+  });
+
+  it('CANCELAR desde la cotización limpia todo el flujo', () => {
+    const decision = decideConversationBotResponse({ ...common, state: ConversationSessionState.PRICING_QUOTE, text: 'CANCELAR', context: { availability: { checkIn: '2026-10-15' }, selection: { resourceId: 'resource-a', resourceName: 'Cabaña A' } } });
+
+    expect(decision.nextState).toBe(ConversationSessionState.MAIN_MENU);
+    expect(decision.context).toEqual({});
   });
 
   it('transfers to HUMAN on option 4', () => {

@@ -5,6 +5,7 @@ import { BookingModule } from '../booking/booking.module';
 import { BusinessModule } from '../business/business.module';
 import { ContactModule } from '../contact/contact.module';
 import { AvailabilityModule } from '../availability/availability.module';
+import { PricingModule } from '../pricing/pricing.module';
 import { OUTBOUND_MESSAGE_REPOSITORY, TRANSACTIONAL_OUTBOUND_MESSAGE_REPOSITORY } from './domain/outbound-message.repository';
 import { MessagingIntegrationEventConsumer } from './application/messaging-integration-event.consumer';
 import { PrismaOutboundMessageRepository } from './infrastructure/prisma-outbound-message.repository';
@@ -26,7 +27,7 @@ import { CONVERSATION_BOT_TRANSACTION } from './application/conversation-bot.con
 import { PrismaConversationBotTransaction } from './infrastructure/prisma-conversation-bot.transaction';
 
 @Module({
-  imports: [IntegrationEventsModule, BookingModule, BusinessModule, ContactModule, AvailabilityModule],
+  imports: [IntegrationEventsModule, BookingModule, BusinessModule, ContactModule, AvailabilityModule, PricingModule],
   providers: [
     PrismaOutboundMessageRepository,
     { provide: OUTBOUND_MESSAGE_REPOSITORY, useExisting: PrismaOutboundMessageRepository },

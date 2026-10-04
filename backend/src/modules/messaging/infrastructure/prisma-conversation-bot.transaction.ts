@@ -1,12 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import { AVAILABILITY_QUERY, type AvailabilityQuery } from '../../availability/availability.contract';
+import { PRICING_QUOTE, type PricingQuote, type PricingQuoteResult } from '../../pricing/pricing.contract';
 import type { IntegrationEvent } from '../../../shared/integration-events/integration-event';
 import { PrismaService } from '../../business/infrastructure/prisma.service';
 import type { ConversationBotTransaction, ConversationBotTransactionResult } from '../application/conversation-bot.contract';
 import { readConversationBotContext } from '../application/conversation-bot-context';
 import { currentBusinessDate } from '../application/conversation-bot-date';
-import { decideConversationBotResponse, type ConversationBotDecision } from '../application/conversation-bot.state-machine';
+import { decideConversationBotResponse, type ConversationBotDecision, type PricingQuoteOption } from '../application/conversation-bot.state-machine';
 import { ConversationMode } from '../domain/conversation-mode.enum';
 import { ConversationSessionState } from '../domain/conversation-session-state.enum';
 import { MessagingChannel } from '../domain/messaging-channel.enum';
@@ -26,6 +27,7 @@ export class PrismaConversationBotTransaction implements ConversationBotTransact
     private readonly prisma: PrismaService,
     @Inject(TRANSACTIONAL_OUTBOUND_MESSAGE_REPOSITORY) private readonly messages: TransactionalOutboundMessageRepository,
     @Inject(AVAILABILITY_QUERY) private readonly availability: AvailabilityQuery,
+    @Inject(PRICING_QUOTE) private readonly pricing: PricingQuote,
   ) {}
 
   async process(input: { event: IntegrationEvent; businessName: string; businessTimeZone: string }): Promise<ConversationBotTransactionResult> {
@@ -46,16 +48,36 @@ export class PrismaConversationBotTransaction implements ConversationBotTransact
     let decision = decideConversationBotResponse(baseInput);
 
     if (decision.availabilityRequest) {
-      const options = await this.availability.findAvailableResources({
-        businessId: input.event.businessId,
-        from: decision.availabilityRequest.checkIn,
-        to: decision.availabilityRequest.checkOut,
-        guests: decision.availabilityRequest.guests,
-      });
+      const options = await this.findAvailability(input.event.businessId, decision.availabilityRequest);
       decision = decideConversationBotResponse({ ...baseInput, context: decision.context, availabilityOptions: options });
     }
 
+    if (decision.availabilitySelectionRequest) {
+      const request = decision.availabilitySelectionRequest;
+      const options = await this.findAvailability(input.event.businessId, request);
+      const selected = options.find((option) => option.resourceId === request.resourceId);
+      if (!selected) {
+        decision = decideConversationBotResponse({ ...baseInput, context: decision.context, availabilityOptions: options, availabilitySelectionUnavailable: true });
+      } else {
+        const quote = await this.pricing.quote({ businessId: input.event.businessId, resourceId: selected.resourceId, checkIn: request.checkIn, checkOut: request.checkOut });
+        decision = decideConversationBotResponse({ ...baseInput, context: decision.context, pricingQuote: quote ? this.pricingQuoteOption(quote, selected.name, request) : undefined, pricingUnavailable: quote === null });
+      }
+    }
+
+    if (decision.availabilityRefreshRequest) {
+      const options = await this.findAvailability(input.event.businessId, decision.availabilityRefreshRequest);
+      decision = decideConversationBotResponse({ ...baseInput, context: decision.context, availabilityOptions: options, availabilityRefreshed: true });
+    }
+
     return this.persist(input.event, preparation, decision);
+  }
+
+  private async findAvailability(businessId: string, request: { checkIn: string; checkOut: string; guests: number }) {
+    return this.availability.findAvailableResources({ businessId, from: request.checkIn, to: request.checkOut, guests: request.guests });
+  }
+
+  private pricingQuoteOption(quote: PricingQuoteResult, resourceName: string, request: { resourceId: string; checkIn: string; checkOut: string; guests: number }): PricingQuoteOption {
+    return { resourceId: quote.resourceId, resourceName, checkIn: quote.checkIn, checkOut: quote.checkOut, guests: request.guests, ratePlanId: quote.ratePlanId, ratePlanName: quote.ratePlanName, currency: quote.currency, nights: quote.nights, totalAmountMinor: quote.totalAmountMinor };
   }
 
   private async prepare(event: IntegrationEvent): Promise<Preparation | null> {

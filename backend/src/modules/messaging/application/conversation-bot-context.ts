@@ -11,8 +11,23 @@ export interface AvailabilityConversationContext {
   options?: AvailabilityConversationOption[];
 }
 
+export interface SelectionConversationContext {
+  resourceId: string;
+  resourceName: string;
+}
+
+export interface PricingConversationContext {
+  ratePlanId: string;
+  ratePlanName: string;
+  currency: string;
+  nights: number;
+  totalAmountMinor: number;
+}
+
 export interface ConversationBotContext {
   availability?: AvailabilityConversationContext;
+  selection?: SelectionConversationContext;
+  pricing?: PricingConversationContext;
 }
 
 export function readConversationBotContext(value: unknown): ConversationBotContext {
@@ -20,19 +35,12 @@ export function readConversationBotContext(value: unknown): ConversationBotConte
   const availability = record(root?.availability);
   if (!availability) return {};
 
-  const context: AvailabilityConversationContext = {};
-  if (typeof availability.checkIn === 'string') context.checkIn = availability.checkIn;
-  if (typeof availability.checkOut === 'string') context.checkOut = availability.checkOut;
-  if (typeof availability.guests === 'number' && Number.isInteger(availability.guests) && availability.guests > 0) context.guests = availability.guests;
-  if (Array.isArray(availability.options)) {
-    const options = availability.options.flatMap((value) => {
-      const option = record(value);
-      if (!option || typeof option.option !== 'number' || !Number.isInteger(option.option) || option.option <= 0 || typeof option.resourceId !== 'string' || !option.resourceId || typeof option.name !== 'string' || !option.name) return [];
-      return [{ option: option.option, resourceId: option.resourceId, name: option.name }];
-    });
-    if (options.length === availability.options.length) context.options = options;
-  }
-  return { availability: context };
+  const result: ConversationBotContext = { availability: readAvailabilityContext(availability) };
+  const selection = readSelectionContext(root?.selection);
+  const pricing = readPricingContext(root?.pricing);
+  if (selection) result.selection = selection;
+  if (pricing) result.pricing = pricing;
+  return result;
 }
 
 export function withAvailabilityContext(context: AvailabilityConversationContext): ConversationBotContext {
@@ -43,8 +51,60 @@ export function clearAvailabilityContext(): ConversationBotContext {
   return {};
 }
 
+export function clearSelectionAndPricing(context: ConversationBotContext): ConversationBotContext {
+  const availability = readConversationBotContext(context).availability;
+  return availability ? { availability } : {};
+}
+
 function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : null;
+}
+
+function readAvailabilityContext(value: Record<string, unknown>): AvailabilityConversationContext {
+  const context: AvailabilityConversationContext = {};
+  if (typeof value.checkIn === 'string') context.checkIn = value.checkIn;
+  if (typeof value.checkOut === 'string') context.checkOut = value.checkOut;
+  if (typeof value.guests === 'number' && Number.isInteger(value.guests) && value.guests > 0) context.guests = value.guests;
+  const options = readAvailabilityOptions(value.options);
+  if (options) context.options = options;
+  return context;
+}
+
+function readAvailabilityOptions(value: unknown): AvailabilityConversationOption[] | null {
+  if (!Array.isArray(value)) return null;
+  const options = value.flatMap((item) => {
+    const option = record(item);
+    return validAvailabilityOption(option) ? [{ option: option.option, resourceId: option.resourceId, name: option.name }] : [];
+  });
+  return options.length === value.length ? options : null;
+}
+
+function validAvailabilityOption(value: Record<string, unknown> | null): value is Record<string, unknown> & { option: number; resourceId: string; name: string } {
+  return Boolean(value && typeof value.option === 'number' && Number.isInteger(value.option) && value.option > 0 && typeof value.resourceId === 'string' && value.resourceId && typeof value.name === 'string' && value.name);
+}
+
+function readSelectionContext(value: unknown): SelectionConversationContext | null {
+  const selection = record(value);
+  if (!selection || typeof selection.resourceId !== 'string' || !selection.resourceId || typeof selection.resourceName !== 'string' || !selection.resourceName) return null;
+  return { resourceId: selection.resourceId, resourceName: selection.resourceName };
+}
+
+function readPricingContext(value: unknown): PricingConversationContext | null {
+  const pricing = record(value);
+  if (!pricing || !hasPricingIdentity(pricing) || !hasPositiveInteger(pricing.nights) || !hasSafeAmount(pricing.totalAmountMinor)) return null;
+  return { ratePlanId: pricing.ratePlanId, ratePlanName: pricing.ratePlanName, currency: pricing.currency, nights: pricing.nights, totalAmountMinor: pricing.totalAmountMinor };
+}
+
+function hasPricingIdentity(value: Record<string, unknown>): value is Record<string, unknown> & { ratePlanId: string; ratePlanName: string; currency: string } {
+  return typeof value.ratePlanId === 'string' && Boolean(value.ratePlanId) && typeof value.ratePlanName === 'string' && Boolean(value.ratePlanName) && typeof value.currency === 'string' && Boolean(value.currency);
+}
+
+function hasPositiveInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0;
+}
+
+function hasSafeAmount(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 }

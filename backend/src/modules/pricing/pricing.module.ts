@@ -1,4 +1,5 @@
 import { PrepareManualPriceUseCase } from './application/prepare-manual-price.use-case';
+import { PricingQuoteUseCase } from './application/pricing-quote.use-case';
 import { Module } from '@nestjs/common';
 import { BusinessModule } from '../business/business.module';
 import {
@@ -32,6 +33,7 @@ import { PrismaPricingSnapshotRepository } from './infrastructure/prisma-pricing
 import { PrismaRatePlanRepository } from './infrastructure/prisma-rate-plan.repository';
 import { PrismaSeasonalRateRepository } from './infrastructure/prisma-seasonal-rate.repository';
 import { PricingController } from './presentation/pricing.controller';
+import { PRICING_QUOTE } from './pricing.contract';
 
 @Module({
   imports: [
@@ -82,11 +84,13 @@ import { PricingController } from './presentation/pricing.controller';
     CalculatePriceUseCase,
     ApplyManualPriceOverrideUseCase,
     PrepareManualPriceUseCase,
+    PricingQuoteUseCase,
   ],
   exports: [
     CalculatePriceUseCase,
     ApplyManualPriceOverrideUseCase,
     PrepareManualPriceUseCase,
+    PRICING_QUOTE,
     PRICING_SNAPSHOT_REPOSITORY,
   ],
 })
