@@ -41,6 +41,20 @@ export interface PricingQuoteOption extends AvailabilitySelectionRequest {
   totalAmountMinor: number;
 }
 
+export interface ConversationContact {
+  contactId: string;
+  name: string;
+}
+
+export interface BookingConfirmationRequest {
+  contactId: string | null;
+  contactName: string;
+  resourceId: string;
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+}
+
 export interface ConversationBotDecision {
   nextState: ConversationSessionState;
   response: string | null;
@@ -49,6 +63,8 @@ export interface ConversationBotDecision {
   availabilityRequest?: AvailabilityQueryRequest;
   availabilitySelectionRequest?: AvailabilitySelectionRequest;
   availabilityRefreshRequest?: AvailabilityQueryRequest;
+  bookingConfirmationRequest?: BookingConfirmationRequest;
+  bookingCreationRequest?: BookingConfirmationRequest;
 }
 
 interface ConversationBotInput {
@@ -63,6 +79,12 @@ interface ConversationBotInput {
   availabilityRefreshed?: boolean;
   pricingUnavailable?: boolean;
   pricingQuote?: PricingQuoteOption;
+  contact?: ConversationContact;
+  bookingConfirmationResult?: {
+    availabilityAvailable: boolean;
+    pricingQuote?: PricingQuoteOption;
+    pricingUnavailable?: boolean;
+  };
 }
 
 export function decideConversationBotResponse(input: ConversationBotInput): ConversationBotDecision {
@@ -84,6 +106,7 @@ export function decideConversationBotResponse(input: ConversationBotInput): Conv
   return decideForState(state, input, context);
 }
 
+// eslint-disable-next-line complexity
 function decideForState(state: ConversationSessionState, input: ConversationBotInput, context: ConversationBotContext): ConversationBotDecision {
   switch (state) {
     case ConversationSessionState.START:
@@ -100,6 +123,12 @@ function decideForState(state: ConversationSessionState, input: ConversationBotI
       return fromAvailabilityResults(input, context);
     case ConversationSessionState.PRICING_QUOTE:
       return fromPricingQuote(input, context);
+    case ConversationSessionState.CONTACT_ASK_NAME:
+      return fromContactName(input, context);
+    case ConversationSessionState.BOOKING_CONFIRM:
+      return fromBookingConfirmation(input, context);
+    case ConversationSessionState.BOOKING_CREATED:
+      return decision(ConversationSessionState.BOOKING_CREATED, 'Tu solicitud de reserva ya fue registrada.', context);
     default:
       return decision(ConversationSessionState.MAIN_MENU, mainMenuMessage(), clearAvailabilityContext());
   }
@@ -205,9 +234,13 @@ function selectionDecision(selected: AvailabilityConversationOption, context: Co
   };
 }
 
+// eslint-disable-next-line complexity
 function fromPricingQuote(input: ConversationBotInput, context: ConversationBotContext): ConversationBotDecision {
   const normalized = input.text.trim().toUpperCase();
-  if (normalized === '1') return decision(ConversationSessionState.PRICING_QUOTE, 'Perfecto. En el siguiente paso necesitaremos tus datos para preparar la reserva.', context);
+  if (normalized === '1') {
+    if (input.contact) return bookingConfirmationDecision(context, input.contact);
+    return decision(ConversationSessionState.CONTACT_ASK_NAME, '¿A nombre de quién preparamos la reserva?', context);
+  }
   if (normalized !== '0' && normalized !== 'VOLVER') return decision(ConversationSessionState.PRICING_QUOTE, 'Usá 1 para continuar o 0 para volver a las opciones.', context);
 
   const availability = context.availability;
@@ -218,6 +251,64 @@ function fromPricingQuote(input: ConversationBotInput, context: ConversationBotC
     ...decision(ConversationSessionState.AVAILABILITY_RESULTS, null, cleared),
     availabilityRefreshRequest: { checkIn: availability.checkIn, checkOut: availability.checkOut, guests: availability.guests },
   };
+}
+
+function fromContactName(input: ConversationBotInput, context: ConversationBotContext): ConversationBotDecision {
+  const name = input.text.trim();
+  if (name.length < 2 || name.length > 120) return decision(ConversationSessionState.CONTACT_ASK_NAME, 'Indicá un nombre válido para la reserva.', context);
+  return bookingConfirmationDecision({ ...context, contact: { name } }, { contactId: '', name });
+}
+
+function bookingConfirmationDecision(context: ConversationBotContext, contact: ConversationContact): ConversationBotDecision {
+  const selection = context.selection;
+  const availability = context.availability;
+  const pricing = context.pricing;
+  if (!selection || !availability?.checkIn || !availability.checkOut || !availability.guests || !pricing) return decision(ConversationSessionState.MAIN_MENU, mainMenuMessage(), clearAvailabilityContext());
+  const nextContext = readConversationBotContext({ ...context, contact: { ...(contact.contactId ? { contactId: contact.contactId } : {}), name: contact.name } });
+  return decision(ConversationSessionState.BOOKING_CONFIRM, bookingReviewMessage(selection.resourceName, availability.checkIn, availability.checkOut, availability.guests, pricing.totalAmountMinor, pricing.currency, contact.name), nextContext);
+}
+
+// eslint-disable-next-line complexity
+function fromBookingConfirmation(input: ConversationBotInput, context: ConversationBotContext): ConversationBotDecision {
+  const normalized = input.text.trim().toUpperCase();
+  if (normalized === '0' || normalized === 'VOLVER') return decision(ConversationSessionState.PRICING_QUOTE, pricingMessageFromContext(context), context);
+  if (normalized !== '1') return decision(ConversationSessionState.BOOKING_CONFIRM, 'Usá 1 para confirmar o 0 para volver.', context);
+  const request = bookingRequest(context);
+  if (!request) return decision(ConversationSessionState.MAIN_MENU, mainMenuMessage(), clearAvailabilityContext());
+  const result = input.bookingConfirmationResult;
+  if (!result) return { ...decision(ConversationSessionState.BOOKING_CONFIRM, null, context), bookingConfirmationRequest: request };
+  if (!result.availabilityAvailable) return decision(ConversationSessionState.AVAILABILITY_RESULTS, 'La opción elegida ya no está disponible. Elegí otra opción o buscá otras fechas.', clearSelectionAndPricing(context));
+  if (result.pricingUnavailable || !result.pricingQuote) return decision(ConversationSessionState.PRICING_QUOTE, 'Ya no pude obtener esa cotización. Volvé a elegir una opción disponible.', clearSelectionAndPricing(context));
+  const updated = result.pricingQuote;
+  const previous = context.pricing;
+  if (!previous || previous.currency !== updated.currency || previous.totalAmountMinor !== updated.totalAmountMinor || previous.ratePlanId !== updated.ratePlanId) {
+    return decision(ConversationSessionState.BOOKING_CONFIRM, `El precio se actualizó.\n\n${bookingReviewMessage(updated.resourceName, updated.checkIn, updated.checkOut, updated.guests, updated.totalAmountMinor, updated.currency, context.contact?.name ?? '')}`, pricingQuoteContext(context, updated));
+  }
+  return { ...decision(ConversationSessionState.BOOKING_CONFIRM, null, context), bookingCreationRequest: request };
+}
+
+function bookingRequest(context: ConversationBotContext): BookingConfirmationRequest | null {
+  const availability = context.availability;
+  const selection = context.selection;
+  const contact = context.contact;
+  if (!availability?.checkIn || !availability.checkOut || !availability.guests || !selection || !contact?.name) return null;
+  return { contactId: contact.contactId ?? null, contactName: contact.name, resourceId: selection.resourceId, checkIn: availability.checkIn, checkOut: availability.checkOut, guests: availability.guests };
+}
+
+function pricingQuoteContext(context: ConversationBotContext, quote: PricingQuoteOption): ConversationBotContext {
+  return readConversationBotContext({ ...context, selection: { resourceId: quote.resourceId, resourceName: quote.resourceName }, pricing: { ratePlanId: quote.ratePlanId, ratePlanName: quote.ratePlanName, currency: quote.currency, nights: quote.nights, totalAmountMinor: quote.totalAmountMinor } });
+}
+
+function pricingMessageFromContext(context: ConversationBotContext): string {
+  const selection = context.selection;
+  const availability = context.availability;
+  const pricing = context.pricing;
+  if (!selection || !availability?.checkIn || !availability.checkOut || !availability.guests || !pricing) return 'La cotización ya no está disponible.';
+  return pricingMessage({ resourceId: selection.resourceId, resourceName: selection.resourceName, checkIn: availability.checkIn, checkOut: availability.checkOut, guests: availability.guests, ratePlanId: pricing.ratePlanId, ratePlanName: pricing.ratePlanName, currency: pricing.currency, nights: pricing.nights, totalAmountMinor: pricing.totalAmountMinor });
+}
+
+function bookingReviewMessage(resourceName: string, checkIn: string, checkOut: string, guests: number, totalAmountMinor: number, currency: string, contactName: string): string {
+  return `${resourceName}\n\n${checkIn} → ${checkOut}\n${guests} ${guests === 1 ? 'huésped' : 'huéspedes'}\n\nTotal: ${formatMoney(totalAmountMinor, currency)}\n\nNombre: ${contactName}\n\n1. Confirmar reserva\n0. Volver`;
 }
 
 function pricingQuoteDecision(quote: PricingQuoteOption, context: ConversationBotContext): ConversationBotDecision {

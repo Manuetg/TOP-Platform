@@ -2,6 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import { AVAILABILITY_QUERY, type AvailabilityQuery } from '../../availability/availability.contract';
 import { PRICING_QUOTE, type PricingQuote, type PricingQuoteResult } from '../../pricing/pricing.contract';
+import { BOOKING_PENDING_CREATION, type BookingPendingCreation } from '../../booking/booking.contract';
+import { CONTACT_LOOKUP, CONTACT_MESSAGING_RESOLUTION, type ContactLookup, type ContactMessagingResolution } from '../../contact/contact.contract';
 import type { IntegrationEvent } from '../../../shared/integration-events/integration-event';
 import { PrismaService } from '../../business/infrastructure/prisma.service';
 import type { ConversationBotTransaction, ConversationBotTransactionResult } from '../application/conversation-bot.contract';
@@ -19,6 +21,7 @@ type Preparation = {
   conversation: { id: string; businessId: string; channel: string; externalParticipant: string; mode: string };
   inboundMessage: { payload: Prisma.JsonValue };
   session: { id: string; state: string; context: Prisma.JsonValue; updatedAt: Date } | null;
+  contact: { id: string; name: string; lastName: string | null } | null;
 };
 
 @Injectable()
@@ -28,8 +31,13 @@ export class PrismaConversationBotTransaction implements ConversationBotTransact
     @Inject(TRANSACTIONAL_OUTBOUND_MESSAGE_REPOSITORY) private readonly messages: TransactionalOutboundMessageRepository,
     @Inject(AVAILABILITY_QUERY) private readonly availability: AvailabilityQuery,
     @Inject(PRICING_QUOTE) private readonly pricing: PricingQuote,
+    @Inject(CONTACT_LOOKUP) private readonly contacts: ContactLookup = { findByIdAndBusinessId: () => Promise.resolve(null) },
+    @Inject(CONTACT_MESSAGING_RESOLUTION) private readonly contactResolution: ContactMessagingResolution = { resolveOrCreateInTransaction: () => Promise.reject(new Error('Contact resolution is not configured.')) },
+    @Inject(BOOKING_PENDING_CREATION) private readonly bookingCreation: BookingPendingCreation = { createPendingInTransaction: () => Promise.reject(new Error('Booking creation is not configured.')) },
   ) {}
 
+  // La decisión puede requerir varias consultas externas, pero nunca abre una transacción durante esas consultas.
+  // eslint-disable-next-line complexity
   async process(input: { event: IntegrationEvent; businessName: string; businessTimeZone: string }): Promise<ConversationBotTransactionResult> {
     const preparation = await this.prepare(input.event);
     if (!preparation) return { handled: false, responseCreated: false };
@@ -44,6 +52,7 @@ export class PrismaConversationBotTransaction implements ConversationBotTransact
       businessName: input.businessName,
       businessToday: currentBusinessDate(input.businessTimeZone),
       context,
+      ...(preparation.contact ? { contact: { contactId: preparation.contact.id, name: fullName(preparation.contact.name, preparation.contact.lastName) } } : {}),
     };
     let decision = decideConversationBotResponse(baseInput);
 
@@ -69,6 +78,16 @@ export class PrismaConversationBotTransaction implements ConversationBotTransact
       decision = decideConversationBotResponse({ ...baseInput, context: decision.context, availabilityOptions: options, availabilityRefreshed: true });
     }
 
+    if (decision.bookingConfirmationRequest) {
+      const request = decision.bookingConfirmationRequest;
+      const options = await this.findAvailability(input.event.businessId, request);
+      const selected = options.some((option) => option.resourceId === request.resourceId);
+      const result = selected
+        ? await this.pricing.quote({ businessId: input.event.businessId, resourceId: request.resourceId, checkIn: request.checkIn, checkOut: request.checkOut })
+        : null;
+      decision = decideConversationBotResponse({ ...baseInput, context: decision.context, bookingConfirmationResult: { availabilityAvailable: selected, ...(selected && result ? { pricingQuote: this.pricingQuoteOption(result, options.find((option) => option.resourceId === request.resourceId)!.name, request) } : {}), ...(selected && !result ? { pricingUnavailable: true } : {}) } });
+    }
+
     return this.persist(input.event, preparation, decision);
   }
 
@@ -89,7 +108,8 @@ export class PrismaConversationBotTransaction implements ConversationBotTransact
     const inboundMessage = await this.prisma.inboundMessage.findFirst({ where: { id: identifiers.inboundMessageId, businessId: event.businessId, conversationId: identifiers.conversationId } });
     if (!conversation || !inboundMessage) throw new Error('El evento entrante no referencia una conversación válida.');
     const session = await this.prisma.conversationSession.findUnique({ where: { conversationId_businessId: { conversationId: conversation.id, businessId: event.businessId } } });
-    return { conversation, inboundMessage, session };
+    const contact = conversation.contactId ? await this.contacts.findByIdAndBusinessId(conversation.contactId, event.businessId) : null;
+    return { conversation, inboundMessage, session, contact: contact ? { id: contact.id, name: contact.name, lastName: contact.lastName } : null };
   }
 
   private async persist(event: IntegrationEvent, preparation: Preparation, decision: ConversationBotDecision): Promise<ConversationBotTransactionResult> {
@@ -111,20 +131,28 @@ export class PrismaConversationBotTransaction implements ConversationBotTransact
 
     const session = await transaction.conversationSession.findUnique({ where: { conversationId_businessId: { conversationId: conversation.id, businessId: event.businessId } } });
     this.assertPreparedSession(session, preparation.session);
-    await this.persistSession(transaction, event.businessId, conversation.id, session, preparation.session, decision);
+    let finalDecision = decision;
+    if (decision.bookingCreationRequest) {
+      const request = decision.bookingCreationRequest;
+      const contact = await this.contactResolution.resolveOrCreateInTransaction({ businessId: event.businessId, address: conversation.externalParticipant, name: request.contactName, existingContactId: request.contactId, transaction });
+      const booking = await this.bookingCreation.createPendingInTransaction({ businessId: event.businessId, contactId: contact.id, resourceId: request.resourceId, checkInDate: request.checkIn, checkOutDate: request.checkOut, guests: request.guests, actorUserId: null, transaction });
+      await transaction.conversation.updateMany({ where: { id: conversation.id, businessId: event.businessId }, data: { contactId: contact.id } });
+      finalDecision = { nextState: ConversationSessionState.BOOKING_CREATED, response: 'Tu solicitud de reserva fue registrada correctamente. El alojamiento revisará la solicitud y te confirmará el estado.', changeModeToHuman: false, context: { booking: { bookingId: booking.id, status: 'PENDING' } } };
+    }
+    await this.persistSession(transaction, event.businessId, conversation.id, session, preparation.session, finalDecision);
 
     if (decision.changeModeToHuman) {
       await transaction.conversation.updateMany({ where: { id: conversation.id, businessId: event.businessId }, data: { mode: ConversationMode.HUMAN } });
     }
 
-    if (!decision.response) return { handled: true, responseCreated: false };
+    if (!finalDecision.response) return { handled: true, responseCreated: false };
     await this.messages.createPendingInTransaction(transaction, {
       businessId: event.businessId,
       integrationEventId: event.eventId,
       channel: conversation.channel as MessagingChannel,
       recipient: conversation.externalParticipant,
       messageType: OutboundMessageType.CONVERSATION_REPLY,
-      payload: { text: decision.response },
+      payload: { text: finalDecision.response },
     });
     return { handled: true, responseCreated: true };
   }
@@ -163,4 +191,8 @@ export class PrismaConversationBotTransaction implements ConversationBotTransact
     if (!payload || typeof payload !== 'object' || Array.isArray(payload) || typeof payload.text !== 'string') throw new Error('El mensaje entrante no contiene texto.');
     return payload.text;
   }
+}
+
+function fullName(name: string, lastName: string | null): string {
+  return lastName ? `${name} ${lastName}` : name;
 }

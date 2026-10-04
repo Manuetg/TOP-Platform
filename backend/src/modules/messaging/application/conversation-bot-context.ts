@@ -24,12 +24,25 @@ export interface PricingConversationContext {
   totalAmountMinor: number;
 }
 
+export interface ContactConversationContext {
+  contactId?: string;
+  name: string;
+}
+
+export interface BookingConversationContext {
+  bookingId: string;
+  status: 'PENDING';
+}
+
 export interface ConversationBotContext {
   availability?: AvailabilityConversationContext;
   selection?: SelectionConversationContext;
   pricing?: PricingConversationContext;
+  contact?: ContactConversationContext;
+  booking?: BookingConversationContext;
 }
 
+// eslint-disable-next-line complexity
 export function readConversationBotContext(value: unknown): ConversationBotContext {
   const root = record(value);
   const availability = record(root?.availability);
@@ -38,8 +51,12 @@ export function readConversationBotContext(value: unknown): ConversationBotConte
   const result: ConversationBotContext = { availability: readAvailabilityContext(availability) };
   const selection = readSelectionContext(root?.selection);
   const pricing = readPricingContext(root?.pricing);
+  const contact = readContactContext(root?.contact);
+  const booking = readBookingContext(root?.booking);
   if (selection) result.selection = selection;
   if (pricing) result.pricing = pricing;
+  if (contact) result.contact = contact;
+  if (booking) result.booking = booking;
   return result;
 }
 
@@ -95,6 +112,19 @@ function readPricingContext(value: unknown): PricingConversationContext | null {
   const pricing = record(value);
   if (!pricing || !hasPricingIdentity(pricing) || !hasPositiveInteger(pricing.nights) || !hasSafeAmount(pricing.totalAmountMinor)) return null;
   return { ratePlanId: pricing.ratePlanId, ratePlanName: pricing.ratePlanName, currency: pricing.currency, nights: pricing.nights, totalAmountMinor: pricing.totalAmountMinor };
+}
+
+function readContactContext(value: unknown): ContactConversationContext | null {
+  const contact = record(value);
+  if (!contact || typeof contact.name !== 'string' || contact.name.trim().length < 2) return null;
+  if (contact.contactId !== undefined && (typeof contact.contactId !== 'string' || !contact.contactId)) return null;
+  return { ...(typeof contact.contactId === 'string' ? { contactId: contact.contactId } : {}), name: contact.name };
+}
+
+function readBookingContext(value: unknown): BookingConversationContext | null {
+  const booking = record(value);
+  if (!booking || typeof booking.bookingId !== 'string' || !booking.bookingId || booking.status !== 'PENDING') return null;
+  return { bookingId: booking.bookingId, status: 'PENDING' };
 }
 
 function hasPricingIdentity(value: Record<string, unknown>): value is Record<string, unknown> & { ratePlanId: string; ratePlanName: string; currency: string } {

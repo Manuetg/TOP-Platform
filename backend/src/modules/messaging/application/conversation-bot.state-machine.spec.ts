@@ -169,6 +169,27 @@ describe('conversation bot state machine', () => {
     expect(decision.context).toEqual({});
   });
 
+  it('pide el nombre y exige confirmación explícita antes de crear Booking', () => {
+    const quote = { availability: { checkIn: '2026-10-15', checkOut: '2026-10-17', guests: 2 }, selection: { resourceId: 'resource-a', resourceName: 'Cabaña A' }, pricing: { ratePlanId: 'plan-a', ratePlanName: 'Plan base', currency: 'PYG', nights: 2, totalAmountMinor: 900000 } };
+    const askName = decideConversationBotResponse({ ...common, state: ConversationSessionState.PRICING_QUOTE, text: '1', context: quote });
+    expect(askName.nextState).toBe(ConversationSessionState.CONTACT_ASK_NAME);
+    expect(askName.response).toContain('nombre');
+    const review = decideConversationBotResponse({ ...common, state: ConversationSessionState.CONTACT_ASK_NAME, text: 'Juan Perez', context: quote });
+    expect(review.nextState).toBe(ConversationSessionState.BOOKING_CONFIRM);
+    expect(review.response).toContain('1. Confirmar reserva');
+    const request = decideConversationBotResponse({ ...common, state: ConversationSessionState.BOOKING_CONFIRM, text: '1', context: review.context });
+    expect(request.bookingConfirmationRequest).toEqual(expect.objectContaining({ contactName: 'Juan Perez', resourceId: 'resource-a' }));
+    expect(request.bookingCreationRequest).toBeUndefined();
+  });
+
+  it('pide una nueva confirmación si el precio cambia al revalidar', () => {
+    const context = { availability: { checkIn: '2026-10-15', checkOut: '2026-10-17', guests: 2 }, selection: { resourceId: 'resource-a', resourceName: 'Cabaña A' }, pricing: { ratePlanId: 'plan-a', ratePlanName: 'Plan base', currency: 'PYG', nights: 2, totalAmountMinor: 900000 }, contact: { name: 'Juan Perez' } };
+    const result = decideConversationBotResponse({ ...common, state: ConversationSessionState.BOOKING_CONFIRM, text: '1', context, bookingConfirmationResult: { availabilityAvailable: true, pricingQuote: { resourceId: 'resource-a', resourceName: 'Cabaña A', checkIn: '2026-10-15', checkOut: '2026-10-17', guests: 2, ratePlanId: 'plan-a', ratePlanName: 'Plan base', currency: 'PYG', nights: 2, totalAmountMinor: 950000 } } });
+    expect(result.nextState).toBe(ConversationSessionState.BOOKING_CONFIRM);
+    expect(result.response).toContain('950.000 Gs.');
+    expect(result.bookingCreationRequest).toBeUndefined();
+  });
+
   it('transfers to HUMAN on option 4', () => {
     const decision = decideConversationBotResponse({ ...common, state: ConversationSessionState.MAIN_MENU, text: '4' });
 

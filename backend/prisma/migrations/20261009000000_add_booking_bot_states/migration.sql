@@ -1,0 +1,3 @@
+ALTER TYPE "ConversationSessionState" ADD VALUE 'CONTACT_ASK_NAME';
+ALTER TYPE "ConversationSessionState" ADD VALUE 'BOOKING_CONFIRM';
+ALTER TYPE "ConversationSessionState" ADD VALUE 'BOOKING_CREATED';

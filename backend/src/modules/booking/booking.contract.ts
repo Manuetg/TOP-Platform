@@ -7,6 +7,22 @@ export interface BlockingBooking {
 }
 
 export const BOOKING_AVAILABILITY_LOOKUP = Symbol('BOOKING_AVAILABILITY_LOOKUP');
+export const BOOKING_PENDING_CREATION = Symbol('BOOKING_PENDING_CREATION');
+
+export interface BookingPendingCreationInput {
+  businessId: string;
+  contactId: string;
+  resourceId: string;
+  checkInDate: string;
+  checkOutDate: string;
+  guests: number;
+  actorUserId: string | null;
+  transaction: unknown;
+}
+
+export interface BookingPendingCreation {
+  createPendingInTransaction(input: BookingPendingCreationInput): Promise<import('./domain/booking.entity').Booking>;
+}
 export const BOOKING_TIMELINE_REPOSITORY = Symbol('BOOKING_TIMELINE_REPOSITORY');
 export { BookingTimelineEventType } from './domain/booking-timeline-event';
 export type { BookingTimelineRepository, BookingTimelineEvent, BookingTimelineCursor } from './domain/booking-timeline-event';

@@ -10,7 +10,7 @@ import { UpdateContactUseCase } from './application/update-contact.use-case';
 import { CONTACT_REPOSITORY } from './domain/contact.repository';
 import { PrismaContactRepository } from './infrastructure/prisma-contact.repository';
 import { ContactController } from './presentation/contact.controller';
-import { CONTACT_LOOKUP, CONTACT_MESSAGING_LOOKUP } from './contact.contract';
+import { CONTACT_LOOKUP, CONTACT_MESSAGING_LOOKUP, CONTACT_MESSAGING_RESOLUTION } from './contact.contract';
 
-@Module({ imports: [BusinessModule], controllers: [ContactController], providers: [ArchiveContactUseCase, PrismaContactSearchReader, { provide: CONTACT_SEARCH_READER, useExisting: PrismaContactSearchReader }, PrismaContactRepository, { provide: CONTACT_REPOSITORY, useExisting: PrismaContactRepository }, { provide: CONTACT_LOOKUP, useExisting: PrismaContactRepository }, { provide: CONTACT_MESSAGING_LOOKUP, useExisting: PrismaContactRepository }, CreateContactUseCase, GetContactUseCase, SearchContactsUseCase, UpdateContactUseCase], exports: [CONTACT_SEARCH_READER, CONTACT_REPOSITORY, CONTACT_LOOKUP, CONTACT_MESSAGING_LOOKUP] })
+@Module({ imports: [BusinessModule], controllers: [ContactController], providers: [ArchiveContactUseCase, PrismaContactSearchReader, { provide: CONTACT_SEARCH_READER, useExisting: PrismaContactSearchReader }, PrismaContactRepository, { provide: CONTACT_REPOSITORY, useExisting: PrismaContactRepository }, { provide: CONTACT_LOOKUP, useExisting: PrismaContactRepository }, { provide: CONTACT_MESSAGING_LOOKUP, useExisting: PrismaContactRepository }, { provide: CONTACT_MESSAGING_RESOLUTION, useExisting: PrismaContactRepository }, CreateContactUseCase, GetContactUseCase, SearchContactsUseCase, UpdateContactUseCase], exports: [CONTACT_SEARCH_READER, CONTACT_REPOSITORY, CONTACT_LOOKUP, CONTACT_MESSAGING_LOOKUP, CONTACT_MESSAGING_RESOLUTION] })
 export class ContactModule {}

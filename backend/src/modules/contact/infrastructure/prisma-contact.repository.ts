@@ -1,18 +1,32 @@
 import { Injectable } from '@nestjs/common';
-import type { Contact as PrismaContact } from '@prisma/client';
+import { Prisma, type Contact as PrismaContact } from '@prisma/client';
 import { PrismaService } from '../../business/infrastructure/prisma.service';
 import { Contact } from '../domain/contact.entity';
 import { ContactStatus } from '../domain/contact-status.enum';
+import type { ContactMessagingResolution, ContactMessagingResolutionInput } from '../contact.contract';
 import type { ContactRepository, CreateContactData } from '../domain/contact.repository';
+import { ContactNotFoundError } from '../application/contact.errors';
 
 @Injectable()
-export class PrismaContactRepository implements ContactRepository {
+export class PrismaContactRepository implements ContactRepository, ContactMessagingResolution {
   constructor(private readonly prisma: PrismaService) {}
   async create(data: CreateContactData): Promise<Contact> { return this.map(await this.prisma.contact.create({ data })); }
   async findByIdAndBusinessId(id: string, businessId: string): Promise<Contact | null> { const row = await this.prisma.contact.findFirst({ where: { id, businessId } }); return row ? this.map(row) : null; }
   async findByMessagingAddressAndBusinessId(address: string, businessId: string): Promise<Contact | null> {
     const row = await this.prisma.contact.findFirst({ where: { businessId, OR: [{ whatsapp: address }, { phone: address }] }, orderBy: { id: 'asc' } });
     return row ? this.map(row) : null;
+  }
+  async resolveOrCreateInTransaction(input: ContactMessagingResolutionInput): Promise<Contact> {
+    const client = input.transaction as Prisma.TransactionClient;
+    await client.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`${input.businessId}|${input.address}`}, 0))`);
+    if (input.existingContactId) {
+      const existing = await client.contact.findFirst({ where: { id: input.existingContactId, businessId: input.businessId } });
+      if (!existing) throw new ContactNotFoundError('El contacto no existe.');
+      return this.map(existing);
+    }
+    const matching = await client.contact.findFirst({ where: { businessId: input.businessId, OR: [{ whatsapp: input.address }, { phone: input.address }] }, orderBy: { id: 'asc' } });
+    if (matching) return this.map(matching);
+    return this.map(await client.contact.create({ data: { businessId: input.businessId, name: input.name, lastName: null, phone: input.address, whatsapp: input.address, email: null, documentType: null, documentNumber: null, country: null, city: null } }));
   }
   async searchByBusinessId(businessId: string, query: string | null): Promise<Contact[]> {
     const where = query === null ? { businessId } : { businessId, OR: [{ name: { contains: query, mode: 'insensitive' as const } }, { lastName: { contains: query, mode: 'insensitive' as const } }, { phone: { contains: query, mode: 'insensitive' as const } }, { whatsapp: { contains: query, mode: 'insensitive' as const } }, { email: { contains: query, mode: 'insensitive' as const } }, { documentNumber: { contains: query, mode: 'insensitive' as const } }] };

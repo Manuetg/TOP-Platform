@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaBusinessRepository } from '../../src/modules/business/infrastructure/prisma-business.repository';
 import { PrismaBlockRepository } from '../../src/modules/block/infrastructure/prisma-block.repository';
 import { PrismaBookingRepository } from '../../src/modules/booking/infrastructure/prisma-booking.repository';
+import { PrismaContactRepository } from '../../src/modules/contact/infrastructure/prisma-contact.repository';
 import { ListAvailableResourcesUseCase } from '../../src/modules/availability/application/list-available-resources.use-case';
 import { ListAvailabilityCalendarUseCase } from '../../src/modules/availability/application/list-availability-calendar.use-case';
 import { PrismaAvailabilityRulesRepository } from '../../src/modules/availability/infrastructure/prisma-availability-rules.repository';
@@ -39,8 +40,10 @@ describeWithPostgres('Messaging conversation bot', () => {
   const prisma = new PrismaClient();
   const outbox = new PrismaIntegrationOutboxRepository(prisma);
   const integrationEventOutbox = new PrismaIntegrationEventOutbox();
-  const contacts = { findByMessagingAddressAndBusinessId: jest.fn().mockResolvedValue(null) };
+  const contacts = { findByMessagingAddressAndBusinessId: jest.fn(async (address: string, businessId: string) => prisma.contact.findFirst({ where: { businessId, OR: [{ whatsapp: address }, { phone: address }] }, select: { id: true } })) };
   const conversations = new PrismaConversationRepository(prisma);
+  const contactRepository = new PrismaContactRepository(prisma);
+  const bookingRepository = new PrismaBookingRepository(prisma);
   const businesses = new PrismaBusinessRepository(prisma);
   const resources = new PrismaResourceRepository(prisma);
   const ratePlans = new PrismaRatePlanRepository(prisma);
@@ -76,14 +79,14 @@ describeWithPostgres('Messaging conversation bot', () => {
 
   function botWithAvailability(query: AvailabilityQuery, quote: PricingQuote = pricing) {
     const registry = new IntegrationEventConsumerRegistry();
-    const transaction = new PrismaConversationBotTransaction(prisma, new PrismaOutboundMessageRepository(prisma), query, quote);
+    const transaction = new PrismaConversationBotTransaction(prisma, new PrismaOutboundMessageRepository(prisma), query, quote, contactRepository, contactRepository, bookingRepository);
     const consumer = new ConversationBotConsumer(businesses, transaction, registry);
     const dispatcher = new IntegrationEventDispatcher(outbox, [consumer], { baseBackoffMs: 0 });
     return { consumer, dispatcher };
   }
 
   async function receive(businessId: string, providerMessageId: string, text = 'Hola', sender = '+595981234567') {
-    const receiver = new ReceiveInboundMessageUseCase(contacts, new PrismaReceiveInboundMessageTransaction(prisma, integrationEventOutbox));
+    const receiver = new ReceiveInboundMessageUseCase(contacts as never, new PrismaReceiveInboundMessageTransaction(prisma, integrationEventOutbox));
     const result = await receiver.execute(input(businessId, providerMessageId, text, sender));
     const event = (await prisma.integrationOutboxEvent.findMany({ where: { businessId, eventType: 'MESSAGING_INBOUND_RECEIVED', aggregateId: result.conversation.id }, orderBy: [{ createdAt: 'asc' }, { eventId: 'asc' }] })).find((candidate) => (candidate.payload as { inboundMessageId?: string }).inboundMessageId === result.message.id);
     if (!event) throw new Error('No se encontró el evento de integración del mensaje entrante.');
@@ -401,7 +404,7 @@ describeWithPostgres('Messaging conversation bot', () => {
     const owner = await business();
     const received = await receive(owner.id, 'wamid-atomic-bot');
     const failingMessages = { createPendingInTransaction: jest.fn().mockRejectedValue(new Error('forced outbound failure')) } as never;
-    const transaction = new PrismaConversationBotTransaction(prisma, failingMessages, availability, pricing);
+    const transaction = new PrismaConversationBotTransaction(prisma, failingMessages, availability, pricing, contactRepository, contactRepository, bookingRepository);
 
     await expect(transaction.process({ event: await eventAsContract(received.event.eventId), businessName: owner.name, businessTimeZone: 'America/Asuncion' })).rejects.toThrow('forced outbound failure');
     await expect(prisma.conversationSession.count({ where: { businessId: owner.id } })).resolves.toBe(0);
@@ -437,5 +440,85 @@ describeWithPostgres('Messaging conversation bot', () => {
     await expect(sender.execute({ id: message.id, businessId: owner.id })).resolves.toBe(`fake-provider-${message.id}`);
     await expect(prisma.outboundMessage.findUniqueOrThrow({ where: { id: message.id } })).resolves.toMatchObject({ status: 'SENT', providerMessageId: `fake-provider-${message.id}` });
     expect(provider.sent).toHaveLength(1);
+  });
+
+  it('pide solo el nombre, muestra un resumen y crea una Booking PENDING atomica', async () => {
+    const owner = await business('Booking from WhatsApp');
+    const selected = await resource(owner.id, 'Cabaña Premium', 4);
+    await ratePlan(owner.id, selected.id, 'Plan estándar', 625000);
+    const worker = bot().dispatcher;
+    const sender = '+595981234567';
+
+    await beginAvailability(owner.id, worker, 'wamid-booking-flow');
+    await sendAndDispatch(owner.id, worker, 'wamid-booking-guests', '2');
+    await sendAndDispatch(owner.id, worker, 'wamid-booking-choice', '1');
+    await sendAndDispatch(owner.id, worker, 'wamid-booking-continue', '1');
+
+    await expect(prisma.booking.count({ where: { businessId: owner.id } })).resolves.toBe(0);
+    await expect(prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } })).resolves.toMatchObject({ state: 'CONTACT_ASK_NAME' });
+
+    await sendAndDispatch(owner.id, worker, 'wamid-booking-name', 'Juan Perez');
+    const review = await prisma.outboundMessage.findFirstOrThrow({ where: { businessId: owner.id }, orderBy: { createdAt: 'desc' } });
+    expect((review.payload as { text: string }).text).toContain('1. Confirmar reserva');
+    expect((review.payload as { text: string }).text).not.toContain(selected.id);
+    await expect(prisma.booking.count({ where: { businessId: owner.id } })).resolves.toBe(0);
+
+    await sendAndDispatch(owner.id, worker, 'wamid-booking-confirm', '1');
+    const booking = await prisma.booking.findFirstOrThrow({ where: { businessId: owner.id }, include: { resources: true, contact: true } });
+    expect(booking.status).toBe('PENDING');
+    expect(booking.contact?.name).toBe('Juan Perez');
+    expect(booking.contact?.phone).toBe(sender);
+    expect(booking.contact?.whatsapp).toBe(sender);
+    expect(booking.resources).toEqual([expect.objectContaining({ resourceId: selected.id })]);
+    expect(booking.checkInDate?.toISOString()).toBe('2026-10-15T00:00:00.000Z');
+    expect(booking.checkOutDate?.toISOString()).toBe('2026-10-17T00:00:00.000Z');
+    expect(booking.adults).toBe(2);
+    expect(booking.children).toBe(0);
+    await expect(prisma.pricingSnapshot.count({ where: { bookingId: booking.id } })).resolves.toBe(0);
+    await expect(prisma.integrationOutboxEvent.findFirst({ where: { businessId: owner.id, eventType: 'BOOKING_CREATED', aggregateId: booking.id } })).resolves.toMatchObject({ businessId: owner.id, payload: { bookingId: booking.id, status: 'PENDING' } });
+    await expect(prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } })).resolves.toMatchObject({ state: 'BOOKING_CREATED', context: { booking: { bookingId: booking.id, status: 'PENDING' } } });
+  });
+
+  it('reutiliza el Contact existente y una reentrega no duplica Booking', async () => {
+    const owner = await business('Existing Contact Booking');
+    const selected = await resource(owner.id, 'Cabaña', 2);
+    await ratePlan(owner.id, selected.id);
+    const sender = '+595981234567';
+    const existing = await prisma.contact.create({ data: { businessId: owner.id, name: 'Ana', lastName: 'Gomez', phone: sender, whatsapp: sender } });
+    const worker = bot().dispatcher;
+
+    await beginAvailability(owner.id, worker, 'wamid-existing-contact');
+    await sendAndDispatch(owner.id, worker, 'wamid-existing-contact-guests', '2');
+    await sendAndDispatch(owner.id, worker, 'wamid-existing-contact-choice', '1');
+    await sendAndDispatch(owner.id, worker, 'wamid-existing-contact-continue', '1');
+    await expect(prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } })).resolves.toMatchObject({ state: 'BOOKING_CONFIRM' });
+
+    const received = await receive(owner.id, 'wamid-existing-contact-confirm', '1', sender);
+    await expect(worker.dispatchOnce()).resolves.toBe('PROCESSED');
+    await expect(prisma.booking.count({ where: { businessId: owner.id } })).resolves.toBe(1);
+    await expect(prisma.booking.findFirstOrThrow({ where: { businessId: owner.id } })).resolves.toMatchObject({ contactId: existing.id, status: 'PENDING' });
+    const consumer = bot().consumer;
+    await consumer.handle(await eventAsContract(received.event.eventId));
+    await expect(prisma.booking.count({ where: { businessId: owner.id } })).resolves.toBe(1);
+  });
+
+  it('no crea Booking si la Availability cambia entre el resumen y la confirmación', async () => {
+    const owner = await business('Stale Booking Confirmation');
+    const selected = await resource(owner.id, 'Cabaña ocupada', 2);
+    await ratePlan(owner.id, selected.id);
+    const worker = bot().dispatcher;
+
+    await beginAvailability(owner.id, worker, 'wamid-stale-booking');
+    await sendAndDispatch(owner.id, worker, 'wamid-stale-booking-guests', '2');
+    await sendAndDispatch(owner.id, worker, 'wamid-stale-booking-choice', '1');
+    await sendAndDispatch(owner.id, worker, 'wamid-stale-booking-continue', '1');
+    await sendAndDispatch(owner.id, worker, 'wamid-stale-booking-name', 'Juan Perez');
+    await prisma.block.create({ data: { businessId: owner.id, resourceId: selected.id, type: 'MAINTENANCE', reason: 'Mantenimiento', startsAt: new Date('2026-10-15T00:00:00.000Z'), endsAt: new Date('2026-10-17T00:00:00.000Z') } });
+
+    await sendAndDispatch(owner.id, worker, 'wamid-stale-booking-confirm', '1');
+    await expect(prisma.booking.count({ where: { businessId: owner.id } })).resolves.toBe(0);
+    await expect(prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } })).resolves.toMatchObject({ state: 'AVAILABILITY_RESULTS' });
+    const message = await prisma.outboundMessage.findFirstOrThrow({ where: { businessId: owner.id }, orderBy: { createdAt: 'desc' } });
+    expect((message.payload as { text: string }).text).toContain('ya no está disponible');
   });
 });
