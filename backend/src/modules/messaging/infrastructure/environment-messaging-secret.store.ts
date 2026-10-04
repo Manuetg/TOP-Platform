@@ -13,6 +13,18 @@ export class EnvironmentMessagingSecretStore implements MessagingSecretStore {
     if (this.environment === 'production') return Promise.reject(new EnvironmentMessagingSecretStoreDisabledError('El secret store de environment está deshabilitado en producción.'));
     return Promise.resolve(this.configuration.accessToken ?? null);
   }
+
+  isWritable(): boolean {
+    return false;
+  }
+
+  putSecret(): Promise<never> {
+    return Promise.reject(new EnvironmentMessagingSecretStoreDisabledError('El secret store de environment es de solo lectura.'));
+  }
+
+  deleteSecret(): Promise<void> {
+    return Promise.reject(new EnvironmentMessagingSecretStoreDisabledError('El secret store de environment es de solo lectura.'));
+  }
 }
 
 export { META_ACCESS_TOKEN_REFERENCE };

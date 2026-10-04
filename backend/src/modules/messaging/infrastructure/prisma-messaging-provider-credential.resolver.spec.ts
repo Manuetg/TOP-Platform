@@ -29,7 +29,7 @@ function resolver(record: MessagingProviderCredentialRecord | null, secret: stri
   const upsert = jest.fn();
   const getSecret = jest.fn().mockResolvedValue(secret);
   const repository: MessagingProviderCredentialRepository = { findForConnection, upsert };
-  const secrets: MessagingSecretStore = { getSecret };
+  const secrets: MessagingSecretStore = { getSecret, putSecret: jest.fn(), deleteSecret: jest.fn() };
   return { resolver: new PrismaMessagingProviderCredentialResolver(repository, secrets), findForConnection, getSecret };
 }
 

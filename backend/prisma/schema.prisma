@@ -289,6 +289,7 @@ model Business {
   messagingAutomationRules MessagingAutomationRule[]
   messagingMessageTemplates MessagingMessageTemplate[]
   messagingConnections   MessagingConnection[]
+  messagingConnectionOnboardingAttempts MessagingConnectionOnboardingAttempt[]
 }
 
 model SubscriptionPlan {
@@ -342,11 +343,40 @@ model MessagingConnection {
   conversations         Conversation[]
   outboundMessages      OutboundMessage[]
   providerCredentials   MessagingProviderCredential[]
+  onboardingAttempts    MessagingConnectionOnboardingAttempt[]
 
   @@unique([provider, channel, providerPhoneNumberId])
   @@unique([id, businessId])
   @@index([businessId, channel, status])
   @@index([provider, channel, status])
+}
+
+enum MessagingConnectionOnboardingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+model MessagingConnectionOnboardingAttempt {
+  id                  String                              @id @default(uuid())
+  businessId          String
+  initiatedByUserId   String?
+  provider            MessagingProvider
+  channel             MessagingChannel
+  stateHash           String                              @unique
+  status              MessagingConnectionOnboardingStatus @default(PENDING)
+  expiresAt           DateTime
+  processingStartedAt DateTime?
+  createdAt           DateTime                            @default(now())
+  completedAt         DateTime?
+  connectionId        String?
+  business            Business                            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  connection          MessagingConnection?               @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, status, expiresAt])
+  @@index([businessId, createdAt])
 }
 
 model MessagingProviderCredential {

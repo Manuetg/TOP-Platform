@@ -83,7 +83,7 @@ describeWithPostgres('MessagingProviderCredential PostgreSQL', () => {
   it('el resolver no usa credentials EXPIRED o REVOKED', async () => {
     const owner = await business('Owner');
     const created = await connection(owner.id, 'phone-one');
-    const secretStore = { getSecret: jest.fn().mockResolvedValue('token-never-logged') };
+    const secretStore = { getSecret: jest.fn().mockResolvedValue('token-never-logged'), putSecret: jest.fn(), deleteSecret: jest.fn() };
     const resolver = new PrismaMessagingProviderCredentialResolver(credentials, secretStore);
 
     for (const status of [MessagingProviderCredentialStatus.EXPIRED, MessagingProviderCredentialStatus.REVOKED]) {

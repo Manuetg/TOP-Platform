@@ -4,6 +4,10 @@ export { MESSAGING_SECRET_STORE, type MessagingSecretStore } from './application
 export { MESSAGING_PROVIDER_CREDENTIAL_REPOSITORY, type MessagingProviderCredentialRepository, type MessagingProviderCredentialRecord } from './domain/messaging-provider-credential.repository';
 export { MessagingProviderCredentialStatus } from './domain/messaging-provider-credential-status.enum';
 export { MessagingProviderCredentialType } from './domain/messaging-provider-credential-type.enum';
+export { MESSAGING_CONNECTION_ONBOARDING_ATTEMPT_REPOSITORY, type MessagingConnectionOnboardingAttemptRepository, type MessagingConnectionOnboardingAttemptRecord } from './domain/messaging-connection-onboarding-attempt.repository';
+export { MessagingConnectionOnboardingStatus } from './domain/messaging-connection-onboarding-status.enum';
+export { META_WHATSAPP_EMBEDDED_SIGNUP_CLIENT, type MetaWhatsAppEmbeddedSignupClient, type MetaWhatsAppTokenResult, type MetaWhatsAppValidatedAssets } from './application/meta-whatsapp-embedded-signup.client';
+export { MESSAGING_CONNECTION_ONBOARDING_TRANSACTION, META_WHATSAPP_EMBEDDED_SIGNUP_CONFIGURATION, type MessagingConnectionOnboardingTransaction, type MetaWhatsAppEmbeddedSignupConfiguration } from './application/messaging-embedded-signup.contract';
 export { MESSAGING_CONNECTION_RESOLVER, MESSAGING_OUTBOUND_CONNECTION_RESOLVER, type ActiveMessagingConnection, type MessagingConnectionResolver, type MessagingOutboundConnectionResolver, type MessagingConnectionResolution } from './domain/messaging-connection.repository';
 export type { MessagingWebhookEvent, MessagingWebhookHandler, MessagingInboundTextWebhookEvent, MessagingDeliveryStatusWebhookEvent } from './application/messaging-webhook.contract';
 export { MessagingConnectionStatus } from './domain/messaging-connection-status.enum';

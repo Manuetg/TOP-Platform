@@ -199,6 +199,16 @@ export interface MetaWhatsAppConfiguration {
   graphApiVersion: string;
 }
 
+export interface MetaWhatsAppEmbeddedSignupConfiguration {
+  graphApiVersion: string;
+  appId?: string;
+  appSecret?: string;
+  configurationId?: string;
+  attemptTtlSeconds: number;
+  processingTimeoutSeconds: number;
+  environment: NodeEnvironment;
+}
+
 export interface MetaWhatsAppWebhookConfiguration {
   appSecret: string;
   verifyToken: string;
@@ -207,7 +217,9 @@ export interface MetaWhatsAppWebhookConfiguration {
 function metaWhatsAppConfiguration(input: EnvironmentInput, production: boolean): MetaWhatsAppConfiguration {
   const accessToken = optionalText(input, 'META_WHATSAPP_ACCESS_TOKEN');
   const phoneNumberId = optionalText(input, 'META_WHATSAPP_PHONE_NUMBER_ID');
-  const graphApiVersion = productionValue(input, 'META_WHATSAPP_GRAPH_API_VERSION', production);
+  const graphApiVersion = input.META_WHATSAPP_GRAPH_API_VERSION === undefined && !production
+    ? 'v26.0'
+    : productionValue(input, 'META_WHATSAPP_GRAPH_API_VERSION', production);
   if (phoneNumberId !== undefined && !/^\d+$/.test(phoneNumberId)) invalid('META_WHATSAPP_PHONE_NUMBER_ID', 'debe ser un identificador numérico de teléfono de WhatsApp.');
   if (!/^v\d+\.\d+$/.test(graphApiVersion)) invalid('META_WHATSAPP_GRAPH_API_VERSION', 'debe tener el formato vN.N.');
   return { accessToken, phoneNumberId, graphApiVersion };
@@ -218,6 +230,18 @@ export function readMetaWhatsAppConfiguration(config: ConfigurationReader): Meta
     inputFrom(config, ['META_WHATSAPP_ACCESS_TOKEN', 'META_WHATSAPP_PHONE_NUMBER_ID', 'META_WHATSAPP_GRAPH_API_VERSION']),
     readNodeEnvironment(config) === 'production',
   );
+}
+
+export function readMetaWhatsAppEmbeddedSignupConfiguration(config: ConfigurationReader): MetaWhatsAppEmbeddedSignupConfiguration {
+  return {
+    ...readMetaWhatsAppConfiguration(config),
+    appId: optionalText({ META_WHATSAPP_APP_ID: config.get('META_WHATSAPP_APP_ID') }, 'META_WHATSAPP_APP_ID'),
+    appSecret: optionalText({ META_WHATSAPP_APP_SECRET: config.get('META_WHATSAPP_APP_SECRET') }, 'META_WHATSAPP_APP_SECRET'),
+    configurationId: optionalText({ META_WHATSAPP_EMBEDDED_SIGNUP_CONFIGURATION_ID: config.get('META_WHATSAPP_EMBEDDED_SIGNUP_CONFIGURATION_ID') }, 'META_WHATSAPP_EMBEDDED_SIGNUP_CONFIGURATION_ID'),
+    attemptTtlSeconds: readIntegerConfiguration(config, 'META_WHATSAPP_EMBEDDED_SIGNUP_ATTEMPT_TTL_SECONDS', 600),
+    processingTimeoutSeconds: readIntegerConfiguration(config, 'META_WHATSAPP_EMBEDDED_SIGNUP_PROCESSING_TIMEOUT_SECONDS', 300),
+    environment: readNodeEnvironment(config),
+  };
 }
 
 export function readMetaWhatsAppWebhookConfiguration(config: ConfigurationReader): MetaWhatsAppWebhookConfiguration {
@@ -253,6 +277,8 @@ const numericDefaults = {
   PASSWORD_RESET_OTP_RESEND_SECONDS: 60,
   EMAIL_VERIFICATION_TTL_SECONDS: 86400,
   EMAIL_VERIFICATION_RESEND_SECONDS: 60,
+  META_WHATSAPP_EMBEDDED_SIGNUP_ATTEMPT_TTL_SECONDS: 600,
+  META_WHATSAPP_EMBEDDED_SIGNUP_PROCESSING_TIMEOUT_SECONDS: 300,
 };
 
 function maximumExpirationTtlSeconds(now: number): number {
@@ -310,5 +336,6 @@ export function configurationFrom(config: ConfigurationReader): EnvironmentConfi
     'SMTP_HOST', 'SMTP_PORT', 'SMTP_FROM', 'SMTP_USER', 'SMTP_PASSWORD',
     'S3_ENDPOINT', 'S3_PUBLIC_ENDPOINT', 'S3_REGION', 'S3_BUCKET', 'S3_ACCESS_KEY', 'S3_SECRET_KEY', 'S3_FORCE_PATH_STYLE',
     'META_WHATSAPP_APP_SECRET', 'META_WHATSAPP_VERIFY_TOKEN',
+    'META_WHATSAPP_APP_ID', 'META_WHATSAPP_EMBEDDED_SIGNUP_CONFIGURATION_ID',
   ]));
 }
