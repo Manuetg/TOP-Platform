@@ -12,10 +12,12 @@ export interface BlockAvailabilityLookup {
     resourceId: string,
     from: Date,
     to: Date,
+    transaction?: unknown,
   ): Promise<boolean>;
   listBlockingBlocks(
     businessId: string,
     from: Date,
     to: Date,
+    transaction?: unknown,
   ): Promise<BlockingBlock[]>;
 }

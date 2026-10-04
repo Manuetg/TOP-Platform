@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import { AVAILABILITY_QUERY, type AvailabilityQuery } from '../../availability/availability.contract';
 import { PRICING_QUOTE, type PricingQuote, type PricingQuoteResult } from '../../pricing/pricing.contract';
-import { BOOKING_PENDING_CREATION, type BookingPendingCreation } from '../../booking/booking.contract';
+import { BOOKING_PENDING_CREATION, type BookingPendingCreation } from '../../booking-lifecycle/booking-pending-creation.contract';
 import { CONTACT_LOOKUP, CONTACT_MESSAGING_RESOLUTION, type ContactLookup, type ContactMessagingResolution } from '../../contact/contact.contract';
 import type { IntegrationEvent } from '../../../shared/integration-events/integration-event';
 import { PrismaService } from '../../business/infrastructure/prisma.service';

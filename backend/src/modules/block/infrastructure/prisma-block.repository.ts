@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Block as PrismaBlock } from '@prisma/client';
+import type { Block as PrismaBlock, Prisma } from '@prisma/client';
 import { PrismaService } from '../../business/infrastructure/prisma.service';
 import { Block } from '../domain/block.entity';
 import { BlockStatus } from '../domain/block-status.enum';
@@ -19,9 +19,10 @@ export class PrismaBlockRepository implements BlockRepository {
     return (await this.prisma.block.findMany({ where: { businessId, ...(filters.resourceId === undefined ? {} : { resourceId: filters.resourceId }), ...(filters.from === undefined ? {} : { endsAt: { gt: filters.from } }), ...(filters.to === undefined ? {} : { startsAt: { lt: filters.to } }) }, orderBy: [{ startsAt: 'asc' }, { endsAt: 'asc' }, { id: 'asc' }] })).map((row) => this.map(row));
   }
   async update(block: Block): Promise<Block> { return this.map(await this.prisma.block.update({ where: { id: block.id }, data: { status: block.status, cancellationReason: block.cancellationReason, cancelledAt: block.cancelledAt } })); }
-  async hasBlockingBlock(businessId:string,resourceId:string,from:Date,to:Date):Promise<boolean>{return (await this.prisma.block.findFirst({where:{businessId,resourceId,status:'SCHEDULED',startsAt:{lt:to},endsAt:{gt:from}},select:{id:true}}))!==null;}
-  async listBlockingBlocks(businessId: string, from: Date, to: Date): Promise<BlockingBlock[]> {
-    return this.prisma.block.findMany({
+  async hasBlockingBlock(businessId:string,resourceId:string,from:Date,to:Date, transaction?: unknown):Promise<boolean>{const client = transaction as Prisma.TransactionClient | undefined ?? this.prisma; return (await client.block.findFirst({where:{businessId,resourceId,status:'SCHEDULED',startsAt:{lt:to},endsAt:{gt:from}},select:{id:true}}))!==null;}
+  async listBlockingBlocks(businessId: string, from: Date, to: Date, transaction?: unknown): Promise<BlockingBlock[]> {
+    const client = transaction as Prisma.TransactionClient | undefined ?? this.prisma;
+    return client.block.findMany({
       where: {
         businessId,
         status: 'SCHEDULED',

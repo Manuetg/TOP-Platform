@@ -1,4 +1,4 @@
-import type { AvailabilityReason } from './application/availability.types';
+import type { AvailabilityReason, AvailabilityResult } from './application/availability.types';
 
 export interface OverbookingValidationInput {
   businessId: string;
@@ -94,3 +94,21 @@ export interface AvailabilityQuery {
 }
 
 export const AVAILABILITY_QUERY = Symbol('AVAILABILITY_QUERY');
+
+export interface AvailabilityTransactionalValidationInput {
+  businessId: string;
+  resourceId: string;
+  from: string;
+  to: string;
+  guests?: number;
+  excludeBookingId?: string;
+  transaction: unknown;
+}
+
+export interface AvailabilityTransactionalValidator {
+  validate(input: AvailabilityTransactionalValidationInput): Promise<AvailabilityResult>;
+}
+
+export const AVAILABILITY_TRANSACTIONAL_VALIDATOR = Symbol(
+  'AVAILABILITY_TRANSACTIONAL_VALIDATOR',
+);

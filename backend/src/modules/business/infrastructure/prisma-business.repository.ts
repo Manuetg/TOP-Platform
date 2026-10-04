@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Business as PrismaBusiness } from '@prisma/client';
+import type { Business as PrismaBusiness, Prisma } from '@prisma/client';
 import { Business } from '../domain/business.entity';
 import { BusinessStatus } from '../domain/business-status.enum';
 import { type BusinessRepository, type CreateBusinessData } from '../domain/business.repository';
@@ -15,8 +15,9 @@ export class PrismaBusinessRepository implements BusinessRepository {
     return this.toDomain(business);
   }
 
-  async findById(id: string): Promise<Business | null> {
-    const business = await this.prisma.business.findUnique({ where: { id } });
+  async findById(id: string, transaction?: unknown): Promise<Business | null> {
+    const client = transaction as Prisma.TransactionClient | undefined ?? this.prisma;
+    const business = await client.business.findUnique({ where: { id } });
 
     return business ? this.toDomain(business) : null;
   }

@@ -1,7 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { IntegrationEventsModule } from '../../shared/integration-events/integration-events.module';
-import { BookingModule } from '../booking/booking.module';
+import { BookingLifecycleModule } from '../booking-lifecycle/booking-lifecycle.module';
 import { BusinessModule } from '../business/business.module';
 import { ContactModule } from '../contact/contact.module';
 import { AvailabilityModule } from '../availability/availability.module';
@@ -27,7 +27,7 @@ import { CONVERSATION_BOT_TRANSACTION } from './application/conversation-bot.con
 import { PrismaConversationBotTransaction } from './infrastructure/prisma-conversation-bot.transaction';
 
 @Module({
-  imports: [IntegrationEventsModule, BookingModule, BusinessModule, ContactModule, AvailabilityModule, PricingModule],
+  imports: [IntegrationEventsModule, BookingLifecycleModule, BusinessModule, ContactModule, AvailabilityModule, PricingModule],
   providers: [
     PrismaOutboundMessageRepository,
     { provide: OUTBOUND_MESSAGE_REPOSITORY, useExisting: PrismaOutboundMessageRepository },

@@ -10,7 +10,7 @@ export interface CreateBusinessData {
 
 export interface BusinessRepository {
   create(data: CreateBusinessData): Promise<Business>;
-  findById(id: string): Promise<Business | null>;
+  findById(id: string, transaction?: unknown): Promise<Business | null>;
   list(userId: string): Promise<Business[]>;
   update(business: Business): Promise<Business>;
 }

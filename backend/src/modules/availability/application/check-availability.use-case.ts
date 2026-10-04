@@ -47,8 +47,10 @@ export {
   InvalidAvailabilityInputError,
 } from './availability.errors';
 
+import type { AvailabilityTransactionalValidationInput, AvailabilityTransactionalValidator } from '../availability.contract';
+
 @Injectable()
-export class CheckAvailabilityUseCase {
+export class CheckAvailabilityUseCase implements AvailabilityTransactionalValidator {
   constructor(
     @Inject(BUSINESS_REPOSITORY)
     private readonly businesses: BusinessRepository,
@@ -62,22 +64,25 @@ export class CheckAvailabilityUseCase {
     private readonly rules: AvailabilityRulesRepository,
   ) {}
 
+  // La evaluación conserva el mismo orden de validación para consultas normales y transaccionales.
+  // eslint-disable-next-line complexity
   async execute(input: {
     businessId: string;
     resourceId: string;
     from: string;
     to: string;
     excludeBookingId?: string;
+    guests?: number;
+    transaction?: unknown;
   }): Promise<AvailabilityResult> {
     const range = this.range(input);
 
-    await this.business(input.businessId);
+    await this.business(input.businessId, input.transaction);
 
     const resource =
-      await this.resources.findByIdAndBusinessId(
-        input.resourceId,
-        input.businessId,
-      );
+      input.transaction === undefined
+        ? await this.resources.findByIdAndBusinessId(input.resourceId, input.businessId)
+        : await this.resources.findByIdAndBusinessId(input.resourceId, input.businessId, input.transaction);
 
     if (!resource) {
       throw new AvailabilityResourceNotFoundError(
@@ -95,10 +100,23 @@ export class CheckAvailabilityUseCase {
       return this.out(input, shortCircuit);
     }
 
+    if (input.guests !== undefined) {
+      if (!Number.isInteger(input.guests) || input.guests <= 0) {
+        throw new InvalidAvailabilityInputError(
+          'La cantidad de huéspedes debe ser un entero positivo.',
+        );
+      }
+      if (input.guests > resource.capacityMaximum) {
+        throw new InvalidAvailabilityInputError(
+          'La cantidad de huéspedes supera la capacidad máxima del recurso.',
+        );
+      }
+    }
+
     const rules =
-      (await this.rules.findByBusinessId(
-        input.businessId,
-      )) ?? {
+      (input.transaction === undefined
+        ? await this.rules.findByBusinessId(input.businessId)
+        : await this.rules.findByBusinessId(input.businessId, input.transaction)) ?? {
         businessId: input.businessId,
         ...DEFAULT_AVAILABILITY_RULES,
       };
@@ -115,20 +133,12 @@ export class CheckAvailabilityUseCase {
 
     const [hasBookingConflict, hasBlockConflict] =
       await Promise.all([
-        this.bookings.hasBlockingBooking(
-          input.businessId,
-          input.resourceId,
-          bookingFrom,
-          bookingTo,
-          rules.pendingBlocksAvailability,
-          input.excludeBookingId,
-        ),
-        this.blocks.hasBlockingBlock(
-          input.businessId,
-          input.resourceId,
-          range.from,
-          range.to,
-        ),
+        input.transaction === undefined
+          ? this.bookings.hasBlockingBooking(input.businessId, input.resourceId, bookingFrom, bookingTo, rules.pendingBlocksAvailability, input.excludeBookingId)
+          : this.bookings.hasBlockingBooking(input.businessId, input.resourceId, bookingFrom, bookingTo, rules.pendingBlocksAvailability, input.excludeBookingId, input.transaction),
+        input.transaction === undefined
+          ? this.blocks.hasBlockingBlock(input.businessId, input.resourceId, range.from, range.to)
+          : this.blocks.hasBlockingBlock(input.businessId, input.resourceId, range.from, range.to, input.transaction),
       ]);
 
     return this.out(
@@ -139,6 +149,12 @@ export class CheckAvailabilityUseCase {
         hasBlockConflict,
       ),
     );
+  }
+
+  async validate(
+    input: AvailabilityTransactionalValidationInput,
+  ): Promise<AvailabilityResult> {
+    return this.execute(input);
   }
 
   private addDays(
@@ -192,11 +208,10 @@ export class CheckAvailabilityUseCase {
     };
   }
 
-  private async business(
-    id: string,
-  ): Promise<void> {
-    const business =
-      await this.businesses.findById(id);
+  private async business(id: string, transaction?: unknown): Promise<void> {
+    const business = transaction === undefined
+      ? await this.businesses.findById(id)
+      : await this.businesses.findById(id, transaction);
 
     if (!business) {
       throw new AvailabilityBusinessNotFoundError(

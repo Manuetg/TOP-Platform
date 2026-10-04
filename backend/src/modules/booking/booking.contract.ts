@@ -7,9 +7,9 @@ export interface BlockingBooking {
 }
 
 export const BOOKING_AVAILABILITY_LOOKUP = Symbol('BOOKING_AVAILABILITY_LOOKUP');
-export const BOOKING_PENDING_CREATION = Symbol('BOOKING_PENDING_CREATION');
+export const BOOKING_PENDING_PERSISTENCE = Symbol('BOOKING_PENDING_PERSISTENCE');
 
-export interface BookingPendingCreationInput {
+export interface BookingPendingPersistenceInput {
   businessId: string;
   contactId: string;
   resourceId: string;
@@ -20,8 +20,9 @@ export interface BookingPendingCreationInput {
   transaction: unknown;
 }
 
-export interface BookingPendingCreation {
-  createPendingInTransaction(input: BookingPendingCreationInput): Promise<import('./domain/booking.entity').Booking>;
+export interface BookingPendingPersistence {
+  lockResourceInTransaction(input: { businessId: string; resourceId: string; transaction: unknown }): Promise<void>;
+  createPendingInTransaction(input: BookingPendingPersistenceInput): Promise<import('./domain/booking.entity').Booking>;
 }
 export const BOOKING_TIMELINE_REPOSITORY = Symbol('BOOKING_TIMELINE_REPOSITORY');
 export { BookingTimelineEventType } from './domain/booking-timeline-event';
@@ -35,6 +36,7 @@ export interface BookingAvailabilityLookup {
     to: Date,
     pendingBlocksAvailability?: boolean,
     excludeBookingId?: string,
+    transaction?: unknown,
   ): Promise<boolean>;
 
   listBlockingBookings(
@@ -42,6 +44,7 @@ export interface BookingAvailabilityLookup {
     from: Date,
     to: Date,
     pendingBlocksAvailability?: boolean,
+    transaction?: unknown,
   ): Promise<BlockingBooking[]>;
 }
 

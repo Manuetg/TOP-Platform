@@ -13,7 +13,7 @@ import { PrismaBookingRepository } from './infrastructure/prisma-booking.reposit
 import { BookingController } from './presentation/booking.controller';
 import {
   BOOKING_AVAILABILITY_LOOKUP,
-  BOOKING_PENDING_CREATION,
+  BOOKING_PENDING_PERSISTENCE,
   BOOKING_TIMELINE_REPOSITORY,
   RESERVATIONS_PROJECTION_READER,
 } from './booking.contract';
@@ -22,5 +22,5 @@ import { ListBookingTimelineUseCase } from './application/list-booking-timeline.
 import { PrismaReservationsProjectionReader } from './infrastructure/prisma-reservations-projection.reader';
 import { IntegrationEventsModule } from '../../shared/integration-events/integration-events.module';
 
-@Module({ imports: [BusinessModule, ContactModule, ResourceModule, IntegrationEventsModule], controllers: [BookingController], providers: [PrismaBookingSearchReader, { provide: BOOKING_SEARCH_READER, useExisting: PrismaBookingSearchReader }, PrismaBookingRepository, PrismaBookingTimelineRepository, PrismaReservationsProjectionReader, { provide: BOOKING_REPOSITORY, useExisting: PrismaBookingRepository }, {provide:BOOKING_AVAILABILITY_LOOKUP,useExisting:PrismaBookingRepository}, { provide: BOOKING_PENDING_CREATION, useExisting: PrismaBookingRepository }, {provide:BOOKING_TIMELINE_REPOSITORY,useExisting:PrismaBookingTimelineRepository}, {provide:RESERVATIONS_PROJECTION_READER,useExisting:PrismaReservationsProjectionReader}, CreateBookingUseCase, GetBookingUseCase, ListBookingsUseCase, UpdateBookingUseCase, ListBookingTimelineUseCase], exports: [BOOKING_SEARCH_READER, BOOKING_REPOSITORY,BOOKING_AVAILABILITY_LOOKUP,BOOKING_PENDING_CREATION,BOOKING_TIMELINE_REPOSITORY,RESERVATIONS_PROJECTION_READER] })
+@Module({ imports: [BusinessModule, ContactModule, ResourceModule, IntegrationEventsModule], controllers: [BookingController], providers: [PrismaBookingSearchReader, { provide: BOOKING_SEARCH_READER, useExisting: PrismaBookingSearchReader }, PrismaBookingRepository, PrismaBookingTimelineRepository, PrismaReservationsProjectionReader, { provide: BOOKING_REPOSITORY, useExisting: PrismaBookingRepository }, {provide:BOOKING_AVAILABILITY_LOOKUP,useExisting:PrismaBookingRepository}, { provide: BOOKING_PENDING_PERSISTENCE, useExisting: PrismaBookingRepository }, {provide:BOOKING_TIMELINE_REPOSITORY,useExisting:PrismaBookingTimelineRepository}, {provide:RESERVATIONS_PROJECTION_READER,useExisting:PrismaReservationsProjectionReader}, CreateBookingUseCase, GetBookingUseCase, ListBookingsUseCase, UpdateBookingUseCase, ListBookingTimelineUseCase], exports: [BOOKING_SEARCH_READER, BOOKING_REPOSITORY,BOOKING_AVAILABILITY_LOOKUP,BOOKING_PENDING_PERSISTENCE,BOOKING_TIMELINE_REPOSITORY,RESERVATIONS_PROJECTION_READER] })
 export class BookingModule {}

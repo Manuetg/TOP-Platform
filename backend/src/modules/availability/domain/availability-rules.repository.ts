@@ -14,6 +14,6 @@ export const DEFAULT_AVAILABILITY_RULES = {
 export const AVAILABILITY_RULES_REPOSITORY = Symbol('AVAILABILITY_RULES_REPOSITORY');
 
 export interface AvailabilityRulesRepository {
-  findByBusinessId(businessId: string): Promise<AvailabilityRules | null>;
+  findByBusinessId(businessId: string, transaction?: unknown): Promise<AvailabilityRules | null>;
   save(rules: AvailabilityRules): Promise<AvailabilityRules>;
 }

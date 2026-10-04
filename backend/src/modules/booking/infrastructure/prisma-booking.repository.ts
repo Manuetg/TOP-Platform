@@ -7,15 +7,14 @@ import { PrismaIntegrationEventOutbox } from '../../../shared/infrastructure/pri
 import { Booking } from '../domain/booking.entity';
 import { BookingStatus } from '../domain/booking-status.enum';
 import type { BookingData, BookingListFilters, BookingRepository } from '../domain/booking.repository';
-import type { BlockingBooking, BookingPendingCreation, BookingPendingCreationInput } from '../booking.contract';
+import type { BlockingBooking, BookingPendingPersistence, BookingPendingPersistenceInput } from '../booking.contract';
 import { BookingTimelineEventType } from '../domain/booking-timeline-event';
-import { BookingAvailabilityConflictError, BookingBusinessNotFoundError, BookingBusinessUnavailableError, BookingContactNotFoundError, BookingResourceNotFoundError, BookingResourceUnavailableError, InvalidBookingInputError } from '../application/booking.errors';
 
 type BookingRow = PrismaBooking & { resources: BookingResource[] };
 const includeResources = { resources: { orderBy: { resourceId: 'asc' as const } } };
 
 @Injectable()
-export class PrismaBookingRepository implements BookingRepository, BookingPendingCreation {
+export class PrismaBookingRepository implements BookingRepository, BookingPendingPersistence {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(INTEGRATION_EVENT_OUTBOX)
@@ -36,28 +35,13 @@ export class PrismaBookingRepository implements BookingRepository, BookingPendin
     });
     return this.map(row);
   }
-  // Esta operación concentra las validaciones finales y las dos entradas de Timeline en el scope recibido.
-  // eslint-disable-next-line complexity
-  async createPendingInTransaction(input: BookingPendingCreationInput): Promise<Booking> {
+  async lockResourceInTransaction(input: { businessId: string; resourceId: string; transaction: unknown }): Promise<void> {
     const transaction = input.transaction as Prisma.TransactionClient;
     await transaction.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`${input.businessId}|${input.resourceId}`}, 0))`);
-    const business = await transaction.business.findUnique({ where: { id: input.businessId }, select: { id: true, status: true } });
-    if (!business) throw new BookingBusinessNotFoundError('El negocio no existe.');
-    if (business.status !== 'ACTIVE') throw new BookingBusinessUnavailableError('El negocio no está activo.');
-    const contact = await transaction.contact.findFirst({ where: { id: input.contactId, businessId: input.businessId }, select: { id: true } });
-    if (!contact) throw new BookingContactNotFoundError('El contacto no existe.');
-    const resource = await transaction.resource.findFirst({ where: { id: input.resourceId, businessId: input.businessId }, select: { id: true, status: true, capacityMaximum: true } });
-    if (!resource) throw new BookingResourceNotFoundError('El recurso no existe.');
-    if (resource.status !== 'ACTIVE') throw new BookingResourceUnavailableError('El recurso no está disponible.');
-    if (input.guests > resource.capacityMaximum) throw new InvalidBookingInputError('La cantidad de huéspedes supera la capacidad máxima del recurso.');
-    const rule = await transaction.availabilityRule.findUnique({ where: { businessId: input.businessId }, select: { pendingBlocksAvailability: true, bufferBeforeDays: true, bufferAfterDays: true } });
-    const pendingBlocksAvailability = rule?.pendingBlocksAvailability ?? true;
-    const from = shiftDate(input.checkInDate, -(rule?.bufferBeforeDays ?? 0));
-    const to = shiftDate(input.checkOutDate, rule?.bufferAfterDays ?? 0);
-    const blockingBooking = await transaction.booking.findFirst({ where: { businessId: input.businessId, status: { in: pendingBlocksAvailability ? ['PENDING', 'CONFIRMED', 'IN_PROGRESS'] : ['CONFIRMED', 'IN_PROGRESS'] }, resources: { some: { resourceId: input.resourceId } }, checkInDate: { lt: new Date(`${to}T00:00:00.000Z`) }, checkOutDate: { gt: new Date(`${from}T00:00:00.000Z`) } }, select: { id: true } });
-    if (blockingBooking) throw new BookingAvailabilityConflictError('La reserva tiene conflictos de disponibilidad.');
-    const block = await transaction.block.findFirst({ where: { businessId: input.businessId, resourceId: input.resourceId, status: 'SCHEDULED', startsAt: { lt: new Date(`${to}T00:00:00.000Z`) }, endsAt: { gt: new Date(`${from}T00:00:00.000Z`) } }, select: { id: true } });
-    if (block) throw new BookingAvailabilityConflictError('El recurso tiene un bloqueo de disponibilidad.');
+  }
+
+  async createPendingInTransaction(input: BookingPendingPersistenceInput): Promise<Booking> {
+    const transaction = input.transaction as Prisma.TransactionClient;
     const created = await transaction.booking.create({ data: { businessId: input.businessId, status: BookingStatus.PENDING, contactId: input.contactId, checkInDate: new Date(`${input.checkInDate}T00:00:00.000Z`), checkOutDate: new Date(`${input.checkOutDate}T00:00:00.000Z`), adults: input.guests, children: 0, notes: null, resources: { create: [{ resourceId: input.resourceId }] } }, include: includeResources });
     await transaction.bookingTimelineEvent.createMany({ data: [{ businessId: input.businessId, bookingId: created.id, type: BookingTimelineEventType.BOOKING_CREATED, actorUserId: input.actorUserId, details: {} }, { businessId: input.businessId, bookingId: created.id, type: BookingTimelineEventType.BOOKING_SUBMITTED, actorUserId: input.actorUserId, details: {} }] });
     await this.outbox.append(transaction, createIntegrationEvent({ eventType: IntegrationEventType.BOOKING_CREATED, businessId: input.businessId, aggregateType: 'BOOKING', aggregateId: created.id, payload: { bookingId: created.id, status: BookingStatus.PENDING } }));
@@ -112,8 +96,10 @@ export class PrismaBookingRepository implements BookingRepository, BookingPendin
   to: Date,
   pendingBlocksAvailability = true,
   excludeBookingId?: string,
+    transaction?: unknown,
   ): Promise<boolean> {
-    const booking = await this.prisma.booking.findFirst({
+    const client = transaction as Prisma.TransactionClient | undefined ?? this.prisma;
+    const booking = await client.booking.findFirst({
       where: {
         businessId,
         ...(excludeBookingId !== undefined
@@ -147,8 +133,9 @@ export class PrismaBookingRepository implements BookingRepository, BookingPendin
 
     return booking !== null;
   }
-  async listBlockingBookings(businessId: string, from: Date, to: Date, pendingBlocksAvailability = true): Promise<BlockingBooking[]> {
-    const rows = await this.prisma.booking.findMany({
+  async listBlockingBookings(businessId: string, from: Date, to: Date, pendingBlocksAvailability = true, transaction?: unknown): Promise<BlockingBooking[]> {
+    const client = transaction as Prisma.TransactionClient | undefined ?? this.prisma;
+    const rows = await client.booking.findMany({
       where: {
         businessId,
         status: { in: this.blockingStatuses(pendingBlocksAvailability) },
@@ -171,10 +158,4 @@ export class PrismaBookingRepository implements BookingRepository, BookingPendin
   }
   private blockingStatuses(pendingBlocksAvailability: boolean): BookingStatus[] { return pendingBlocksAvailability ? [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS] : [BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS]; }
   private map(row: BookingRow): Booking { return Booking.create({ id: row.id, businessId: row.businessId, status: row.status as BookingStatus, contactId: row.contactId, resourceIds: row.resources.map((resource) => resource.resourceId), checkInDate: row.checkInDate, checkOutDate: row.checkOutDate, adults: row.adults, children: row.children, notes: row.notes, createdAt: row.createdAt, updatedAt: row.updatedAt }); }
-}
-
-function shiftDate(value: string, days: number): string {
-  const date = new Date(`${value}T00:00:00.000Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
 }

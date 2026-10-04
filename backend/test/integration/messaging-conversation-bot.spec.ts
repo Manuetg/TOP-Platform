@@ -7,6 +7,7 @@ import { PrismaContactRepository } from '../../src/modules/contact/infrastructur
 import { ListAvailableResourcesUseCase } from '../../src/modules/availability/application/list-available-resources.use-case';
 import { ListAvailabilityCalendarUseCase } from '../../src/modules/availability/application/list-availability-calendar.use-case';
 import { PrismaAvailabilityRulesRepository } from '../../src/modules/availability/infrastructure/prisma-availability-rules.repository';
+import { CheckAvailabilityUseCase } from '../../src/modules/availability/application/check-availability.use-case';
 import { PrismaResourceRepository } from '../../src/modules/resource/infrastructure/prisma-resource.repository';
 import type { AvailabilityQuery } from '../../src/modules/availability/availability.contract';
 import type { PricingQuote } from '../../src/modules/pricing/pricing.contract';
@@ -25,6 +26,7 @@ import { ConversationMode } from '../../src/modules/messaging/domain/conversatio
 import { PrismaConversationRepository } from '../../src/modules/messaging/infrastructure/prisma-conversation.repository';
 import { PrismaOutboundMessageRepository } from '../../src/modules/messaging/infrastructure/prisma-outbound-message.repository';
 import { PrismaReceiveInboundMessageTransaction } from '../../src/modules/messaging/infrastructure/prisma-receive-inbound-message.transaction';
+import { PrismaBookingPendingCreationTransaction } from '../../src/modules/booking-lifecycle/infrastructure/prisma-booking-pending-creation.transaction';
 import { IntegrationEventConsumerRegistry } from '../../src/shared/integration-events/integration-event-consumer-registry';
 import { IntegrationEventDispatcher } from '../../src/shared/integration-events/integration-event-dispatcher';
 import type { IntegrationEvent } from '../../src/shared/integration-events/integration-event';
@@ -56,6 +58,13 @@ describeWithPostgres('Messaging conversation bot', () => {
     new ListRatePlansUseCase(businesses, resources, ratePlans),
     new CalculatePriceUseCase(businesses, resources, ratePlans, ratePlans, seasonalRates, new PricingCalculator()),
   );
+  const transactionalAvailability = new CheckAvailabilityUseCase(
+    businesses,
+    resources,
+    bookingRepository,
+    new PrismaBlockRepository(prisma),
+    new PrismaAvailabilityRulesRepository(prisma),
+  );
 
   beforeAll(async () => prisma.$connect());
   beforeEach(async () => cleanTestDatabase(prisma, databaseUrl));
@@ -79,7 +88,8 @@ describeWithPostgres('Messaging conversation bot', () => {
 
   function botWithAvailability(query: AvailabilityQuery, quote: PricingQuote = pricing) {
     const registry = new IntegrationEventConsumerRegistry();
-    const transaction = new PrismaConversationBotTransaction(prisma, new PrismaOutboundMessageRepository(prisma), query, quote, contactRepository, contactRepository, bookingRepository);
+    const bookingCreation = new PrismaBookingPendingCreationTransaction(transactionalAvailability, bookingRepository);
+    const transaction = new PrismaConversationBotTransaction(prisma, new PrismaOutboundMessageRepository(prisma), query, quote, contactRepository, contactRepository, bookingCreation);
     const consumer = new ConversationBotConsumer(businesses, transaction, registry);
     const dispatcher = new IntegrationEventDispatcher(outbox, [consumer], { baseBackoffMs: 0 });
     return { consumer, dispatcher };
@@ -404,7 +414,8 @@ describeWithPostgres('Messaging conversation bot', () => {
     const owner = await business();
     const received = await receive(owner.id, 'wamid-atomic-bot');
     const failingMessages = { createPendingInTransaction: jest.fn().mockRejectedValue(new Error('forced outbound failure')) } as never;
-    const transaction = new PrismaConversationBotTransaction(prisma, failingMessages, availability, pricing, contactRepository, contactRepository, bookingRepository);
+    const bookingCreation = new PrismaBookingPendingCreationTransaction(transactionalAvailability, bookingRepository);
+    const transaction = new PrismaConversationBotTransaction(prisma, failingMessages, availability, pricing, contactRepository, contactRepository, bookingCreation);
 
     await expect(transaction.process({ event: await eventAsContract(received.event.eventId), businessName: owner.name, businessTimeZone: 'America/Asuncion' })).rejects.toThrow('forced outbound failure');
     await expect(prisma.conversationSession.count({ where: { businessId: owner.id } })).resolves.toBe(0);
@@ -520,5 +531,20 @@ describeWithPostgres('Messaging conversation bot', () => {
     await expect(prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } })).resolves.toMatchObject({ state: 'AVAILABILITY_RESULTS' });
     const message = await prisma.outboundMessage.findFirstOrThrow({ where: { businessId: owner.id }, orderBy: { createdAt: 'desc' } });
     expect((message.payload as { text: string }).text).toContain('ya no está disponible');
+  });
+
+  it('evita doble reserva concurrente usando la misma validación transaccional de Availability', async () => {
+    const owner = await business('Concurrent booking');
+    const selected = await resource(owner.id, 'Cabaña única', 2);
+    const contact = await prisma.contact.create({ data: { businessId: owner.id, name: 'Concurrent guest', phone: '+595981111111' } });
+    const bookingCreation = new PrismaBookingPendingCreationTransaction(transactionalAvailability, bookingRepository);
+    const create = () => prisma.$transaction((transaction) => bookingCreation.createPendingInTransaction({ businessId: owner.id, contactId: contact.id, resourceId: selected.id, checkInDate: '2026-12-10', checkOutDate: '2026-12-12', guests: 2, actorUserId: null, transaction }));
+
+    const results = await Promise.allSettled([create(), create()]);
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1);
+    await expect(prisma.booking.count({ where: { businessId: owner.id } })).resolves.toBe(1);
+    await expect(prisma.integrationOutboxEvent.count({ where: { businessId: owner.id, eventType: 'BOOKING_CREATED' } })).resolves.toBe(1);
   });
 });
