@@ -117,6 +117,7 @@ function getBreadcrumbItems(pathname: string): readonly TopBreadcrumbItem[] | nu
     confirm: "Confirmar reserva",
     seasons: "Temporadas",
     preview: "Vista previa",
+    whatsapp: "WhatsApp",
   };
 
   let currentLabel = labels[terminal] ?? "Detalle";

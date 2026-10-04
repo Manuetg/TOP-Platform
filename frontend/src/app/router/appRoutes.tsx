@@ -9,6 +9,7 @@ const SaasLaunchShowcasePage = lazy(() => import("../../features/marketing/pages
 const DashboardPage = lazy(() => import("../../features/dashboard/pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
 import { AppLayout } from "../layout/AppLayout";
 const BusinessProfilePage = lazy(() => import("../../features/business/pages/BusinessProfilePage").then((module) => ({ default: module.BusinessProfilePage })));
+const WhatsAppSettingsPage = lazy(() => import("../../features/messaging/pages/WhatsAppSettingsPage").then((module) => ({ default: module.WhatsAppSettingsPage })));
 import { NotFoundPage } from "../pages/NotFoundPage";
 const ResourceListPage = lazy(() => import("../../features/resources/pages/ResourceListPage").then((module) => ({ default: module.ResourceListPage })));
 const ResourceDetailPage = lazy(() => import("../../features/resources/pages/ResourceDetailPage").then((module) => ({ default: module.ResourceDetailPage })));
@@ -167,6 +168,10 @@ export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general 
       {
         path: "settings",
         element: page(BusinessProfilePage),
+      },
+      {
+        path: "settings/whatsapp",
+        element: page(WhatsAppSettingsPage),
       },
     ],
   },
