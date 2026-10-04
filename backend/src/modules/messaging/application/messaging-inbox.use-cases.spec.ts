@@ -25,7 +25,7 @@ describe('SendManualConversationMessageUseCase', () => {
     const findMessage = jest.fn(() => Promise.resolve(created));
     const markSent = jest.fn(() => Promise.resolve(message(created.id, OutboundMessageStatus.SENT)));
     const markFailed = jest.fn(() => Promise.resolve(message(created.id, OutboundMessageStatus.FAILED)));
-    const repository: OutboundMessageRepository & { created?: unknown } = { createPending, findByIdAndBusinessId: findMessage, markSent, markFailed };
+    const repository: OutboundMessageRepository & { created?: unknown } = { createPending, findByIdAndBusinessId: findMessage, findByBusinessAndProviderMessageId: jest.fn(), markSent, markFailed, applyDeliveryStatus: jest.fn() };
     const findConversation = jest.fn(() => Promise.resolve(current));
     const conversations: ConversationRepository = { findByIdAndBusinessId: findConversation, findActiveByParticipant: jest.fn(), setMode: jest.fn() };
     const providerSend = jest.fn(() => Promise.resolve({ providerMessageId: 'provider-1' }));

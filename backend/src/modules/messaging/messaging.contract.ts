@@ -1,4 +1,5 @@
 export { MESSAGING_PROVIDER, type MessagingProvider, type MessagingProviderResult } from './application/messaging-provider';
+export type { MessagingWebhookEvent, MessagingWebhookHandler, MessagingInboundTextWebhookEvent, MessagingDeliveryStatusWebhookEvent } from './application/messaging-webhook.contract';
 export { MESSAGING_CONNECTION_RESOLVER, type ActiveMessagingConnection, type MessagingConnectionResolver } from './domain/messaging-connection.repository';
 export { MessagingConnectionStatus } from './domain/messaging-connection-status.enum';
 export { MessagingConnectionProvider } from './domain/messaging-provider.enum';

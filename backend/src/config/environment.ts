@@ -199,6 +199,11 @@ export interface MetaWhatsAppConfiguration {
   graphApiVersion: string;
 }
 
+export interface MetaWhatsAppWebhookConfiguration {
+  appSecret: string;
+  verifyToken: string;
+}
+
 function metaWhatsAppConfiguration(input: EnvironmentInput, production: boolean): MetaWhatsAppConfiguration {
   const accessToken = productionValue(input, 'META_WHATSAPP_ACCESS_TOKEN', production);
   const phoneNumberId = productionValue(input, 'META_WHATSAPP_PHONE_NUMBER_ID', production);
@@ -213,6 +218,14 @@ export function readMetaWhatsAppConfiguration(config: ConfigurationReader): Meta
     inputFrom(config, ['META_WHATSAPP_ACCESS_TOKEN', 'META_WHATSAPP_PHONE_NUMBER_ID', 'META_WHATSAPP_GRAPH_API_VERSION']),
     readNodeEnvironment(config) === 'production',
   );
+}
+
+export function readMetaWhatsAppWebhookConfiguration(config: ConfigurationReader): MetaWhatsAppWebhookConfiguration {
+  const production = readNodeEnvironment(config) === 'production';
+  return {
+    appSecret: production ? productionValue(inputFrom(config, ['META_WHATSAPP_APP_SECRET']), 'META_WHATSAPP_APP_SECRET', true) : text(inputFrom(config, ['META_WHATSAPP_APP_SECRET']), 'META_WHATSAPP_APP_SECRET', 'development-only-meta-app-secret'),
+    verifyToken: production ? productionValue(inputFrom(config, ['META_WHATSAPP_VERIFY_TOKEN']), 'META_WHATSAPP_VERIFY_TOKEN', true) : text(inputFrom(config, ['META_WHATSAPP_VERIFY_TOKEN']), 'META_WHATSAPP_VERIFY_TOKEN', 'development-only-meta-verify-token'),
+  };
 }
 
 function corsOrigins(input: EnvironmentInput, production: boolean): string[] {
@@ -296,5 +309,6 @@ export function configurationFrom(config: ConfigurationReader): EnvironmentConfi
     'APP_PUBLIC_URL', 'CORS_ORIGIN', 'EMAIL_DELIVERY_MODE', ...Object.keys(numericDefaults),
     'SMTP_HOST', 'SMTP_PORT', 'SMTP_FROM', 'SMTP_USER', 'SMTP_PASSWORD',
     'S3_ENDPOINT', 'S3_PUBLIC_ENDPOINT', 'S3_REGION', 'S3_BUCKET', 'S3_ACCESS_KEY', 'S3_SECRET_KEY', 'S3_FORCE_PATH_STYLE',
+    'META_WHATSAPP_APP_SECRET', 'META_WHATSAPP_VERIFY_TOKEN',
   ]));
 }

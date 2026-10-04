@@ -14,7 +14,7 @@ export class SendOutboundMessageUseCase {
   async execute(input: { id: string; businessId: string }): Promise<string> {
     const message = await this.messages.findByIdAndBusinessId(input.id, input.businessId);
     if (!message) throw new MessagingOutboundMessageNotFoundError('El mensaje saliente no existe.');
-    if (message.status === OutboundMessageStatus.SENT) return message.providerMessageId ?? '';
+    if ([OutboundMessageStatus.SENT, OutboundMessageStatus.DELIVERED, OutboundMessageStatus.READ].includes(message.status)) return message.providerMessageId ?? '';
 
     try {
       const result = await this.provider.send(message);

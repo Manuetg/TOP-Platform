@@ -16,6 +16,7 @@ export interface OutboundMessageProps {
   status: OutboundMessageStatus;
   payload: OutboundMessagePayload;
   providerMessageId: string | null;
+  providerStatusAt?: Date | null;
   createdAt: Date;
   sentAt: Date | null;
   failedAt: Date | null;
@@ -40,6 +41,7 @@ export class OutboundMessage {
   get status(): OutboundMessageStatus { return this.props.status; }
   get payload(): OutboundMessagePayload { return this.props.payload; }
   get providerMessageId(): string | null { return this.props.providerMessageId; }
+  get providerStatusAt(): Date | null { return this.props.providerStatusAt ?? null; }
   get createdAt(): Date { return this.props.createdAt; }
   get sentAt(): Date | null { return this.props.sentAt; }
   get failedAt(): Date | null { return this.props.failedAt; }

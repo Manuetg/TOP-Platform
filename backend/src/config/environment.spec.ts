@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import { configurationFrom, EnvironmentConfigurationError, readMetaWhatsAppConfiguration, readSmtpConfiguration, validateEnvironment } from './environment';
+import { configurationFrom, EnvironmentConfigurationError, readMetaWhatsAppConfiguration, readMetaWhatsAppWebhookConfiguration, readSmtpConfiguration, validateEnvironment } from './environment';
 import { CryptoRefreshTokenService } from '../modules/identity/infrastructure/crypto-refresh-token.service';
 import { CryptoPasswordResetTokenService } from '../modules/identity/infrastructure/crypto-password-reset-token.service';
 import { CryptoPasswordResetOtpService } from '../modules/identity/infrastructure/crypto-password-reset-otp.service';
@@ -138,6 +138,12 @@ describe('Configuración de arranque', () => {
   it('lee la configuración de Meta WhatsApp solo cuando el provider la solicita', () => {
     const config = new ConfigService({ NODE_ENV: 'development', META_WHATSAPP_ACCESS_TOKEN: 'token-not-logged', META_WHATSAPP_PHONE_NUMBER_ID: '123456789012345', META_WHATSAPP_GRAPH_API_VERSION: 'v26.0' });
     expect(readMetaWhatsAppConfiguration(config)).toEqual({ accessToken: 'token-not-logged', phoneNumberId: '123456789012345', graphApiVersion: 'v26.0' });
+  });
+
+  it('lee la configuración del webhook y conserva defaults solo fuera de producción', () => {
+    expect(readMetaWhatsAppWebhookConfiguration(new ConfigService({ NODE_ENV: 'development' }))).toEqual({ appSecret: 'development-only-meta-app-secret', verifyToken: 'development-only-meta-verify-token' });
+    expect(readMetaWhatsAppWebhookConfiguration(new ConfigService({ NODE_ENV: 'production', META_WHATSAPP_APP_SECRET: 'production-app-secret', META_WHATSAPP_VERIFY_TOKEN: 'production-verify-token' }))).toEqual({ appSecret: 'production-app-secret', verifyToken: 'production-verify-token' });
+    expect(() => readMetaWhatsAppWebhookConfiguration(new ConfigService({ NODE_ENV: 'production' }))).toThrow('META_WHATSAPP_APP_SECRET');
   });
 
   it.each(['', '123 456', 'phone-id'])('rechaza META_WHATSAPP_PHONE_NUMBER_ID inválido (%s)', (value) => {

@@ -134,6 +134,8 @@ enum MessagingTemplateType {
 enum OutboundMessageStatus {
   PENDING
   SENT
+  DELIVERED
+  READ
   FAILED
 }
 enum PaymentMethod {
@@ -672,6 +674,7 @@ model OutboundMessage {
   status             OutboundMessageStatus @default(PENDING)
   payload            Json
   providerMessageId  String?
+  providerStatusAt   DateTime?
   createdAt          DateTime             @default(now())
   sentAt             DateTime?
   failedAt           DateTime?
@@ -683,6 +686,7 @@ model OutboundMessage {
   @@unique([businessId, conversationId, manualClientRequestId])
   @@index([businessId, createdAt, id])
   @@index([businessId, status, createdAt, id])
+  @@index([businessId, providerMessageId])
   @@index([businessId, conversationId, createdAt, id])
 }
 

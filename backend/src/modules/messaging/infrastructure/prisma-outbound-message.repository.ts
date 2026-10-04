@@ -45,6 +45,11 @@ export class PrismaOutboundMessageRepository implements OutboundMessageRepositor
     return row ? this.map(row) : null;
   }
 
+  async findByBusinessAndProviderMessageId(businessId: string, providerMessageId: string): Promise<OutboundMessage | null> {
+    const row = await this.prisma.outboundMessage.findFirst({ where: { businessId, providerMessageId } });
+    return row ? this.map(row) : null;
+  }
+
   async markSent(id: string, businessId: string, providerMessageId: string, sentAt: Date): Promise<OutboundMessage | null> {
     const result = await this.prisma.outboundMessage.updateMany({ where: { id, businessId, status: { in: ['PENDING', 'FAILED'] } }, data: { status: 'SENT', providerMessageId, sentAt, failedAt: null, lastError: null } });
     if (result.count !== 1) return this.findByIdAndBusinessId(id, businessId);
@@ -57,7 +62,34 @@ export class PrismaOutboundMessageRepository implements OutboundMessageRepositor
     return this.findByIdAndBusinessId(id, businessId);
   }
 
-  private map(row: PrismaOutboundMessage): OutboundMessage {
-    return OutboundMessage.create({ id: row.id, businessId: row.businessId, integrationEventId: row.integrationEventId, conversationId: row.conversationId, manualClientRequestId: row.manualClientRequestId, channel: row.channel as MessagingChannel, recipient: row.recipient, messageType: row.messageType as OutboundMessageType, status: row.status as OutboundMessageStatus, payload: row.payload as OutboundMessage['payload'], providerMessageId: row.providerMessageId, createdAt: row.createdAt, sentAt: row.sentAt, failedAt: row.failedAt, lastError: row.lastError });
+  async applyDeliveryStatus(input: { businessId: string; providerMessageId: string; status: OutboundMessageStatus; providerStatusAt: Date; lastError: string | null }): Promise<OutboundMessage | null> {
+    return this.prisma.$transaction(async (transaction) => {
+      const row = await transaction.outboundMessage.findFirst({ where: { businessId: input.businessId, providerMessageId: input.providerMessageId } });
+      if (!row) return null;
+      if (!shouldApplyStatus(row.status as OutboundMessageStatus, row.providerStatusAt, input.status, input.providerStatusAt)) return this.map(row);
+      const updated = await transaction.outboundMessage.update({
+        where: { id: row.id },
+        data: { status: input.status, providerStatusAt: input.providerStatusAt, failedAt: input.status === OutboundMessageStatus.FAILED ? input.providerStatusAt : null, lastError: input.status === OutboundMessageStatus.FAILED ? input.lastError : null },
+      });
+      return this.map(updated);
+    }, { maxWait: 5_000, timeout: 30_000 });
   }
+
+  private map(row: PrismaOutboundMessage): OutboundMessage {
+    return OutboundMessage.create({ id: row.id, businessId: row.businessId, integrationEventId: row.integrationEventId, conversationId: row.conversationId, manualClientRequestId: row.manualClientRequestId, channel: row.channel as MessagingChannel, recipient: row.recipient, messageType: row.messageType as OutboundMessageType, status: row.status as OutboundMessageStatus, payload: row.payload as OutboundMessage['payload'], providerMessageId: row.providerMessageId, providerStatusAt: row.providerStatusAt, createdAt: row.createdAt, sentAt: row.sentAt, failedAt: row.failedAt, lastError: row.lastError });
+  }
+}
+
+function shouldApplyStatus(current: OutboundMessageStatus, currentAt: Date | null, next: OutboundMessageStatus, nextAt: Date): boolean {
+  if (current === OutboundMessageStatus.READ || (current === OutboundMessageStatus.DELIVERED && next === OutboundMessageStatus.SENT)) return false;
+  if (currentAt && nextAt < currentAt) return false;
+  if (next === OutboundMessageStatus.FAILED) return current !== OutboundMessageStatus.DELIVERED;
+  if (currentAt && nextAt.getTime() === currentAt.getTime()) {
+    return statusRank(next) > statusRank(current);
+  }
+  return statusRank(next) >= statusRank(current) || current === OutboundMessageStatus.FAILED;
+}
+
+function statusRank(status: OutboundMessageStatus): number {
+  return { [OutboundMessageStatus.PENDING]: 0, [OutboundMessageStatus.FAILED]: 1, [OutboundMessageStatus.SENT]: 2, [OutboundMessageStatus.DELIVERED]: 3, [OutboundMessageStatus.READ]: 4 }[status];
 }

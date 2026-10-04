@@ -9,7 +9,7 @@ async function createApplication(): Promise<INestApplication> {
   validateRuntimeBeforeImports();
   if (runtimeNodeEnvironment() === 'production') validateProductionPrismaArtifact();
   const { AppModule } = await import('../app.module');
-  return NestFactory.create(AppModule, { abortOnError: false });
+  return NestFactory.create(AppModule, { abortOnError: false, rawBody: true });
 }
 
 export async function bootstrap(factory: () => Promise<INestApplication> = createApplication): Promise<INestApplication> {

@@ -1,4 +1,4 @@
-import { ValidationPipe, type INestApplication } from '@nestjs/common';
+import { RequestMethod, ValidationPipe, type INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { configurationFrom, type EnvironmentConfiguration } from './environment';
@@ -9,7 +9,7 @@ export interface ApplicationConfigurationOptions { security?: boolean; configura
 
 export function configureApplication(app: INestApplication, options: ApplicationConfigurationOptions = {}): void {
   const configuration = options.configuration ?? configurationFrom(app.get(ConfigService));
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', { exclude: [{ path: 'webhooks/meta/whatsapp', method: RequestMethod.ALL }] });
   app.enableCors({
     origin: (origin: string | undefined, callback: (error: Error | null, allowed: boolean) => void) => callback(null, origin !== undefined && configuration.CORS_ORIGINS.includes(origin)),
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
