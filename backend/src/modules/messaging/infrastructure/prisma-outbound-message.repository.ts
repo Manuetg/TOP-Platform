@@ -21,13 +21,23 @@ export class PrismaOutboundMessageRepository implements OutboundMessageRepositor
 
   private async createPendingWithClient(client: PrismaService, data: CreateOutboundMessageData): Promise<OutboundMessage> {
     try {
-      return this.map(await client.outboundMessage.create({ data: { ...data, payload: data.payload } }));
+      const row = await client.outboundMessage.create({ data: { ...data, messageType: data.messageType as never, channel: data.channel as never, payload: data.payload } });
+      await this.touchConversation(client, row.businessId, row.conversationId, row.createdAt);
+      return this.map(row);
     } catch (error) {
       if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') throw error;
-      const existing = await client.outboundMessage.findUniqueOrThrow({ where: { integrationEventId_messageType_channel: { integrationEventId: data.integrationEventId, messageType: data.messageType, channel: data.channel } } });
+      const existing = data.manualClientRequestId && data.conversationId
+        ? await client.outboundMessage.findUniqueOrThrow({ where: { businessId_conversationId_manualClientRequestId: { businessId: data.businessId, conversationId: data.conversationId, manualClientRequestId: data.manualClientRequestId } } })
+        : await client.outboundMessage.findUniqueOrThrow({ where: { integrationEventId_messageType_channel: { integrationEventId: data.integrationEventId, messageType: data.messageType as never, channel: data.channel as never } } });
       if (existing.businessId !== data.businessId) throw new Error('El evento de integración pertenece a otro negocio.');
+      if (data.conversationId && existing.conversationId !== data.conversationId) throw new Error('El mensaje pertenece a otra conversación.');
       return this.map(existing);
     }
+  }
+
+  private async touchConversation(client: PrismaService, businessId: string, conversationId: string | null, occurredAt: Date): Promise<void> {
+    if (!conversationId) return;
+    await client.conversation.updateMany({ where: { id: conversationId, businessId, lastMessageAt: { lt: occurredAt } }, data: { lastMessageAt: occurredAt } });
   }
 
   async findByIdAndBusinessId(id: string, businessId: string): Promise<OutboundMessage | null> {
@@ -48,6 +58,6 @@ export class PrismaOutboundMessageRepository implements OutboundMessageRepositor
   }
 
   private map(row: PrismaOutboundMessage): OutboundMessage {
-    return OutboundMessage.create({ id: row.id, businessId: row.businessId, integrationEventId: row.integrationEventId, channel: row.channel as MessagingChannel, recipient: row.recipient, messageType: row.messageType as OutboundMessageType, status: row.status as OutboundMessageStatus, payload: row.payload as OutboundMessage['payload'], providerMessageId: row.providerMessageId, createdAt: row.createdAt, sentAt: row.sentAt, failedAt: row.failedAt, lastError: row.lastError });
+    return OutboundMessage.create({ id: row.id, businessId: row.businessId, integrationEventId: row.integrationEventId, conversationId: row.conversationId, manualClientRequestId: row.manualClientRequestId, channel: row.channel as MessagingChannel, recipient: row.recipient, messageType: row.messageType as OutboundMessageType, status: row.status as OutboundMessageStatus, payload: row.payload as OutboundMessage['payload'], providerMessageId: row.providerMessageId, createdAt: row.createdAt, sentAt: row.sentAt, failedAt: row.failedAt, lastError: row.lastError });
   }
 }

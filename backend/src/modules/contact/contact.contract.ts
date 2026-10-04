@@ -12,7 +12,11 @@ export const CONTACT_LOOKUP = Symbol('CONTACT_LOOKUP');
 export interface ContactLookup { findByIdAndBusinessId(id: string, businessId: string): Promise<Contact | null>; }
 
 export const CONTACT_MESSAGING_LOOKUP = Symbol('CONTACT_MESSAGING_LOOKUP');
-export interface ContactMessagingLookup { findByMessagingAddressAndBusinessId(address: string, businessId: string): Promise<Contact | null>; }
+export interface ContactMessagingSummary { id: string; businessId: string; name: string; lastName: string | null; phone: string | null; whatsapp: string | null; }
+export interface ContactMessagingLookup {
+  findByMessagingAddressAndBusinessId(address: string, businessId: string): Promise<Contact | null>;
+  findSummariesByIdsAndBusinessId?(ids: string[], businessId: string): Promise<ContactMessagingSummary[]>;
+}
 
 export const CONTACT_MESSAGING_RESOLUTION = Symbol('CONTACT_MESSAGING_RESOLUTION');
 export interface ContactMessagingResolution {

@@ -3,7 +3,7 @@ import { Prisma, type Contact as PrismaContact } from '@prisma/client';
 import { PrismaService } from '../../business/infrastructure/prisma.service';
 import { Contact } from '../domain/contact.entity';
 import { ContactStatus } from '../domain/contact-status.enum';
-import type { ContactMessagingResolution, ContactMessagingResolutionInput } from '../contact.contract';
+import type { ContactMessagingResolution, ContactMessagingResolutionInput, ContactMessagingSummary } from '../contact.contract';
 import type { ContactRepository, CreateContactData } from '../domain/contact.repository';
 import { ContactNotFoundError } from '../application/contact.errors';
 
@@ -15,6 +15,10 @@ export class PrismaContactRepository implements ContactRepository, ContactMessag
   async findByMessagingAddressAndBusinessId(address: string, businessId: string): Promise<Contact | null> {
     const row = await this.prisma.contact.findFirst({ where: { businessId, OR: [{ whatsapp: address }, { phone: address }] }, orderBy: { id: 'asc' } });
     return row ? this.map(row) : null;
+  }
+  async findSummariesByIdsAndBusinessId(ids: string[], businessId: string): Promise<ContactMessagingSummary[]> {
+    if (ids.length === 0) return [];
+    return this.prisma.contact.findMany({ where: { businessId, id: { in: ids } }, select: { id: true, businessId: true, name: true, lastName: true, phone: true, whatsapp: true } });
   }
   async resolveOrCreateInTransaction(input: ContactMessagingResolutionInput): Promise<Contact> {
     const client = input.transaction as Prisma.TransactionClient;

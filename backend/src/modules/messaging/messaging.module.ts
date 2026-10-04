@@ -2,6 +2,7 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { IntegrationEventsModule } from '../../shared/integration-events/integration-events.module';
 import { BookingLifecycleModule } from '../booking-lifecycle/booking-lifecycle.module';
+import { BookingModule } from '../booking/booking.module';
 import { BusinessModule } from '../business/business.module';
 import { ContactModule } from '../contact/contact.module';
 import { AvailabilityModule } from '../availability/availability.module';
@@ -36,10 +37,14 @@ import { MessagingTemplateRenderer } from './application/messaging-template-rend
 import { MESSAGING_AUTOMATION_CONFIGURATION, MessagingAutomationConfigurationService } from './application/messaging-automation-configuration';
 import { MessagingConfigurationUseCases } from './application/messaging-configuration.use-cases';
 import { MessagingConfigurationController } from './presentation/messaging-configuration.controller';
+import { MessagingInboxController } from './presentation/messaging-inbox.controller';
+import { CONVERSATION_INBOX_READER } from './domain/conversation-inbox.repository';
+import { PrismaConversationInboxReader } from './infrastructure/prisma-conversation-inbox.reader';
+import { MessagingInboxUseCases, SendManualConversationMessageUseCase } from './application/messaging-inbox.use-cases';
 
 @Module({
-  imports: [IntegrationEventsModule, BookingLifecycleModule, BusinessModule, ContactModule, AvailabilityModule, PricingModule, ResourceModule],
-  controllers: [MessagingConfigurationController],
+  imports: [IntegrationEventsModule, BookingLifecycleModule, BookingModule, BusinessModule, ContactModule, AvailabilityModule, PricingModule, ResourceModule],
+  controllers: [MessagingConfigurationController, MessagingInboxController],
   providers: [
     PrismaOutboundMessageRepository,
     { provide: OUTBOUND_MESSAGE_REPOSITORY, useExisting: PrismaOutboundMessageRepository },
@@ -66,8 +71,12 @@ import { MessagingConfigurationController } from './presentation/messaging-confi
     MessagingAutomationConfigurationService,
     { provide: MESSAGING_AUTOMATION_CONFIGURATION, useExisting: MessagingAutomationConfigurationService },
     MessagingConfigurationUseCases,
+    PrismaConversationInboxReader,
+    { provide: CONVERSATION_INBOX_READER, useExisting: PrismaConversationInboxReader },
+    MessagingInboxUseCases,
+    SendManualConversationMessageUseCase,
   ],
-  exports: [OUTBOUND_MESSAGE_REPOSITORY, CONVERSATION_REPOSITORY, INBOUND_MESSAGE_REPOSITORY, MESSAGING_SETTINGS_REPOSITORY, MESSAGING_AUTOMATION_RULE_REPOSITORY, MESSAGING_MESSAGE_TEMPLATE_REPOSITORY, MESSAGING_AUTOMATION_CONFIGURATION, ReceiveInboundMessageUseCase, ChangeConversationModeUseCase, MessagingIntegrationEventConsumer, ConversationBotConsumer],
+  exports: [OUTBOUND_MESSAGE_REPOSITORY, CONVERSATION_REPOSITORY, INBOUND_MESSAGE_REPOSITORY, CONVERSATION_INBOX_READER, MESSAGING_SETTINGS_REPOSITORY, MESSAGING_AUTOMATION_RULE_REPOSITORY, MESSAGING_MESSAGE_TEMPLATE_REPOSITORY, MESSAGING_AUTOMATION_CONFIGURATION, ReceiveInboundMessageUseCase, ChangeConversationModeUseCase, MessagingIntegrationEventConsumer, ConversationBotConsumer, MessagingInboxUseCases, SendManualConversationMessageUseCase],
 })
 export class MessagingModule {
   static registerMetaWhatsApp(): DynamicModule {

@@ -109,6 +109,7 @@ enum OutboundMessageType {
   BOOKING_CONFIRMATION
   BOOKING_CANCELLATION
   CONVERSATION_REPLY
+  MANUAL_REPLY
 }
 
 enum MessagingAutomationType {
@@ -637,6 +638,8 @@ model OutboundMessage {
   id                 String               @id @default(uuid())
   businessId         String
   integrationEventId String
+  conversationId     String?
+  manualClientRequestId String?
   channel            MessagingChannel
   recipient          String
   messageType        OutboundMessageType
@@ -648,10 +651,13 @@ model OutboundMessage {
   failedAt           DateTime?
   lastError          String?
   business           Business             @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  conversation       Conversation?        @relation(fields: [conversationId, businessId], references: [id, businessId], onDelete: Restrict)
 
   @@unique([integrationEventId, messageType, channel])
+  @@unique([businessId, conversationId, manualClientRequestId])
   @@index([businessId, createdAt, id])
   @@index([businessId, status, createdAt, id])
+  @@index([businessId, conversationId, createdAt, id])
 }
 
 model Conversation {
@@ -670,6 +676,7 @@ model Conversation {
   inboundMessages     InboundMessage[]
   session             ConversationSession?
   botEvents           ConversationBotEvent[]
+  outboundMessages    OutboundMessage[]
 
   @@unique([id, businessId])
   @@index([businessId, channel, externalParticipant, status, lastMessageAt, id])

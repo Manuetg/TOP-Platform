@@ -12,6 +12,7 @@ export type { Conversation } from './domain/conversation.entity';
 export type { ConversationSession, ConversationSessionContext } from './domain/conversation-session.entity';
 export type { InboundMessage } from './domain/inbound-message.entity';
 export { CONVERSATION_REPOSITORY, type ConversationRepository } from './domain/conversation.repository';
+export { CONVERSATION_INBOX_READER, type ConversationInboxReader, type ConversationInboxSummary, type ConversationInboxDetail, type ConversationInboxMessage } from './domain/conversation-inbox.repository';
 export { INBOUND_MESSAGE_REPOSITORY, type InboundMessageRepository } from './domain/inbound-message.repository';
 export { RECEIVE_INBOUND_MESSAGE_TRANSACTION, type InboundMessageEnvelope, type ReceiveInboundMessageInput, type ReceiveInboundMessageResult, type ReceiveInboundMessageTransaction } from './application/receive-inbound-message.contract';
 export { MessagingAutomationType } from './domain/messaging-automation-type.enum';

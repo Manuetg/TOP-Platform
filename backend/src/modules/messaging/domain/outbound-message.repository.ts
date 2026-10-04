@@ -12,6 +12,8 @@ export interface CreateOutboundMessageData {
   recipient: string;
   messageType: OutboundMessageType;
   payload: OutboundMessage['payload'];
+  conversationId?: string | null;
+  manualClientRequestId?: string | null;
 }
 
 export interface OutboundMessageRepository {

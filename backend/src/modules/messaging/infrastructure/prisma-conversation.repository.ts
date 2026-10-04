@@ -22,7 +22,7 @@ export class PrismaConversationRepository implements ConversationRepository {
   }
 
   async setMode(id: string, businessId: string, mode: ConversationMode): Promise<Conversation | null> {
-    await this.prisma.conversation.updateMany({ where: { id, businessId }, data: { mode } });
+    await this.prisma.conversation.updateMany({ where: { id, businessId, status: ConversationStatus.ACTIVE }, data: { mode } });
     return this.findByIdAndBusinessId(id, businessId);
   }
 

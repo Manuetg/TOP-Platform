@@ -149,6 +149,7 @@ export class PrismaConversationBotTransaction implements ConversationBotTransact
     await this.messages.createPendingInTransaction(transaction, {
       businessId: event.businessId,
       integrationEventId: event.eventId,
+      conversationId: conversation.id,
       channel: conversation.channel as MessagingChannel,
       recipient: conversation.externalParticipant,
       messageType: OutboundMessageType.CONVERSATION_REPLY,
