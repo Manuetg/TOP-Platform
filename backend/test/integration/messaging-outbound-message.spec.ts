@@ -1,7 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaBookingConfirmationTransaction } from '../../src/modules/booking-lifecycle/infrastructure/prisma-booking-confirmation.transaction';
 import { PrismaBookingRepository } from '../../src/modules/booking/infrastructure/prisma-booking.repository';
+import { PrismaBusinessRepository } from '../../src/modules/business/infrastructure/prisma-business.repository';
 import { PrismaContactRepository } from '../../src/modules/contact/infrastructure/prisma-contact.repository';
+import { PrismaResourceRepository } from '../../src/modules/resource/infrastructure/prisma-resource.repository';
+import { PrismaPricingSnapshotRepository } from '../../src/modules/pricing/infrastructure/prisma-pricing-snapshot.repository';
 import { MessagingIntegrationEventConsumer } from '../../src/modules/messaging/application/messaging-integration-event.consumer';
 import { SendOutboundMessageUseCase } from '../../src/modules/messaging/application/send-outbound-message.use-case';
 import { OutboundMessageStatus } from '../../src/modules/messaging/domain/outbound-message-status.enum';
@@ -20,7 +23,10 @@ const describeWithPostgres = databaseUrl?.includes('test') ? describe : describe
 describeWithPostgres('Messaging outbound messages', () => {
   const prisma = new PrismaClient();
   const bookings = new PrismaBookingRepository(prisma);
+  const businesses = new PrismaBusinessRepository(prisma);
   const contacts = new PrismaContactRepository(prisma);
+  const resources = new PrismaResourceRepository(prisma);
+  const snapshots = new PrismaPricingSnapshotRepository(prisma);
   const messages = new PrismaOutboundMessageRepository(prisma);
   const outbox = new PrismaIntegrationOutboxRepository(prisma);
 
@@ -39,7 +45,7 @@ describeWithPostgres('Messaging outbound messages', () => {
         businessId: business.id,
         name: 'Huésped',
         lastName: 'TOP',
-        phone: values.phone ?? '+595981111111',
+        phone: values.phone === undefined ? '+595981111111' : values.phone,
         whatsapp: values.whatsapp === undefined ? '+595982222222' : values.whatsapp,
         email: null,
         documentType: null,
@@ -48,20 +54,21 @@ describeWithPostgres('Messaging outbound messages', () => {
         city: 'Asunción',
       },
     });
-    const booking = await bookings.create({ businessId: business.id, contactId: contact.id, resourceIds: [], checkInDate: null, checkOutDate: null, adults: 1, children: 0, notes: null });
+    const resource = await prisma.resource.create({ data: { businessId: business.id, name: 'Cabaña Premium', internalCode: `PREMIUM-${crypto.randomUUID()}`, capacityMaximum: 4 } });
+    const booking = await bookings.create({ businessId: business.id, contactId: contact.id, resourceIds: [resource.id], checkInDate: new Date('2026-10-15'), checkOutDate: new Date('2026-10-17'), adults: 4, children: 0, notes: null });
     await bookings.markPending(booking.id, business.id, null);
     await new PrismaBookingConfirmationTransaction(prisma).confirm({
       businessId: business.id,
       bookingId: booking.id,
       actorUserId: null,
-      prepare: () => Promise.resolve({ currency: 'PYG', totalAmountMinor: 1, items: [] }),
+      prepare: () => Promise.resolve({ currency: 'PYG', totalAmountMinor: 1250000, items: [{ resourceId: resource.id, ratePlanId: null, pricingMode: 'MANUAL_NO_RATE_PLAN', suggestedAmountMinor: null, agreedAmountMinor: 1250000, adjustmentAmountMinor: null, overrideReason: 'Prueba', nights: 2, breakdown: [] }] }),
     });
     const row = await prisma.integrationOutboxEvent.findFirstOrThrow({ where: { businessId: business.id, eventType: 'BOOKING_CONFIRMED', aggregateId: booking.id } });
-    return { business, contact, booking, event: toIntegrationEvent(row) };
+    return { business, contact, resource, booking, event: toIntegrationEvent(row) };
   }
 
   function consumer(): MessagingIntegrationEventConsumer {
-    return new MessagingIntegrationEventConsumer(bookings, contacts, messages, new IntegrationEventConsumerRegistry());
+    return new MessagingIntegrationEventConsumer(bookings, businesses, contacts, resources, snapshots, messages, new IntegrationEventConsumerRegistry());
   }
 
   it('creates one PENDING BOOKING_CONFIRMATION message from BOOKING_CONFIRMED', async () => {
@@ -69,9 +76,18 @@ describeWithPostgres('Messaging outbound messages', () => {
 
     await consumer().handle(fixture.event);
 
-    await expect(prisma.outboundMessage.findMany({ where: { businessId: fixture.business.id } })).resolves.toMatchObject([
-      expect.objectContaining({ integrationEventId: fixture.event.eventId, channel: 'WHATSAPP', messageType: 'BOOKING_CONFIRMATION', status: 'PENDING', recipient: fixture.contact.whatsapp, payload: { bookingId: fixture.booking.id, status: 'CONFIRMED' } }),
-    ]);
+    const pendingMessages = await prisma.outboundMessage.findMany({ where: { businessId: fixture.business.id } });
+    expect(pendingMessages).toHaveLength(1);
+    expect(pendingMessages[0]).toMatchObject({ integrationEventId: fixture.event.eventId, channel: 'WHATSAPP', messageType: 'BOOKING_CONFIRMATION', status: 'PENDING', recipient: fixture.contact.whatsapp, payload: expect.objectContaining({ bookingId: fixture.booking.id, status: 'CONFIRMED' }) });
+    const message = await prisma.outboundMessage.findFirstOrThrow({ where: { integrationEventId: fixture.event.eventId } });
+    const text = (message.payload as { text: string }).text;
+    expect(text).toContain(`Tu reserva en ${fixture.business.name} fue confirmada.`);
+    expect(text).toContain('Cabaña Premium');
+    expect(text).toContain('15/10/2026 → 17/10/2026');
+    expect(text).toContain('4 huéspedes');
+    expect(text).toContain('1.250.000 Gs.');
+    expect(text).not.toContain(fixture.resource.id);
+    expect(text).not.toContain(fixture.booking.id);
   });
 
   it('deduplicates the same event by event, message type and channel', async () => {
@@ -108,6 +124,23 @@ describeWithPostgres('Messaging outbound messages', () => {
     const mismatched = { ...fixture.event, businessId: otherBusiness.id };
 
     await expect(consumer().handle(mismatched)).rejects.toThrow();
+    await expect(prisma.outboundMessage.count()).resolves.toBe(0);
+  });
+
+  it('does not use a Contact belonging to another Business', async () => {
+    const fixture = await confirmedFixture();
+    const otherBusiness = await prisma.business.create({ data: { name: `Other contact ${crypto.randomUUID()}` } });
+    const foreignContact = await prisma.contact.create({ data: { businessId: otherBusiness.id, name: 'Foreign', whatsapp: '+595984444444' } });
+    await prisma.booking.update({ where: { id: fixture.booking.id }, data: { contactId: foreignContact.id } });
+
+    await expect(consumer().handle(fixture.event)).rejects.toThrow('El contacto del evento no existe.');
+    await expect(prisma.outboundMessage.count()).resolves.toBe(0);
+  });
+
+  it('fails in a controlled way when the Contact has no WhatsApp recipient', async () => {
+    const fixture = await confirmedFixture({ whatsapp: null, phone: null });
+
+    await expect(consumer().handle(fixture.event)).rejects.toThrow('El contacto no tiene un destinatario de WhatsApp.');
     await expect(prisma.outboundMessage.count()).resolves.toBe(0);
   });
 
@@ -166,6 +199,17 @@ describeWithPostgres('Messaging outbound messages', () => {
 
     await expect(send.execute({ id: row.id, businessId: fixture.business.id })).rejects.toThrow('forced messaging provider failure');
     await expect(prisma.outboundMessage.findUniqueOrThrow({ where: { id: row.id } })).resolves.toMatchObject({ status: OutboundMessageStatus.FAILED, lastError: 'forced messaging provider failure' });
+    await expect(prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } })).resolves.toMatchObject({ status: 'CONFIRMED' });
+    await expect(prisma.pricingSnapshot.findUniqueOrThrow({ where: { bookingId: fixture.booking.id } })).resolves.toMatchObject({ totalAmountMinor: BigInt(1250000) });
+  });
+
+  it('sends a transactional confirmation even when the Conversation is HUMAN', async () => {
+    const fixture = await confirmedFixture();
+    await prisma.conversation.create({ data: { businessId: fixture.business.id, channel: 'WHATSAPP', externalParticipant: fixture.contact.whatsapp!, contactId: fixture.contact.id, mode: 'HUMAN', lastMessageAt: new Date() } });
+
+    await consumer().handle(fixture.event);
+
+    await expect(prisma.outboundMessage.count({ where: { integrationEventId: fixture.event.eventId, messageType: 'BOOKING_CONFIRMATION' } })).resolves.toBe(1);
   });
 
   it('retries the same OutboundMessage without creating another record', async () => {
