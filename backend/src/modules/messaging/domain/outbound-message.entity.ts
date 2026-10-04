@@ -9,6 +9,7 @@ export interface OutboundMessageProps {
   businessId: string;
   integrationEventId: string;
   conversationId?: string | null;
+  messagingConnectionId?: string | null;
   manualClientRequestId?: string | null;
   channel: MessagingChannel;
   recipient: string;
@@ -34,6 +35,7 @@ export class OutboundMessage {
   get businessId(): string { return this.props.businessId; }
   get integrationEventId(): string { return this.props.integrationEventId; }
   get conversationId(): string | null { return this.props.conversationId ?? null; }
+  get messagingConnectionId(): string | null { return this.props.messagingConnectionId ?? null; }
   get manualClientRequestId(): string | null { return this.props.manualClientRequestId ?? null; }
   get channel(): MessagingChannel { return this.props.channel; }
   get recipient(): string { return this.props.recipient; }

@@ -15,10 +15,11 @@ import { ConversationSessionState } from '../domain/conversation-session-state.e
 import { MessagingChannel } from '../domain/messaging-channel.enum';
 import { TRANSACTIONAL_OUTBOUND_MESSAGE_REPOSITORY, type TransactionalOutboundMessageRepository } from '../domain/outbound-message.repository';
 import { OutboundMessageType } from '../domain/outbound-message-type.enum';
+import { MessagingConversationConnectionMissingError } from '../application/messaging.errors';
 
 type TransactionClient = Parameters<Parameters<PrismaClient['$transaction']>[0]>[0];
 type Preparation = {
-  conversation: { id: string; businessId: string; channel: string; externalParticipant: string; mode: string };
+  conversation: { id: string; businessId: string; channel: string; externalParticipant: string; messagingConnectionId: string | null; mode: string };
   inboundMessage: { payload: Prisma.JsonValue };
   session: { id: string; state: string; context: Prisma.JsonValue; updatedAt: Date } | null;
   contact: { id: string; name: string; lastName: string | null } | null;
@@ -146,10 +147,12 @@ export class PrismaConversationBotTransaction implements ConversationBotTransact
     }
 
     if (!finalDecision.response) return { handled: true, responseCreated: false };
+    if (!conversation.messagingConnectionId) throw new MessagingConversationConnectionMissingError('La conversación no tiene una conexión de Messaging asignada.');
     await this.messages.createPendingInTransaction(transaction, {
       businessId: event.businessId,
       integrationEventId: event.eventId,
       conversationId: conversation.id,
+      messagingConnectionId: conversation.messagingConnectionId,
       channel: conversation.channel as MessagingChannel,
       recipient: conversation.externalParticipant,
       messageType: OutboundMessageType.CONVERSATION_REPLY,

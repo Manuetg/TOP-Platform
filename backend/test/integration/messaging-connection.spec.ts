@@ -32,7 +32,7 @@ describeWithPostgres('MessagingConnection PostgreSQL', () => {
     const owner = await business('Owner');
     const created = await connection(owner.id, 'phone-a');
 
-    await expect(resolver.resolveActiveConnection({ provider: MessagingConnectionProvider.META_WHATSAPP, channel: MessagingChannel.WHATSAPP, providerPhoneNumberId: 'phone-a' })).resolves.toEqual({ connectionId: created.id, businessId: owner.id });
+    await expect(resolver.resolveActiveConnection({ provider: MessagingConnectionProvider.META_WHATSAPP, channel: MessagingChannel.WHATSAPP, providerPhoneNumberId: 'phone-a' })).resolves.toEqual({ connectionId: created.id, businessId: owner.id, channel: MessagingChannel.WHATSAPP, provider: MessagingConnectionProvider.META_WHATSAPP, providerPhoneNumberId: 'phone-a', status: 'ACTIVE' });
   });
 
   it('no resuelve conexiones INACTIVE ni ids desconocidos', async () => {

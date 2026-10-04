@@ -52,6 +52,7 @@ describeWithPostgres('Messaging conversation bot', () => {
   const ratePlans = new PrismaRatePlanRepository(prisma);
   const seasonalRates = new PrismaSeasonalRateRepository(prisma);
   const messagingSettings = new PrismaMessagingSettingsRepository(prisma);
+  const connectionByBusiness = new Map<string, string>();
   const availability = new ListAvailableResourcesUseCase(
     new ListAvailabilityCalendarUseCase(businesses, resources, new PrismaBookingRepository(prisma), new PrismaBlockRepository(prisma), new PrismaAvailabilityRulesRepository(prisma)),
     resources,
@@ -77,11 +78,14 @@ describeWithPostgres('Messaging conversation bot', () => {
   });
 
   async function business(name = 'Bot Business') {
-    return prisma.business.create({ data: { name: `${name} ${randomUUID()}` } });
+    const value = await prisma.business.create({ data: { name: `${name} ${randomUUID()}` } });
+    const connection = await prisma.messagingConnection.create({ data: { businessId: value.id, channel: 'WHATSAPP', provider: 'META_WHATSAPP', providerPhoneNumberId: randomUUID().replaceAll('-', '') } });
+    connectionByBusiness.set(value.id, connection.id);
+    return value;
   }
 
   function input(businessId: string, providerMessageId: string, text = 'Hola', sender = '+595981234567') {
-    return { businessId, channel: 'WHATSAPP' as const, providerMessageId, sender, messageType: 'TEXT' as const, payload: { text }, receivedAt: new Date('2026-10-03T12:00:00.000Z') };
+    return { businessId, messagingConnectionId: connectionByBusiness.get(businessId), channel: 'WHATSAPP' as const, providerMessageId, sender, messageType: 'TEXT' as const, payload: { text }, receivedAt: new Date('2026-10-03T12:00:00.000Z') };
   }
 
   function bot() {

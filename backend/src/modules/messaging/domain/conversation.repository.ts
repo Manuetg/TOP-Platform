@@ -7,5 +7,5 @@ export const CONVERSATION_REPOSITORY = Symbol('CONVERSATION_REPOSITORY');
 export interface ConversationRepository {
   findByIdAndBusinessId(id: string, businessId: string): Promise<Conversation | null>;
   setMode(id: string, businessId: string, mode: ConversationMode): Promise<Conversation | null>;
-  findActiveByParticipant(businessId: string, channel: MessagingChannel, externalParticipant: string): Promise<Conversation | null>;
+  findActiveByParticipant(businessId: string, channel: MessagingChannel, externalParticipant: string, messagingConnectionId?: string | null): Promise<Conversation | null>;
 }

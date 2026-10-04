@@ -8,13 +8,15 @@ import type { IntegrationEvent } from '../../../shared/integration-events/integr
 import type { IntegrationEventConsumer } from '../../../shared/integration-events/integration-event.consumer';
 import { IntegrationEventConsumerRegistry } from '../../../shared/integration-events/integration-event-consumer-registry';
 import { OUTBOUND_MESSAGE_REPOSITORY, type OutboundMessageRepository } from '../domain/outbound-message.repository';
+import { MESSAGING_OUTBOUND_CONNECTION_RESOLVER, type MessagingOutboundConnectionResolver } from '../domain/messaging-connection.repository';
+import { MessagingConnectionProvider } from '../domain/messaging-provider.enum';
 import { MessagingChannel } from '../domain/messaging-channel.enum';
 import { OutboundMessageType } from '../domain/outbound-message-type.enum';
 import { MessagingAutomationType } from '../domain/messaging-automation-type.enum';
 import { DEFAULT_MESSAGING_TEMPLATES } from './messaging-template.defaults';
 import { MESSAGING_AUTOMATION_CONFIGURATION, type MessagingAutomationConfigurationReader } from './messaging-automation-configuration';
 import { MessagingTemplateRenderer } from './messaging-template-renderer';
-import { MessagingBookingNotFoundError, MessagingBusinessNotFoundError, MessagingContactNotFoundError, MessagingPricingSnapshotNotFoundError, MessagingRecipientNotFoundError, MessagingResourceNotFoundError } from './messaging.errors';
+import { MessagingBookingNotFoundError, MessagingBusinessNotFoundError, MessagingContactNotFoundError, MessagingPricingSnapshotNotFoundError, MessagingRecipientNotFoundError, MessagingResourceNotFoundError, MessagingOutboundConnectionAmbiguousError, MessagingOutboundConnectionNotConfiguredError } from './messaging.errors';
 import type { Booking } from '../../booking/domain/booking.entity';
 import type { Business } from '../../business/domain/business.entity';
 import type { Contact } from '../../contact/domain/contact.entity';
@@ -32,6 +34,7 @@ export class MessagingIntegrationEventConsumer implements IntegrationEventConsum
     @Inject(OUTBOUND_MESSAGE_REPOSITORY) private readonly messages: OutboundMessageRepository,
     private readonly registry: IntegrationEventConsumerRegistry,
     @Optional() @Inject(MESSAGING_AUTOMATION_CONFIGURATION) private readonly configuration?: MessagingAutomationConfigurationReader,
+    @Optional() @Inject(MESSAGING_OUTBOUND_CONNECTION_RESOLVER) private readonly connections?: MessagingOutboundConnectionResolver,
   ) {}
 
   onModuleInit(): void {
@@ -67,10 +70,12 @@ export class MessagingIntegrationEventConsumer implements IntegrationEventConsum
       ...(snapshot ? { total: formatNumber(snapshot.totalAmountMinor), currency: snapshot.currency === 'PYG' ? 'Gs' : snapshot.currency } : {}),
     };
     const text = new MessagingTemplateRenderer().render(configuration.templateType, configuration.content, values);
+    const connection = this.connections ? await this.resolveConnection(event.businessId) : null;
 
     await this.messages.createPending({
       businessId: event.businessId,
       integrationEventId: event.eventId,
+      messagingConnectionId: connection?.connectionId,
       channel: MessagingChannel.WHATSAPP,
       recipient: contact.recipient,
       messageType: automationType === MessagingAutomationType.BOOKING_CONFIRMED ? OutboundMessageType.BOOKING_CONFIRMATION : OutboundMessageType.BOOKING_CANCELLATION,
@@ -80,6 +85,13 @@ export class MessagingIntegrationEventConsumer implements IntegrationEventConsum
         text,
       },
     });
+  }
+
+  private async resolveConnection(businessId: string) {
+    const resolution = await this.connections!.resolveForBusiness({ businessId, channel: MessagingChannel.WHATSAPP, provider: MessagingConnectionProvider.META_WHATSAPP });
+    if (resolution.kind === 'NOT_CONFIGURED') throw new MessagingOutboundConnectionNotConfiguredError('El negocio no tiene una conexión activa de WhatsApp configurada.');
+    if (resolution.kind === 'AMBIGUOUS') throw new MessagingOutboundConnectionAmbiguousError('El negocio tiene múltiples conexiones activas de WhatsApp y la automation no puede elegir un sender.');
+    return resolution.connection;
   }
 
   private bookingId(event: IntegrationEvent): string {

@@ -13,15 +13,16 @@ import { ReceiveInboundMessageUseCase } from './receive-inbound-message.use-case
 
 const businessId = '11111111-1111-4111-8111-111111111111';
 const contactId = '22222222-2222-4222-8222-222222222222';
+const messagingConnectionId = '55555555-5555-4555-8555-555555555555';
 
 function result() {
-  const conversation = Conversation.create({ id: '33333333-3333-4333-8333-333333333333', businessId, channel: MessagingChannel.WHATSAPP, externalParticipant: '+595981234567', contactId, mode: ConversationMode.BOT, status: ConversationStatus.ACTIVE, createdAt: new Date(), lastMessageAt: new Date(), closedAt: null });
+  const conversation = Conversation.create({ id: '33333333-3333-4333-8333-333333333333', businessId, channel: MessagingChannel.WHATSAPP, messagingConnectionId, externalParticipant: '+595981234567', contactId, mode: ConversationMode.BOT, status: ConversationStatus.ACTIVE, createdAt: new Date(), lastMessageAt: new Date(), closedAt: null });
   const message = InboundMessage.create({ id: '44444444-4444-4444-8444-444444444444', businessId, conversationId: conversation.id, channel: MessagingChannel.WHATSAPP, providerMessageId: 'wamid-1', sender: '+595981234567', messageType: InboundMessageType.TEXT, payload: { text: 'Hola' }, receivedAt: new Date(), createdAt: new Date() });
   return { conversation, message, deduplicated: false };
 }
 
 function input(overrides: Record<string, unknown> = {}) {
-  return { businessId, channel: MessagingChannel.WHATSAPP, providerMessageId: 'wamid-1', sender: '+595981234567', messageType: InboundMessageType.TEXT, payload: { text: 'Hola' }, receivedAt: new Date('2026-10-03T12:00:00.000Z'), ...overrides };
+  return { businessId, channel: MessagingChannel.WHATSAPP, messagingConnectionId, providerMessageId: 'wamid-1', sender: '+595981234567', messageType: InboundMessageType.TEXT, payload: { text: 'Hola' }, receivedAt: new Date('2026-10-03T12:00:00.000Z'), ...overrides };
 }
 
 const invalidInputs: Array<[string, Record<string, unknown>]> = [

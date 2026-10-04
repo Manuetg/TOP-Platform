@@ -22,6 +22,7 @@ export class ReceiveInboundMessageUseCase {
 
 function validateInput(input: ReceiveInboundMessageInput): InboundMessageEnvelope {
   const businessId = uuid(input.businessId, 'El identificador del negocio no es válido.');
+  const messagingConnectionId = uuid(input.messagingConnectionId, 'La conexión de Messaging no es válida.');
   if (input.channel !== MessagingChannel.WHATSAPP) throw new InvalidInboundMessageInputError('El canal de mensajería no está soportado.');
   if (input.messageType !== InboundMessageType.TEXT) throw new InvalidInboundMessageInputError('El tipo de mensaje entrante no está soportado.');
   const providerMessageId = text(input.providerMessageId, 'El identificador del mensaje del provider no es válido.', 255);
@@ -29,7 +30,7 @@ function validateInput(input: ReceiveInboundMessageInput): InboundMessageEnvelop
   const payload = jsonObject(input.payload);
   if (typeof payload.text !== 'string' || payload.text.trim().length === 0) throw new InvalidInboundMessageInputError('El payload TEXT debe contener texto.');
   const receivedAt = input.receivedAt === undefined ? new Date() : date(input.receivedAt);
-  return { businessId, channel: MessagingChannel.WHATSAPP, providerMessageId, sender, messageType: InboundMessageType.TEXT, payload, receivedAt };
+  return { businessId, channel: MessagingChannel.WHATSAPP, messagingConnectionId, providerMessageId, sender, messageType: InboundMessageType.TEXT, payload, receivedAt };
 }
 
 function uuid(value: unknown, message: string): string {

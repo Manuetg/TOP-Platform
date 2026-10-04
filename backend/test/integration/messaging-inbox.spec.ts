@@ -29,9 +29,14 @@ describeWithPostgres('Messaging Inbox', () => {
   afterEach(async () => cleanTestDatabase(prisma, databaseUrl));
   afterAll(async () => { await cleanTestDatabase(prisma, databaseUrl); await prisma.$disconnect(); });
 
-  async function business(name = 'Inbox Business') { return prisma.business.create({ data: { name: `${name} ${crypto.randomUUID()}` } }); }
+  async function business(name = 'Inbox Business') {
+    const value = await prisma.business.create({ data: { name: `${name} ${crypto.randomUUID()}` } });
+    await prisma.messagingConnection.create({ data: { businessId: value.id, channel: 'WHATSAPP', provider: 'META_WHATSAPP', providerPhoneNumberId: crypto.randomUUID().replaceAll('-', '') } });
+    return value;
+  }
   async function conversation(businessId: string, values: { participant?: string; mode?: ConversationMode; status?: ConversationStatus; lastMessageAt?: Date; contactId?: string | null } = {}) {
-    return prisma.conversation.create({ data: { businessId, channel: MessagingChannel.WHATSAPP, externalParticipant: values.participant ?? '+595981234567', mode: values.mode ?? ConversationMode.HUMAN, status: values.status ?? ConversationStatus.ACTIVE, contactId: values.contactId ?? null, lastMessageAt: values.lastMessageAt ?? new Date('2026-10-11T12:00:00.000Z') } });
+    const connection = await prisma.messagingConnection.findFirstOrThrow({ where: { businessId, status: 'ACTIVE', channel: 'WHATSAPP' } });
+    return prisma.conversation.create({ data: { businessId, messagingConnectionId: connection.id, channel: MessagingChannel.WHATSAPP, externalParticipant: values.participant ?? '+595981234567', mode: values.mode ?? ConversationMode.HUMAN, status: values.status ?? ConversationStatus.ACTIVE, contactId: values.contactId ?? null, lastMessageAt: values.lastMessageAt ?? new Date('2026-10-11T12:00:00.000Z') } });
   }
   async function inbound(businessId: string, conversationId: string, id: string, at: Date, text: string) { return prisma.inboundMessage.create({ data: { businessId, conversationId, channel: MessagingChannel.WHATSAPP, providerMessageId: `wamid-${id}`, sender: '+595981234567', messageType: 'TEXT', payload: { text }, receivedAt: at } }); }
   function useCases() { return new MessagingInboxUseCases(reader, contacts, contacts, bookings); }

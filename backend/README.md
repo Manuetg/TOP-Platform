@@ -87,6 +87,21 @@ al backend. La URL pública no se deriva de headers de solicitudes.
 de credenciales. Si se detecta posteriormente un secreto real expuesto, debe
 rotarse fuera de este cambio; retirar el archivo no borra el historial Git.
 
+### Outbound connection-aware
+
+Las conversaciones nuevas de Messaging conservan `MessagingConnection.id` y las
+respuestas bot/manuales copian esa conexión al crear `OutboundMessage`. El sender
+Meta se obtiene de `providerPhoneNumberId` de esa conexión; `META_WHATSAPP_PHONE_NUMBER_ID`
+queda únicamente para el smoke manual compatible con una conexión. Las automations
+de Booking solo crean mensajes cuando existe exactamente una conexión WhatsApp
+`ACTIVE`; cero conexiones es configuración ausente y más de una es routing ambiguo.
+Los datos legacy sin conexión no se completan por inferencia: las respuestas manuales
+fallan de forma controlada y los mensajes salientes no pueden enviarse por el pipeline
+connection-aware. El token global `META_WHATSAPP_ACCESS_TOKEN` es transitorio para
+desarrollo/smoke; el almacenamiento de credenciales por conexión queda pendiente de
+Embedded Signup o un vault y no se considera todavía outbound multi-tenant listo para
+producción.
+
 ## Verificación
 
 Ejecutar build, lint, unitarias, integración PostgreSQL, E2E, aceptación,

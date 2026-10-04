@@ -1,6 +1,7 @@
 export { MESSAGING_PROVIDER, type MessagingProvider, type MessagingProviderResult } from './application/messaging-provider';
+export { MESSAGING_PROVIDER_CREDENTIAL_RESOLVER, type MessagingProviderCredentialResolver, type MessagingProviderCredentials } from './application/messaging-provider-credentials';
+export { MESSAGING_CONNECTION_RESOLVER, MESSAGING_OUTBOUND_CONNECTION_RESOLVER, type ActiveMessagingConnection, type MessagingConnectionResolver, type MessagingOutboundConnectionResolver, type MessagingConnectionResolution } from './domain/messaging-connection.repository';
 export type { MessagingWebhookEvent, MessagingWebhookHandler, MessagingInboundTextWebhookEvent, MessagingDeliveryStatusWebhookEvent } from './application/messaging-webhook.contract';
-export { MESSAGING_CONNECTION_RESOLVER, type ActiveMessagingConnection, type MessagingConnectionResolver } from './domain/messaging-connection.repository';
 export { MessagingConnectionStatus } from './domain/messaging-connection-status.enum';
 export { MessagingConnectionProvider } from './domain/messaging-provider.enum';
 export { OUTBOUND_MESSAGE_REPOSITORY, type OutboundMessageRepository } from './domain/outbound-message.repository';

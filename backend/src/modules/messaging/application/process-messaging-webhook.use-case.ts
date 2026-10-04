@@ -23,9 +23,9 @@ export class ProcessMessagingWebhookUseCase {
         continue;
       }
       if (event.kind === 'INBOUND_TEXT') {
-        await this.receiveInbound.execute({ businessId: connection.businessId, channel: event.channel, providerMessageId: event.providerMessageId, sender: toE164(event.sender), messageType: InboundMessageType.TEXT, payload: { text: event.text }, receivedAt: event.occurredAt });
+        await this.receiveInbound.execute({ businessId: connection.businessId, messagingConnectionId: connection.connectionId, channel: event.channel, providerMessageId: event.providerMessageId, sender: toE164(event.sender), messageType: InboundMessageType.TEXT, payload: { text: event.text }, receivedAt: event.occurredAt });
       } else {
-        const updated = await this.outbound.applyDeliveryStatus({ businessId: connection.businessId, providerMessageId: event.providerMessageId, status: event.status, providerStatusAt: event.occurredAt, lastError: event.lastError });
+        const updated = await this.outbound.applyDeliveryStatus({ businessId: connection.businessId, messagingConnectionId: connection.connectionId, providerMessageId: event.providerMessageId, status: event.status, providerStatusAt: event.occurredAt, lastError: event.lastError });
         if (!updated) this.logger.warn(`Webhook ignorado: OutboundMessage no encontrado (${event.providerMessageId}).`);
       }
     }

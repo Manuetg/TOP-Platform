@@ -327,8 +327,11 @@ model MessagingConnection {
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
   business              Business                  @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  conversations         Conversation[]
+  outboundMessages      OutboundMessage[]
 
   @@unique([provider, channel, providerPhoneNumberId])
+  @@unique([id, businessId])
   @@index([businessId, channel, status])
   @@index([provider, channel, status])
 }
@@ -667,6 +670,7 @@ model OutboundMessage {
   businessId         String
   integrationEventId String
   conversationId     String?
+  messagingConnectionId String?
   manualClientRequestId String?
   channel            MessagingChannel
   recipient          String
@@ -681,12 +685,14 @@ model OutboundMessage {
   lastError          String?
   business           Business             @relation(fields: [businessId], references: [id], onDelete: Restrict)
   conversation       Conversation?        @relation(fields: [conversationId, businessId], references: [id, businessId], onDelete: Restrict)
+  messagingConnection MessagingConnection? @relation(fields: [messagingConnectionId, businessId], references: [id, businessId], onDelete: Restrict)
 
   @@unique([integrationEventId, messageType, channel])
   @@unique([businessId, conversationId, manualClientRequestId])
   @@index([businessId, createdAt, id])
   @@index([businessId, status, createdAt, id])
   @@index([businessId, providerMessageId])
+  @@index([businessId, messagingConnectionId, createdAt, id])
   @@index([businessId, conversationId, createdAt, id])
 }
 
@@ -695,6 +701,7 @@ model Conversation {
   businessId          String
   channel             MessagingChannel
   externalParticipant String
+  messagingConnectionId String?
   contactId           String?
   mode                ConversationMode  @default(BOT)
   status              ConversationStatus @default(ACTIVE)
@@ -707,9 +714,11 @@ model Conversation {
   session             ConversationSession?
   botEvents           ConversationBotEvent[]
   outboundMessages    OutboundMessage[]
+  messagingConnection MessagingConnection? @relation(fields: [messagingConnectionId, businessId], references: [id, businessId], onDelete: Restrict)
 
   @@unique([id, businessId])
   @@index([businessId, channel, externalParticipant, status, lastMessageAt, id])
+  @@index([businessId, channel, messagingConnectionId, externalParticipant, status, lastMessageAt, id])
   @@index([businessId, status, lastMessageAt, id])
 }
 

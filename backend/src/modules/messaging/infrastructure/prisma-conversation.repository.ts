@@ -16,8 +16,8 @@ export class PrismaConversationRepository implements ConversationRepository {
     return row ? this.map(row) : null;
   }
 
-  async findActiveByParticipant(businessId: string, channel: MessagingChannel, externalParticipant: string): Promise<Conversation | null> {
-    const row = await this.prisma.conversation.findFirst({ where: { businessId, channel, externalParticipant, status: ConversationStatus.ACTIVE }, orderBy: [{ lastMessageAt: 'desc' }, { id: 'asc' }] });
+  async findActiveByParticipant(businessId: string, channel: MessagingChannel, externalParticipant: string, messagingConnectionId?: string | null): Promise<Conversation | null> {
+    const row = await this.prisma.conversation.findFirst({ where: { businessId, channel, externalParticipant, ...(messagingConnectionId ? { messagingConnectionId } : { messagingConnectionId: null }), status: ConversationStatus.ACTIVE }, orderBy: [{ lastMessageAt: 'desc' }, { id: 'asc' }] });
     return row ? this.map(row) : null;
   }
 
@@ -27,6 +27,6 @@ export class PrismaConversationRepository implements ConversationRepository {
   }
 
   private map(row: PrismaConversation): Conversation {
-    return Conversation.create({ id: row.id, businessId: row.businessId, channel: row.channel as MessagingChannel, externalParticipant: row.externalParticipant, contactId: row.contactId, mode: row.mode as ConversationMode, status: row.status as ConversationStatus, createdAt: row.createdAt, lastMessageAt: row.lastMessageAt, closedAt: row.closedAt });
+    return Conversation.create({ id: row.id, businessId: row.businessId, channel: row.channel as MessagingChannel, externalParticipant: row.externalParticipant, messagingConnectionId: row.messagingConnectionId, contactId: row.contactId, mode: row.mode as ConversationMode, status: row.status as ConversationStatus, createdAt: row.createdAt, lastMessageAt: row.lastMessageAt, closedAt: row.closedAt });
   }
 }

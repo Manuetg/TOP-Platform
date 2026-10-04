@@ -4,6 +4,8 @@ import { OutboundMessageStatus } from '../domain/outbound-message-status.enum';
 import { OutboundMessageType } from '../domain/outbound-message-type.enum';
 import { MetaWhatsAppProvider, MetaWhatsAppProviderError } from './meta-whatsapp.provider';
 import type { MetaWhatsAppHttpClient, MetaWhatsAppHttpRequest, MetaWhatsAppHttpResponse } from './meta-whatsapp-http-client';
+import { MessagingConnectionProvider } from '../domain/messaging-provider.enum';
+import type { ActiveMessagingConnection } from '../domain/messaging-connection.repository';
 
 class FakeMetaWhatsAppHttpClient implements MetaWhatsAppHttpClient {
   readonly requests: Array<{ url: string; request: MetaWhatsAppHttpRequest }> = [];
@@ -28,6 +30,18 @@ function message(payload: Record<string, string>): OutboundMessage {
 }
 
 describe('MetaWhatsAppProvider', () => {
+  it('usa el phone number id de la conexión seleccionada y resuelve sus credenciales', async () => {
+    const http = new FakeMetaWhatsAppHttpClient();
+    const resolve = jest.fn().mockResolvedValue({ accessToken: 'selected-token' });
+    const connection: ActiveMessagingConnection = { connectionId: 'connection-id', businessId: 'business-id', channel: MessagingChannel.WHATSAPP, provider: MessagingConnectionProvider.META_WHATSAPP, providerPhoneNumberId: 'selected-phone-id', status: 'ACTIVE' };
+    const provider = new MetaWhatsAppProvider(configuration, http, { resolve });
+
+    await expect(provider.send(message({ text: 'Conexión explícita' }), connection)).resolves.toEqual({ providerMessageId: 'wamid.synthetic' });
+    expect(resolve).toHaveBeenCalledWith({ connectionId: 'connection-id', businessId: 'business-id', provider: MessagingConnectionProvider.META_WHATSAPP });
+    expect(http.requests[0].url).toBe('https://graph.facebook.com/v26.0/selected-phone-id/messages');
+    expect(http.requests[0].request.headers.Authorization).toBe('Bearer selected-token');
+  });
+
   it('envía texto y devuelve el providerMessageId de Meta', async () => {
     const http = new FakeMetaWhatsAppHttpClient();
     const provider = new MetaWhatsAppProvider(configuration, http, 1_000);

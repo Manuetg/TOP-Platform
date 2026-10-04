@@ -6,6 +6,7 @@ import { MessagingChannel } from '../domain/messaging-channel.enum';
 export interface InboundMessageEnvelope {
   businessId: string;
   channel: MessagingChannel;
+  messagingConnectionId: string;
   providerMessageId: string;
   sender: string;
   messageType: InboundMessageType;
@@ -16,6 +17,7 @@ export interface InboundMessageEnvelope {
 export interface ReceiveInboundMessageInput {
   businessId: unknown;
   channel: unknown;
+  messagingConnectionId?: unknown;
   providerMessageId: unknown;
   sender: unknown;
   messageType: unknown;

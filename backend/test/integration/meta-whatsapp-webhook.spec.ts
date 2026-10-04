@@ -128,6 +128,16 @@ describeWithPostgres('Meta WhatsApp webhook PostgreSQL', () => {
     await expect(prisma.outboundMessage.count({ where: { businessId: owner.id } })).resolves.toBe(0);
     await expect(prisma.outboundMessage.findUniqueOrThrow({ where: { id: outbound.id } })).resolves.toMatchObject({ status: OutboundMessageStatus.PENDING });
   });
+
+  it('no actualiza un OutboundMessage si el status proviene de otra conexión del mismo Business', async () => {
+    const owner = await business('Same business', 'phone-one');
+    await prisma.messagingConnection.create({ data: { businessId: owner.id, channel: MessagingChannel.WHATSAPP, provider: MessagingConnectionProvider.META_WHATSAPP, providerPhoneNumberId: 'phone-two' } });
+    const outbound = await prisma.outboundMessage.create({ data: { businessId: owner.id, messagingConnectionId: (await prisma.messagingConnection.findFirstOrThrow({ where: { businessId: owner.id, providerPhoneNumberId: 'phone-one' } })).id, integrationEventId: crypto.randomUUID(), channel: 'WHATSAPP', recipient: '+595981234567', messageType: 'MANUAL_REPLY', payload: { text: 'Hola' }, providerMessageId: 'wamid-same-business' } });
+
+    await handler().execute(parser.parse(statusPayload('phone-two', 'wamid-same-business', 'delivered', '1791028801')));
+
+    await expect(prisma.outboundMessage.findUniqueOrThrow({ where: { id: outbound.id } })).resolves.toMatchObject({ status: OutboundMessageStatus.PENDING, providerStatusAt: null });
+  });
 });
 
 function inboundPayload(phoneNumberId: string, id: string, from: string, text: string): unknown {

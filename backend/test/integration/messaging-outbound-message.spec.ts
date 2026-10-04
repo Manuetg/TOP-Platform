@@ -21,6 +21,7 @@ import { MessagingAutomationConfigurationService, type MessagingAutomationConfig
 import { MessagingChannel } from '../../src/modules/messaging/domain/messaging-channel.enum';
 import { PrismaMessagingAutomationRuleRepository } from '../../src/modules/messaging/infrastructure/prisma-messaging-automation-rule.repository';
 import { PrismaMessagingMessageTemplateRepository } from '../../src/modules/messaging/infrastructure/prisma-messaging-message-template.repository';
+import { PrismaMessagingConnectionResolver } from '../../src/modules/messaging/infrastructure/prisma-messaging-connection.resolver';
 
 const databaseUrl = process.env.DATABASE_URL;
 const describeWithPostgres = databaseUrl?.includes('test') ? describe : describe.skip;
@@ -36,6 +37,7 @@ describeWithPostgres('Messaging outbound messages', () => {
   const outbox = new PrismaIntegrationOutboxRepository(prisma);
   const automationRules = new PrismaMessagingAutomationRuleRepository(prisma);
   const messageTemplates = new PrismaMessagingMessageTemplateRepository(prisma);
+  const connections = new PrismaMessagingConnectionResolver(prisma);
 
   beforeAll(async () => prisma.$connect());
   beforeEach(async () => cleanTestDatabase(prisma, databaseUrl));
@@ -47,6 +49,7 @@ describeWithPostgres('Messaging outbound messages', () => {
 
   async function confirmedFixture(values: { whatsapp?: string | null; phone?: string | null } = {}) {
     const business = await prisma.business.create({ data: { name: `Business ${crypto.randomUUID()}` } });
+    const connection = await prisma.messagingConnection.create({ data: { businessId: business.id, channel: 'WHATSAPP', provider: 'META_WHATSAPP', providerPhoneNumberId: crypto.randomUUID().replaceAll('-', '') } });
     const contact = await prisma.contact.create({
       data: {
         businessId: business.id,
@@ -71,15 +74,15 @@ describeWithPostgres('Messaging outbound messages', () => {
       prepare: () => Promise.resolve({ currency: 'PYG', totalAmountMinor: 1250000, items: [{ resourceId: resource.id, ratePlanId: null, pricingMode: 'MANUAL_NO_RATE_PLAN', suggestedAmountMinor: null, agreedAmountMinor: 1250000, adjustmentAmountMinor: null, overrideReason: 'Prueba', nights: 2, breakdown: [] }] }),
     });
     const row = await prisma.integrationOutboxEvent.findFirstOrThrow({ where: { businessId: business.id, eventType: 'BOOKING_CONFIRMED', aggregateId: booking.id } });
-    return { business, contact, resource, booking, event: toIntegrationEvent(row) };
+    return { business, connection, contact, resource, booking, event: toIntegrationEvent(row) };
   }
 
   function consumer(): MessagingIntegrationEventConsumer {
-    return new MessagingIntegrationEventConsumer(bookings, businesses, contacts, resources, snapshots, messages, new IntegrationEventConsumerRegistry());
+    return new MessagingIntegrationEventConsumer(bookings, businesses, contacts, resources, snapshots, messages, new IntegrationEventConsumerRegistry(), undefined, connections);
   }
 
   function consumerWithConfiguration(configuration: MessagingAutomationConfigurationReader): MessagingIntegrationEventConsumer {
-    return new MessagingIntegrationEventConsumer(bookings, businesses, contacts, resources, snapshots, messages, new IntegrationEventConsumerRegistry(), configuration);
+    return new MessagingIntegrationEventConsumer(bookings, businesses, contacts, resources, snapshots, messages, new IntegrationEventConsumerRegistry(), configuration, connections);
   }
 
   it('creates one PENDING BOOKING_CONFIRMATION message from BOOKING_CONFIRMED', async () => {
@@ -119,6 +122,34 @@ describeWithPostgres('Messaging outbound messages', () => {
     const message = await prisma.outboundMessage.findFirstOrThrow({ where: { integrationEventId: fixture.event.eventId } });
     expect(message.businessId).toBe(fixture.business.id);
     expect(message.recipient).toBe(fixture.contact.whatsapp);
+    expect(message.messagingConnectionId).toBe(fixture.connection.id);
+  });
+
+  it('does not create an automation message when no active outbound connection exists', async () => {
+    const fixture = await confirmedFixture();
+    await prisma.messagingConnection.update({ where: { id: fixture.connection.id }, data: { status: 'INACTIVE' } });
+
+    await expect(consumer().handle(fixture.event)).rejects.toThrow('no tiene una conexión activa');
+    await expect(prisma.outboundMessage.count({ where: { businessId: fixture.business.id } })).resolves.toBe(0);
+  });
+
+  it('does not choose arbitrarily when multiple active outbound connections exist', async () => {
+    const fixture = await confirmedFixture();
+    await prisma.messagingConnection.create({ data: { businessId: fixture.business.id, channel: 'WHATSAPP', provider: 'META_WHATSAPP', providerPhoneNumberId: `second-${crypto.randomUUID()}` } });
+
+    await expect(consumer().handle(fixture.event)).rejects.toThrow('múltiples conexiones activas');
+    await expect(prisma.outboundMessage.count({ where: { businessId: fixture.business.id } })).resolves.toBe(0);
+  });
+
+  it('does not send when the frozen connection becomes inactive', async () => {
+    const fixture = await confirmedFixture();
+    await consumer().handle(fixture.event);
+    const row = await prisma.outboundMessage.findFirstOrThrow({ where: { integrationEventId: fixture.event.eventId } });
+    await prisma.messagingConnection.update({ where: { id: fixture.connection.id }, data: { status: 'INACTIVE' } });
+    const provider = new FakeMessagingProvider();
+
+    await expect(new SendOutboundMessageUseCase(messages, provider, connections).execute({ id: row.id, businessId: fixture.business.id })).rejects.toThrow('conexión activa');
+    expect(provider.sent).toHaveLength(0);
   });
 
   it('falls back to phone for legacy contacts without a WhatsApp value', async () => {
@@ -177,13 +208,14 @@ describeWithPostgres('Messaging outbound messages', () => {
     const messaging = consumer();
     const dispatcher = new IntegrationEventDispatcher(outbox, [messaging], { baseBackoffMs: 0 });
     const provider = new FakeMessagingProvider();
-    const send = new SendOutboundMessageUseCase(messages, provider);
+    const send = new SendOutboundMessageUseCase(messages, provider, connections);
 
     await expect(dispatcher.dispatchOnce()).resolves.toBe('PROCESSED');
     const row = await prisma.outboundMessage.findFirstOrThrow({ where: { integrationEventId: fixture.event.eventId } });
     await expect(send.execute({ id: row.id, businessId: fixture.business.id })).resolves.toBe(`fake-provider-${row.id}`);
 
     expect(provider.sent).toHaveLength(1);
+    expect(provider.selectedConnections[0]).toMatchObject({ connectionId: fixture.connection.id, businessId: fixture.business.id, providerPhoneNumberId: fixture.connection.providerPhoneNumberId });
     expect(provider.sent[0]).toMatchObject({ id: row.id, businessId: fixture.business.id, recipient: fixture.contact.whatsapp, messageType: OutboundMessageType.BOOKING_CONFIRMATION });
     await expect(prisma.outboundMessage.findUniqueOrThrow({ where: { id: row.id } })).resolves.toMatchObject({ status: OutboundMessageStatus.SENT, providerMessageId: `fake-provider-${row.id}` });
   });

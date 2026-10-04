@@ -7,3 +7,7 @@ export class MessagingRecipientNotFoundError extends Error {}
 export class MessagingOutboundMessageNotFoundError extends Error {}
 export class MessagingOutboundMessageBusinessMismatchError extends Error {}
 export class MessagingConfigurationError extends Error {}
+export class MessagingOutboundConnectionNotConfiguredError extends Error {}
+export class MessagingOutboundConnectionAmbiguousError extends Error {}
+export class MessagingProviderMismatchError extends Error {}
+export class MessagingConversationConnectionMissingError extends Error {}

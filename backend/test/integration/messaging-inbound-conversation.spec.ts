@@ -20,6 +20,7 @@ describeWithPostgres('Messaging inbound conversations', () => {
   const conversations = new PrismaConversationRepository(prisma);
   const inboundMessages = new PrismaInboundMessageRepository(prisma);
   const outbox = new PrismaIntegrationEventOutbox();
+  const connectionByBusiness = new Map<string, string>();
 
   beforeAll(async () => prisma.$connect());
   beforeEach(async () => cleanTestDatabase(prisma, databaseUrl));
@@ -30,7 +31,10 @@ describeWithPostgres('Messaging inbound conversations', () => {
   });
 
   async function business(name = 'Inbound Business') {
-    return prisma.business.create({ data: { name: `${name} ${crypto.randomUUID()}` } });
+    const value = await prisma.business.create({ data: { name: `${name} ${crypto.randomUUID()}` } });
+    const connection = await prisma.messagingConnection.create({ data: { businessId: value.id, channel: 'WHATSAPP', provider: 'META_WHATSAPP', providerPhoneNumberId: crypto.randomUUID().replaceAll('-', '') } });
+    connectionByBusiness.set(value.id, connection.id);
+    return value;
   }
 
   function adapter(outboxAdapter: IntegrationEventOutbox = outbox): FakeInboundAdapter {
@@ -38,15 +42,15 @@ describeWithPostgres('Messaging inbound conversations', () => {
     return new FakeInboundAdapter(new ReceiveInboundMessageUseCase(contacts, transaction));
   }
 
-  function input(businessId: string, providerMessageId: string, sender = '+595981234567', text = 'Hola', receivedAt = new Date('2026-10-03T12:00:00.000Z')) {
-    return { businessId, channel: 'WHATSAPP' as const, providerMessageId, sender, messageType: 'TEXT' as const, payload: { text }, receivedAt };
+  function input(businessId: string, providerMessageId: string, sender = '+595981234567', text = 'Hola', receivedAt = new Date('2026-10-03T12:00:00.000Z'), messagingConnectionId = connectionByBusiness.get(businessId)) {
+    return { businessId, messagingConnectionId, channel: 'WHATSAPP' as const, providerMessageId, sender, messageType: 'TEXT' as const, payload: { text }, receivedAt };
   }
 
   it('primer mensaje crea Conversation ACTIVE', async () => {
     const owner = await business();
     const result = await adapter().receive(input(owner.id, 'wamid-1'));
 
-    expect(result).toMatchObject({ deduplicated: false, conversation: { businessId: owner.id, status: 'ACTIVE', mode: 'BOT', externalParticipant: '+595981234567' }, message: { businessId: owner.id, conversationId: result.conversation.id } });
+    expect(result).toMatchObject({ deduplicated: false, conversation: { businessId: owner.id, messagingConnectionId: connectionByBusiness.get(owner.id), status: 'ACTIVE', mode: 'BOT', externalParticipant: '+595981234567' }, message: { businessId: owner.id, conversationId: result.conversation.id } });
   });
 
   it('segundo mensaje del mismo sender reutiliza Conversation', async () => {
@@ -149,6 +153,40 @@ describeWithPostgres('Messaging inbound conversations', () => {
     const row = await prisma.conversation.findUniqueOrThrow({ where: { id: first.conversation.id } });
 
     expect(row.lastMessageAt).toEqual(new Date('2026-10-03T12:05:00.000Z'));
+  });
+
+  it('mismo sender en otra conexión del mismo Business crea otra Conversation', async () => {
+    const owner = await business();
+    const secondConnection = await prisma.messagingConnection.create({ data: { businessId: owner.id, channel: 'WHATSAPP', provider: 'META_WHATSAPP', providerPhoneNumberId: `second-${crypto.randomUUID()}` } });
+    const first = await adapter().receive(input(owner.id, 'wamid-connection-a'));
+    const second = await adapter().receive(input(owner.id, 'wamid-connection-b', '+595981234567', 'Segundo número', new Date('2026-10-03T12:01:00.000Z'), secondConnection.id));
+
+    expect(first.conversation.id).not.toBe(second.conversation.id);
+    expect(first.conversation.messagingConnectionId).not.toBe(second.conversation.messagingConnectionId);
+    await expect(prisma.conversation.count({ where: { businessId: owner.id } })).resolves.toBe(2);
+  });
+
+  it('concurrencia del mismo sender y conexión crea una sola Conversation', async () => {
+    const owner = await business();
+    const results = await Promise.all([
+      adapter().receive(input(owner.id, 'wamid-concurrent-a')),
+      adapter().receive(input(owner.id, 'wamid-concurrent-b', '+595981234567', 'Segundo', new Date('2026-10-03T12:01:00.000Z'))),
+    ]);
+
+    expect(results[0].conversation.id).toBe(results[1].conversation.id);
+    await expect(prisma.conversation.count({ where: { businessId: owner.id } })).resolves.toBe(1);
+  });
+
+  it('concurrencia del mismo sender en conexiones distintas crea dos Conversations correctas', async () => {
+    const owner = await business();
+    const secondConnection = await prisma.messagingConnection.create({ data: { businessId: owner.id, channel: 'WHATSAPP', provider: 'META_WHATSAPP', providerPhoneNumberId: `second-${crypto.randomUUID()}` } });
+    const results = await Promise.all([
+      adapter().receive(input(owner.id, 'wamid-concurrent-phone-a')),
+      adapter().receive(input(owner.id, 'wamid-concurrent-phone-b', '+595981234567', 'Segundo número', new Date('2026-10-03T12:01:00.000Z'), secondConnection.id)),
+    ]);
+
+    expect(new Set(results.map((result) => result.conversation.id)).size).toBe(2);
+    await expect(prisma.conversation.count({ where: { businessId: owner.id } })).resolves.toBe(2);
   });
 
   it('persiste correctamente payload TEXT', async () => {

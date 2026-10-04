@@ -14,6 +14,7 @@ export interface CreateOutboundMessageData {
   messageType: OutboundMessageType;
   payload: OutboundMessage['payload'];
   conversationId?: string | null;
+  messagingConnectionId?: string | null;
   manualClientRequestId?: string | null;
 }
 
@@ -23,7 +24,7 @@ export interface OutboundMessageRepository {
   findByBusinessAndProviderMessageId(businessId: string, providerMessageId: string): Promise<OutboundMessage | null>;
   markSent(id: string, businessId: string, providerMessageId: string, sentAt: Date): Promise<OutboundMessage | null>;
   markFailed(id: string, businessId: string, failedAt: Date, lastError: string): Promise<OutboundMessage | null>;
-  applyDeliveryStatus(input: { businessId: string; providerMessageId: string; status: OutboundMessageStatus; providerStatusAt: Date; lastError: string | null }): Promise<OutboundMessage | null>;
+  applyDeliveryStatus(input: { businessId: string; messagingConnectionId?: string | null; providerMessageId: string; status: OutboundMessageStatus; providerStatusAt: Date; lastError: string | null }): Promise<OutboundMessage | null>;
 }
 
 export interface TransactionalOutboundMessageRepository extends OutboundMessageRepository {

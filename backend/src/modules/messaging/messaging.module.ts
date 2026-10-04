@@ -12,9 +12,11 @@ import { OUTBOUND_MESSAGE_REPOSITORY, TRANSACTIONAL_OUTBOUND_MESSAGE_REPOSITORY 
 import { MessagingIntegrationEventConsumer } from './application/messaging-integration-event.consumer';
 import { PrismaOutboundMessageRepository } from './infrastructure/prisma-outbound-message.repository';
 import { MESSAGING_PROVIDER } from './application/messaging-provider';
+import { MESSAGING_PROVIDER_CREDENTIAL_RESOLVER } from './application/messaging-provider-credentials';
 import { SendOutboundMessageUseCase } from './application/send-outbound-message.use-case';
 import { FetchMetaWhatsAppHttpClient } from './infrastructure/meta-whatsapp-http-client';
 import { MetaWhatsAppProvider } from './infrastructure/meta-whatsapp.provider';
+import { EnvironmentMessagingProviderCredentialResolver } from './infrastructure/environment-messaging-provider-credential.resolver';
 import { readMetaWhatsAppConfiguration, readMetaWhatsAppWebhookConfiguration } from '../../config/environment';
 import { CONVERSATION_REPOSITORY } from './domain/conversation.repository';
 import { INBOUND_MESSAGE_REPOSITORY } from './domain/inbound-message.repository';
@@ -41,7 +43,7 @@ import { MessagingInboxController } from './presentation/messaging-inbox.control
 import { CONVERSATION_INBOX_READER } from './domain/conversation-inbox.repository';
 import { PrismaConversationInboxReader } from './infrastructure/prisma-conversation-inbox.reader';
 import { MessagingInboxUseCases, SendManualConversationMessageUseCase } from './application/messaging-inbox.use-cases';
-import { MESSAGING_CONNECTION_RESOLVER } from './domain/messaging-connection.repository';
+import { MESSAGING_CONNECTION_RESOLVER, MESSAGING_OUTBOUND_CONNECTION_RESOLVER } from './domain/messaging-connection.repository';
 import { PrismaMessagingConnectionResolver } from './infrastructure/prisma-messaging-connection.resolver';
 import { META_WHATSAPP_WEBHOOK_CONFIGURATION, MetaWhatsAppWebhookSecurity } from './infrastructure/meta-whatsapp-webhook.signature';
 import { MetaWhatsAppWebhookParser } from './infrastructure/meta-whatsapp-webhook.parser';
@@ -83,6 +85,7 @@ import { MetaWhatsAppWebhookController } from './presentation/meta-whatsapp-webh
     SendManualConversationMessageUseCase,
     PrismaMessagingConnectionResolver,
     { provide: MESSAGING_CONNECTION_RESOLVER, useExisting: PrismaMessagingConnectionResolver },
+    { provide: MESSAGING_OUTBOUND_CONNECTION_RESOLVER, useExisting: PrismaMessagingConnectionResolver },
     {
       provide: META_WHATSAPP_WEBHOOK_CONFIGURATION,
       inject: [ConfigService],
@@ -106,9 +109,14 @@ export class MessagingModule {
       providers: [
         FetchMetaWhatsAppHttpClient,
         {
+          provide: MESSAGING_PROVIDER_CREDENTIAL_RESOLVER,
+          inject: [ConfigService],
+          useFactory: (config: ConfigService) => new EnvironmentMessagingProviderCredentialResolver(readMetaWhatsAppConfiguration(config)),
+        },
+        {
           provide: MetaWhatsAppProvider,
-          inject: [ConfigService, FetchMetaWhatsAppHttpClient],
-          useFactory: (config: ConfigService, http: FetchMetaWhatsAppHttpClient) => new MetaWhatsAppProvider(readMetaWhatsAppConfiguration(config), http),
+          inject: [ConfigService, FetchMetaWhatsAppHttpClient, MESSAGING_PROVIDER_CREDENTIAL_RESOLVER],
+          useFactory: (config: ConfigService, http: FetchMetaWhatsAppHttpClient, credentials: EnvironmentMessagingProviderCredentialResolver) => new MetaWhatsAppProvider(readMetaWhatsAppConfiguration(config), http, credentials),
         },
         { provide: MESSAGING_PROVIDER, useExisting: MetaWhatsAppProvider },
         SendOutboundMessageUseCase,

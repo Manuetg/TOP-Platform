@@ -195,7 +195,7 @@ export function readS3Configuration(config: ConfigurationReader): S3Configuratio
 
 export interface MetaWhatsAppConfiguration {
   accessToken: string;
-  phoneNumberId: string;
+  phoneNumberId?: string;
   graphApiVersion: string;
 }
 
@@ -206,9 +206,9 @@ export interface MetaWhatsAppWebhookConfiguration {
 
 function metaWhatsAppConfiguration(input: EnvironmentInput, production: boolean): MetaWhatsAppConfiguration {
   const accessToken = productionValue(input, 'META_WHATSAPP_ACCESS_TOKEN', production);
-  const phoneNumberId = productionValue(input, 'META_WHATSAPP_PHONE_NUMBER_ID', production);
+  const phoneNumberId = optionalText(input, 'META_WHATSAPP_PHONE_NUMBER_ID');
   const graphApiVersion = productionValue(input, 'META_WHATSAPP_GRAPH_API_VERSION', production);
-  if (!/^\d+$/.test(phoneNumberId)) invalid('META_WHATSAPP_PHONE_NUMBER_ID', 'debe ser un identificador numérico de teléfono de WhatsApp.');
+  if (phoneNumberId !== undefined && !/^\d+$/.test(phoneNumberId)) invalid('META_WHATSAPP_PHONE_NUMBER_ID', 'debe ser un identificador numérico de teléfono de WhatsApp.');
   if (!/^v\d+\.\d+$/.test(graphApiVersion)) invalid('META_WHATSAPP_GRAPH_API_VERSION', 'debe tener el formato vN.N.');
   return { accessToken, phoneNumberId, graphApiVersion };
 }

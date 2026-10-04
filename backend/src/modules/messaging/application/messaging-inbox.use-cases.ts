@@ -10,6 +10,7 @@ import { OutboundMessage } from '../domain/outbound-message.entity';
 import { OutboundMessageType } from '../domain/outbound-message-type.enum';
 import { OUTBOUND_MESSAGE_REPOSITORY, type OutboundMessageRepository } from '../domain/outbound-message.repository';
 import { ConversationClosedError, ConversationNotFoundError, InvalidManualConversationMessageError, ManualConversationMessageNotAllowedError } from './receive-inbound-message.errors';
+import { MessagingConversationConnectionMissingError } from './messaging.errors';
 import { SendOutboundMessageUseCase } from './send-outbound-message.use-case';
 
 export interface ConversationInboxPage<T> { items: T[]; pageInfo: { nextCursor: string | null; hasNextPage: boolean } }
@@ -71,8 +72,9 @@ export class SendManualConversationMessageUseCase {
     const conversation = await this.conversations.findByIdAndBusinessId(conversationId, businessId); if (!conversation) throw new ConversationNotFoundError('La conversación no existe.');
     if (conversation.status === ConversationStatus.CLOSED) throw new ConversationClosedError('La conversación está cerrada.');
     if (conversation.mode !== ConversationMode.HUMAN) throw new ManualConversationMessageNotAllowedError('La conversación debe estar en modo HUMAN para enviar una respuesta manual.');
+    if (!conversation.messagingConnectionId) throw new MessagingConversationConnectionMissingError('La conversación no tiene una conexión de Messaging asignada.');
     if (!this.send) throw new ManualConversationMessageNotAllowedError('El proveedor de Messaging no está configurado.');
-    const message = await this.messages.createPending({ businessId, integrationEventId: randomUUID(), conversationId, manualClientRequestId: clientRequestId, channel: conversation.channel, recipient: conversation.externalParticipant, messageType: OutboundMessageType.MANUAL_REPLY, payload: { text } });
+    const message = await this.messages.createPending({ businessId, integrationEventId: randomUUID(), conversationId, messagingConnectionId: conversation.messagingConnectionId, manualClientRequestId: clientRequestId, channel: conversation.channel, recipient: conversation.externalParticipant, messageType: OutboundMessageType.MANUAL_REPLY, payload: { text } });
     await this.send.execute({ id: message.id, businessId });
     return (await this.messages.findByIdAndBusinessId(message.id, businessId)) ?? message;
   }

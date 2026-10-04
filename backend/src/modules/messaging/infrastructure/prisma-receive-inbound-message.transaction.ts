@@ -34,10 +34,10 @@ export class PrismaReceiveInboundMessageTransaction implements ReceiveInboundMes
     const duplicateAfterLock = await this.findDuplicate(transaction, envelope);
     if (duplicateAfterLock) return { conversation: this.mapConversation(duplicateAfterLock.conversation), message: this.mapInbound(duplicateAfterLock), deduplicated: true };
 
-    const active = await transaction.conversation.findFirst({ where: { businessId: envelope.businessId, channel: envelope.channel, externalParticipant: envelope.sender, status: ConversationStatus.ACTIVE }, orderBy: [{ lastMessageAt: 'desc' }, { id: 'asc' }] });
+    const active = await transaction.conversation.findFirst({ where: { businessId: envelope.businessId, channel: envelope.channel, messagingConnectionId: envelope.messagingConnectionId, externalParticipant: envelope.sender, status: ConversationStatus.ACTIVE }, orderBy: [{ lastMessageAt: 'desc' }, { id: 'asc' }] });
     const conversation = active
       ? await transaction.conversation.update({ where: { id: active.id }, data: { contactId: active.contactId ?? input.contactId, lastMessageAt: latestMessageAt(active.lastMessageAt, envelope.receivedAt) } })
-      : await transaction.conversation.create({ data: { businessId: envelope.businessId, channel: envelope.channel, externalParticipant: envelope.sender, contactId: input.contactId, mode: ConversationMode.BOT, status: ConversationStatus.ACTIVE, lastMessageAt: envelope.receivedAt } });
+      : await transaction.conversation.create({ data: { businessId: envelope.businessId, channel: envelope.channel, messagingConnectionId: envelope.messagingConnectionId, externalParticipant: envelope.sender, contactId: input.contactId, mode: ConversationMode.BOT, status: ConversationStatus.ACTIVE, lastMessageAt: envelope.receivedAt } });
     const message = await transaction.inboundMessage.create({ data: { businessId: envelope.businessId, conversationId: conversation.id, channel: envelope.channel, providerMessageId: envelope.providerMessageId, sender: envelope.sender, messageType: envelope.messageType, payload: envelope.payload, receivedAt: envelope.receivedAt } });
 
     await this.outbox.append(transaction, createIntegrationEvent({
@@ -56,11 +56,11 @@ export class PrismaReceiveInboundMessageTransaction implements ReceiveInboundMes
   }
 
   private async lockParticipant(transaction: TransactionClient, envelope: InboundMessageEnvelope): Promise<void> {
-    await transaction.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`${envelope.businessId}|${envelope.channel}|${envelope.sender}`}, 0))`);
+    await transaction.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`${envelope.businessId}|${envelope.channel}|${envelope.messagingConnectionId}|${envelope.sender}`}, 0))`);
   }
 
-  private mapConversation(row: { id: string; businessId: string; channel: string; externalParticipant: string; contactId: string | null; mode: string; status: string; createdAt: Date; lastMessageAt: Date; closedAt: Date | null }): Conversation {
-    return Conversation.create({ id: row.id, businessId: row.businessId, channel: row.channel as MessagingChannel, externalParticipant: row.externalParticipant, contactId: row.contactId, mode: row.mode as ConversationMode, status: row.status as ConversationStatus, createdAt: row.createdAt, lastMessageAt: row.lastMessageAt, closedAt: row.closedAt });
+  private mapConversation(row: { id: string; businessId: string; channel: string; externalParticipant: string; messagingConnectionId: string | null; contactId: string | null; mode: string; status: string; createdAt: Date; lastMessageAt: Date; closedAt: Date | null }): Conversation {
+    return Conversation.create({ id: row.id, businessId: row.businessId, channel: row.channel as MessagingChannel, externalParticipant: row.externalParticipant, messagingConnectionId: row.messagingConnectionId, contactId: row.contactId, mode: row.mode as ConversationMode, status: row.status as ConversationStatus, createdAt: row.createdAt, lastMessageAt: row.lastMessageAt, closedAt: row.closedAt });
   }
 
   private mapInbound(row: { id: string; businessId: string; conversationId: string; channel: string; providerMessageId: string; sender: string; messageType: string; payload: Prisma.JsonValue; receivedAt: Date; createdAt: Date }): InboundMessage {

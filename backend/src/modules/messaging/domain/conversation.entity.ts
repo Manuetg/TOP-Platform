@@ -7,6 +7,7 @@ export interface ConversationProps {
   businessId: string;
   channel: MessagingChannel;
   externalParticipant: string;
+  messagingConnectionId?: string | null;
   contactId: string | null;
   mode: ConversationMode;
   status: ConversationStatus;
@@ -23,6 +24,7 @@ export class Conversation {
   get businessId(): string { return this.props.businessId; }
   get channel(): MessagingChannel { return this.props.channel; }
   get externalParticipant(): string { return this.props.externalParticipant; }
+  get messagingConnectionId(): string | null { return this.props.messagingConnectionId ?? null; }
   get contactId(): string | null { return this.props.contactId; }
   get mode(): ConversationMode { return this.props.mode; }
   get status(): ConversationStatus { return this.props.status; }

@@ -62,10 +62,11 @@ export class PrismaOutboundMessageRepository implements OutboundMessageRepositor
     return this.findByIdAndBusinessId(id, businessId);
   }
 
-  async applyDeliveryStatus(input: { businessId: string; providerMessageId: string; status: OutboundMessageStatus; providerStatusAt: Date; lastError: string | null }): Promise<OutboundMessage | null> {
+  async applyDeliveryStatus(input: { businessId: string; messagingConnectionId?: string | null; providerMessageId: string; status: OutboundMessageStatus; providerStatusAt: Date; lastError: string | null }): Promise<OutboundMessage | null> {
     return this.prisma.$transaction(async (transaction) => {
       const row = await transaction.outboundMessage.findFirst({ where: { businessId: input.businessId, providerMessageId: input.providerMessageId } });
       if (!row) return null;
+      if (row.messagingConnectionId && input.messagingConnectionId && row.messagingConnectionId !== input.messagingConnectionId) return this.map(row);
       if (!shouldApplyStatus(row.status as OutboundMessageStatus, row.providerStatusAt, input.status, input.providerStatusAt)) return this.map(row);
       const updated = await transaction.outboundMessage.update({
         where: { id: row.id },
@@ -76,7 +77,7 @@ export class PrismaOutboundMessageRepository implements OutboundMessageRepositor
   }
 
   private map(row: PrismaOutboundMessage): OutboundMessage {
-    return OutboundMessage.create({ id: row.id, businessId: row.businessId, integrationEventId: row.integrationEventId, conversationId: row.conversationId, manualClientRequestId: row.manualClientRequestId, channel: row.channel as MessagingChannel, recipient: row.recipient, messageType: row.messageType as OutboundMessageType, status: row.status as OutboundMessageStatus, payload: row.payload as OutboundMessage['payload'], providerMessageId: row.providerMessageId, providerStatusAt: row.providerStatusAt, createdAt: row.createdAt, sentAt: row.sentAt, failedAt: row.failedAt, lastError: row.lastError });
+    return OutboundMessage.create({ id: row.id, businessId: row.businessId, integrationEventId: row.integrationEventId, conversationId: row.conversationId, messagingConnectionId: row.messagingConnectionId, manualClientRequestId: row.manualClientRequestId, channel: row.channel as MessagingChannel, recipient: row.recipient, messageType: row.messageType as OutboundMessageType, status: row.status as OutboundMessageStatus, payload: row.payload as OutboundMessage['payload'], providerMessageId: row.providerMessageId, providerStatusAt: row.providerStatusAt, createdAt: row.createdAt, sentAt: row.sentAt, failedAt: row.failedAt, lastError: row.lastError });
   }
 }
 
