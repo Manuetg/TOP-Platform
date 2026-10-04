@@ -75,6 +75,46 @@ enum BookingStatus {
   CANCELLED
   NO_SHOW
 }
+
+enum IntegrationOutboxStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+enum MessagingChannel {
+  WHATSAPP
+}
+
+enum ConversationMode {
+  BOT
+  HUMAN
+}
+
+enum ConversationStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum InboundMessageType {
+  TEXT
+  IMAGE
+  DOCUMENT
+  LOCATION
+  INTERACTIVE
+}
+
+enum OutboundMessageType {
+  BOOKING_CONFIRMATION
+  CONVERSATION_REPLY
+}
+
+enum OutboundMessageStatus {
+  PENDING
+  SENT
+  FAILED
+}
 enum PaymentMethod {
   CASH
   BANK_TRANSFER
@@ -201,11 +241,17 @@ model Business {
   bookings              Booking[]
   pricingSnapshots      PricingSnapshot[]
   bookingTimelineEvents BookingTimelineEvent[]
+  integrationOutboxEvents IntegrationOutboxEvent[]
   availabilityRule      AvailabilityRule?
   amenities             Amenity[]
   payments              Payment[]
   paymentPlans          PaymentPlan[]
   subscription          BusinessSubscription?
+  outboundMessages      OutboundMessage[]
+  conversations         Conversation[]
+  inboundMessages       InboundMessage[]
+  conversationSessions   ConversationSession[]
+  conversationBotEvents  ConversationBotEvent[]
 }
 
 model SubscriptionPlan {
@@ -256,6 +302,7 @@ model Contact {
   archivedBy     String?
   archivedFromStatus ContactStatus?
   bookings       Booking[]
+  conversations  Conversation[]
 
   @@index([businessId, name, lastName])
   @@index([businessId, phone])
@@ -505,6 +552,130 @@ model BookingTimelineEvent {
   booking     Booking  @relation(fields: [bookingId, businessId], references: [id, businessId], onDelete: Restrict)
 
   @@index([businessId, bookingId, occurredAt, id])
+}
+
+model IntegrationOutboxEvent {
+  eventId       String   @id
+  eventType     String
+  payloadVersion Int
+  businessId    String
+  aggregateType String
+  aggregateId   String
+  occurredAt    DateTime
+  correlationId String
+  payload       Json
+  createdAt     DateTime @default(now())
+  status        IntegrationOutboxStatus @default(PENDING)
+  attemptCount  Int      @default(0)
+  availableAt   DateTime @default(now())
+  processingStartedAt DateTime?
+  processedAt   DateTime?
+  lastError     String?
+  processingToken String?
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, createdAt, eventId])
+  @@index([eventType, createdAt, eventId])
+  @@index([status, availableAt, createdAt, eventId])
+}
+
+model OutboundMessage {
+  id                 String               @id @default(uuid())
+  businessId         String
+  integrationEventId String
+  channel            MessagingChannel
+  recipient          String
+  messageType        OutboundMessageType
+  status             OutboundMessageStatus @default(PENDING)
+  payload            Json
+  providerMessageId  String?
+  createdAt          DateTime             @default(now())
+  sentAt             DateTime?
+  failedAt           DateTime?
+  lastError          String?
+  business           Business             @relation(fields: [businessId], references: [id], onDelete: Restrict)
+
+  @@unique([integrationEventId, messageType, channel])
+  @@index([businessId, createdAt, id])
+  @@index([businessId, status, createdAt, id])
+}
+
+model Conversation {
+  id                  String             @id @default(uuid())
+  businessId          String
+  channel             MessagingChannel
+  externalParticipant String
+  contactId           String?
+  mode                ConversationMode  @default(BOT)
+  status              ConversationStatus @default(ACTIVE)
+  createdAt           DateTime           @default(now())
+  lastMessageAt       DateTime
+  closedAt            DateTime?
+  business            Business           @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  contact             Contact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  inboundMessages     InboundMessage[]
+  session             ConversationSession?
+  botEvents           ConversationBotEvent[]
+
+  @@unique([id, businessId])
+  @@index([businessId, channel, externalParticipant, status, lastMessageAt, id])
+  @@index([businessId, status, lastMessageAt, id])
+}
+
+enum ConversationSessionState {
+  START
+  MAIN_MENU
+  HUMAN_HANDOFF
+}
+
+model ConversationSession {
+  id             String                  @id @default(uuid())
+  businessId     String
+  conversationId String
+  state          ConversationSessionState @default(START)
+  context        Json
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  expiresAt      DateTime?
+  business       Business                @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  conversation   Conversation             @relation(fields: [conversationId, businessId], references: [id, businessId], onDelete: Restrict)
+
+  @@unique([conversationId, businessId])
+  @@index([businessId, state, updatedAt, id])
+}
+
+model ConversationBotEvent {
+  id                 String       @id @default(uuid())
+  businessId         String
+  conversationId     String
+  inboundMessageId   String
+  integrationEventId String
+  processedAt        DateTime     @default(now())
+  createdAt          DateTime     @default(now())
+  business           Business     @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  conversation       Conversation @relation(fields: [conversationId, businessId], references: [id, businessId], onDelete: Restrict)
+
+  @@unique([businessId, integrationEventId])
+  @@index([businessId, conversationId, processedAt, id])
+}
+
+model InboundMessage {
+  id                 String             @id @default(uuid())
+  businessId         String
+  conversationId     String
+  channel            MessagingChannel
+  providerMessageId  String
+  sender             String
+  messageType        InboundMessageType
+  payload            Json
+  receivedAt         DateTime
+  createdAt          DateTime           @default(now())
+  business           Business           @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  conversation       Conversation       @relation(fields: [conversationId, businessId], references: [id, businessId], onDelete: Restrict)
+
+  @@unique([businessId, channel, providerMessageId])
+  @@index([businessId, conversationId, receivedAt, id])
+  @@index([businessId, sender, receivedAt, id])
 }
 
 model BookingResource {

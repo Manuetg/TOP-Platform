@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { Booking as PrismaBooking, BookingResource } from '@prisma/client';
 import { PrismaService } from '../../business/infrastructure/prisma.service';
+import { createIntegrationEvent, IntegrationEventType } from '../../../shared/integration-events/integration-event';
+import { INTEGRATION_EVENT_OUTBOX, type IntegrationEventOutbox } from '../../../shared/integration-events/integration-event.outbox';
+import { PrismaIntegrationEventOutbox } from '../../../shared/infrastructure/prisma-integration-event.outbox';
 import { Booking } from '../domain/booking.entity';
 import { BookingStatus } from '../domain/booking-status.enum';
 import type { BookingData, BookingListFilters, BookingRepository } from '../domain/booking.repository';
@@ -12,11 +15,22 @@ const includeResources = { resources: { orderBy: { resourceId: 'asc' as const } 
 
 @Injectable()
 export class PrismaBookingRepository implements BookingRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(INTEGRATION_EVENT_OUTBOX)
+    private readonly outbox: IntegrationEventOutbox = new PrismaIntegrationEventOutbox(),
+  ) {}
   async create(data: BookingData): Promise<Booking> {
     const row = await this.prisma.$transaction(async (transaction) => {
       const created = await transaction.booking.create({ data: { businessId: data.businessId, status: 'DRAFT', contactId: data.contactId, checkInDate: data.checkInDate, checkOutDate: data.checkOutDate, adults: data.adults, children: data.children, notes: data.notes, resources: { create: data.resourceIds.map((resourceId) => ({ resourceId })) } }, include: includeResources });
       await transaction.bookingTimelineEvent.create({ data: { businessId: data.businessId, bookingId: created.id, type: BookingTimelineEventType.BOOKING_CREATED, actorUserId: data.actorUserId ?? null, details: {} } });
+      await this.outbox.append(transaction, createIntegrationEvent({
+        eventType: IntegrationEventType.BOOKING_CREATED,
+        businessId: data.businessId,
+        aggregateType: 'BOOKING',
+        aggregateId: created.id,
+        payload: { bookingId: created.id, status: 'DRAFT' },
+      }));
       return created;
     });
     return this.map(row);
@@ -53,6 +67,13 @@ export class PrismaBookingRepository implements BookingRepository {
       const updated = await transaction.booking.updateMany({ where: { id, businessId, status: { in: [BookingStatus.DRAFT, BookingStatus.PENDING, BookingStatus.CONFIRMED] } }, data: { status: BookingStatus.CANCELLED } });
       if (updated.count !== 1) return null;
       await transaction.bookingTimelineEvent.create({ data: { businessId, bookingId: id, type: BookingTimelineEventType.BOOKING_CANCELLED, actorUserId, details: reason ? { reason } : {} } });
+      await this.outbox.append(transaction, createIntegrationEvent({
+        eventType: IntegrationEventType.BOOKING_CANCELLED,
+        businessId,
+        aggregateType: 'BOOKING',
+        aggregateId: id,
+        payload: { bookingId: id, status: 'CANCELLED', ...(reason ? { reason } : {}) },
+      }));
       return this.map(await transaction.booking.findUniqueOrThrow({ where: { id }, include: includeResources }));
     });
   }

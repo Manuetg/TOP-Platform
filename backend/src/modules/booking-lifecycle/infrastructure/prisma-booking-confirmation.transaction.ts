@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   Prisma,
   type PrismaClient,
@@ -10,6 +10,9 @@ import type {
   BookingConfirmationTransactionResult,
 } from '../booking-confirmation.contract';
 import { toPrismaMoney } from '../../../shared/infrastructure/prisma-money';
+import { createIntegrationEvent, IntegrationEventType } from '../../../shared/integration-events/integration-event';
+import { INTEGRATION_EVENT_OUTBOX, type IntegrationEventOutbox } from '../../../shared/integration-events/integration-event.outbox';
+import { PrismaIntegrationEventOutbox } from '../../../shared/infrastructure/prisma-integration-event.outbox';
 
 type TransactionClient = Parameters<
   Parameters<PrismaClient['$transaction']>[0]
@@ -21,6 +24,8 @@ export class PrismaBookingConfirmationTransaction
 {
   constructor(
     private readonly prisma: PrismaService,
+    @Inject(INTEGRATION_EVENT_OUTBOX)
+    private readonly outbox: IntegrationEventOutbox = new PrismaIntegrationEventOutbox(),
   ) {}
 
   async confirm(
@@ -125,6 +130,14 @@ export class PrismaBookingConfirmationTransaction
         details: {},
       },
     });
+
+    await this.outbox.append(transaction, createIntegrationEvent({
+      eventType: IntegrationEventType.BOOKING_CONFIRMED,
+      businessId: input.businessId,
+      aggregateType: 'BOOKING',
+      aggregateId: input.bookingId,
+      payload: { bookingId: input.bookingId, status: 'CONFIRMED' },
+    }));
 
     return 'CONFIRMED';
   }

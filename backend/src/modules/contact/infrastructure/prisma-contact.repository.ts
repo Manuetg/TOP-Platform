@@ -10,6 +10,10 @@ export class PrismaContactRepository implements ContactRepository {
   constructor(private readonly prisma: PrismaService) {}
   async create(data: CreateContactData): Promise<Contact> { return this.map(await this.prisma.contact.create({ data })); }
   async findByIdAndBusinessId(id: string, businessId: string): Promise<Contact | null> { const row = await this.prisma.contact.findFirst({ where: { id, businessId } }); return row ? this.map(row) : null; }
+  async findByMessagingAddressAndBusinessId(address: string, businessId: string): Promise<Contact | null> {
+    const row = await this.prisma.contact.findFirst({ where: { businessId, OR: [{ whatsapp: address }, { phone: address }] }, orderBy: { id: 'asc' } });
+    return row ? this.map(row) : null;
+  }
   async searchByBusinessId(businessId: string, query: string | null): Promise<Contact[]> {
     const where = query === null ? { businessId } : { businessId, OR: [{ name: { contains: query, mode: 'insensitive' as const } }, { lastName: { contains: query, mode: 'insensitive' as const } }, { phone: { contains: query, mode: 'insensitive' as const } }, { whatsapp: { contains: query, mode: 'insensitive' as const } }, { email: { contains: query, mode: 'insensitive' as const } }, { documentNumber: { contains: query, mode: 'insensitive' as const } }] };
     return (await this.prisma.contact.findMany({ where, orderBy: [{ name: 'asc' }, { lastName: 'asc' }, { id: 'asc' }] })).map((row) => this.map(row));

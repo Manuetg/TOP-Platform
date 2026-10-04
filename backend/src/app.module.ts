@@ -19,9 +19,11 @@ import { BusinessAuthorizationGuard } from './shared/security/business-authoriza
 import { AuthorizationPolicy } from './shared/application/authorization-policy';
 import { PaymentModule } from './modules/payment/payment.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { IntegrationEventsModule } from './shared/integration-events/integration-events.module';
+import { MessagingModule } from './modules/messaging/messaging.module';
 
 @Module({
-  imports: [SubscriptionModule, SearchModule, ConfigModule.forRoot({
+  imports: [IntegrationEventsModule, MessagingModule, SubscriptionModule, SearchModule, ConfigModule.forRoot({
     isGlobal: true,
     ignoreEnvFile: runtimeNodeEnvironment() !== 'development',
     skipProcessEnv: true,

@@ -13,6 +13,7 @@ import {
 } from './booking-confirmation.contract';
 import { PrismaBookingConfirmationTransaction } from './infrastructure/prisma-booking-confirmation.transaction';
 import { BookingLifecycleController } from './presentation/booking-lifecycle.controller';
+import { IntegrationEventsModule } from '../../shared/integration-events/integration-events.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { BookingLifecycleController } from './presentation/booking-lifecycle.con
     ContactModule,
     PricingModule,
     ResourceModule,
+    IntegrationEventsModule,
   ],
   controllers: [
     BookingLifecycleController,

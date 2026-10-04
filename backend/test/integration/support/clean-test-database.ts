@@ -22,6 +22,12 @@ export async function cleanTestDatabase(prisma: PrismaClient, databaseUrl: strin
   await prisma.paymentPlan.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.pricingSnapshot.deleteMany();
+  await prisma.outboundMessage.deleteMany();
+  await prisma.conversationBotEvent.deleteMany();
+  await prisma.conversationSession.deleteMany();
+  await prisma.inboundMessage.deleteMany();
+  await prisma.conversation.deleteMany();
+  await prisma.integrationOutboxEvent.deleteMany();
   await prisma.bookingTimelineEvent.deleteMany();
   await prisma.bookingResource.deleteMany();
   await prisma.booking.deleteMany();

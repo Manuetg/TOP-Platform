@@ -4,7 +4,7 @@ import addressparser from 'nodemailer/lib/addressparser';
 
 export type NodeEnvironment = 'development' | 'test' | 'production';
 type EnvironmentInput = Record<string, unknown>;
-interface ConfigurationReader { get(key: string): unknown }
+export interface ConfigurationReader { get(key: string): unknown }
 // Capturar runtime antes de importar módulos que puedan cargar dotenv (Prisma).
 const runtimeEnvironment: EnvironmentInput = { ...process.env };
 
@@ -191,6 +191,28 @@ function s3Configuration(input: EnvironmentInput, production: boolean): S3Config
 
 export function readS3Configuration(config: ConfigurationReader): S3Configuration {
   return s3Configuration(inputFrom(config, ['S3_ENDPOINT', 'S3_PUBLIC_ENDPOINT', 'S3_REGION', 'S3_BUCKET', 'S3_ACCESS_KEY', 'S3_SECRET_KEY', 'S3_FORCE_PATH_STYLE']), readNodeEnvironment(config) === 'production');
+}
+
+export interface MetaWhatsAppConfiguration {
+  accessToken: string;
+  phoneNumberId: string;
+  graphApiVersion: string;
+}
+
+function metaWhatsAppConfiguration(input: EnvironmentInput, production: boolean): MetaWhatsAppConfiguration {
+  const accessToken = productionValue(input, 'META_WHATSAPP_ACCESS_TOKEN', production);
+  const phoneNumberId = productionValue(input, 'META_WHATSAPP_PHONE_NUMBER_ID', production);
+  const graphApiVersion = productionValue(input, 'META_WHATSAPP_GRAPH_API_VERSION', production);
+  if (!/^\d+$/.test(phoneNumberId)) invalid('META_WHATSAPP_PHONE_NUMBER_ID', 'debe ser un identificador numérico de teléfono de WhatsApp.');
+  if (!/^v\d+\.\d+$/.test(graphApiVersion)) invalid('META_WHATSAPP_GRAPH_API_VERSION', 'debe tener el formato vN.N.');
+  return { accessToken, phoneNumberId, graphApiVersion };
+}
+
+export function readMetaWhatsAppConfiguration(config: ConfigurationReader): MetaWhatsAppConfiguration {
+  return metaWhatsAppConfiguration(
+    inputFrom(config, ['META_WHATSAPP_ACCESS_TOKEN', 'META_WHATSAPP_PHONE_NUMBER_ID', 'META_WHATSAPP_GRAPH_API_VERSION']),
+    readNodeEnvironment(config) === 'production',
+  );
 }
 
 function corsOrigins(input: EnvironmentInput, production: boolean): string[] {

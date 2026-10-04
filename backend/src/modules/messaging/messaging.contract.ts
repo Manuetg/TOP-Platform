@@ -1,0 +1,16 @@
+export { MESSAGING_PROVIDER, type MessagingProvider, type MessagingProviderResult } from './application/messaging-provider';
+export { OUTBOUND_MESSAGE_REPOSITORY, type OutboundMessageRepository } from './domain/outbound-message.repository';
+export { MessagingChannel } from './domain/messaging-channel.enum';
+export { OutboundMessageStatus } from './domain/outbound-message-status.enum';
+export { OutboundMessageType } from './domain/outbound-message-type.enum';
+export type { OutboundMessage } from './domain/outbound-message.entity';
+export { ConversationMode } from './domain/conversation-mode.enum';
+export { ConversationStatus } from './domain/conversation-status.enum';
+export { ConversationSessionState } from './domain/conversation-session-state.enum';
+export { InboundMessageType } from './domain/inbound-message-type.enum';
+export type { Conversation } from './domain/conversation.entity';
+export type { ConversationSession, ConversationSessionContext } from './domain/conversation-session.entity';
+export type { InboundMessage } from './domain/inbound-message.entity';
+export { CONVERSATION_REPOSITORY, type ConversationRepository } from './domain/conversation.repository';
+export { INBOUND_MESSAGE_REPOSITORY, type InboundMessageRepository } from './domain/inbound-message.repository';
+export { RECEIVE_INBOUND_MESSAGE_TRANSACTION, type InboundMessageEnvelope, type ReceiveInboundMessageInput, type ReceiveInboundMessageResult, type ReceiveInboundMessageTransaction } from './application/receive-inbound-message.contract';

@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import { configurationFrom, EnvironmentConfigurationError, readSmtpConfiguration, validateEnvironment } from './environment';
+import { configurationFrom, EnvironmentConfigurationError, readMetaWhatsAppConfiguration, readSmtpConfiguration, validateEnvironment } from './environment';
 import { CryptoRefreshTokenService } from '../modules/identity/infrastructure/crypto-refresh-token.service';
 import { CryptoPasswordResetTokenService } from '../modules/identity/infrastructure/crypto-password-reset-token.service';
 import { CryptoPasswordResetOtpService } from '../modules/identity/infrastructure/crypto-password-reset-otp.service';
@@ -133,6 +133,19 @@ describe('Configuración de arranque', () => {
     const input = production();
     expect(readSmtpConfiguration(new ConfigService(input))).toMatchObject({ port: 587, secure: false, requireTLS: true, auth: undefined });
     expect(readSmtpConfiguration(new ConfigService({ ...input, SMTP_PORT: '465', SMTP_USER: 'synthetic-user', SMTP_PASSWORD: 'synthetic-password' }))).toMatchObject({ secure: true, requireTLS: false, auth: { user: 'synthetic-user', pass: 'synthetic-password' } });
+  });
+
+  it('lee la configuración de Meta WhatsApp solo cuando el provider la solicita', () => {
+    const config = new ConfigService({ NODE_ENV: 'development', META_WHATSAPP_ACCESS_TOKEN: 'token-not-logged', META_WHATSAPP_PHONE_NUMBER_ID: '123456789012345', META_WHATSAPP_GRAPH_API_VERSION: 'v26.0' });
+    expect(readMetaWhatsAppConfiguration(config)).toEqual({ accessToken: 'token-not-logged', phoneNumberId: '123456789012345', graphApiVersion: 'v26.0' });
+  });
+
+  it.each(['', '123 456', 'phone-id'])('rechaza META_WHATSAPP_PHONE_NUMBER_ID inválido (%s)', (value) => {
+    expect(() => readMetaWhatsAppConfiguration(new ConfigService({ NODE_ENV: 'development', META_WHATSAPP_ACCESS_TOKEN: 'token', META_WHATSAPP_PHONE_NUMBER_ID: value, META_WHATSAPP_GRAPH_API_VERSION: 'v26.0' }))).toThrow('META_WHATSAPP_PHONE_NUMBER_ID');
+  });
+
+  it.each(['26.0', 'v26', 'V26.0', 'v26.0 '])('rechaza META_WHATSAPP_GRAPH_API_VERSION inválida (%s)', (value) => {
+    expect(() => readMetaWhatsAppConfiguration(new ConfigService({ NODE_ENV: 'development', META_WHATSAPP_ACCESS_TOKEN: 'token', META_WHATSAPP_PHONE_NUMBER_ID: '123456789012345', META_WHATSAPP_GRAPH_API_VERSION: value }))).toThrow('META_WHATSAPP_GRAPH_API_VERSION');
   });
 
   it.each(['https://smtp.top.test', 'smtp.top.test:587', 'bad host', 'user@smtp.top.test', 'smtp..top.test', 'smtp-.top.test', `${'a'.repeat(64)}.top.test`])('rechaza host SMTP inválido (%s)', (value) => {

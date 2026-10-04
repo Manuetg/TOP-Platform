@@ -10,6 +10,7 @@ describe('PrismaBookingConfirmationTransaction', () => {
   const updateMany = jest.fn();
   const createSnapshot = jest.fn();
   const createTimelineEvent = jest.fn();
+  const appendOutbox = jest.fn();
   const queryRaw = jest.fn();
   const executeRaw = jest.fn();
   const transaction = {
@@ -24,7 +25,7 @@ describe('PrismaBookingConfirmationTransaction', () => {
   );
   const repository = new PrismaBookingConfirmationTransaction({
     $transaction: executeTransaction,
-  } as never);
+  } as never, { append: appendOutbox });
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -43,6 +44,7 @@ describe('PrismaBookingConfirmationTransaction', () => {
     });
     updateMany.mockResolvedValue({ count: 1 });
     createSnapshot.mockResolvedValue({ id: 'snapshot-id' });
+    appendOutbox.mockResolvedValue(undefined);
   });
 
   const input = () => ({
@@ -93,6 +95,7 @@ describe('PrismaBookingConfirmationTransaction', () => {
       data: { status: 'CONFIRMED' },
     });
     expect(createTimelineEvent).toHaveBeenCalledWith({data:{businessId,bookingId,type:'BOOKING_CONFIRMED',actorUserId:null,details:{}}});
+    expect(appendOutbox).toHaveBeenCalledWith(transaction, expect.objectContaining({ eventType: 'BOOKING_CONFIRMED', businessId, aggregateType: 'BOOKING', aggregateId: bookingId, payloadVersion: 1, payload: { bookingId, status: 'CONFIRMED' } }));
   });
 
   it('returns NOT_FOUND without preparing a snapshot when the locked booking is absent', async () => {
