@@ -41,6 +41,8 @@ import { MessagingInboxController } from './presentation/messaging-inbox.control
 import { CONVERSATION_INBOX_READER } from './domain/conversation-inbox.repository';
 import { PrismaConversationInboxReader } from './infrastructure/prisma-conversation-inbox.reader';
 import { MessagingInboxUseCases, SendManualConversationMessageUseCase } from './application/messaging-inbox.use-cases';
+import { MESSAGING_CONNECTION_RESOLVER } from './domain/messaging-connection.repository';
+import { PrismaMessagingConnectionResolver } from './infrastructure/prisma-messaging-connection.resolver';
 
 @Module({
   imports: [IntegrationEventsModule, BookingLifecycleModule, BookingModule, BusinessModule, ContactModule, AvailabilityModule, PricingModule, ResourceModule],
@@ -75,8 +77,10 @@ import { MessagingInboxUseCases, SendManualConversationMessageUseCase } from './
     { provide: CONVERSATION_INBOX_READER, useExisting: PrismaConversationInboxReader },
     MessagingInboxUseCases,
     SendManualConversationMessageUseCase,
+    PrismaMessagingConnectionResolver,
+    { provide: MESSAGING_CONNECTION_RESOLVER, useExisting: PrismaMessagingConnectionResolver },
   ],
-  exports: [OUTBOUND_MESSAGE_REPOSITORY, CONVERSATION_REPOSITORY, INBOUND_MESSAGE_REPOSITORY, CONVERSATION_INBOX_READER, MESSAGING_SETTINGS_REPOSITORY, MESSAGING_AUTOMATION_RULE_REPOSITORY, MESSAGING_MESSAGE_TEMPLATE_REPOSITORY, MESSAGING_AUTOMATION_CONFIGURATION, ReceiveInboundMessageUseCase, ChangeConversationModeUseCase, MessagingIntegrationEventConsumer, ConversationBotConsumer, MessagingInboxUseCases, SendManualConversationMessageUseCase],
+  exports: [OUTBOUND_MESSAGE_REPOSITORY, CONVERSATION_REPOSITORY, INBOUND_MESSAGE_REPOSITORY, CONVERSATION_INBOX_READER, MESSAGING_SETTINGS_REPOSITORY, MESSAGING_AUTOMATION_RULE_REPOSITORY, MESSAGING_MESSAGE_TEMPLATE_REPOSITORY, MESSAGING_AUTOMATION_CONFIGURATION, MESSAGING_CONNECTION_RESOLVER, ReceiveInboundMessageUseCase, ChangeConversationModeUseCase, MessagingIntegrationEventConsumer, ConversationBotConsumer, MessagingInboxUseCases, SendManualConversationMessageUseCase],
 })
 export class MessagingModule {
   static registerMetaWhatsApp(): DynamicModule {

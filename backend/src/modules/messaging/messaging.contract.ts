@@ -1,4 +1,7 @@
 export { MESSAGING_PROVIDER, type MessagingProvider, type MessagingProviderResult } from './application/messaging-provider';
+export { MESSAGING_CONNECTION_RESOLVER, type ActiveMessagingConnection, type MessagingConnectionResolver } from './domain/messaging-connection.repository';
+export { MessagingConnectionStatus } from './domain/messaging-connection-status.enum';
+export { MessagingConnectionProvider } from './domain/messaging-provider.enum';
 export { OUTBOUND_MESSAGE_REPOSITORY, type OutboundMessageRepository } from './domain/outbound-message.repository';
 export { MessagingChannel } from './domain/messaging-channel.enum';
 export { OutboundMessageStatus } from './domain/outbound-message-status.enum';

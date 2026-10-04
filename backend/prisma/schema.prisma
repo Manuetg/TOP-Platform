@@ -87,6 +87,15 @@ enum MessagingChannel {
   WHATSAPP
 }
 
+enum MessagingProvider {
+  META_WHATSAPP
+}
+
+enum MessagingConnectionStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum ConversationMode {
   BOT
   HUMAN
@@ -267,6 +276,7 @@ model Business {
   messagingSettings      MessagingSettings?
   messagingAutomationRules MessagingAutomationRule[]
   messagingMessageTemplates MessagingMessageTemplate[]
+  messagingConnections   MessagingConnection[]
 }
 
 model SubscriptionPlan {
@@ -303,6 +313,22 @@ model MessagingSettings {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model MessagingConnection {
+  id                    String                    @id @default(uuid())
+  businessId            String
+  channel               MessagingChannel
+  provider              MessagingProvider
+  providerPhoneNumberId String
+  status                MessagingConnectionStatus @default(ACTIVE)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  business              Business                  @relation(fields: [businessId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, channel, providerPhoneNumberId])
+  @@index([businessId, channel, status])
+  @@index([provider, channel, status])
 }
 
 model MessagingAutomationRule {
