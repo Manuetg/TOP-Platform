@@ -85,6 +85,10 @@ import { PRICING_QUOTE } from './pricing.contract';
     ApplyManualPriceOverrideUseCase,
     PrepareManualPriceUseCase,
     PricingQuoteUseCase,
+    {
+      provide: PRICING_QUOTE,
+      useExisting: PricingQuoteUseCase,
+    },
   ],
   exports: [
     CalculatePriceUseCase,
