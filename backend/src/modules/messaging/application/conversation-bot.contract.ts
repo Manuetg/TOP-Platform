@@ -6,7 +6,7 @@ export interface ConversationBotTransactionResult {
 }
 
 export interface ConversationBotTransaction {
-  process(input: { event: IntegrationEvent; businessName: string }): Promise<ConversationBotTransactionResult>;
+  process(input: { event: IntegrationEvent; businessName: string; businessTimeZone: string }): Promise<ConversationBotTransactionResult>;
 }
 
 export const CONVERSATION_BOT_TRANSACTION = Symbol('CONVERSATION_BOT_TRANSACTION');

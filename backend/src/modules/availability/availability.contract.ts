@@ -74,3 +74,23 @@ export interface OccupancyProjectionReader {
 export const AVAILABILITY_OVERBOOKING_VALIDATOR = Symbol(
   'AVAILABILITY_OVERBOOKING_VALIDATOR',
 );
+
+export interface AvailableResourceResult {
+  resourceId: string;
+  name: string;
+}
+
+export interface AvailabilityQueryInput {
+  businessId: string;
+  from: string;
+  to: string;
+  guests: number;
+}
+
+export interface AvailabilityQuery {
+  findAvailableResources(
+    input: AvailabilityQueryInput,
+  ): Promise<AvailableResourceResult[]>;
+}
+
+export const AVAILABILITY_QUERY = Symbol('AVAILABILITY_QUERY');

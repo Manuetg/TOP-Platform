@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { PrismaBusinessRepository } from '../../src/modules/business/infrastructure/prisma-business.repository';
+import { PrismaBlockRepository } from '../../src/modules/block/infrastructure/prisma-block.repository';
+import { PrismaBookingRepository } from '../../src/modules/booking/infrastructure/prisma-booking.repository';
+import { ListAvailableResourcesUseCase } from '../../src/modules/availability/application/list-available-resources.use-case';
+import { ListAvailabilityCalendarUseCase } from '../../src/modules/availability/application/list-availability-calendar.use-case';
+import { PrismaAvailabilityRulesRepository } from '../../src/modules/availability/infrastructure/prisma-availability-rules.repository';
+import { PrismaResourceRepository } from '../../src/modules/resource/infrastructure/prisma-resource.repository';
+import type { AvailabilityQuery } from '../../src/modules/availability/availability.contract';
 import { ChangeConversationModeUseCase } from '../../src/modules/messaging/application/change-conversation-mode.use-case';
 import { ConversationBotConsumer } from '../../src/modules/messaging/application/conversation-bot.consumer';
 import { PrismaConversationBotTransaction } from '../../src/modules/messaging/infrastructure/prisma-conversation-bot.transaction';
@@ -28,6 +35,11 @@ describeWithPostgres('Messaging conversation bot', () => {
   const contacts = { findByMessagingAddressAndBusinessId: jest.fn().mockResolvedValue(null) };
   const conversations = new PrismaConversationRepository(prisma);
   const businesses = new PrismaBusinessRepository(prisma);
+  const resources = new PrismaResourceRepository(prisma);
+  const availability = new ListAvailableResourcesUseCase(
+    new ListAvailabilityCalendarUseCase(businesses, resources, new PrismaBookingRepository(prisma), new PrismaBlockRepository(prisma), new PrismaAvailabilityRulesRepository(prisma)),
+    resources,
+  );
 
   beforeAll(async () => prisma.$connect());
   beforeEach(async () => cleanTestDatabase(prisma, databaseUrl));
@@ -46,8 +58,12 @@ describeWithPostgres('Messaging conversation bot', () => {
   }
 
   function bot() {
+    return botWithAvailability(availability);
+  }
+
+  function botWithAvailability(query: AvailabilityQuery) {
     const registry = new IntegrationEventConsumerRegistry();
-    const transaction = new PrismaConversationBotTransaction(prisma, new PrismaOutboundMessageRepository(prisma));
+    const transaction = new PrismaConversationBotTransaction(prisma, new PrismaOutboundMessageRepository(prisma), query);
     const consumer = new ConversationBotConsumer(businesses, transaction, registry);
     const dispatcher = new IntegrationEventDispatcher(outbox, [consumer], { baseBackoffMs: 0 });
     return { consumer, dispatcher };
@@ -92,7 +108,6 @@ describeWithPostgres('Messaging conversation bot', () => {
   });
 
   it.each([
-    ['1', 'disponibilidad'],
     ['2', 'creación de reservas'],
     ['3', 'consulta de reservas'],
   ])('responde de forma controlada a la opción %s', async (option, response) => {
@@ -107,6 +122,94 @@ describeWithPostgres('Messaging conversation bot', () => {
     expect((messages[1].payload as { text: string }).text).toContain(response);
     await expect(prisma.conversation.findFirstOrThrow({ where: { businessId: owner.id } })).resolves.toMatchObject({ mode: 'BOT' });
     await expect(prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } })).resolves.toMatchObject({ state: 'MAIN_MENU' });
+  });
+
+  async function sendAndDispatch(ownerId: string, worker: IntegrationEventDispatcher, providerMessageId: string, text: string): Promise<void> {
+    await receive(ownerId, providerMessageId, text);
+    await expect(worker.dispatchOnce()).resolves.toBe('PROCESSED');
+  }
+
+  function countedAvailability(): { query: AvailabilityQuery; calls: () => number } {
+    let count = 0;
+    return {
+      query: {
+        findAvailableResources: async (input) => {
+          count += 1;
+          return availability.findAvailableResources(input);
+        },
+      },
+      calls: () => count,
+    };
+  }
+
+  async function resource(ownerId: string, name: string, capacityMaximum: number): Promise<{ id: string; name: string }> {
+    return prisma.resource.create({ data: { businessId: ownerId, name, internalCode: `${name}-${randomUUID()}`, capacityMaximum, capacityMaximumChildren: 0 }, select: { id: true, name: true } });
+  }
+
+  async function beginAvailability(ownerId: string, worker: IntegrationEventDispatcher, prefix: string): Promise<void> {
+    await sendAndDispatch(ownerId, worker, `${prefix}-hello`, 'Hola');
+    await sendAndDispatch(ownerId, worker, `${prefix}-menu`, '1');
+    await sendAndDispatch(ownerId, worker, `${prefix}-check-in`, '15/10/2026');
+    await sendAndDispatch(ownerId, worker, `${prefix}-check-out`, '17/10/2026');
+  }
+
+  it('recopila fechas y huéspedes, consulta Availability una sola vez y muestra sólo Resources aptos', async () => {
+    const owner = await business('Availability');
+    const available = await resource(owner.id, 'Cabaña disponible', 2);
+    const secondAvailable = await resource(owner.id, 'Cabaña alternativa', 4);
+    await resource(owner.id, 'Cabaña pequeña', 1);
+    const blocked = await resource(owner.id, 'Cabaña bloqueada', 2);
+    await prisma.block.create({ data: { businessId: owner.id, resourceId: blocked.id, type: 'MAINTENANCE', reason: 'Mantenimiento', startsAt: new Date('2026-10-15T00:00:00.000Z'), endsAt: new Date('2026-10-17T00:00:00.000Z') } });
+    const counted = countedAvailability();
+    const worker = botWithAvailability(counted.query).dispatcher;
+
+    await expect(availability.findAvailableResources({ businessId: owner.id, from: '2026-10-15', to: '2026-10-17', guests: 2 })).resolves.toEqual([{ resourceId: secondAvailable.id, name: secondAvailable.name }, { resourceId: available.id, name: available.name }]);
+
+    await beginAvailability(owner.id, worker, 'wamid-availability');
+    await sendAndDispatch(owner.id, worker, 'wamid-availability-guests', '2');
+
+    expect(counted.calls()).toBe(1);
+    const messages = await prisma.outboundMessage.findMany({ where: { businessId: owner.id }, orderBy: { createdAt: 'asc' } });
+    expect((messages.at(-1)?.payload as { text: string }).text).toContain('Cabaña disponible');
+    expect((messages.at(-1)?.payload as { text: string }).text).toContain('Cabaña alternativa');
+    expect((messages.at(-1)?.payload as { text: string }).text).not.toContain(available.id);
+    expect((messages.at(-1)?.payload as { text: string }).text).not.toContain(secondAvailable.id);
+    expect((messages.at(-1)?.payload as { text: string }).text).not.toContain('Cabaña pequeña');
+    expect((messages.at(-1)?.payload as { text: string }).text).not.toContain('Cabaña bloqueada');
+    await expect(prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } })).resolves.toMatchObject({ state: 'AVAILABILITY_RESULTS', context: { availability: { checkIn: '2026-10-15', checkOut: '2026-10-17', guests: 2, options: [{ option: 1, resourceId: secondAvailable.id, name: secondAvailable.name }, { option: 2, resourceId: available.id, name: available.name }] } } });
+  });
+
+  it('sin disponibilidad permite buscar otras fechas limpiando context', async () => {
+    const owner = await business('No Availability');
+    const worker = bot().dispatcher;
+    await beginAvailability(owner.id, worker, 'wamid-empty');
+    await sendAndDispatch(owner.id, worker, 'wamid-empty-guests', '2');
+    await sendAndDispatch(owner.id, worker, 'wamid-empty-again', '1');
+
+    await expect(prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } })).resolves.toMatchObject({ state: 'AVAILABILITY_ASK_CHECK_IN', context: {} });
+  });
+
+  it('0 desde resultados vuelve al menú y limpia context', async () => {
+    const owner = await business('Cancel Results');
+    const worker = bot().dispatcher;
+    await beginAvailability(owner.id, worker, 'wamid-results-cancel');
+    await sendAndDispatch(owner.id, worker, 'wamid-results-cancel-guests', '2');
+    await sendAndDispatch(owner.id, worker, 'wamid-results-cancel-zero', '0');
+
+    await expect(prisma.conversationSession.findFirstOrThrow({ where: { businessId: owner.id } })).resolves.toMatchObject({ state: 'MAIN_MENU', context: {} });
+  });
+
+  it('aisla la consulta de Availability por Business', async () => {
+    const first = await business('Availability A');
+    const second = await business('Availability B');
+    await resource(second.id, 'Resource privado B', 4);
+    const worker = bot().dispatcher;
+    await beginAvailability(first.id, worker, 'wamid-tenant-availability');
+    await sendAndDispatch(first.id, worker, 'wamid-tenant-availability-guests', '2');
+
+    const last = await prisma.outboundMessage.findFirstOrThrow({ where: { businessId: first.id }, orderBy: { createdAt: 'desc' } });
+    expect((last.payload as { text: string }).text).toContain('No encontré disponibilidad');
+    expect((last.payload as { text: string }).text).not.toContain('Resource privado B');
   });
 
   it('opción 4 transfiere a HUMAN y envía el cierre del bot', async () => {
@@ -168,9 +271,9 @@ describeWithPostgres('Messaging conversation bot', () => {
     const owner = await business();
     const received = await receive(owner.id, 'wamid-atomic-bot');
     const failingMessages = { createPendingInTransaction: jest.fn().mockRejectedValue(new Error('forced outbound failure')) } as never;
-    const transaction = new PrismaConversationBotTransaction(prisma, failingMessages);
+    const transaction = new PrismaConversationBotTransaction(prisma, failingMessages, availability);
 
-    await expect(transaction.process({ event: await eventAsContract(received.event.eventId), businessName: owner.name })).rejects.toThrow('forced outbound failure');
+    await expect(transaction.process({ event: await eventAsContract(received.event.eventId), businessName: owner.name, businessTimeZone: 'America/Asuncion' })).rejects.toThrow('forced outbound failure');
     await expect(prisma.conversationSession.count({ where: { businessId: owner.id } })).resolves.toBe(0);
     await expect(prisma.conversationBotEvent.count({ where: { businessId: owner.id } })).resolves.toBe(0);
     await expect(prisma.outboundMessage.count({ where: { businessId: owner.id } })).resolves.toBe(0);

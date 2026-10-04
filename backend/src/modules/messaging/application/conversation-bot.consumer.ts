@@ -27,6 +27,6 @@ export class ConversationBotConsumer implements IntegrationEventConsumer, OnModu
     if (!this.supports(event.eventType)) return;
     const business = await this.businesses.findById(event.businessId);
     if (!business) throw new Error('El negocio del evento entrante no existe.');
-    await this.transaction.process({ event, businessName: business.name });
+    await this.transaction.process({ event, businessName: business.name, businessTimeZone: business.timezone });
   }
 }
