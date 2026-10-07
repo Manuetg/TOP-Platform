@@ -20,7 +20,57 @@ const S3_PORT = 45677;
 const PURPOSE = 'fin032-ci-resources-v1';
 const FULL_ID = /^[a-f0-9]{64}$/;
 const OWNER_ID = /^[a-f0-9]{32}$/;
-class ResourcesError extends Error {}
+class ResourcesError extends Error {
+  constructor(message, details = {}) { super(message); this.details = details; }
+}
+const PHASES = ['context', 'ports', 'image-pull', 'creation', 'readiness', 'databases', 'buckets', 'export', 'cleanup'];
+const RESOURCES = ['none', 'postgres', 'minio'];
+const OPERATIONS = ['pull', 'create', 'inspect', 'start', 'exec', 'rm'];
+const ERROR_CODES = ['ENOENT', 'EACCES', 'EPERM', 'ETIMEDOUT', 'ENOBUFS', 'EADDRINUSE', 'ECONNREFUSED', 'ECONNRESET',
+  'ENETUNREACH', 'EHOSTUNREACH', 'EPIPE', 'EIO', 'ENOSPC', 'AccessDenied', 'InvalidAccessKeyId', 'SignatureDoesNotMatch',
+  'NoSuchBucket', 'NoSuchBucketPolicy', 'BucketAlreadyExists', 'BucketAlreadyOwnedByYou', 'InvalidBucketName',
+  'AuthorizationHeaderMalformed', 'RequestTimeout', 'ServiceUnavailable', 'SlowDown', 'TimeoutError', 'AbortError'];
+const SIGNALS = ['SIGTERM', 'SIGKILL', 'SIGINT', 'SIGABRT', 'SIGSEGV'];
+const REASONS = ['docker-failed', 'manifest-unknown', 'image-unavailable', 'platform-unavailable', 'daemon-unavailable',
+  'permission-denied', 'port-in-use', 'read-only-filesystem', 'rate-limited', 'readiness-timeout', 'guard-rejected', 'external-error'];
+const permitted = (value, choices, fallback = null) => choices.includes(value) ? value : fallback;
+function failureDiagnostic(phase, resource, error) {
+  const details = error instanceof ResourcesError ? error.details : {};
+  // Sólo enums y números acotados. Nunca mensajes, nombres libres, args, URLs ni objetos externos.
+  const diagnostic = {
+    phase: permitted(phase, PHASES, 'context'), resource: permitted(resource, RESOURCES, 'none'),
+    operation: permitted(details.operation, OPERATIONS),
+    exitCode: Number.isInteger(details.exitCode) && details.exitCode >= 0 && details.exitCode <= 255 ? details.exitCode : null,
+    errorCode: permitted(details.errorCode, ERROR_CODES) ?? permitted(error?.code, ERROR_CODES) ?? permitted(error?.name, ERROR_CODES),
+    signal: permitted(details.signal, SIGNALS),
+    reason: permitted(details.reason, REASONS, error instanceof ResourcesError ? 'guard-rejected' : 'external-error'),
+    httpStatus: Number.isInteger(details.httpStatus) && details.httpStatus >= 100 && details.httpStatus <= 599 ? details.httpStatus
+      : Number.isInteger(error?.$metadata?.httpStatusCode) && error.$metadata.httpStatusCode >= 100 && error.$metadata.httpStatusCode <= 599
+        ? error.$metadata.httpStatusCode : null,
+  };
+  if (details.cleanup?.status === 'complete') diagnostic.cleanup = { status: 'complete' };
+  else if (details.cleanup?.status === 'failed') {
+    const cleanupDetails = { ...details.cleanup }; delete cleanupDetails.cleanup;
+    diagnostic.cleanup = { status: 'failed', ...failureDiagnostic('cleanup', details.cleanup.resource, new ResourcesError('', cleanupDetails)) };
+  }
+  return diagnostic;
+}
+function dockerFailure(operation, result) {
+  // Clasificación cerrada del stderr; el texto original jamás sale del proceso.
+  const stderr = typeof result.stderr === 'string' ? result.stderr : '';
+  const reason = /manifest unknown|manifest.*not found/i.test(stderr) ? 'manifest-unknown'
+    : /no matching manifest|no match for platform/i.test(stderr) ? 'platform-unavailable'
+      : /pull access denied|repository does not exist/i.test(stderr) ? 'image-unavailable'
+        : /cannot connect to the docker daemon|is the docker daemon running/i.test(stderr) ? 'daemon-unavailable'
+          : /permission denied|access denied/i.test(stderr) ? 'permission-denied'
+            : /port is already allocated|address already in use/i.test(stderr) ? 'port-in-use'
+              : /read-only file system/i.test(stderr) ? 'read-only-filesystem'
+                : /toomanyrequests|too many requests|pull rate limit/i.test(stderr) ? 'rate-limited' : 'docker-failed';
+  return new ResourcesError('Falló una operación Docker del recurso propio.', {
+    operation: permitted(operation, OPERATIONS), exitCode: result.status,
+    errorCode: permitted(result.error?.code, ERROR_CODES), signal: permitted(result.signal, SIGNALS), reason,
+  });
+}
 
 function required(name) {
   const value = process.env[name];
@@ -93,15 +143,15 @@ function dockerResult(args, env = {}, timeout = 10000) {
 }
 function docker(args, env = {}, timeout = 10000) {
   const result = dockerResult(args, env, timeout);
-  if (result.error || result.status !== 0) throw new ResourcesError('Falló una operación Docker del recurso propio.');
+  if (result.error || result.status !== 0) throw dockerFailure(args[0], result);
   return result.stdout.trim();
 }
 function inspection(reference, allowMissing = false) {
   const result = dockerResult(['inspect', reference]);
-  if (result.error) throw new ResourcesError('No se pudo inspeccionar ownership Docker.');
+  if (result.error) throw dockerFailure('inspect', result);
   if (result.status !== 0) {
     if (allowMissing && /No such (?:object|container)/i.test(result.stderr)) return null;
-    throw new ResourcesError('Inspección Docker rechazada; no se elimina ningún recurso sin atestar.');
+    throw dockerFailure('inspect', result);
   }
   const values = JSON.parse(result.stdout);
   if (!Array.isArray(values) || values.length !== 1 || !FULL_ID.test(values[0]?.Id)) throw new ResourcesError('Inspección Docker no identifica exactamente un contenedor.');
@@ -147,8 +197,8 @@ function readCid(item) {
 async function assertFree(port) {
   await new Promise((resolve, reject) => {
     const server = net.createServer();
-    server.once('error', () => reject(new ResourcesError('Puerto CI reservado ocupado; no se reutiliza ni detiene otro servicio.')));
-    server.listen(port, '127.0.0.1', () => server.close(error => error ? reject(new ResourcesError('No se pudo liberar la comprobación de puerto CI.')) : resolve()));
+    server.once('error', error => reject(new ResourcesError('Puerto CI reservado ocupado; no se reutiliza ni detiene otro servicio.', { errorCode: permitted(error?.code, ERROR_CODES) })));
+    server.listen(port, '127.0.0.1', () => server.close(error => error ? reject(new ResourcesError('No se pudo liberar la comprobación de puerto CI.', { errorCode: permitted(error?.code, ERROR_CODES) })) : resolve()));
   });
 }
 function createContainer(ctx, state, item, credentials) {
@@ -172,6 +222,7 @@ function createContainer(ctx, state, item, credentials) {
 }
 async function ready(ctx, state, item) {
   const deadline = Date.now() + 90000;
+  let lastObservation = {};
   while (Date.now() < deadline) {
     const current = inspection(item.containerId); attest(ctx, state, item, current, true);
     if (item.kind === 'postgres' && current.State.Health?.Status === 'healthy') return;
@@ -180,11 +231,12 @@ async function ready(ctx, state, item) {
         const response = await fetch(`http://127.0.0.1:${S3_PORT}/minio/health/ready`, { signal: AbortSignal.timeout(3000) });
         await response.body?.cancel();
         if (response.status === 200) return;
-      } catch { /* Espera acotada solamente sobre el proveedor propio atestado. */ }
+        lastObservation = { httpStatus: response.status };
+      } catch (error) { lastObservation = failureDiagnostic('readiness', item.kind, error); }
     }
     await delay(250);
   }
-  throw new ResourcesError('Timeout de readiness del recurso CI propio.');
+  throw new ResourcesError('Timeout de readiness del recurso CI propio.', { ...lastObservation, reason: 'readiness-timeout' });
 }
 function prepareDatabases(pg) {
   const psql = (database, sql) => docker(['exec', pg.containerId, 'psql', '--username', PG_ACTOR,
@@ -264,11 +316,12 @@ function cleanupOne(ctx, state, item) {
 async function cleanup(ctx) {
   const state = ownState(ctx);
   if (!state) return;
-  let failures = 0;
+  let firstFailure = null;
   for (const item of [...state.resources].reverse()) {
-    try { cleanupOne(ctx, state, item); } catch { failures += 1; }
+    try { cleanupOne(ctx, state, item); }
+    catch (error) { firstFailure ??= failureDiagnostic('cleanup', item.kind, error); }
   }
-  if (failures) throw new ResourcesError('Cleanup CI incompleto: se conservaron metadatos y no se tocó ownership ajeno.');
+  if (firstFailure) throw new ResourcesError('Cleanup CI incompleto: se conservaron metadatos y no se tocó ownership ajeno.', firstFailure);
   const next = ctx.stateFile + '.' + state.ownerId + '.next';
   if (fs.existsSync(next)) {
     if (!fs.lstatSync(next).isFile()) throw new ResourcesError('Scratch CI no es regular; se conserva para revisión.');
@@ -282,21 +335,32 @@ async function start(ctx) {
   state.resources = ['postgres', 'minio'].map(kind => descriptor(ctx, state.ownerId, kind));
   persist(ctx, state, true);
   const secrets = environment(state);
+  let phase = 'ports', resource = 'postgres';
   try {
-    await assertFree(PG_PORT); await assertFree(S3_PORT);
-    docker(['pull', '--platform', 'linux/amd64', PG_IMAGE], {}, 180000);
-    docker(['pull', '--platform', 'linux/amd64', MINIO_IMAGE], {}, 180000);
-    for (const item of state.resources) createContainer(ctx, state, item, secrets.docker);
-    for (const item of state.resources) await ready(ctx, state, item);
+    await assertFree(PG_PORT);
+    resource = 'minio'; await assertFree(S3_PORT);
+    phase = 'image-pull';
+    for (const item of state.resources) { resource = item.kind; docker(['pull', '--platform', 'linux/amd64', item.image], {}, 180000); }
+    phase = 'creation';
+    for (const item of state.resources) { resource = item.kind; createContainer(ctx, state, item, secrets.docker); }
+    phase = 'readiness';
+    for (const item of state.resources) { resource = item.kind; await ready(ctx, state, item); }
+    phase = 'databases'; resource = 'postgres';
     prepareDatabases(state.resources[0]);
+    phase = 'buckets'; resource = 'minio';
     await prepareBuckets(ctx, state, secrets.values);
     secrets.values.TEST_FINANCE_PG_CONTAINER_ID = state.resources[0].containerId;
+    phase = 'export'; resource = 'none';
     exportEnvironment(ctx, secrets.values);
     process.stdout.write('Recursos Finance CI propios y privados preparados: dos contenedores efímeros.\n');
-  } catch {
+  } catch (error) {
+    const diagnostic = failureDiagnostic(phase, resource, error);
     try { await cleanup(ctx); }
-    catch { throw new ResourcesError('Preparación CI falló y cleanup requiere revisión del ownership propio.'); }
-    throw new ResourcesError('Preparación CI falló; recursos propios retirados sin reutilizar servicios.');
+    catch (cleanupError) {
+      const cleanupDiagnostic = failureDiagnostic('cleanup', cleanupError instanceof ResourcesError ? cleanupError.details.resource : 'none', cleanupError);
+      throw new ResourcesError('Preparación CI falló y cleanup requiere revisión del ownership propio.', { ...diagnostic, cleanup: { status: 'failed', ...cleanupDiagnostic } });
+    }
+    throw new ResourcesError('Preparación CI falló; recursos propios retirados sin reutilizar servicios.', { ...diagnostic, cleanup: { status: 'complete' } });
   }
 }
 async function main() {
@@ -312,5 +376,7 @@ async function main() {
 if (require.main === module) main().catch(error => {
   // Nunca imprimir args, URLs, inspection, objetos SDK ni stack con credenciales.
   process.stderr.write((error instanceof ResourcesError ? error.message : 'Falló el control de recursos Finance CI propios.') + '\n');
+  const details = error instanceof ResourcesError ? error.details : {};
+  process.stderr.write('Diagnóstico seguro CI: ' + JSON.stringify(failureDiagnostic(details.phase ?? (process.argv[2] === 'cleanup' ? 'cleanup' : 'context'), details.resource, error)) + '\n');
   process.exitCode = 1;
 });

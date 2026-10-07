@@ -2,6 +2,12 @@
 
 Última actualización: 2026-10-07
 
+## Seguimiento de CI de PR102 — 7 de octubre de 2026
+
+[PR102](https://github.com/Manuetg/TOP-Platform/pull/102) continúa Draft en `finance/v1-operational`, sin autorización de merge por el agente. HEAD inicial comprobado local/remoto: `c5c79c4388ed43c68384fdd97ab41fdbb7501d8f`, checkout limpio. [Frontend CI 37683621017](https://github.com/Manuetg/TOP-Platform/actions/runs/37683621017) SUCCESS, incluidas sus 1452 pruebas; este resultado remoto se distingue del fallo local y retry aislado conservados abajo. [Backend CI 37683621019](https://github.com/Manuetg/TOP-Platform/actions/runs/37683621019) FAILURE durante `Prepare own Finance CI resources`, antes de generar/migrar o ejecutar tests; cleanup SUCCESS y mutation SKIPPED. No se atribuye ese fallo a los tests backend.
+
+Se añade diagnóstico seguro por fase/recurso del helper: puertos, descarga de imágenes, creación, readiness, bases, buckets y exportación. Operación Docker, código de salida, señal, código de error y clasificación se limitan a enums/números; nunca se imprimen args, credenciales, stdout/stderr, objetos SDK, inspect ni mensajes externos. La causa primaria y el resultado de cleanup se conservan por separado. Las comprobaciones de propiedad, topología, privacidad y eliminación por ID completo permanecen obligatorias; los tests aislados se ejecutan antes de preparar recursos. El siguiente CI de la misma PR debe identificar la causa real. Mutación sigue diferida; no se usa workflow_dispatch.
+
 ## Preparación de PR de Finanzas hacia develop — 7 de octubre de 2026
 
 La publicación de `finance/v1-operational` y su PR Draft hacia `develop` están autorizadas. El usuario conserva el merge. La lectura remota del 07/10 confirma que [PR101](https://github.com/Manuetg/TOP-Platform/pull/101) fue fusionada y que `develop` está en `9332fa6b6750c0dd326d0b69df24d0ba0725d8b9`. Su árbol `28434d484dd9013939f205fa15557de20cb1e84b` coincide con la base Finance `99a51148cc12839cdc1bea3ed303961ffd27698c`: la dependencia quedó resuelta sin cambiar las fuentes funcionales. Las lecturas del 05/10 conservadas abajo son históricas.

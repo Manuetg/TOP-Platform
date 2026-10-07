@@ -22,6 +22,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: backend/package-lock.json }
       - run: npm ci
+      - name: Test safe Finance CI diagnostics
+        run: node --test ../scripts/qa/Finance-CI-Resources.test.cjs
       - name: Prepare own Finance CI resources
         run: node ../scripts/qa/Finance-CI-Resources.cjs start
       - run: npx prisma generate
