@@ -587,16 +587,6 @@ function ResourceDetailContent() {
             </div>
           </dl>
         </article>
-      {activeBusiness ? (
-        <ResourceAvailabilityCalendar
-          businessId={activeBusiness.id}
-          resourceId={resource.id}
-          resourceName={resource.name}
-          timezone={activeBusiness.timezone}
-          accessToken={session?.accessToken}
-        />
-      ) : null}
-
         <article className="resource-detail-card resource-detail-media-card">
           <h2>Fotos</h2>
           <div className="resource-detail-media">
@@ -788,7 +778,15 @@ function ResourceDetailContent() {
           />
         </article>
 
-
+      {activeBusiness ? (
+        <ResourceAvailabilityCalendar
+          businessId={activeBusiness.id}
+          resourceId={resource.id}
+          resourceName={resource.name}
+          timezone={activeBusiness.timezone}
+          accessToken={session?.accessToken}
+        />
+      ) : null}
       </div>
 
       {resource.status !== "ACTIVE" ? <p className="resource-detail-operational-note">{resource.status === "ARCHIVED" ? "Este recurso está archivado. Puedes consultar su información y su agenda." : "Este recurso está fuera de servicio. La disponibilidad se consulta para un rango de fechas."}</p> : null}

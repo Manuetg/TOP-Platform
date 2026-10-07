@@ -18,11 +18,11 @@
 
 .resource-list-header h1 {
   margin: 0;
-  color: var(--color-text-primary);
-  font-size: clamp(1.75rem, 3vw, 2.125rem);
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.025em;
+  color: var(--color-brand-deep);
+  font-size: var(--font-page-title);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.035em;
 }
 
 .resource-list-header__eyebrow {
@@ -52,14 +52,11 @@
 
 .resource-list-filters {
   display: grid;
-  grid-template-columns:
-    minmax(280px, 360px)
-    minmax(150px, 170px)
-    auto;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 200px) auto;
   align-items: end;
-  gap: var(--space-6);
-  padding: var(--space-4) var(--space-5);
-  background: var(--color-surface);
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
@@ -86,7 +83,7 @@
   padding-inline: var(--space-3);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   transition: border-color var(--motion-fast) var(--motion-state),
     box-shadow var(--motion-fast) var(--motion-state);
 }
@@ -94,7 +91,7 @@
 .resource-list-filters__search-control:focus-within {
   border-color: var(--color-brand-primary);
   box-shadow: 0 0 0 3px
-    rgb(21 92 76 / 12%);
+    color-mix(in srgb, var(--color-brand-primary) 12%, transparent);
 }
 
 .resource-list-filters__search-control svg {
@@ -111,7 +108,7 @@
   border: 0;
   outline: 0;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: 16px;
 }
 
 .resource-list-filters__search-control input:focus,
@@ -134,14 +131,14 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: 16px;
 }
 
 .resource-list-filters__status select:focus-visible {
   border-color: var(--color-brand-primary);
   outline: none;
   box-shadow: 0 0 0 3px
-    rgb(21 92 76 / 12%);
+    color-mix(in srgb, var(--color-brand-primary) 12%, transparent);
 }
 
 .resource-list-filters__clear {
@@ -156,13 +153,13 @@
 
 .resource-list-filters__clear:hover {
   color: var(--color-brand-primary);
-  background: rgb(21 92 76 / 6%);
+  background: color-mix(in srgb, var(--color-brand-primary) 6%, transparent);
   border-color: transparent;
 }
 
 .resource-list-filters__clear:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgb(21 92 76 / 12%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-primary) 12%, transparent);
 }
 
 .resource-list-summary {
@@ -174,7 +171,7 @@
 
 .resource-list-items {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   gap: var(--space-5);
 }
 
@@ -192,15 +189,15 @@
 }
 
 .resource-list-card:hover {
-  border-color: rgb(21 92 76 / 24%);
-  box-shadow: 0 5px 18px rgb(23 32 29 / 6%);
+  border-color: color-mix(in srgb, var(--color-brand-primary) 24%, transparent);
+  box-shadow: var(--shadow-1);
   transform: translateY(-1px);
 }
 
 .resource-list-card:focus-within {
   border-color: var(--color-brand-primary);
   box-shadow: 0 0 0 3px
-    rgb(21 92 76 / 12%);
+    color-mix(in srgb, var(--color-brand-primary) 12%, transparent);
 }
 
 .resource-list-card__link {
@@ -218,10 +215,10 @@
 }
 
 .resource-list-card__media {
-  height: 174px;
-  margin: var(--space-3);
+  height: 190px;
+  margin: var(--space-4);
   overflow: hidden;
-  background: rgb(21 92 76 / 8%);
+  background: var(--color-action-soft);
   border-radius: var(--radius-md);
 }
 
@@ -240,7 +237,7 @@
   width: 100%;
   height: 100%;
   color: var(--color-text-secondary);
-  background: rgb(21 92 76 / 7%);
+  background: color-mix(in srgb, var(--color-brand-primary) 7%, transparent);
 }
 
 .resource-list-card__illustration {
@@ -264,9 +261,9 @@
   margin: 0;
   overflow: hidden;
   color: var(--color-text-primary);
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.35;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -287,6 +284,8 @@
   justify-content: space-between;
   gap: var(--space-3);
   margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
 }
 
 .resource-list-card__status {
@@ -298,22 +297,22 @@
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .resource-list-card__status--active {
-  color: #155c4c;
-  background: #eaf4ee;
+  color: var(--color-brand-primary);
+  background: var(--color-action-soft);
 }
 
 .resource-list-card__status--out_of_service {
-  color: #a64f30;
-  background: #f7efe8;
+  color: var(--color-warning);
+  background: var(--color-warning-action-soft);
 }
 
 .resource-list-card__status--archived {
-  color: #8a4c4c;
-  background: #f7eaea;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-muted);
 }
 
 .resource-list-card__chevron {
@@ -377,7 +376,7 @@
   width: 56px;
   height: 56px;
   color: var(--color-brand-primary);
-  background: rgb(21 92 76 / 7%);
+  background: color-mix(in srgb, var(--color-brand-primary) 7%, transparent);
   border-radius: var(--radius-lg);
 }
 
@@ -404,8 +403,8 @@
 .resource-list-error {
   padding: var(--space-4);
   color: var(--color-error);
-  background: rgb(180 35 24 / 5%);
-  border: 1px solid rgb(180 35 24 / 18%);
+  background: color-mix(in srgb, var(--color-error) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-error) 18%, transparent);
   border-radius: var(--radius-md);
 }
 
@@ -435,9 +434,9 @@
   min-height: 28px;
   padding: 5px 10px;
   color: var(--color-brand-primary);
-  background: rgb(21 92 76 / 7%);
-  border: 1px solid rgb(21 92 76 / 12%);
-  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-brand-primary) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-primary) 12%, transparent);
+  border-radius: var(--radius-pill);
   font-size: 0.72rem;
   font-weight: 600;
   line-height: 1;
@@ -474,17 +473,17 @@
 
   .resource-list-items {
     display: flex;
-    gap: 0;
+    gap: var(--space-3);
     width: calc(100% + 32px);
     margin-inline: -16px;
     padding:
       10px
-      max(9vw, 34px)
-      28px;
+      16px
+      var(--space-5);
     overflow-x: auto;
     overflow-y: visible;
     scroll-snap-type: x mandatory;
-    scroll-padding-inline: max(9vw, 34px);
+    scroll-padding-inline: 16px;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -498,34 +497,30 @@
     position: relative;
     flex:
       0 0
-      min(78vw, 330px);
+      min(84vw, 360px);
     scroll-snap-align: center;
     scroll-snap-stop: always;
-    transform:
-      translateY(10px)
-      scale(0.92);
+    transform: none;
     transform-origin: center center;
-    opacity: 0.72;
+    opacity: 1;
     transition: transform var(--motion-slow)
         var(--motion-enter),
       opacity var(--motion-base) var(--motion-state);
   }
 
   .resource-list-deck-item + .resource-list-deck-item {
-    margin-left: -30px;
+    margin-left: 0;
   }
 
   .resource-list-deck-item--active {
     z-index: 3;
-    transform:
-      translateY(0)
-      scale(1);
+    transform: none;
     opacity: 1;
   }
 
   .resource-list-deck-item--active
     .resource-list-card {
-    border-color: rgb(21 92 76 / 18%);
+    border-color: color-mix(in srgb, var(--color-brand-primary) 18%, transparent);
   }
 
   .resource-list-card {
@@ -571,9 +566,9 @@
     min-height: 26px;
     padding: 5px 9px;
     color: var(--color-brand-primary);
-    background: rgb(21 92 76 / 7%);
-    border: 1px solid rgb(21 92 76 / 10%);
-    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-brand-primary) 7%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-brand-primary) 10%, transparent);
+    border-radius: var(--radius-pill);
     font-size: 0.68rem;
     font-weight: 600;
     line-height: 1;

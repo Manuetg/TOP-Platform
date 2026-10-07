@@ -32,7 +32,7 @@
 }
 
 .resource-edit-back:focus-visible {
-  outline: var(--focus-ring);
+  outline: 2px solid var(--color-brand-primary);
   outline-offset: 3px;
 }
 
@@ -55,7 +55,7 @@
   height: 44px;
   padding: 0;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   color: var(--color-text-secondary);
   background: var(--color-surface);
   cursor: pointer;
@@ -67,21 +67,21 @@
 .resource-edit-close:hover {
   color: var(--color-brand-primary);
   border-color: var(--color-brand-primary);
-  background: rgb(21 92 76 / 6%);
+  background: color-mix(in srgb, var(--color-brand-primary) 6%, transparent);
 }
 
 .resource-edit-close:focus-visible {
-  outline: var(--focus-ring);
+  outline: 2px solid var(--color-brand-primary);
   outline-offset: 3px;
 }
 
 .resource-edit-header h1 {
   margin: 0;
-  color: var(--color-text-primary);
-  font-size: clamp(1.75rem, 3vw, 2.125rem);
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.025em;
+  color: var(--color-brand-deep);
+  font-size: var(--font-page-title);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.035em;
 }
 
 .resource-edit-header p {
@@ -123,9 +123,9 @@
 .resource-edit-section__header h2 {
   margin: 0;
   color: var(--color-text-primary);
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1.35;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
 }
 
 .resource-edit-section__header p {
@@ -179,7 +179,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: 16px;
   transition: border-color var(--motion-fast) var(--motion-state),
     box-shadow var(--motion-fast) var(--motion-state);
 }
@@ -206,7 +206,7 @@
   border-color: var(--color-brand-primary);
   outline: none;
   box-shadow: 0 0 0 3px
-    rgb(21 92 76 / 12%);
+    color-mix(in srgb, var(--color-brand-primary) 12%, transparent);
 }
 
 .resource-edit-field input[aria-invalid="true"],
@@ -227,8 +227,8 @@
 .resource-edit-error {
   padding: var(--space-4);
   color: var(--color-error);
-  background: rgb(180 35 24 / 5%);
-  border: 1px solid rgb(180 35 24 / 18%);
+  background: color-mix(in srgb, var(--color-error) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-error) 18%, transparent);
   border-radius: var(--radius-md);
   font-size: 0.82rem;
   line-height: 1.5;
@@ -253,7 +253,7 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-5) var(--space-6);
-  background: rgb(0 0 0 / 1.5%);
+  background: var(--color-surface-muted);
   border-top: 1px solid var(--color-border);
 }
 

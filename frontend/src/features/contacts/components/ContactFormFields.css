@@ -14,7 +14,7 @@
   padding-inline: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-background);
+  background: var(--color-surface-muted);
   color: var(--color-text-secondary);
   font-size: 16px;
   line-height: 24px;
