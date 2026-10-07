@@ -20,7 +20,7 @@ const CTX = {
 };
 const EXPORTS = `
 module.exports = { ResourcesError, failureDiagnostic, context, descriptor, labels,
-  dockerResult, docker, attest, cleanupOne, cleanup, start, main, ready, assertFree,
+  dockerResult, docker, attest, cleanupOne, cleanup, start, main, ready, assertFree, prepareBuckets,
   minioArchive, buildMinioImage, MINIO_BINARY_SHA, MINIO_BINARY_SIZE, MINIO_BINARY_URL,
   replace(values) {
     if (values.persist) persist = values.persist;
@@ -82,6 +82,7 @@ function fixture(options = {}) {
         : { status: 0, signal: null, stdout: '', stderr: '' };
     } },
     'node:module': { createRequire: () => () => {
+      if (options.sdk) return options.sdk;
       throw new Error('El fixture debe simular explícitamente SDK S3.');
     } },
     'node:timers/promises': { setTimeout: async value => { now += value; } },
@@ -548,3 +549,182 @@ test('cleanup MinIO rechaza ID de imagen diferente pese a nombre, tag y labels p
   assert.ok(f.files.has(item.cidFile));
   assert.ok(f.commands.every(command => command.args[0] === 'inspect'));
 });
+
+function bucketsFixture(fault, aclOverride) {
+  const sent = [], requests = [];
+  let destroyed = 0, cancelled = 0;
+  const command = type => class { constructor(input) { this.type = type; this.input = input; } };
+  const sdk = {
+    S3Client: class {
+      async send(item) {
+        sent.push(item);
+        if (fault === 'sdk' && item.type === 'CreateBucketCommand') {
+          throw Object.assign(new Error(CANARY), { name: 'AccessDenied',
+            $metadata: { httpStatusCode: 403, requestId: CANARY }, response: CANARY });
+        }
+        if (item.type === 'GetBucketAclCommand') return aclOverride ?? {
+          Owner: { ID: 'synthetic-owner' },
+          Grants: [{ Grantee: fault === 'acl' ? { Type: 'CanonicalUser', URI: CANARY }
+            : { Type: 'CanonicalUser', ID: 'synthetic-owner' },
+            Permission: 'FULL_CONTROL' }],
+          extraMetadata: CANARY,
+        };
+        if (item.type === 'GetBucketPolicyCommand') {
+          if (fault === 'policy') return { Policy: CANARY };
+          throw Object.assign(new Error(CANARY), { name: 'NoSuchBucketPolicy' });
+        }
+        if (item.type === 'HeadObjectCommand') return { Metadata: {
+          owner: fault === 'sentinel' ? CANARY : OWNER, purpose: 'fin032-synthetic-test', raw: CANARY,
+        } };
+        return {};
+      }
+      destroy() { destroyed += 1; }
+    },
+    ...Object.fromEntries(['CreateBucketCommand', 'PutObjectCommand', 'GetBucketAclCommand',
+      'GetBucketPolicyCommand', 'HeadObjectCommand'].map(name => [name, command(name)])),
+  };
+  const f = fixture({ sdk, fetch: async url => {
+    requests.push(url);
+    return { status: fault === 'anonymous' ? 200 : 403,
+      body: { cancel: async () => { cancelled += 1; } }, headers: { raw: CANARY } };
+  } });
+  const values = { S3_ENDPOINT: 'http://fake.invalid/' + CANARY, S3_REGION: 'us-east-1',
+    S3_ACCESS_KEY: CANARY, S3_SECRET_KEY: CANARY,
+    TEST_FINANCE_S3_BUCKET: 'private-source-' + CANARY,
+    TEST_FINANCE_S3_RESTORE_BUCKET: 'private-restore-' + CANARY };
+  return { f, values, sent, requests, destroyed: () => destroyed, cancelled: () => cancelled };
+}
+
+for (const [fault, reason] of [
+  ['acl', 'bucket-acl-not-private'], ['policy', 'bucket-policy-present'],
+  ['sentinel', 'bucket-sentinel-mismatch'], ['anonymous', 'bucket-anonymous-status'],
+]) {
+  test(`prepareBuckets real rechaza ${reason} con diagnóstico cerrado y destruye cliente`, async () => {
+    const b = bucketsFixture(fault), state = owned(b.f);
+    await assert.rejects(b.f.api.prepareBuckets(CTX, state, b.values), error => {
+      assert.ok(error instanceof b.f.api.ResourcesError);
+      const diagnostic = plain(b.f.api.failureDiagnostic('buckets', 'minio', error));
+      assert.deepEqual(diagnostic, { phase: 'buckets', resource: 'minio', operation: null,
+        exitCode: null, errorCode: null, signal: null, reason,
+        httpStatus: fault === 'anonymous' ? 200 : null });
+      assert.ok(!JSON.stringify({ message: error.message, diagnostic }).includes(CANARY));
+      return true;
+    });
+    assert.equal(b.destroyed(), 1);
+    assert.equal(b.f.commands.length, 0);
+    assert.equal(b.f.output.stdout + b.f.output.stderr, '');
+  });
+}
+
+test('prepareBuckets real valida ambos buckets privados, marcador y denegación anónima', async () => {
+  const b = bucketsFixture(), state = owned(b.f);
+  await b.f.api.prepareBuckets(CTX, state, b.values);
+  assert.equal(b.destroyed(), 1);
+  assert.equal(b.cancelled(), 2);
+  assert.equal(b.requests.length, 2);
+  assert.equal(b.sent.length, 10);
+  for (const bucket of [b.values.TEST_FINANCE_S3_BUCKET, b.values.TEST_FINANCE_S3_RESTORE_BUCKET]) {
+    const commands = b.sent.filter(item => item.input.Bucket === bucket);
+    assert.deepEqual(commands.map(item => item.type), [
+      'CreateBucketCommand', 'PutObjectCommand', 'GetBucketAclCommand',
+      'GetBucketPolicyCommand', 'HeadObjectCommand',
+    ]);
+    const marker = commands[1].input;
+    assert.equal(marker.ACL, 'private');
+    assert.equal(marker.Key, 'qa-owned/' + OWNER);
+    assert.deepEqual(plain(marker.Metadata), { owner: OWNER, purpose: 'fin032-synthetic-test' });
+  }
+  assert.equal(b.f.commands.length, 0);
+  assert.equal(b.f.output.stdout + b.f.output.stderr, '');
+});
+
+test('prepareBuckets real propaga AccessDenied saneable y destruye cliente sin copiar metadata SDK', async () => {
+  const b = bucketsFixture('sdk'), state = owned(b.f);
+  await assert.rejects(b.f.api.prepareBuckets(CTX, state, b.values), error => {
+    const diagnostic = plain(b.f.api.failureDiagnostic('buckets', 'minio', error));
+    assert.equal(diagnostic.errorCode, 'AccessDenied');
+    assert.equal(diagnostic.httpStatus, 403);
+    assert.equal(diagnostic.reason, 'external-error');
+    assert.ok(!JSON.stringify(diagnostic).includes(CANARY));
+    return true;
+  });
+  assert.equal(b.destroyed(), 1);
+  assert.equal(b.f.commands.length, 0);
+  assert.equal(b.f.output.stdout + b.f.output.stderr, '');
+});
+
+for (const [ownerId, granteeId] of [['', undefined], [undefined, ''], ['', ''], [undefined, undefined]]) {
+  test(`ACL MinIO privada admite IDs equivalentes ausentes/vacíos ${String(ownerId)}/${String(granteeId)}`, async () => {
+    // Forma que entrega el SDK para el XML dummy privado de MinIO: Owner.ID vacío,
+    // CanonicalUser sin ID, un único FULL_CONTROL y ningún URI público.
+    const acl = { Owner: { ID: ownerId, DisplayName: '' }, Grants: [{
+      Grantee: { ID: granteeId, Type: 'CanonicalUser' }, Permission: 'FULL_CONTROL',
+    }] };
+    const b = bucketsFixture(undefined, acl);
+    await b.f.api.prepareBuckets(CTX, owned(b.f), b.values);
+    assert.equal(b.cancelled(), 2);
+    assert.equal(b.destroyed(), 1);
+    assert.equal(b.f.commands.length, 0);
+  });
+}
+
+for (const [ownerId, granteeId] of [['owner-presente', undefined], [undefined, 'grantee-presente'],
+  ['owner-presente', 'grantee-diferente']]) {
+  test(`ACL MinIO privada rechaza IDs realmente distintos ${String(ownerId)}/${String(granteeId)}`, async () => {
+    const acl = { Owner: { ID: ownerId }, Grants: [{
+      Grantee: { ID: granteeId, Type: 'CanonicalUser' }, Permission: 'FULL_CONTROL',
+    }] };
+    const b = bucketsFixture(undefined, acl);
+    await assert.rejects(b.f.api.prepareBuckets(CTX, owned(b.f), b.values), error => {
+      const diagnostic = b.f.api.failureDiagnostic('buckets', 'minio', error);
+      assert.equal(diagnostic.reason, 'bucket-acl-not-private');
+      return true;
+    });
+    assert.equal(b.destroyed(), 1);
+    assert.equal(b.requests.length, 0);
+    assert.equal(b.f.commands.length, 0);
+  });
+}
+
+for (const [name, grants] of [
+  ['más de un grant', [
+    { Grantee: { Type: 'CanonicalUser', ID: '' }, Permission: 'FULL_CONTROL' },
+    { Grantee: { Type: 'CanonicalUser', ID: '' }, Permission: 'FULL_CONTROL' },
+  ]],
+  ['permiso READ', [{ Grantee: { Type: 'CanonicalUser', ID: '' }, Permission: 'READ' }]],
+  ['URI público', [{ Grantee: { Type: 'CanonicalUser', ID: '', URI: CANARY }, Permission: 'FULL_CONTROL' }]],
+]) {
+  test(`normalizar IDs ACL no admite ${name}`, async () => {
+    const b = bucketsFixture(undefined, { Owner: { ID: '' }, Grants: grants });
+    await assert.rejects(b.f.api.prepareBuckets(CTX, owned(b.f), b.values), error => {
+      const diagnostic = b.f.api.failureDiagnostic('buckets', 'minio', error);
+      assert.equal(diagnostic.reason, 'bucket-acl-not-private');
+      assert.ok(!JSON.stringify(diagnostic).includes(CANARY));
+      return true;
+    });
+    assert.equal(b.destroyed(), 1);
+    assert.equal(b.f.commands.length, 0);
+  });
+}
+
+for (const [name, owner, grantee] of [
+  ['Group', { ID: '' }, { Type: 'Group', ID: '' }],
+  ['Type ausente', { ID: '' }, { ID: '' }],
+  ['EmailAddress', { ID: '' }, { Type: 'CanonicalUser', ID: '', EmailAddress: CANARY }],
+  ['Owner ausente', undefined, { Type: 'CanonicalUser', ID: '' }],
+  ['ID owner numérico', { ID: 1 }, { Type: 'CanonicalUser', ID: '1' }],
+  ['ID grantee numérico', { ID: '1' }, { Type: 'CanonicalUser', ID: 1 }],
+]) {
+  test(`ACL MinIO rechaza ${name} al conservar el contrato privado`, async () => {
+    const b = bucketsFixture(undefined, { Owner: owner,
+      Grants: [{ Grantee: grantee, Permission: 'FULL_CONTROL' }] });
+    await assert.rejects(b.f.api.prepareBuckets(CTX, owned(b.f), b.values), error => {
+      const diagnostic = b.f.api.failureDiagnostic('buckets', 'minio', error);
+      assert.equal(diagnostic.reason, 'bucket-acl-not-private');
+      assert.ok(!JSON.stringify(diagnostic).includes(CANARY));
+      return true;
+    });
+    assert.equal(b.destroyed(), 1);
+    assert.equal(b.f.commands.length, 0);
+  });
+}

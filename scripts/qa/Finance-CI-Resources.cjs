@@ -37,7 +37,8 @@ const ERROR_CODES = ['ENOENT', 'EACCES', 'EPERM', 'ETIMEDOUT', 'ENOBUFS', 'EADDR
   'AuthorizationHeaderMalformed', 'RequestTimeout', 'ServiceUnavailable', 'SlowDown', 'TimeoutError', 'AbortError'];
 const SIGNALS = ['SIGTERM', 'SIGKILL', 'SIGINT', 'SIGABRT', 'SIGSEGV'];
 const REASONS = ['docker-failed', 'manifest-unknown', 'image-unavailable', 'platform-unavailable', 'daemon-unavailable',
-  'permission-denied', 'port-in-use', 'read-only-filesystem', 'rate-limited', 'readiness-timeout', 'guard-rejected', 'external-error'];
+  'permission-denied', 'port-in-use', 'read-only-filesystem', 'rate-limited', 'readiness-timeout', 'guard-rejected', 'external-error',
+  'bucket-acl-not-private', 'bucket-policy-present', 'bucket-sentinel-mismatch', 'bucket-anonymous-status'];
 const permitted = (value, choices, fallback = null) => choices.includes(value) ? value : fallback;
 function failureDiagnostic(phase, resource, error) {
   const details = error instanceof ResourcesError ? error.details : {};
@@ -323,15 +324,20 @@ async function prepareBuckets(ctx, state, values) {
       await client.send(new sdk.PutObjectCommand({ Bucket: bucket, Key: key, Body: Buffer.from('Owned synthetic TOP Finance CI private marker'),
         ACL: 'private', Metadata: { owner: state.ownerId, purpose: 'fin032-synthetic-test' } }));
       const acl = await client.send(new sdk.GetBucketAclCommand({ Bucket: bucket }));
-      if (acl.Grants?.length !== 1 || acl.Grants[0].Grantee?.URI || acl.Grants[0].Permission !== 'FULL_CONTROL'
-        || acl.Grants[0].Grantee?.ID !== acl.Owner?.ID) throw new ResourcesError('Bucket CI no conserva ACL privada del dueño.');
-      try { await client.send(new sdk.GetBucketPolicyCommand({ Bucket: bucket })); throw new ResourcesError('Bucket CI tiene una policy inesperada.'); }
+      const grantee = acl.Grants?.[0]?.Grantee;
+      // MinIO fijado devuelve ACL dummy: Owner.ID vacío y Grantee.ID omitido.
+      // Sólo normalizar esas ausencias; un ID presente debe coincidir exactamente.
+      const ownerId = acl.Owner?.ID ?? '', granteeId = grantee?.ID ?? '';
+      if (acl.Grants?.length !== 1 || !acl.Owner || grantee?.Type !== 'CanonicalUser' || grantee.URI || grantee.EmailAddress
+        || acl.Grants[0].Permission !== 'FULL_CONTROL' || typeof ownerId !== 'string' || typeof granteeId !== 'string'
+        || granteeId !== ownerId) throw new ResourcesError('Bucket CI no conserva ACL privada del dueño.', { reason: 'bucket-acl-not-private' });
+      try { await client.send(new sdk.GetBucketPolicyCommand({ Bucket: bucket })); throw new ResourcesError('Bucket CI tiene una policy inesperada.', { reason: 'bucket-policy-present' }); }
       catch (error) { if (error.name !== 'NoSuchBucketPolicy') throw error; }
       const marker = await client.send(new sdk.HeadObjectCommand({ Bucket: bucket, Key: key }));
-      if (marker.Metadata?.owner !== state.ownerId || marker.Metadata?.purpose !== 'fin032-synthetic-test') throw new ResourcesError('Sentinel de ownership S3 incorrecto.');
+      if (marker.Metadata?.owner !== state.ownerId || marker.Metadata?.purpose !== 'fin032-synthetic-test') throw new ResourcesError('Sentinel de ownership S3 incorrecto.', { reason: 'bucket-sentinel-mismatch' });
       const anonymous = await fetch(values.S3_ENDPOINT + '/' + bucket + '/' + key, { signal: AbortSignal.timeout(5000) });
       await anonymous.body?.cancel();
-      if (anonymous.status !== 403) throw new ResourcesError('Sentinel S3 admite lectura anónima.');
+      if (anonymous.status !== 403) throw new ResourcesError('Sentinel S3 no devolvió la denegación anónima esperada.', { reason: 'bucket-anonymous-status', httpStatus: anonymous.status });
     }
   } finally { client.destroy(); }
 }
