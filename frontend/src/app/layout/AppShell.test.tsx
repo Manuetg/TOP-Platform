@@ -2,12 +2,16 @@ import { QueryProvider } from "../providers/QueryProvider";
 import type { ReactElement } from "react";
 import { act, render as rtlRender, screen, waitForElementToBeRemoved, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, vi } from "vitest";
 import { AppShell } from "./AppShell";
 
 describe("AppShell", () => {
-  beforeEach(() => localStorage.clear());
-  afterEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ x: 100, y: 20, top: 20, left: 100, right: 300, bottom: 64, width: 200, height: 44, toJSON: () => ({}) });
+  });
+  afterEach(() => { localStorage.clear(); vi.restoreAllMocks(); });
 
   it("starts with an expanded desktop sidebar when no preference exists", () => {
     render(<AppShell activeSection="home" businessName="Tobera" userName="Jeni" userRole="Propietaria"><div /></AppShell>);
@@ -63,6 +67,107 @@ describe("AppShell", () => {
     expect(screen.getByText("Jeni")).toBeInTheDocument();
     expect(screen.getByText("Propietaria")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Contenido" })).toBeInTheDocument();
+  });
+
+  it.each(["user", "leaf", "sun", "mountain"] as const)(
+    "shows the %s avatar in the desktop, mobile and profile panel slots",
+    async (avatarId) => {
+      const user = userEvent.setup();
+      render(<AppShell activeSection="home" businessName="Tobera" userName="Jeni" userRole="Propietaria" userAvatarId={avatarId}><div /></AppShell>);
+
+      const desktopHeader = document.querySelector(".top-global-header") as HTMLElement;
+      const mobileHeader = document.querySelector(".top-mobile-header") as HTMLElement;
+      const desktopTrigger = within(desktopHeader).getByRole("button", { name: "Abrir perfil" });
+      const mobileTrigger = within(mobileHeader).getByRole("button", { name: "Abrir perfil" });
+
+      expect(desktopTrigger.querySelector("[data-profile-avatar]")).toHaveAttribute("data-profile-avatar", avatarId);
+      expect(mobileTrigger.querySelector("[data-profile-avatar]")).toHaveAttribute("data-profile-avatar", avatarId);
+      expect(desktopTrigger).toHaveAttribute("aria-haspopup", "dialog");
+      expect(mobileTrigger).toHaveAttribute("aria-haspopup", "dialog");
+
+      await user.click(desktopTrigger);
+      const panel = screen.getByRole("dialog", { name: "Panel del encabezado" });
+      expect(panel.querySelector(".top-header-popover__avatar [data-profile-avatar]")).toHaveAttribute("data-profile-avatar", avatarId);
+      expect(within(panel).getByRole("button", { name: "Configuración" })).toBeInTheDocument();
+    },
+  );
+
+  it.each([null, undefined])(
+    "keeps initials in every avatar slot when the supplied avatar is %s",
+    async (avatarId) => {
+      const user = userEvent.setup();
+      render(<AppShell activeSection="home" businessName="Tobera" userName="Jeni" userRole="Propietaria" userAvatarId={avatarId}><div /></AppShell>);
+
+      const desktopHeader = document.querySelector(".top-global-header") as HTMLElement;
+      const mobileHeader = document.querySelector(".top-mobile-header") as HTMLElement;
+      const desktopTrigger = within(desktopHeader).getByRole("button", { name: "Abrir perfil" });
+      const mobileTrigger = within(mobileHeader).getByRole("button", { name: "Abrir perfil" });
+      expect(desktopTrigger.querySelector(".top-global-header__avatar")).toHaveTextContent(/^J$/);
+      expect(mobileTrigger.querySelector('span[aria-hidden="true"]')).toHaveTextContent(/^J$/);
+
+      await user.click(mobileTrigger);
+      const panel = screen.getByRole("dialog", { name: "Panel del encabezado" });
+      expect(panel.querySelector(".top-header-popover__avatar")).toHaveTextContent(/^J$/);
+      expect(document.querySelector("[data-profile-avatar]")).not.toBeInTheDocument();
+    },
+  );
+
+  it.each([
+    ["desktop", ".top-global-header", 64],
+    ["mobile", ".top-mobile-header", 116],
+  ] as const)(
+    "anchors the avatar panel to its %s trigger and restores that trigger on Escape",
+    async (_viewport, headerSelector, anchorBottom) => {
+      const user = userEvent.setup();
+      render(<AppShell activeSection="home" businessName="Tobera" userName="Jeni" userRole="Propietaria" userAvatarId="leaf"><div /></AppShell>);
+      const header = document.querySelector(headerSelector) as HTMLElement;
+      const trigger = within(header).getByRole("button", { name: "Abrir perfil" });
+      const measureAnchor = vi.mocked(HTMLElement.prototype.getBoundingClientRect).mockImplementation(function (this: HTMLElement) {
+        const bottom = this === trigger ? anchorBottom : 64;
+        return {
+          x: 100, y: bottom - 44, top: bottom - 44, left: 100,
+          right: 300, bottom, width: 200, height: 44, toJSON: () => ({}),
+        };
+      });
+
+      await user.click(trigger);
+      const panel = screen.getByRole("dialog", { name: "Panel del encabezado" });
+      expect(measureAnchor.mock.contexts).toContain(trigger);
+      expect(panel).toHaveStyle({ position: "fixed", top: `${anchorBottom + 8}px` });
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+      expect(panel).toHaveFocus();
+
+      await user.tab();
+      expect(within(panel).getByRole("button", { name: "Cerrar panel del encabezado" })).toHaveFocus();
+      await user.keyboard("{Escape}");
+      expect(screen.queryByRole("dialog", { name: "Panel del encabezado" })).not.toBeInTheDocument();
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(trigger).toHaveFocus();
+    },
+  );
+
+  it("receives avatar changes through props without requesting or querying the personal profile", async () => {
+    const user = userEvent.setup();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const request = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Unexpected avatar request"));
+    const shell = (avatarId: "leaf" | "sun" | null) => (
+      <QueryClientProvider client={client}>
+        <AppShell activeSection="home" businessName="Tobera" userName="Jeni" userRole="Propietaria" userAvatarId={avatarId}><div /></AppShell>
+      </QueryClientProvider>
+    );
+    const view = rtlRender(shell("leaf"));
+
+    await user.click(screen.getAllByRole("button", { name: "Abrir perfil" })[0]);
+    view.rerender(shell("sun"));
+    expect(document.querySelectorAll('[data-profile-avatar="sun"]')).toHaveLength(3);
+    view.rerender(shell(null));
+    expect(document.querySelector("[data-profile-avatar]")).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Panel del encabezado" }).querySelector(".top-header-popover__avatar")).toHaveTextContent(/^J$/);
+    expect(client.getQueryCache().findAll({ queryKey: ["user-profile"] })).toHaveLength(0);
+    expect(request).not.toHaveBeenCalled();
+
+    view.unmount();
+    client.clear();
   });
 
   it("marks the current section", () => {
@@ -324,7 +429,7 @@ describe("AppShell", () => {
     ).toBeInTheDocument();
   });
 
-  it("opens notifications with a valid empty state", async () => {
+  it("opens notifications without claiming that operational alerts are implemented", async () => {
     const user = userEvent.setup();
 
     render(
@@ -349,11 +454,11 @@ describe("AppShell", () => {
     });
 
     expect(
-      within(panel).getByText("Todo al día"),
+      within(panel).getByText("Notificaciones aún no disponibles"),
     ).toBeInTheDocument();
 
     expect(
-      within(panel).getByText("No tenés notificaciones nuevas."),
+      within(panel).getByText("Por ahora, revisa la actividad en Calendario, Reservas y Pagos."),
     ).toBeInTheDocument();
   });
 
@@ -433,6 +538,7 @@ describe("AppShell", () => {
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Configuración" }));
     expect(onNavigate).toHaveBeenCalledWith("settings");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
 
   it("closes the mobile overlay when the desktop breakpoint hides its trigger", async () => {

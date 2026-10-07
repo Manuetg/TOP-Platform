@@ -13,12 +13,15 @@ import {
   ReceiptText,
   X,
 } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../../shared/ui/Button";
+import { OverlayPanel } from "../../../shared/ui/OverlayPanel";
 import { useAuth } from "../../auth/context/AuthContext";
 import { useBusinessContext } from "../../business/context/BusinessContext";
 import { useBooking } from "../../bookings/queries/use-booking";
+import { getBookingStatusLabel } from "../../bookings/booking-status";
+import { formatPaymentPercentage, paymentPercentageHundredths } from "../../bookings/booking-financial-summary";
 import { useContacts } from "../../contacts/queries/use-contacts";
 import {
   useBookingFinances,
@@ -42,16 +45,6 @@ const installmentLabels = {
   OVERDUE: "Vencida",
 } as const;
 
-const bookingStatusLabels = {
-  DRAFT: "Borrador",
-  PENDING: "Pendiente",
-  CONFIRMED: "Confirmada",
-  IN_PROGRESS: "En estadía",
-  COMPLETED: "Finalizada",
-  CANCELLED: "Cancelada",
-  NO_SHOW: "No se presentó",
-} as const;
-
 
 
 function localDateTime() {
@@ -61,11 +54,8 @@ function localDateTime() {
 }
 
 function percentageOf(part: number, total: number) {
-  if (!Number.isFinite(part) || !Number.isFinite(total) || total <= 0) {
-    return 0;
-  }
-
-  return Math.max(0, Math.round((part / total) * 100));
+  const hundredths = paymentPercentageHundredths(part, total);
+  return hundredths === null ? 0 : hundredths >= 10_000n ? 100 : Number(hundredths) / 100;
 }
 
 function dateFromYmd(value: string) {
@@ -132,10 +122,31 @@ interface DraftInstallment {
 }
 
 export function BookingPaymentsPage() {
-  const navigate = useNavigate();
   const { bookingId = "" } = useParams();
   const { session } = useAuth();
-  const { activeBusinessId, activeBusiness } = useBusinessContext();
+  const { activeBusinessId, activeBusiness, activeRole } = useBusinessContext();
+  const contextKey = JSON.stringify([session?.user.id, activeBusinessId, bookingId, activeRole, activeBusiness?.id, activeBusiness?.status]);
+  return <BookingPaymentsContent key={contextKey} expectedContext={contextKey} />;
+}
+
+function BookingPaymentsContent({ expectedContext }: { expectedContext: string }) {
+  const navigate = useNavigate();
+  const { bookingId = "" } = useParams();
+  const { session, status: authStatus } = useAuth();
+  const { activeBusinessId, activeBusiness, activeRole, status: businessStatus } = useBusinessContext();
+  const hasPaymentPermission = authStatus === "authenticated" && Boolean(session?.accessToken) && businessStatus === "ready" &&
+    activeBusinessId.length > 0 && activeBusiness?.id === activeBusinessId && activeBusiness.status === "ACTIVE" &&
+    ["OWNER", "ADMIN", "RECEPTIONIST"].includes(activeRole ?? "");
+  const modalTrigger = useRef<HTMLElement | null>(null);
+  const financialInFlight = useRef(false);
+  const alive = useRef(false);
+  const currentContext = useRef(expectedContext);
+  currentContext.current = expectedContext;
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; };
+  }, []);
+  function isCurrentContext() { return alive.current && currentContext.current === expectedContext; }
 
   const booking = useBooking({
     businessId: activeBusinessId,
@@ -216,7 +227,13 @@ export function BookingPaymentsPage() {
   const paidAmountMinor = balance.data?.paidAmountMinor ?? 0;
   const outstandingAmountMinor =
     balance.data?.outstandingAmountMinor ?? 0;
-  const overdueAmountMinor = balance.data?.overdueAmountMinor ?? 0;
+  const creditAmountMinor = balance.data?.creditAmountMinor ?? 0;
+  const overdueAmountMinor = balance.data ? balance.data.overdueAmountMinor : 0;
+  const needsReconciliation = Boolean(balance.data?.needsReconciliation || plan.data?.needsReconciliation);
+  const reconciliationWarnings = [...new Set([balance.data?.warning, plan.data?.warning].filter((warning): warning is string => Boolean(warning)))];
+  const canRecordPayments = hasPaymentPermission && Boolean(booking.data && balance.data) &&
+    ["PENDING", "CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(booking.data?.status ?? "") &&
+    (booking.data?.status !== "PENDING" || booking.data.financialSummary?.totalAmountMinor != null);
 
   const paidPercentage = percentageOf(
     paidAmountMinor,
@@ -230,12 +247,13 @@ export function BookingPaymentsPage() {
   );
 
   const canManagePlan =
+    canRecordPayments &&
     Boolean(booking.data) &&
     ["CONFIRMED", "IN_PROGRESS"].includes(booking.data!.status) &&
     !planLocked;
 
   const suggestedPaymentMinor =
-    overdueAmountMinor > 0
+    overdueAmountMinor !== null && overdueAmountMinor > 0
       ? Math.min(overdueAmountMinor, outstandingAmountMinor)
       : balance.data?.nextDueAmountMinor &&
           balance.data.nextDueAmountMinor > 0
@@ -246,7 +264,7 @@ export function BookingPaymentsPage() {
         : outstandingAmountMinor;
 
   const draftPaymentAmount = Number(payment.amount);
-  const draftPaymentPercentage = percentageOf(
+  const draftPaymentPercentage = formatPaymentPercentage(
     draftPaymentAmount,
     totalAmountMinor,
   );
@@ -347,6 +365,8 @@ export function BookingPaymentsPage() {
   }
 
   function openPayment(amountOverride?: number) {
+    if (!isCurrentContext() || !canRecordPayments || outstandingAmountMinor <= 0 || financialInFlight.current || register.isPending || savePlan.isPending) return;
+    modalTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setFormError(null);
     setShowPaymentDetails(false);
 
@@ -370,7 +390,8 @@ export function BookingPaymentsPage() {
   }
 
   function openPlan() {
-    if (!canManagePlan) return;
+    if (!isCurrentContext() || !canManagePlan || financialInFlight.current || register.isPending || savePlan.isPending) return;
+    modalTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     setFormError(null);
 
@@ -457,7 +478,8 @@ export function BookingPaymentsPage() {
   }
 
   function openReschedule(index: number) {
-    if (!plan.data || !canManagePlan) return;
+    if (!isCurrentContext() || !plan.data || !canManagePlan || financialInFlight.current || register.isPending || savePlan.isPending) return;
+    modalTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     setFormError(null);
     setRescheduleIndex(index);
@@ -468,6 +490,7 @@ export function BookingPaymentsPage() {
   }
 
   async function submitReschedule() {
+    if (!isCurrentContext() || !canManagePlan || financialInFlight.current || savePlan.isPending || register.isPending) return;
     if (
       !plan.data ||
       rescheduleIndex === null ||
@@ -488,6 +511,7 @@ export function BookingPaymentsPage() {
     );
 
     setFormError(null);
+    financialInFlight.current = true;
 
     try {
       await savePlan.mutateAsync({
@@ -495,18 +519,23 @@ export function BookingPaymentsPage() {
         replace: true,
       });
 
+      if (!isCurrentContext()) return;
       setShowReschedule(false);
       setRescheduleIndex(null);
     } catch (error) {
+      if (!isCurrentContext()) return;
       setFormError(
         error instanceof Error
           ? error.message
           : "No pudimos cambiar el vencimiento.",
       );
+    } finally {
+      if (isCurrentContext()) financialInFlight.current = false;
     }
   }
 
   async function submitPayment() {
+    if (!isCurrentContext() || !canRecordPayments || financialInFlight.current || register.isPending || savePlan.isPending) return;
     const amountMinor = Number(payment.amount);
 
     if (
@@ -549,6 +578,7 @@ export function BookingPaymentsPage() {
     }
 
     setFormError(null);
+    financialInFlight.current = true;
 
     try {
       await register.mutateAsync({
@@ -560,17 +590,22 @@ export function BookingPaymentsPage() {
         note: payment.note.trim() || undefined,
       });
 
+      if (!isCurrentContext()) return;
       setShowPayment(false);
     } catch (error) {
+      if (!isCurrentContext()) return;
       setFormError(
         error instanceof Error
           ? error.message
           : "No pudimos registrar el pago.",
       );
+    } finally {
+      if (isCurrentContext()) financialInFlight.current = false;
     }
   }
 
   async function submitPlan() {
+    if (!isCurrentContext() || !canManagePlan || financialInFlight.current || savePlan.isPending || register.isPending) return;
     const parsed = installments.map((item) => ({
       amountMinor: Number(item.amount),
       dueDate: item.dueDate || null,
@@ -605,6 +640,7 @@ export function BookingPaymentsPage() {
     }
 
     setFormError(null);
+    financialInFlight.current = true;
 
     try {
       await savePlan.mutateAsync({
@@ -612,13 +648,17 @@ export function BookingPaymentsPage() {
         replace: Boolean(plan.data),
       });
 
+      if (!isCurrentContext()) return;
       setShowPlan(false);
     } catch (error) {
+      if (!isCurrentContext()) return;
       setFormError(
         error instanceof Error
           ? error.message
           : "No pudimos guardar el plan.",
       );
+    } finally {
+      if (isCurrentContext()) financialInFlight.current = false;
     }
   }
 
@@ -668,16 +708,14 @@ export function BookingPaymentsPage() {
 
   const currency = balance.data.currency;
 
-  const bookingStatus =
-    bookingStatusLabels[
-      booking.data
-        .status as keyof typeof bookingStatusLabels
-    ] ?? booking.data.status;
+  const bookingStatus = getBookingStatusLabel(booking.data.status);
 
   const accountStatus =
-    outstandingAmountMinor === 0
+    creditAmountMinor > 0
+      ? "Saldo a favor"
+      : outstandingAmountMinor === 0
       ? "Pagada"
-      : overdueAmountMinor > 0
+      : overdueAmountMinor !== null && overdueAmountMinor > 0
         ? "Vencida"
         : paidAmountMinor > 0
           ? "Pago parcial"
@@ -686,7 +724,7 @@ export function BookingPaymentsPage() {
   const accountStatusClass =
     outstandingAmountMinor === 0
       ? "paid"
-      : overdueAmountMinor > 0
+      : overdueAmountMinor !== null && overdueAmountMinor > 0
         ? "overdue"
         : paidAmountMinor > 0
           ? "partial"
@@ -738,16 +776,18 @@ export function BookingPaymentsPage() {
 
         <div className="payments-invoice__balance">
           <div>
-            <span>Saldo por cobrar</span>
+            <span>{creditAmountMinor > 0 ? "Saldo a favor" : "Saldo por cobrar"}</span>
 
             <strong>
               {money(
-                outstandingAmountMinor,
+                creditAmountMinor > 0 ? creditAmountMinor : outstandingAmountMinor,
                 currency,
               )}
             </strong>
 
-            {overdueAmountMinor > 0 ? (
+            {needsReconciliation ? (
+              <small>Requiere conciliación</small>
+            ) : overdueAmountMinor !== null && overdueAmountMinor > 0 ? (
               <small className="is-overdue">
                 {money(overdueAmountMinor, currency)}{" "}
                 vencidos
@@ -765,20 +805,20 @@ export function BookingPaymentsPage() {
             )}
           </div>
 
-          <Button
+          {canRecordPayments && <Button
             type="button"
-            disabled={outstandingAmountMinor === 0}
+            disabled={outstandingAmountMinor === 0 || register.isPending || savePlan.isPending}
             onClick={() => openPayment()}
           >
             <Plus size={16} />
             Registrar pago
-          </Button>
+          </Button>}
         </div>
 
         <div className="payments-invoice__progress">
           <div>
             <span>Progreso de pago</span>
-            <strong>{paidPercentage}%</strong>
+            <strong>{formatPaymentPercentage(paidAmountMinor, totalAmountMinor)}</strong>
           </div>
 
           <div
@@ -787,6 +827,7 @@ export function BookingPaymentsPage() {
             aria-label="Porcentaje pagado"
             aria-valuemin={0}
             aria-valuemax={100}
+            aria-valuetext={`${totalAmountMinor > 0 ? formatPaymentPercentage(paidAmountMinor, totalAmountMinor) : "No aplica: el total es cero"}${creditAmountMinor > 0 ? `; saldo a favor ${money(creditAmountMinor, currency)}` : ""}`}
             aria-valuenow={Math.min(
               paidPercentage,
               100,
@@ -822,16 +863,27 @@ export function BookingPaymentsPage() {
             <span>Vencido</span>
             <strong
               className={
-                overdueAmountMinor > 0
+                overdueAmountMinor !== null && overdueAmountMinor > 0
                   ? "is-overdue"
                   : undefined
               }
             >
-              {money(overdueAmountMinor, currency)}
+              {overdueAmountMinor === null ? "Pendiente de conciliación" : money(overdueAmountMinor, currency)}
             </strong>
           </div>
         </div>
       </article>
+
+      {(needsReconciliation || reconciliationWarnings.length > 0) && (
+        <section className="payments-card" role="alert" aria-labelledby="payment-reconciliation-title">
+          <header>
+            <div>
+              <h2 id="payment-reconciliation-title"><CircleAlert size={18} aria-hidden="true" /> Requiere conciliación</h2>
+              {reconciliationWarnings.map((warning) => <div key={warning}>{warning}</div>)}
+            </div>
+          </header>
+        </section>
+      )}
 
       <section className="payments-card payments-schedule">
         <header>
@@ -896,7 +948,7 @@ export function BookingPaymentsPage() {
 
             {plan.data.installments.map(
               (item, index) => {
-                const percentage = percentageOf(
+                const percentage = formatPaymentPercentage(
                   item.amountMinor,
                   plan.data!.totalAmountMinor,
                 );
@@ -920,7 +972,7 @@ export function BookingPaymentsPage() {
                           )}
                         </strong>
                         <small>
-                          {percentage}% del total
+                          {percentage} del total
                         </small>
                       </div>
                     </div>
@@ -963,10 +1015,11 @@ export function BookingPaymentsPage() {
                     </div>
 
                     <div className="payments-schedule-actions">
-                      {item.outstandingAmountMinor > 0 && (
+                      {canRecordPayments && item.outstandingAmountMinor > 0 && (
                         <button
                           type="button"
                           className="payments-schedule-pay"
+                          disabled={outstandingAmountMinor === 0 || register.isPending || savePlan.isPending}
                           onClick={() =>
                             openPayment(item.outstandingAmountMinor)
                           }
@@ -1092,9 +1145,10 @@ export function BookingPaymentsPage() {
         )}
       </section>
 
-      {showPayment && (
+      {showPayment && canRecordPayments && (
         <FinancialModal
           title="Registrar pago"
+          triggerRef={modalTrigger}
           onClose={() => setShowPayment(false)}
         >
           <div className="payments-payment-form">
@@ -1127,7 +1181,7 @@ export function BookingPaymentsPage() {
                     )}
                   </strong>
                   <span>
-                    {draftPaymentPercentage}% del
+                    {draftPaymentPercentage} del
                     total
                   </span>
                 </div>
@@ -1285,10 +1339,12 @@ export function BookingPaymentsPage() {
       )}
 
       {showReschedule &&
+        canManagePlan &&
         rescheduleIndex !== null &&
         plan.data && (
           <FinancialModal
             title="Reprogramar vencimiento"
+            triggerRef={modalTrigger}
             onClose={() =>
               setShowReschedule(false)
             }
@@ -1378,8 +1434,9 @@ export function BookingPaymentsPage() {
           </FinancialModal>
         )}
 
-      {showPlan && (
+      {showPlan && canManagePlan && (
         <FinancialModal
+          triggerRef={modalTrigger}
           title={
             plan.data
               ? "Editar plan de cobro"
@@ -1735,53 +1792,44 @@ export function BookingPaymentsPage() {
 
 function FinancialModal({
   title,
+  triggerRef,
   onClose,
   children,
 }: {
   title: string;
+  triggerRef: RefObject<HTMLElement | null>;
   onClose: () => void;
   children: ReactNode;
 }) {
   return (
-    <div
-      className="payments-modal-layer"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
+    <OverlayPanel
+      open
+      portal
+      label={title}
+      className="payments-modal"
+      layerClassName="payments-modal-layer"
+      closeLabel={`Cerrar ${title}`}
+      triggerRef={triggerRef}
+      onClose={onClose}
     >
-      <section
-        className="payments-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            onClose();
-          }
-        }}
-      >
-        <header>
-          <div>
-            <span>Gestión financiera</span>
-            <h2>{title}</h2>
-          </div>
-
-          <button
-            type="button"
-            aria-label="Cerrar"
-            onClick={onClose}
-          >
-            <X size={18} />
-          </button>
-        </header>
-
-        <div className="payments-modal__body">
-          {children}
+      <header>
+        <div>
+          <span>Gestión financiera</span>
+          <h2>{title}</h2>
         </div>
-      </section>
-    </div>
+
+        <button
+          type="button"
+          aria-label="Cerrar"
+          onClick={onClose}
+        >
+          <X size={18} />
+        </button>
+      </header>
+
+      <div className="payments-modal__body">
+        {children}
+      </div>
+    </OverlayPanel>
   );
 }

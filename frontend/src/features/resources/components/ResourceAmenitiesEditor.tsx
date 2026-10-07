@@ -3,7 +3,7 @@ import {
   Pencil,
   Plus,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../../shared/ui/Button";
 import { createBusinessAmenity } from "../api/create-business-amenity";
@@ -16,14 +16,40 @@ interface ResourceAmenitiesEditorProps {
   businessId: string;
   resource: Resource;
   accessToken?: string | null;
+  canManage: boolean;
 }
 
-export function ResourceAmenitiesEditor({
+export function ResourceAmenitiesEditor(props: ResourceAmenitiesEditorProps) {
+  return (
+    <ResourceAmenitiesEditorContent
+      key={`${props.businessId}:${props.resource.id}`}
+      {...props}
+    />
+  );
+}
+
+function ResourceAmenitiesEditorContent({
   businessId,
   resource,
   accessToken,
+  canManage,
 }: ResourceAmenitiesEditorProps) {
   const queryClient = useQueryClient();
+  const mounted = useRef(false);
+  const activeOperation = useRef<object | null>(null);
+  const permission = useRef(canManage);
+  const editTrigger = useRef<HTMLButtonElement>(null);
+  const editor = useRef<HTMLDivElement>(null);
+  const restoreFocus = useRef(false);
+  permission.current = canManage;
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      activeOperation.current = null;
+    };
+  }, []);
 
   const [isEditing, setIsEditing] = useState(false);
   const [selectedAmenityIds, setSelectedAmenityIds] = useState<string[]>(
@@ -40,6 +66,33 @@ export function ResourceAmenitiesEditor({
   const [createAmenityError, setCreateAmenityError] = useState<
     string | null
   >(null);
+
+  useEffect(() => {
+    if (!canManage) {
+      activeOperation.current = null;
+      restoreFocus.current = false;
+      setIsSaving(false);
+      setIsCreatingAmenity(false);
+      setIsEditing(false);
+    }
+  }, [canManage]);
+
+  useEffect(() => {
+    if (!canManage) return;
+    if (isEditing) {
+      editor.current?.querySelector<HTMLElement>(
+        "input:not(:disabled), button:not(:disabled), select:not(:disabled), textarea:not(:disabled)",
+      )?.focus();
+    } else if (restoreFocus.current) {
+      editTrigger.current?.focus();
+      restoreFocus.current = false;
+    }
+  }, [canManage, isEditing]);
+
+  function isCurrentOperation(operation: object) {
+    return mounted.current && permission.current &&
+      activeOperation.current === operation;
+  }
 
   const {
     data: amenities = [],
@@ -72,6 +125,8 @@ export function ResourceAmenitiesEditor({
   }, [isEditing, resource.amenities]);
 
   function handleStartEditing() {
+    if (!canManage || activeOperation.current) return;
+    restoreFocus.current = true;
     setSelectedAmenityIds(
       resource.amenities.map((amenity) => amenity.id),
     );
@@ -81,6 +136,7 @@ export function ResourceAmenitiesEditor({
   }
 
   function handleCancel() {
+    if (!canManage || activeOperation.current) return;
     setSelectedAmenityIds(
       resource.amenities.map((amenity) => amenity.id),
     );
@@ -91,6 +147,7 @@ export function ResourceAmenitiesEditor({
   }
 
   function handleToggleAmenity(amenityId: string) {
+    if (!canManage || activeOperation.current) return;
     setSelectedAmenityIds((current) =>
       current.includes(amenityId)
         ? current.filter((id) => id !== amenityId)
@@ -99,11 +156,12 @@ export function ResourceAmenitiesEditor({
   }
 
   async function handleCreateAmenity() {
+    if (!canManage || !isEditing || activeOperation.current) return;
     const normalizedName = customName.trim();
 
     if (!normalizedName) {
       setCreateAmenityError(
-        "Ingresá un nombre para el amenity personalizado.",
+        "Ingresa un nombre para la amenidad personalizada.",
       );
       return;
     }
@@ -115,6 +173,8 @@ export function ResourceAmenitiesEditor({
       return;
     }
 
+    const operation = {};
+    activeOperation.current = operation;
     setCreateAmenityError(null);
     setIsCreatingAmenity(true);
 
@@ -125,6 +185,8 @@ export function ResourceAmenitiesEditor({
         category: "GENERAL",
         accessToken,
       });
+
+      if (!isCurrentOperation(operation)) return;
 
       setLocallyCreatedAmenities((current) => [
         ...current.filter(
@@ -146,17 +208,24 @@ export function ResourceAmenitiesEditor({
         exact: true,
       });
     } catch (createError) {
+      if (!isCurrentOperation(operation)) return;
       setCreateAmenityError(
         createError instanceof Error
           ? createError.message
-          : "No pudimos crear el amenity personalizado.",
+          : "No pudimos crear la amenidad personalizada.",
       );
     } finally {
-      setIsCreatingAmenity(false);
+      if (isCurrentOperation(operation)) {
+        activeOperation.current = null;
+        setIsCreatingAmenity(false);
+      }
     }
   }
 
   async function handleSave() {
+    if (!canManage || !isEditing || activeOperation.current || isLoading || isError) return;
+    const operation = {};
+    activeOperation.current = operation;
     setSaveError(null);
     setIsSaving(true);
 
@@ -168,6 +237,8 @@ export function ResourceAmenitiesEditor({
         accessToken,
       });
 
+      if (!isCurrentOperation(operation)) return;
+
       queryClient.setQueryData(
         ["resources", businessId, resource.id],
         updatedResource,
@@ -178,29 +249,36 @@ export function ResourceAmenitiesEditor({
         exact: true,
       });
 
-      setIsEditing(false);
+      if (isCurrentOperation(operation)) setIsEditing(false);
     } catch (setAmenitiesError) {
+      if (!isCurrentOperation(operation)) return;
       setSaveError(
         setAmenitiesError instanceof Error
           ? setAmenitiesError.message
-          : "No pudimos guardar los amenities.",
+          : "No pudimos guardar las amenidades.",
       );
     } finally {
-      setIsSaving(false);
+      if (isCurrentOperation(operation)) {
+        activeOperation.current = null;
+        setIsSaving(false);
+      }
     }
   }
 
-  if (!isEditing) {
+  if (!isEditing || !canManage) {
     return (
       <div className="resource-amenities-view">
-        <button
-          type="button"
-          className="resource-detail-icon-button resource-amenities-view__edit"
-          aria-label="Gestionar amenities"
-          onClick={handleStartEditing}
-        >
-          <Pencil size={20} aria-hidden="true" />
-        </button>
+        {canManage ? (
+          <button
+            type="button"
+            className="resource-detail-icon-button resource-amenities-view__edit"
+            aria-label="Gestionar amenidades"
+            ref={editTrigger}
+            onClick={handleStartEditing}
+          >
+            <Pencil size={20} aria-hidden="true" />
+          </button>
+        ) : null}
 
         {resource.amenities.length > 0 ? (
           <div className="resource-detail-amenities">
@@ -215,7 +293,7 @@ export function ResourceAmenitiesEditor({
           </div>
         ) : (
           <p className="resource-detail-empty-copy">
-            Sin amenities configurados.
+            Sin amenidades configuradas.
           </p>
         )}
       </div>
@@ -223,10 +301,10 @@ export function ResourceAmenitiesEditor({
   }
 
   return (
-    <div className="resource-amenities-editor">
+    <div className="resource-amenities-editor" ref={editor}>
       <div className="resource-amenities-editor__intro">
-        <strong>Seleccionar amenities</strong>
-        <p>Elegí los que correspondan a este recurso.</p>
+        <strong>Seleccionar amenidades</strong>
+        <p>Selecciona las que correspondan a este recurso.</p>
       </div>
 
       {isLoading ? (
@@ -234,7 +312,7 @@ export function ResourceAmenitiesEditor({
           className="resource-amenities-editor__status"
           role="status"
         >
-          Cargando amenities…
+          Cargando amenidades…
         </p>
       ) : null}
 
@@ -246,7 +324,7 @@ export function ResourceAmenitiesEditor({
           <p>
             {error instanceof Error
               ? error.message
-              : "No pudimos cargar los amenities."}
+              : "No pudimos cargar las amenidades."}
           </p>
 
           <Button
@@ -266,7 +344,7 @@ export function ResourceAmenitiesEditor({
             disabled={isSaving || isCreatingAmenity}
           >
             <legend className="resource-detail-visually-hidden">
-              Amenities disponibles
+              Amenidades disponibles
             </legend>
 
             {availableAmenities.map((amenity) => {
@@ -302,14 +380,14 @@ export function ResourceAmenitiesEditor({
           </fieldset>
         ) : (
           <p className="resource-detail-empty-copy">
-            No hay amenities disponibles.
+            No hay amenidades disponibles.
           </p>
         )
       ) : null}
 
       <div className="resource-amenities-editor__custom">
         <label htmlFor="resource-custom-amenity">
-          Nuevo amenity
+          Nueva amenidad
         </label>
 
         <div className="resource-amenities-editor__custom-row">
@@ -344,7 +422,7 @@ export function ResourceAmenitiesEditor({
           <button
             type="button"
             className="resource-detail-icon-button"
-            aria-label="Crear amenity personalizado"
+            aria-label="Crear amenidad personalizada"
             disabled={
               isSaving ||
               isCreatingAmenity ||
@@ -395,7 +473,7 @@ export function ResourceAmenitiesEditor({
           }
           onClick={() => void handleSave()}
         >
-          {isSaving ? "Guardando…" : "Guardar amenities"}
+          {isSaving ? "Guardando…" : "Guardar amenidades"}
         </Button>
       </div>
     </div>

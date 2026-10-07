@@ -30,6 +30,8 @@ import {
   BookingNotDraftError,
   BookingNotFoundError,
   BookingResourcesRequiredError,
+  BookingResourceNotFoundError,
+  BookingResourceUnavailableError,
   InvalidBookingInputError,
 } from '../../booking/booking.contract';
 import { BookingResponseDto } from '../../booking/presentation/dto/booking.response.dto';
@@ -47,6 +49,7 @@ import {
 import { InvalidManualPriceOverrideInputError } from '../../pricing/application/manual-price-override.errors';
 import {
   BookingNotPendingError,
+  BookingPaymentRequiredError,
   BookingPricingRequiredError,
   InvalidBookingPricingInputError,
 } from '../application/confirm-booking.errors';
@@ -58,6 +61,9 @@ import { BusinessAccess, BusinessAccessWithPricingOverride } from '../../../shar
 import { Capability } from '../../../shared/application/authorization-policy';
 import type { AuthenticatedRequest } from '../../../shared/security/authenticated-principal';
 import { CancelBookingRequestDto } from './dto/cancel-booking.request.dto';
+import { CreatePendingBookingUseCase } from '../application/create-pending-booking.use-case';
+import { CreatePendingBookingRequestDto } from './dto/create-pending-booking.request.dto';
+import { AvailabilityBusinessNotFoundError, AvailabilityBusinessUnavailableError, AvailabilityResourceNotFoundError } from '../../availability/availability.contract';
 
 @ApiTags('Bookings')
 @Controller('businesses/:businessId/bookings')
@@ -66,7 +72,30 @@ export class BookingLifecycleController {
     private readonly submitBooking: SubmitBookingUseCase,
     private readonly confirmBooking: ConfirmBookingUseCase,
     private readonly cancelBooking: CancelBookingUseCase,
+    private readonly createPendingBooking?: CreatePendingBookingUseCase,
   ) {}
+
+  @Post('pending')
+  @BusinessAccessWithPricingOverride('businessId')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Creates a complete pending booking with its agreed pricing; a positive recorded payment confirms it.' })
+  @ApiOkResponse({ type: BookingResponseDto })
+  @ApiBadRequestResponse()
+  @ApiNotFoundResponse()
+  @ApiConflictResponse()
+  async createPending(
+    @Param('businessId') businessId: string,
+    @Body() body: CreatePendingBookingRequestDto,
+    @Req() request?: AuthenticatedRequest,
+  ): Promise<BookingResponseDto> {
+    try {
+      if (!this.createPendingBooking) throw new Error('No se configuró el alta de reservas pendientes.');
+      return BookingResponseDto.fromDomain(await this.createPendingBooking.execute({
+        businessId, ...body,
+        ...(request?.authenticatedPrincipal ? { actorUserId: request.authenticatedPrincipal.userId } : {}),
+      }));
+    } catch (error: unknown) { throw this.mapError(error); }
+  }
 
   @Post(':bookingId/submit')
   @BusinessAccess('businessId', Capability.BOOKING_WRITE)
@@ -208,6 +237,9 @@ export class BookingLifecycleController {
   ): error is Error {
     return [
       BookingBusinessNotFoundError,
+      AvailabilityBusinessNotFoundError,
+      AvailabilityResourceNotFoundError,
+      BookingResourceNotFoundError,
       ListRatePlansBusinessNotFoundError,
       ListRatePlansResourceNotFoundError,
       BookingContactNotFoundError,
@@ -225,10 +257,13 @@ export class BookingLifecycleController {
   ): error is Error {
     return [
       BookingBusinessUnavailableError,
+      BookingResourceUnavailableError,
+      AvailabilityBusinessUnavailableError,
       ListRatePlansBusinessArchivedError,
       ListRatePlansResourceUnavailableError,
       BookingNotDraftError,
       BookingNotPendingError,
+      BookingPaymentRequiredError,
       BookingCancellationNotAllowedError,
       BookingContactRequiredError,
       BookingResourcesRequiredError,

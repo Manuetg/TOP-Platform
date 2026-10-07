@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useIsPresent } from "motion/react";
 import { useForm } from "react-hook-form";
 import {
   useNavigate,
@@ -30,10 +31,54 @@ export function EditResourcePage({
   onClose,
 }: EditResourcePageProps = {}) {
   const navigate = useNavigate();
+  const { resourceId = "" } = useParams();
+  const { session } = useAuth();
+  const { activeBusinessId, activeRole } = useBusinessContext();
+  const canEdit = Boolean(session && activeBusinessId && resourceId &&
+    (activeRole === "OWNER" || activeRole === "ADMIN"));
+
+  if (!canEdit) {
+    return <section className="resource-edit-page">
+      <div className="resource-edit-error" role="alert">
+        <p>No tienes permiso para editar este recurso.</p>
+        <Button variant="secondary" onClick={() => {
+          if (embedded) onClose?.();
+          else navigate(resourceId ? `/app/resources/${resourceId}` : "/app/resources");
+        }}>{embedded ? "Cerrar edición" : "Volver al recurso"}</Button>
+      </div>
+    </section>;
+  }
+
+  return <EditResourceContent
+    key={`${session?.user.id}:${activeBusinessId}:${resourceId}:${activeRole}`}
+    embedded={embedded}
+    onClose={onClose}
+  />;
+}
+
+function EditResourceContent({ embedded, onClose }: EditResourcePageProps) {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { resourceId = "" } = useParams();
   const { session } = useAuth();
-  const { activeBusinessId } = useBusinessContext();
+  const { activeBusinessId, activeRole } = useBusinessContext();
+  const isPresent = useIsPresent();
+  const scope = `${session?.user.id}:${activeBusinessId}:${resourceId}:${activeRole}`;
+  const currentScope = useRef(scope);
+  const present = useRef(isPresent);
+  currentScope.current = scope;
+  present.current = isPresent;
+  const alive = useRef(false);
+  const closing = useRef(false);
+  const locked = useRef(false);
+  const operation = useRef<AbortController | null>(null);
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; operation.current?.abort(); };
+  }, []);
+  useEffect(() => {
+    if (!isPresent) operation.current?.abort();
+  }, [isPresent]);
 
   const [submitError, setSubmitError] =
     useState<string | null>(null);
@@ -68,6 +113,8 @@ export function EditResourcePage({
       return;
     }
 
+    // El refetch actualiza los campos limpios sin reemplazar el borrador del usuario.
+    // Un cambio de recurso, negocio, usuario o rol remonta este formulario por su key.
     reset({
       name: resource.name,
       internalCode: resource.internalCode,
@@ -77,63 +124,63 @@ export function EditResourcePage({
       capacityMaximumChildren:
         resource.capacityMaximumChildren,
       sortOrder: resource.sortOrder,
-    });
+    }, { keepDirtyValues: true });
   }, [resource, reset]);
 
-  const onSubmit = handleSubmit(async (values) => {
-    if (!activeBusinessId || !resourceId) {
-      setSubmitError(
-        "No se pudo determinar el recurso activo.",
-      );
-      return;
-    }
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (locked.current || closing.current || !present.current) return;
+    locked.current = true;
+    void handleSubmit(async (values) => {
+      if (!alive.current || closing.current || !present.current || currentScope.current !== scope ||
+        !session || !activeBusinessId || !resourceId || !["OWNER", "ADMIN"].includes(activeRole ?? "")) return;
 
-    setSubmitError(null);
+      const controller = new AbortController();
+      operation.current = controller;
+      const isCurrent = () => alive.current && !closing.current && present.current &&
+        currentScope.current === scope && operation.current === controller && !controller.signal.aborted;
+      setSubmitError(null);
 
-    try {
-      const updatedResource = await updateResource({
-        businessId: activeBusinessId,
-        resourceId,
-        accessToken: session?.accessToken,
-        input: {
-          name: values.name.trim(),
-          internalCode: values.internalCode
-            .trim()
-            .toUpperCase(),
-          description: values.description.trim()
-            ? values.description.trim()
-            : null,
-          capacityMinimum: values.capacityMinimum,
-          capacityMaximum: values.capacityMaximum,
-          capacityMaximumChildren:
-            values.capacityMaximumChildren,
-          sortOrder: values.sortOrder,
-        },
-      });
+      try {
+        const updatedResource = await updateResource({
+          businessId: activeBusinessId,
+          resourceId,
+          accessToken: session.accessToken,
+          signal: controller.signal,
+          input: {
+            name: values.name.trim(),
+            internalCode: values.internalCode.trim().toUpperCase(),
+            description: values.description.trim() || null,
+            capacityMinimum: values.capacityMinimum,
+            capacityMaximum: values.capacityMaximum,
+            capacityMaximumChildren: values.capacityMaximumChildren,
+            sortOrder: values.sortOrder,
+          },
+        });
+        if (!isCurrent()) return;
 
-      queryClient.setQueryData(
-        ["resources", activeBusinessId, resourceId],
-        updatedResource,
-      );
+        queryClient.setQueryData(
+          ["resources", activeBusinessId, resourceId], updatedResource,
+        );
+        await queryClient.invalidateQueries({
+          queryKey: ["resources", activeBusinessId], exact: true,
+        });
+        if (!isCurrent()) return;
 
-      await queryClient.invalidateQueries({
-        queryKey: ["resources", activeBusinessId],
-        exact: true,
-      });
-
-      if (embedded) {
-        onClose?.();
-      } else {
-        navigate(`/app/resources/${resourceId}`);
+        if (embedded) onClose?.();
+        else navigate(`/app/resources/${resourceId}`);
+      } catch (submitErrorValue) {
+        if (!isCurrent()) return;
+        setSubmitError(
+          submitErrorValue instanceof Error
+            ? submitErrorValue.message
+            : "No pudimos guardar los cambios.",
+        );
+      } finally {
+        if (operation.current === controller) operation.current = null;
       }
-    } catch (submitErrorValue) {
-      setSubmitError(
-        submitErrorValue instanceof Error
-          ? submitErrorValue.message
-          : "No pudimos guardar los cambios.",
-      );
-    }
-  });
+    })(event).finally(() => { locked.current = false; });
+  };
 
   if (isLoading) {
     return (
@@ -175,6 +222,8 @@ export function EditResourcePage({
   }
 
   const returnToResource = () => {
+    closing.current = true;
+    operation.current?.abort();
     if (embedded) {
       onClose?.();
       return;

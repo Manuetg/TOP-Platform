@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SignupPage } from "./SignupPage";
+import { ApiError } from "../../../shared/api/api-client";
 
 const deps = vi.hoisted(() => ({ signup: vi.fn(), resend: vi.fn() }));
 vi.mock("../api/signup", () => ({ signup: deps.signup }));
@@ -16,6 +17,22 @@ function renderSignup() {
 
 describe("SignupPage", () => {
   beforeEach(() => { deps.signup.mockReset(); deps.resend.mockReset(); });
+
+  it("explica EMAIL_FEATURE_DISABLED sin mostrar detalles internos ni dejar un rechazo sin manejar", async () => {
+    deps.signup.mockRejectedValue(new ApiError(503, "SYNTHETIC_SECRET", "EMAIL_FEATURE_DISABLED"));
+    renderSignup();
+    const inputs = document.querySelectorAll("input");
+    fireEvent.change(inputs[0], { target: { value: "Ana" } });
+    fireEvent.change(inputs[1], { target: { value: "ana@example.com" } });
+    fireEvent.change(inputs[2], { target: { value: "Password12345!" } });
+    fireEvent.change(inputs[3], { target: { value: "Password12345!" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
+    fireEvent.change(document.querySelectorAll("input")[0], { target: { value: "Casa TOP" } });
+    fireEvent.click(screen.getByRole("button", { name: "Crear cuenta" }));
+    expect(await screen.findByRole("heading", { name: "Correo no disponible" })).toBeVisible();
+    expect(document.body.textContent).not.toContain("SYNTHETIC_SECRET");
+    expect(screen.queryByText("No pudimos crear tu cuenta.")).not.toBeInTheDocument();
+  });
 
   it("validates step one and preserves values when moving back from step two", () => {
     renderSignup();

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { CalendarCheck, ChartNoAxesCombined, CalendarRange, WalletCards, type LucideIcon } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { DashboardResponse } from "../types/dashboard.types";
+import { getBookingStatusLabel, isBookingStatus } from "../../bookings/booking-status";
 import { AnimatedNumber } from "./AnimatedNumber";
 
 function Kpi({
@@ -81,7 +82,7 @@ export function DashboardKpiStrip({ dashboard }: { dashboard?: DashboardResponse
       value: dashboard ? <AnimatedNumber value={confirmed} /> : "—",
       detail: dashboard && confirmedRate !== null ? `${confirmedRate}% de ${total} reservas` : "Cargando mes",
       icon: CalendarCheck,
-      visual: <div className="dashboard-status-bar">{reservationSegments.map((segment) => <i key={segment.status} className={`dashboard-status-bar__segment dashboard-status-bar__segment--${segment.status}`} style={{ width: segment.width }} title={segment.status} />)}</div>,
+      visual: <div className="dashboard-status-bar">{reservationSegments.map((segment) => <i key={segment.status} className={`dashboard-status-bar__segment dashboard-status-bar__segment--${segment.status}`} style={{ width: segment.width }} title={isBookingStatus(segment.status) ? getBookingStatusLabel(segment.status) : segment.status} />)}</div>,
     },
     {
       label: "Ingresos",

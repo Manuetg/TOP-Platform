@@ -35,21 +35,41 @@ const advance = async (ms = 300) => {
 };
 function type(input: HTMLElement, value: string) { fireEvent.change(input, { target: { value } }); }
 beforeEach(() => {
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ x: 100, y: 20, top: 20, left: 100, right: 300, bottom: 64, width: 200, height: 44, toJSON: () => ({}) });
   vi.useFakeTimers(); vi.stubGlobal("fetch", fetchMock); fetchMock.mockReset().mockImplementation(() => Promise.resolve(response()));
   navigate.mockReset(); moduleNavigate.mockReset(); Object.assign(context, { userId: "user-1", businessId: "business-1", auth: "authenticated", business: "ready" });
 });
-afterEach(() => { cleanup(); configureUnauthorizedRecovery(null); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); configureUnauthorizedRecovery(null); vi.unstubAllGlobals(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 it("muestra orientación sin HTTP y módulos inmediatos antes del debounce", async () => {
   const { input } = mount();
   act(() => input.focus());
-  expect(screen.getByRole("status")).toHaveTextContent("UUID completo");
+  expect(screen.getByRole("status")).toHaveTextContent("Busca una sección, un recurso o un contacto.");
+  expect(screen.getByText("Para buscar una reserva, pega su código completo.")).toBeVisible();
+  expect(screen.getByRole("region")).not.toHaveTextContent(/módulos|entidades|UUID|UID/i);
   await advance(); expect(fetchMock).not.toHaveBeenCalled();
   type(input, "Re"); expect(screen.getByRole("option", { name: "Recursos" })).toBeInTheDocument();
   await advance(249); expect(fetchMock).not.toHaveBeenCalled();
   await advance(10); expect(fetchMock).toHaveBeenCalledTimes(1);
   expect(fetchMock.mock.calls[0][0]).toContain("/businesses/business-1/search?q=Re");
   expect(fetchMock.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+});
+it.each([
+  ["DRAFT", "Borrador"], ["PENDING", "Pendiente"], ["CONFIRMED", "Confirmada"],
+  ["IN_PROGRESS", "En curso"], ["COMPLETED", "Finalizada"], ["CANCELLED", "Cancelada"], ["NO_SHOW", "No show"],
+])("traduce la reserva %s y conserva los estados de contactos y recursos", async (status, label) => {
+  const value: SearchResponse = { groups: [
+    { type: "booking", hasMore: false, items: [{ type: "booking", id: "booking-1", title: "Reserva", subtitle: null, status }] },
+    { type: "resource", hasMore: false, items: [{ type: "resource", id: "resource-1", title: "Cabaña", subtitle: null, status: "OUT_OF_SERVICE" }] },
+    { type: "contact", hasMore: false, items: [{ type: "contact", id: "contact-1", title: "Contacto", subtitle: null, status: "INACTIVE" }] },
+  ] };
+  fetchMock.mockImplementation(() => Promise.resolve(response(value)));
+  const { input } = mount(); type(input, "consulta"); await advance();
+  expect(screen.getByText(label)).toBeVisible();
+  expect(screen.getByText("Fuera de servicio")).toBeVisible();
+  expect(screen.getByText("Inactivo")).toBeVisible();
+  fireEvent.click(screen.getByRole("option", { name: new RegExp(`Reserva.*${label}`) }));
+  expect(navigate).toHaveBeenCalledWith("/app/bookings/booking-1");
 });
 it.each(["a", "a".repeat(121), "   "])("no consulta fuera del umbral: %s", async (query) => {
   const { input } = mount(); type(input, query); await advance(); expect(fetchMock).not.toHaveBeenCalled();
@@ -101,7 +121,7 @@ it("presenta error local sin retries automáticos y preserva módulos", async ()
   fetchMock.mockImplementation(() => Promise.resolve(response(data(), 500)));
   const { input } = mount(); type(input, "Re"); await advance(1000);
   expect(screen.getByRole("option", { name: "Recursos" })).toBeInTheDocument();
-  expect(screen.getByRole("status")).toHaveTextContent("No pudimos buscar entidades");
+  expect(screen.getByRole("status")).toHaveTextContent("No pudimos completar la búsqueda");
   expect(fetchMock).toHaveBeenCalledOnce();
   fetchMock.mockImplementation(() => Promise.resolve(response()));
   const retry = screen.getByRole("button", { name: "Reintentar búsqueda" });
@@ -129,7 +149,8 @@ it("expone vacío y truncamiento por grupo sin prometer filtros", async () => {
   fetchMock.mockImplementationOnce(() => Promise.resolve(response({ groups: [{ type: "contact", items: [], hasMore: false }] })));
   const { input } = mount(); type(input, "consulta"); await advance(); expect(screen.getByText("Sin resultados en contactos.")).toBeInTheDocument();
   fetchMock.mockImplementation(() => Promise.resolve(response(data("Encontrado", "resource", true)))); type(input, "otra consulta"); await advance();
-  fireEvent.click(screen.getByRole("option", { name: /Abrir módulo: Recursos/ })); expect(moduleNavigate).toHaveBeenCalledWith("resources");
+  expect(screen.getByRole("option", { name: /Abrir Recursos/ })).toHaveTextContent("Abre la lista para seguir buscando.");
+  fireEvent.click(screen.getByRole("option", { name: /Abrir Recursos/ })); expect(moduleNavigate).toHaveBeenCalledWith("resources");
 });
 it("Tab no se atrapa; el blur y el clic exterior cierran", async () => {
   const { input } = mount(); act(() => input.focus()); type(input, "Re");
@@ -161,7 +182,7 @@ it.each([200, 500])("recupera foco antes del reintento pendiente y conserva cons
   await user.keyboard("{Enter}"); await advance(10);
   expect(input).toHaveFocus(); expect(input).toHaveValue("consulta");
   expect(input).toHaveAttribute("aria-expanded", "true");
-  expect(screen.getByRole("status")).toHaveTextContent("Buscando entidades");
+  expect(screen.getByRole("status")).toHaveTextContent("Buscando…");
   expect(screen.queryByRole("button", { name: "Reintentar búsqueda" })).not.toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledTimes(2);
   await act(async () => pending.resolve(response(data(), status))); await advance();
@@ -174,7 +195,7 @@ it.each([200, 500])("recupera foco antes del reintento pendiente y conserva cons
     expect(screen.getByRole("main")).toHaveFocus();
   } else {
     expect(screen.getByRole("button", { name: "Reintentar búsqueda" })).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("No pudimos buscar entidades");
+    expect(screen.getByRole("status")).toHaveTextContent("No pudimos completar la búsqueda");
   }
 });
 

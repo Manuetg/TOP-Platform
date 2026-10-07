@@ -60,4 +60,14 @@ describe("SaasLaunchShowcasePage", () => {
     await user.click(screen.getByRole("button", { name: "Enviar consulta" }));
     expect(screen.getByRole("status")).toHaveTextContent("sólo una demostración");
   });
+
+  it("ofrece destinos reales para cookies, privacidad y preferencias", () => {
+    render(<SaasLaunchShowcasePage />);
+
+    expect(screen.getByRole("link", { name: "Cookies y almacenamiento" })).toHaveAttribute("href", "/cookies");
+    expect(screen.getByRole("link", { name: "Privacidad" })).toHaveAttribute("href", "/cookies#privacidad");
+    expect(screen.getByRole("link", { name: "Preferencias" })).toHaveAttribute("href", "/cookies#preferencias");
+    expect(screen.getByRole("link", { name: "Información legal" })).toHaveAttribute("href", "/cookies#informacion-legal");
+    expect(screen.queryByRole("link", { name: "Términos" })).not.toBeInTheDocument();
+  });
 });

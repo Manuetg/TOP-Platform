@@ -8,6 +8,7 @@ import {
   type AppSection,
 } from "./AppShell";
 import { useAuth } from "../../features/auth/context/AuthContext";
+import { useUserProfile } from "../../features/profile/queries/use-user-profile";
 import { useBusinessContext } from "../../features/business/context/BusinessContext";
 import { BusinessBoundary } from "../../features/business/components/BusinessBoundary";
 import { BusinessSelector } from "../../features/business/components/BusinessSelector";
@@ -41,17 +42,18 @@ const sectionPaths: Record<AppSection, string> = {
 };
 
 function getActiveSection(pathname: string): AppSection {
+  const path = pathname.replace(/\/+$/, "") || "/app";
   if (
     /^\/app\/bookings\/[^/]+\/payments\/?$/.test(
-      pathname,
+      path,
     )
   ) {
     return "payments";
   }
 
   const match = Object.entries(sectionPaths).find(
-    ([section, path]) =>
-      section !== "home" && pathname.startsWith(`${path}/`),
+    ([section, sectionPath]) =>
+      section !== "home" && path.startsWith(`${sectionPath}/`),
   );
 
   if (match) {
@@ -59,7 +61,7 @@ function getActiveSection(pathname: string): AppSection {
   }
 
   const exactMatch = Object.entries(sectionPaths).find(
-    ([, path]) => pathname === path,
+    ([, sectionPath]) => path === sectionPath,
   );
 
   return (exactMatch?.[0] as AppSection | undefined) ?? "home";
@@ -110,7 +112,7 @@ function getBreadcrumbItems(pathname: string): readonly TopBreadcrumbItem[] | nu
 
   const terminal = parts[parts.length - 1];
   const labels: Record<string, string> = {
-    new: `Nuevo ${parts[0] === "bookings" ? "reserva" : parts[0] === "resources" ? "recurso" : parts[0] === "contacts" ? "contacto" : parts[0] === "blocks" ? "bloqueo" : "plan"}`,
+    new: parts[0] === "bookings" ? "Nueva reserva" : `Nuevo ${parts[0] === "resources" ? "recurso" : parts[0] === "contacts" ? "contacto" : parts[0] === "blocks" ? "bloqueo" : "plan"}`,
     edit: `Editar ${parts[0] === "bookings" ? "reserva" : parts[0] === "resources" ? "recurso" : parts[0] === "contacts" ? "contacto" : "plan"}`,
     rules: "Reglas de disponibilidad",
     payments: "Pagos de la reserva",
@@ -132,10 +134,14 @@ function getBreadcrumbItems(pathname: string): readonly TopBreadcrumbItem[] | nu
 export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { session, logout, isLoggingOut } = useAuth();
+  const { session, logout, isLoggingOut, status: authStatus } = useAuth();
+  const profile = useUserProfile();
+  const userAvatarId = authStatus === "authenticated" && !profile.isError && profile.data?.id === session?.user.id && profile.data?.status === "ACTIVE" ? profile.data.avatarId : null;
   const { activeBusiness, activeRole, status } = useBusinessContext();
+  const userDisplayName = typeof session?.user.displayName === "string" ? session.user.displayName.trim() : "";
 
   const activeSection = getActiveSection(location.pathname);
+  const isAccountSettings = location.pathname.replace(/\/+$/, "") === "/app/settings";
   const rail = status === "ready" ? getContextRailContent(location.pathname) : null;
   const previousPath = useRef(location.pathname);
   useEffect(() => {
@@ -158,10 +164,12 @@ export function AppLayout() {
   return (
     <AppShell
       activeSection={activeSection}
-      renderBusinessMenu={(close) => <BusinessSelector onSelected={() => { close(); void navigate("/app", { replace: true }); }} />}
+      renderBusinessMenu={(close) => <BusinessSelector onSelected={() => { close(); if (!isAccountSettings) void navigate("/app", { replace: true }); }} />}
       contextRail={rail ? <ContextRail title="Para tener en cuenta" blocks={rail} /> : null}
       businessName={activeBusiness?.name ?? (status === "empty" ? "Sin negocio activo" : status === "error" ? "No disponible" : "Seleccioná un negocio")}
-      userName={session?.user.email ?? "Usuario"}
+      userName={userDisplayName || session?.user.email || "Usuario"}
+      userEmail={session?.user.email}
+      userAvatarId={userAvatarId}
       userRole={activeRole ?? "Sin rol"}
       onNavigate={handleNavigate}
       onSearchNavigate={(path) => { void navigate(path); }}
@@ -176,7 +184,11 @@ export function AppLayout() {
             })()
       }
     >
-      <BusinessBoundary><PageErrorBoundary key={`${session?.user.id}:${activeBusiness?.id}`} /></BusinessBoundary>
+      {isAccountSettings ? (
+        <PageErrorBoundary key={`${session?.user.id}:settings`} />
+      ) : (
+        <BusinessBoundary><PageErrorBoundary key={`${session?.user.id}:${activeBusiness?.id}`} /></BusinessBoundary>
+      )}
     </AppShell>
   );
 }

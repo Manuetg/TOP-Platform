@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import {
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -30,27 +31,16 @@ import { useBooking } from "../queries/use-booking";
 import { useSubmitBooking } from "../queries/use-submit-booking";
 import { useCancelBooking } from "../queries/use-cancel-booking";
 import { BookingTimeline } from "../components/BookingTimeline";
+import { BookingOperationActions } from "../components/BookingOperationActions";
 import { BookingPayments } from "../../payments/components/BookingPayments";
 import type { BookingStatus } from "../types/booking.types";
+import { getBookingStatusLabel } from "../booking-status";
 import "./BookingDetailPage.css";
 
 interface BookingDetailPageProps {
   businessId?: string;
 }
 
-
-const STATUS_LABELS: Record<
-  BookingStatus,
-  string
-> = {
-  DRAFT: "Borrador",
-  PENDING: "Pendiente",
-  CONFIRMED: "Confirmada",
-  IN_PROGRESS: "En curso",
-  COMPLETED: "Completada",
-  CANCELLED: "Cancelada",
-  NO_SHOW: "No show",
-};
 
 const formatDate = (value: string | null) => formatPureDate(value, "Sin definir");
 
@@ -63,7 +53,7 @@ function BookingStatusBadge({
     <span
       className={`booking-detail-status booking-detail-status--${status.toLowerCase()}`}
     >
-      {STATUS_LABELS[status]}
+      {getBookingStatusLabel(status)}
     </span>
   );
 }
@@ -110,9 +100,13 @@ export function BookingDetailPage({
     ? "Calendario"
     : "Reservas";
   const { session, status: authStatus } = useAuth();
-  const { activeBusinessId, activeBusiness, status: businessStatus } = useBusinessContext();
+  const { activeBusinessId, activeBusiness, activeRole, status: businessStatus } = useBusinessContext();
   const formatDateTime = (value: string) => activeBusiness ? formatBusinessInstant(value, activeBusiness.timezone) : "Sin fecha";
   const businessId = suppliedBusinessId ?? activeBusinessId;
+  const canWriteBooking = authStatus === "authenticated" && businessStatus === "ready" && businessId === activeBusinessId && (
+    activeRole === "OWNER" || activeRole === "ADMIN" || activeRole === "RECEPTIONIST"
+  );
+  const mutationInFlight = useRef(false);
 
   const {
     data: booking,
@@ -202,16 +196,21 @@ export function BookingDetailPage({
   );
 
   async function handleSubmitBooking() {
+    if (!canWriteBooking || booking?.status !== "DRAFT" || mutationInFlight.current || submitMutation.isPending || cancelMutation.isPending) return;
+    mutationInFlight.current = true;
     submitMutation.reset();
 
     try {
       await submitMutation.mutateAsync();
     } catch {
       // El error se presenta desde la mutación.
+    } finally {
+      mutationInFlight.current = false;
     }
   }
 
   async function handleCancelBooking() {
+    if (!canWriteBooking || !booking || !["DRAFT", "PENDING", "CONFIRMED"].includes(booking.status) || mutationInFlight.current || submitMutation.isPending || cancelMutation.isPending) return;
     const reason = cancelReason.trim();
 
     if (
@@ -231,6 +230,7 @@ export function BookingDetailPage({
       return;
     }
 
+    mutationInFlight.current = true;
     setCancelValidationError(null);
     cancelMutation.reset();
 
@@ -243,6 +243,8 @@ export function BookingDetailPage({
       setCancelReason("");
     } catch {
       // El error se presenta desde la mutación.
+    } finally {
+      mutationInFlight.current = false;
     }
   }
 
@@ -369,11 +371,12 @@ export function BookingDetailPage({
         </div>
 
         <div className="booking-detail-header-actions">
-          {[
+          <BookingOperationActions businessId={businessId} booking={booking} disabled={showCancel || submitMutation.isPending || cancelMutation.isPending} />
+          {([
             "CONFIRMED",
             "IN_PROGRESS",
             "COMPLETED",
-          ].includes(booking.status) && (
+            ].includes(booking.status) || (booking.status === "PENDING" && booking.financialSummary?.totalAmountMinor != null)) && (
             <Button
               type="button"
               variant="secondary"
@@ -386,7 +389,13 @@ export function BookingDetailPage({
               Gestionar pagos
             </Button>
           )}
-          {booking.status === "DRAFT" && (
+          {canWriteBooking && activeBusiness?.id === businessId && activeBusiness.status === "ACTIVE" &&
+            ["PENDING", "CONFIRMED"].includes(booking.status) && booking.financialSummary?.totalAmountMinor != null && booking.resourceIds.length === 1 && (
+            <Button type="button" variant="secondary" disabled={cancelMutation.isPending} onClick={() => navigate(`/app/bookings/${booking.id}/edit`)}>
+              <Pencil size={16} aria-hidden="true" />Editar reserva
+            </Button>
+          )}
+          {canWriteBooking && booking.status === "DRAFT" && (
             <>
               <Button
                 type="button"
@@ -423,12 +432,12 @@ export function BookingDetailPage({
                   aria-hidden="true"
                 />
                 {submitMutation.isPending
-                  ? "Enviando..."
-                  : "Enviar reserva"}
+                  ? "Pasando a pendiente..."
+                  : "Pasar a pendiente"}
               </Button>
             </>
           )}
-          {booking.status === "PENDING" && (
+          {canWriteBooking && booking.status === "PENDING" && booking.financialSummary?.totalAmountMinor == null && (
             <Button
               type="button"
               disabled={cancelMutation.isPending}
@@ -443,7 +452,7 @@ export function BookingDetailPage({
           )}
 
 
-          {(
+          {canWriteBooking && (
             booking.status === "DRAFT" ||
             booking.status === "PENDING" ||
             booking.status === "CONFIRMED"
@@ -471,7 +480,7 @@ export function BookingDetailPage({
         </div>
       </header>
 
-      {showCancel && (
+      {showCancel && canWriteBooking && ["DRAFT", "PENDING", "CONFIRMED"].includes(booking.status) && (
         <section
           className="booking-detail-cancel"
           aria-labelledby="cancel-booking-title"
@@ -568,7 +577,7 @@ export function BookingDetailPage({
           {submitMutation.error
             instanceof Error
             ? submitMutation.error.message
-            : "No pudimos enviar la reserva."}
+            : "No pudimos pasar la reserva a pendiente."}
         </div>
       )}
 

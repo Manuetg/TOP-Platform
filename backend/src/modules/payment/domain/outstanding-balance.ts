@@ -3,7 +3,13 @@ export const OUTSTANDING_BALANCE_REPOSITORY = Symbol(
 );
 
 export interface OutstandingBalanceProjection {
+  currentCurrency?: string;
+  currentTotalAmountMinor?: number;
+  currentPricingRevisionId?: string | null;
   paymentPlanId: string | null;
+  planCurrency?: string | null;
+  paymentCurrencyMismatch?: boolean;
+  invalidMonetaryData?: boolean;
   paidAmountMinor: number;
   planTotalAmountMinor: number | null;
   installmentTotalAmountMinor: number;

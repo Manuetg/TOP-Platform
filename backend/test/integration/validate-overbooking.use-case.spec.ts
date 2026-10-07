@@ -108,11 +108,8 @@ describeWithPostgres(
           notes: null,
         });
 
-      await bookings.markPending(
-        booking.id,
-        business.id,
-        null,
-      );
+      // Inject an existing blocking history for the availability test; production Submit revalidates its own minima.
+      await prisma.booking.update({ where: { id: booking.id }, data: { status: 'PENDING' } });
 
       return {
         business,
@@ -179,11 +176,8 @@ describeWithPostgres(
           notes: null,
         });
 
-      await bookings.markPending(
-        blocker.id,
-        business.id,
-        null,
-      );
+      // Inject an existing blocking history for the availability test; production Submit revalidates its own minima.
+      await prisma.booking.update({ where: { id: blocker.id }, data: { status: 'PENDING' } });
 
       await expect(
         useCase.validate({

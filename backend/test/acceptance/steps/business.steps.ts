@@ -3,6 +3,13 @@ import { strict as assert } from 'node:assert';
 import request from 'supertest';
 import { TopWorld } from '../support/world';
 import { addBusinessFake } from '../support/membership-repository.fake';
+import { businessRepositoryFake } from '../support/business-repository.fake';
+
+async function updateBusiness(world: TopWorld, changes: Record<string, unknown>): Promise<void> {
+  const id = 'f8c49800-e50e-4d0e-b82b-0b51c09a0001';
+  const current = await businessRepositoryFake.findById(id);
+  world.response = await request(world.app?.getHttpServer()).patch(`/api/businesses/${id}`).send({ ...changes, expectedUpdatedAt: current?.updatedAt.toISOString() });
+}
 
 Given('existen negocios registrados', function (this: TopWorld) {
   assert.ok(this.app);
@@ -27,19 +34,19 @@ When('consulto la lista de negocios', async function (this: TopWorld) {
 });
 
 When('actualizo el negocio con nombre {string} y razón social {string}', async function (this: TopWorld, name: string, legalName: string) {
-  this.response = await request(this.app?.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001').send({ name, legalName });
+  await updateBusiness(this, { name, legalName });
 });
 
 When('actualizo razón social y RUC a null', async function (this: TopWorld) {
-  this.response = await request(this.app?.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001').send({ legalName: null, taxId: null });
+  await updateBusiness(this, { legalName: null, taxId: null });
 });
 
 When('intento actualizarlo con una moneda distinta de PYG', async function (this: TopWorld) {
-  this.response = await request(this.app?.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001').send({ currency: 'USD' });
+  await updateBusiness(this, { currency: 'USD' });
 });
 
 When('intento actualizarlo con una zona horaria inválida', async function (this: TopWorld) {
-  this.response = await request(this.app?.getHttpServer()).patch('/api/businesses/f8c49800-e50e-4d0e-b82b-0b51c09a0001').send({ timezone: 'invalid' });
+  await updateBusiness(this, { timezone: 'invalid' });
 });
 
 When('archivo el negocio', async function (this: TopWorld) {

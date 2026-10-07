@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BookingStatus, type BookingRepository } from '../../booking/booking.contract';
 import { BusinessStatus, type BusinessRepository } from '../../business/business.contract';
-import type { PricingSnapshot, PricingSnapshotRepository } from '../../pricing/pricing.contract';
+import type { PricingSnapshotRepository } from '../../pricing/pricing.contract';
 import { PAYMENT_PLAN_REPOSITORY, type CreatePaymentPlanData, type PaymentPlan, type PaymentPlanRepository } from '../domain/payment-plan';
 
 export class PaymentPlanInputError extends Error {}
@@ -30,6 +30,8 @@ export interface PaymentPlanResponse {
   bookingId: string;
   currency: string;
   totalAmountMinor: number;
+  needsReconciliation: boolean;
+  warning: string | null;
   installments: PaymentPlanInstallmentResponse[];
   createdAt: Date;
   updatedAt: Date;
@@ -74,10 +76,17 @@ export class PaymentPlanUseCases {
     const booking = await this.bookings.findByIdAndBusinessId(input.bookingId, input.businessId);
     if (!booking) throw new PaymentPlanNotFoundError('La reserva no existe.');
     if (![BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS].includes(booking.status)) throw new PaymentPlanConflictError('La reserva no admite modificar su plan de pagos.');
-    const snapshot = await this.snapshots.findByBookingId(input.bookingId);
-    if (!snapshot || snapshot.businessId !== input.businessId) throw new PaymentPlanConflictError('La reserva no tiene un PricingSnapshot confirmado.');
-    this.requireMatchingTotal(installments, snapshot);
-    return { businessId: input.businessId, bookingId: input.bookingId, currency: snapshot.currency, totalAmountMinor: snapshot.totalAmountMinor, actorUserId: input.actorUserId, installments };
+    const price = await this.agreedPrice(input.businessId, input.bookingId);
+    this.requireMatchingTotal(installments, price.totalAmountMinor);
+    return { businessId: input.businessId, bookingId: input.bookingId, currency: price.currency, totalAmountMinor: price.totalAmountMinor, currentPricingId: price.id, actorUserId: input.actorUserId, installments };
+  }
+
+  private async agreedPrice(businessId: string, bookingId: string): Promise<{ id: string; currency: string; totalAmountMinor: number }> {
+    const snapshot = await this.snapshots.findByBookingId(bookingId);
+    if (!snapshot || snapshot.businessId !== businessId) throw new PaymentPlanConflictError('La reserva no tiene un PricingSnapshot confirmado.');
+    const price = this.plans.findCurrentPricing ? await this.plans.findCurrentPricing(businessId, bookingId) : snapshot;
+    if (!price) throw new PaymentPlanConflictError('La reserva no tiene un precio vigente.');
+    return price;
   }
 
   private installments(value: unknown): CreatePaymentPlanData['installments'] {
@@ -99,14 +108,14 @@ export class PaymentPlanUseCases {
     return date;
   }
 
-  private requireMatchingTotal(installments: CreatePaymentPlanData['installments'], snapshot: PricingSnapshot): void {
+  private requireMatchingTotal(installments: CreatePaymentPlanData['installments'], totalAmountMinor: number): void {
     const total = installments.reduce((sum, installment) => sum + installment.amountMinor, 0);
-    if (!Number.isSafeInteger(total) || total !== snapshot.totalAmountMinor) throw new PaymentPlanConflictError('El total del plan debe coincidir con el PricingSnapshot.');
+    if (!Number.isSafeInteger(total) || total !== totalAmountMinor) throw new PaymentPlanConflictError('El total del plan debe coincidir con el precio vigente.');
   }
 
   private response(plan: PaymentPlan): PaymentPlanResponse {
     const today = new Date().toISOString().slice(0, 10);
-    return { id: plan.id, bookingId: plan.bookingId, currency: plan.currency, totalAmountMinor: plan.totalAmountMinor, installments: plan.installments.map((installment) => {
+    return { id: plan.id, bookingId: plan.bookingId, currency: plan.currency, totalAmountMinor: plan.totalAmountMinor, needsReconciliation: plan.needsReconciliation ?? false, warning: plan.warning ?? null, installments: plan.installments.map((installment) => {
       const outstandingAmountMinor = installment.amountMinor - installment.appliedAmountMinor;
       const dueDate = installment.dueDate?.toISOString().slice(0, 10) ?? null;
       const status = outstandingAmountMinor === 0 ? 'PAID' : dueDate !== null && dueDate < today ? 'OVERDUE' : installment.appliedAmountMinor > 0 ? 'PARTIALLY_PAID' : 'PENDING';
@@ -115,7 +124,7 @@ export class PaymentPlanUseCases {
   }
 
   private mapConflict(error: unknown): Error {
-    if (error instanceof Error && ['PAYMENT_PLAN_EXISTS', 'PAYMENT_PLAN_HAS_APPLICATIONS', 'PAYMENT_PLAN_BOOKING_STATE'].includes(error.message)) return new PaymentPlanConflictError(error.message);
+    if (error instanceof Error && ['PAYMENT_PLAN_EXISTS', 'PAYMENT_PLAN_HAS_APPLICATIONS', 'PAYMENT_PLAN_BOOKING_STATE', 'PAYMENT_PLAN_PRICE_CHANGED', 'PAYMENT_PLAN_CREDIT_REQUIRES_RECONCILIATION'].includes(error.message)) return new PaymentPlanConflictError(error.message);
     if (error instanceof Error && error.message === 'PAYMENT_PLAN_NOT_FOUND') return new PaymentPlanNotFoundError('El plan de pagos no existe.');
     return error instanceof Error ? error : new Error('Error desconocido.');
   }

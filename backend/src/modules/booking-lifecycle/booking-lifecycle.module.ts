@@ -13,6 +13,17 @@ import {
 } from './booking-confirmation.contract';
 import { PrismaBookingConfirmationTransaction } from './infrastructure/prisma-booking-confirmation.transaction';
 import { BookingLifecycleController } from './presentation/booking-lifecycle.controller';
+import { CreatePendingBookingUseCase } from './application/create-pending-booking.use-case';
+import { PENDING_BOOKING_TRANSACTION } from './pending-booking.contract';
+import { PrismaPendingBookingTransaction } from './infrastructure/prisma-pending-booking.transaction';
+import { BookingOperationsController } from './presentation/booking-operations.controller';
+import { OperateBookingUseCase } from './application/operate-booking.use-case';
+import { BOOKING_OPERATION_TRANSACTION } from './booking-operation.contract';
+import { PrismaBookingOperationTransaction } from './infrastructure/prisma-booking-operation.transaction';
+import { BookingAmendmentController } from './presentation/booking-amendment.controller';
+import { BookingAmendmentUseCase } from './application/booking-amendment.use-case';
+import { BOOKING_AMENDMENT_TRANSACTION } from './booking-amendment.contract';
+import { PrismaBookingAmendmentTransaction } from './infrastructure/prisma-booking-amendment.transaction';
 
 @Module({
   imports: [
@@ -25,8 +36,16 @@ import { BookingLifecycleController } from './presentation/booking-lifecycle.con
   ],
   controllers: [
     BookingLifecycleController,
+    BookingOperationsController,
+    BookingAmendmentController,
   ],
   providers: [
+    PrismaBookingAmendmentTransaction,
+    { provide: BOOKING_AMENDMENT_TRANSACTION, useExisting: PrismaBookingAmendmentTransaction },
+    BookingAmendmentUseCase,
+    PrismaPendingBookingTransaction,
+    { provide: PENDING_BOOKING_TRANSACTION, useExisting: PrismaPendingBookingTransaction },
+    CreatePendingBookingUseCase,
     PrismaBookingConfirmationTransaction,
     {
       provide:
@@ -37,6 +56,9 @@ import { BookingLifecycleController } from './presentation/booking-lifecycle.con
     SubmitBookingUseCase,
     ConfirmBookingUseCase,
     CancelBookingUseCase,
+    OperateBookingUseCase,
+    PrismaBookingOperationTransaction,
+    { provide: BOOKING_OPERATION_TRANSACTION, useExisting: PrismaBookingOperationTransaction },
   ],
 })
 export class BookingLifecycleModule {}

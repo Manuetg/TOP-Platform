@@ -73,7 +73,7 @@ export function DashboardHeader({
       <div className="dashboard-context-header__actions">
         <DashboardMonthFilter month={month} currentMonth={currentMonth} onChange={onMonthChange} />
         <nav className="dashboard-quick-actions" aria-label="Acciones rápidas">
-          <Link className="dashboard-quick-action" to="/app/bookings/new">
+          <Link className="dashboard-quick-action" to="/app/calendar">
             <CalendarPlus size={16} aria-hidden="true" />
             <span>Crear reserva</span>
           </Link>

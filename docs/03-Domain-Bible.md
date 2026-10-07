@@ -1,6 +1,14 @@
 # Domain Bible
 ## Business
 
+> Composición local del piloto (2026-10-02): contratos incorporados desde Settings FINAL61 a Reservas/LAN. Los controles locales actuales y sus límites se registran en docs/00-Current-Status.md y deploy/pilot/release-manifest.json. Frontend y proxy se aprobaron por composición, sin intento agregado completo verde. CI, validación del operador y release siguen pendientes. Los resultados históricos conservan sus fuentes y fechas; no aprueban merge o despliegue.
+
+### Tu establecimiento - contrato incorporado a la composición local (2026-10-02)
+
+El encargo explícito completa nombre comercial, razón social, identificación fiscal y ubicación básica documentados: `country`, `region`, `city`, `address` opcionales nullable, sin backfill ni catálogo/geocodificación. El actor es User ACTIVE con membresía autorizada. Perfil conserva datos omitidos y admite limpieza explícita; metadata no altera estado ni elimina historia. `BusinessProfileAudit` conserva actor, Business, instante, motivo automático y diferencial antes/después en la misma transacción. La decisión explícita del titular del 2026-10-02 autoriza cambios efectivos de moneda y zona horaria solo antes de existir registros afectados. En este MVP la única moneda soportada sigue siendo PYG. Una zona horaria IANA distinta se rechaza si existe cualquier Resource, Booking, Block o Payment del mismo Business, sin filtrar estados, incluidos archivados o cancelados; conservar la zona vigente permite editar los demás datos. No se convierten importes ni se reinterpretan instantes históricos. Logo queda fuera del candidato hasta coordinar un contrato seguro de archivos. El contrato técnico se describe en Architecture. Estado de origen: candidato Settings preparado en worktree aislado. Estado de la composición: controles locales y límites en Current Status; piloto NO GO, sin merge ni despliegue.
+
+Evidencia de concurrencia del corte Settings: dos carreras PostgreSQL entre inserción de Resource y cambio de zona horaria, en ambos órdenes. No acredita todos los interleavings de Resource/Booking/Block/Payment ni vuelve atómicos los cálculos previos de otros casos de uso. La evidencia actual del árbol combinado y sus límites se registra en Current Status; CI y operación real siguen pendientes.
+
 ### 1. Propósito
 
 Representar el Negocio dentro de TOP como parte del Core y del alcance del MVP, preservando el aislamiento de datos por Negocio.
@@ -118,6 +126,42 @@ Las reglas de autorización y el detalle operativo de cada capacidad están **Pe
 ### Phase 2 — Registro público y verificación de correo
 
 El registro público de cuenta se realiza exclusivamente mediante `POST /api/auth/signup` y crea atómicamente User, LocalCredential, Business, membresía `OWNER`, suscripción `TOP_INITIAL` y un `EmailVerificationToken`. El registro no inicia sesión ni devuelve tokens. `User.displayName` es opcional para usuarios legacy pero obligatorio en Signup; `emailVerifiedAt` se backfillea para usuarios existentes durante la migración y queda nulo en nuevas cuentas hasta verificar el correo. La verificación usa token opaco de alta entropía, hash-only, TTL de 24 horas y single-use mediante `POST /api/auth/verify-email`. Google queda fuera de Phase 2 y Terms/Privacy son deuda pre-lanzamiento.
+
+### Ampliación de Tu cuenta — encargo del 2026-10-02
+
+Estado: **In Progress, composición local para revisión**. Fuente: contrato de Settings FINAL61, preparado originalmente desde 0dc22cd18c403fb0446818c7bb57b63e26820f0c. Esa referencia identifica su origen; los controles locales cerraron según los alcances de Current Status; el cierre de CI y operación se registra por separado, sin aprobación de release, merge ni despliegue.
+
+La solicitud explícita del titular amplía el contrato personal y sustituye el requisito de motivo manual del corte del 2026-10-01. `GET/PATCH /api/users/:id/profile` conservan scope `SELF`, UUID válido, actor `ACTIVE`, independencia del Business y `Cache-Control: no-store`. Nombre completo conserva `displayName` obligatorio, trim y 1..120 caracteres. Se incorporan `birthYear`, `username`, `phone` y `avatarId` opcionales: omitir preserva; `null` borra; usuarios legacy se leen como `null`, sin backfill.
+
+- `birthYear`: únicamente año entero entre 1 y el año UTC vigente; no fecha completa, edad mínima ni obligatoriedad.
+- `username`: alias de perfil opcional con trim y máximo técnico de 50 caracteres. Conserva la etiqueta visible «Nombre de usuario» y explica que es un alias; no cambia Login ni presupone unicidad.
+- `phone`: número internacional con `+`, sin extensión, validado con la dependencia existente y normalizado a E.164. Un string vacío se normaliza a `null`; no implica verificación ni capacidad de mensajería.
+- `avatarId`: catálogo cerrado local `user`, `leaf`, `sun`, `mountain` o `null`, con Lucide regular y tokens TOP. No acepta URLs ni archivos; no introduce almacenamiento externo.
+
+PATCH recibe `expectedUpdatedAt` exacto en ISO UTC con milisegundos; `reason` ya no se pide ni se acepta como fuente de auditoría. El backend genera el motivo `Actualización del perfil por su titular.`. BR-056 conserva entidad, sujeto, actor, instante y valores anteriores/nuevos. `UserProfileAudit` añade JSON diferencial de las claves cambiadas; `UserDisplayNameAudit` se conserva íntegra y sigue registrando cambios efectivos de nombre. Ambas escrituras y perfil comparten transacción con FK `RESTRICT`; un fallo revierte todo.
+
+Se conserva bloqueo `User FOR UPDATE`, revalidación SELF/ACTIVE y comparación de versión antes del no-op. Un conflicto responde `409`, incluso con valores idénticos. Un no-op con versión vigente no escribe ni audita; un cambio avanza la versión al menos un milisegundo. Se preservan correo, verificación, estado, credenciales, membresías, permisos, sesiones y tokens. El DTO añade exclusivamente los cuatro campos personales a `id`, `email`, `displayName`, `status`, `updatedAt`; Login/JWT no se amplían.
+
+La UI mantiene borrador y versión original ante refetch; ante conflicto consulta y permite descartar antes de guardar con la nueva versión. Campos opcionales pueden limpiarse; avatares usan radios nativos y foco visible. La cuenta permanece accesible sin Business y al cambiar de establecimiento. Año usa entrada textual con teclado numérico para no convertir tokens inválidos en borrado; teléfono conserva entradas formateadas completas antes de normalizar en backend.
+
+Correo sigue de lectura. Por instrucción explícita para el piloto LAN de Ema, sin servicio de envío, todo cambio efectivo mediante IAM-005 queda suspendido con `409 EMAIL_CHANGE_UNAVAILABLE`. La ruta valida SELF/ACTIVE y admite únicamente el no-op del mismo correo normalizado, sin escritura, auditoría ni cambio de versión. No consulta duplicados y no usa consoleOTP como prueba de entrega. La cuenta ya verificada conserva su acceso; diferir SMTP no bloquea su uso en el piloto. Esta suspensión no se levanta por cambiar variables de transporte: requiere implementar y revisar un flujo de reautenticación y verificación.
+
+El flujo seguro de correo, sesiones/tokens y la carga segura de foto/logo necesitan contrato y decisiones propios. El contrato de avatar es un catálogo local; la composición no declara aplicada ninguna propuesta separada de avatar en el header. Tu establecimiento conserva PYG como única moneda del MVP; la restricción de cambios de moneda/zona horaria con registros afectados fue autorizada explícitamente el 2026-10-02 y se describe en su contrato vigente. Configuración LAN, cookies y CORS globales pertenecen a otro delta y no se modifican.
+
+### Perfil personal - contrato histórico del nombre (2026-10-01)
+
+> Corte histórico del 2026-10-01. Se conserva su descripción, auditoría y evidencia como historial. El contrato vigente de la ampliación del 2026-10-02 incorpora campos opcionales, motivo automático y suspensión del cambio efectivo de correo; el requisito de reason manual de este corte no rige para ese contrato.
+
+El encargo de configuración y perfil autoriza consultar la identidad propia y editar exclusivamente `User.displayName` mediante un contrato separado de IAM-005. Estado de implementación: **In Progress**, con contrato de nombre cerrado e implementación integrada en el snapshot local ee038ce, con gates locales registrados en Estado actual; esta nota no declara la capacidad Completed ni aprobación de PR.
+
+- `GET /api/users/:id/profile` y `PATCH /api/users/:id/profile` tienen scope `SELF`: exigen autenticación, User `ACTIVE` y coincidencia del actor autenticado con el UUID del path. No dependen del Business activo ni conceden autoridad sobre terceros mediante roles tenant-scoped.
+- PATCH recibe `displayName`, `reason` y `expectedUpdatedAt`. El nombre es string, con `trim` y longitud final de 1 a 120 caracteres; el motivo lo ingresa el usuario, se recorta y no puede quedar vacío. La versión es el `updatedAt` exacto leído, en ISO UTC con milisegundos. Un nombre vacío, ausente o nulo se rechaza. GET representa como `null` el nombre ausente de usuarios legacy; no completa sus nombres automáticamente.
+- Ambas respuestas exponen solo `id`, `email`, `displayName`, `status` y `updatedAt`, con `Cache-Control: no-store`. No exponen credenciales, hashes, tokens, sesiones, membresías, auditoría ni datos internos de verificación.
+- La implementación integrada usa una transacción con bloqueo `User FOR UPDATE`: obtiene la fila actual, comprueba `SELF`, `ACTIVE` y versión exacta, y conserva el valor anterior real. Una versión obsoleta produce `409`, también cuando el nombre solicitado coincide. Un cambio efectivo modifica únicamente `displayName` y avanza `updatedAt`, conservando correo, `emailVerifiedAt`, estado, contraseña, credenciales, membresías, roles y sesiones.
+- `UserDisplayNameAudit` conserva sujeto, actor autenticado, fecha/hora, nombre anterior nullable, nombre nuevo y motivo real, conforme a BR-056. Nombre, versión y auditoría se confirman o revierten juntos. Si el nombre normalizado ya coincide y la versión es vigente, no hay escritura ni auditoría, la versión se conserva y no se rotan tokens.
+- La migración aditiva crea `UserDisplayNameAudit`, con relaciones al sujeto y actor mediante FK `RESTRICT`; no reescribe nombres ni crea auditorías retrospectivas de usuarios legacy.
+
+La protección ante deshabilitación concurrente, el rollback y BR-063 se verifican sobre el commit integrado mediante los gates correspondientes; resultados y límites en Estado actual. IAM-005 y sus reglas de correo/sesiones se conservan; la UI de perfil presenta el correo solo para lectura. El flujo seguro de cambio de correo y el tratamiento de tokens de verificación vinculados a User, sin email de destino congelado, permanecen pendientes según [Business Rules](04-Business-Rules.md).
 
 ### 1. Propósito
 
@@ -250,7 +294,9 @@ User y LocalCredential mantienen una relación uno a uno. Un User puede tener va
 - **IAM-004 — Create User:** aprovisionamiento administrativo de User y LocalCredential; no crea membresía, no inicia sesión y no devuelve tokens.
 - **IAM-009 — Manage User-Business Membership:** crea una membresía entre User, Business y Role; no crea User, credenciales, Login ni permisos adicionales.
 - **IAM-007 — Roles:** consolida el catálogo cerrado y tenant-scoped, la asignación inicial mediante IAM-009, la exposición del rol por membresía en Login y la autorización backend; no agrega cambio posterior de rol, endpoint propio ni Permissions configurables.
-- **IAM-005 — Update User:** permite que un User `ACTIVE` autenticado actualice exclusivamente su propio email mediante identidad `sub`; conserva credencial, estado, membresías, roles y sesiones. No permite administración de terceros, cambio de contraseña ni transición de estado.
+- **IAM-005 - Update User:** contrato vigente de SELF/ACTIVE: el mismo email normalizado admite no-op sin escritura; todo cambio efectivo responde 409 EMAIL_CHANGE_UNAVAILABLE hasta definir el flujo seguro de reautenticación y verificación. Conserva credencial, estado, membresías, roles, versiones y sesiones; no habilita administración de terceros.
+
+> IAM-005, capacidad histórica anterior a la suspensión del 2026-10-02: **IAM-005 — Update User:** permite que un User `ACTIVE` autenticado actualice exclusivamente su propio email mediante identidad `sub`; conserva credencial, estado, membresías, roles y sesiones. No permite administración de terceros, cambio de contraseña ni transición de estado.
 - **IAM-008 — Permissions:** define un catálogo cerrado de capabilities BUSINESS y una matriz estática Role → Capability aplicada por backend. La autorización usa la Membership vigente del Business solicitado, deniega por defecto y no incorpora permisos al JWT, persistencia de Permissions, cambio de Role ni endpoint propio. Los Roles tenant-scoped nunca conceden autoridad GLOBAL.
 
 ### 11. Restricciones
@@ -394,7 +440,7 @@ Pricing es responsable de:
 - Calcular precios sugeridos según fechas, Resource, cantidad de huéspedes y duración.
 - Permitir seleccionar manualmente una opción tarifaria durante la creación de una reserva.
 - Permitir precios personalizados con motivo obligatorio.
-- Generar un snapshot inmutable del precio acordado al confirmar una reserva.
+- Generar un snapshot inmutable al confirmar en el flujo legacy; el alta nueva PENDING desde Calendario lo persiste al crear, según el contrato QA del 2026-10-02.
 - Mostrar un desglose comprensible del precio calculado.
 
 ### 3. No Responsabilidad
@@ -1074,7 +1120,7 @@ Booking referencia esta información, pero Pricing y Payment conservan sus respo
 - Un borrador puede existir con información incompleta; una reserva pendiente debe contener la información mínima para ser evaluada.
 - Una reserva confirmada debe tener Contact, fechas válidas, Resource disponible y Pricing Snapshot; Availability debe revalidarse inmediatamente antes de confirmar.
 - Confirmada y En curso bloquean disponibilidad; Cancelada y Finalizada no bloquean disponibilidad futura; Pendiente puede bloquear según configuración y Borrador nunca bloquea.
-- El precio se congela mediante Pricing Snapshot al confirmar. Cambiar fechas o Resource requiere revisar disponibilidad y puede requerir recálculo; el usuario debe mantener el precio anterior o aceptar el nuevo, dejando auditoría.
+- **Contrato histórico previo al 2026-10-02:** El precio se congela mediante Pricing Snapshot al confirmar. Cambiar fechas o Resource requiere revisar disponibilidad y puede requerir recálculo; el usuario debe mantener el precio anterior o aceptar el nuevo, dejando auditoría. El alta PENDING y la edición con preview se rigen por los apartados QA posteriores; no se habilita mantener precio anterior al cambiar fechas ni cambiar Resource por esta referencia histórica.
 - Toda modificación relevante debe generar auditoría. Booking y Payment son independientes; una reserva puede existir sin pagos o tener múltiples pagos; el estado financiero no se mezcla con el operativo.
 - Ninguna Booking se elimina físicamente y una cancelada conserva su historial.
 - Check-in y check-out son eventos, no estados; No Show es distinto de Cancelada; Finalizada es irreversible en el MVP.
@@ -1141,7 +1187,7 @@ No se definen aún las cardinalidades técnicas de base de datos.
 ### 12. Pendientes
 
 - La información mínima para pasar de `DRAFT` a `PENDING` queda definida por BKG-005: Contact responsable, exactamente un Resource y rango completo `[checkInDate, checkOutDate)` válido.
-- Regla definitiva para confirmar automáticamente tras un primer pago.
+- Pendiente histórico resuelto en QA 2026-10-02: cualquier primer Payment RECORDED efectivo de importe positivo confirma PENDING conforme al apartado de alta pendiente y primer cobro inferior; no existe umbral del 50 %.
 - `PENDING` consume la regla efectiva `pendingBlocksAvailability` de Availability; al entrar en `PENDING` se valida disponibilidad con la misma semántica central.
 - Política de cancelación y penalizaciones.
 - Tratamiento de reembolsos.
@@ -1155,6 +1201,39 @@ No se definen aún las cardinalidades técnicas de base de datos.
 - La semántica temporal MVP usa fechas `YYYY-MM-DD` e intervalos semiabiertos; horarios exactos y tratamiento horario avanzado permanecen fuera de este slice.
 - Política de archivado.
 - Alcance de duplicar reserva en el MVP.
+
+
+### Alta pendiente desde Calendario y primer cobro - decisión de QA del 2026-10-02
+
+Este apartado conserva el alcance del corte Pending inicial. Las referencias a Operations/edición como siguiente delta se completan en los apartados posteriores del mismo día; no representan pendientes funcionales de este candidato integrado.
+
+El usuario autorizó conservar los accesos «Crear reserva» y centralizar el alta en Calendario. El contrato aditivo `POST /api/businesses/:businessId/bookings/pending` recibe contacto, exactamente un Resource, fechas completas y `pricing[]` con el mismo contrato de tarifas configuradas, ajustes y precio manual sin referencia. La nueva reserva se persiste directamente como `PENDING`, junto a Resources, PricingSnapshot y eventos de creación/paso a pendiente, sin un `DRAFT` o `CONFIRMED` intermedio. El precio acordado queda disponible para registrar el primer cobro; cambios posteriores de tarifarios no reescriben ese Snapshot.
+
+Un Payment efectivo `RECORDED`, entero seguro estrictamente positivo y sin sobrepago, confirma exclusivamente `PENDING → CONFIRMED`. Cualquier importe positivo alcanza; no existe umbral del 50 %. Registrar, aplicar a cuotas, confirmar y auditar comparte transacción. Booking, Business, Snapshot, contacto, fechas, capacidad vigente y Availability se validan nuevamente con datos canónicos; un conflicto revierte todo el intento. La confirmación por este flujo genera un solo evento con actor autenticado y referencia interna al Payment que la causó. Un reintento de la misma key/fingerprint devuelve el cobro original, incluso después de una cancelación o archivo; no duplica dinero ni eventos.
+
+Se conservan pagos en `CONFIRMED`, `IN_PROGRESS` y `COMPLETED` sin retroceder sus estados. Nuevos pagos no reabren `CANCELLED` o `NO_SHOW` ni aceptan `DRAFT`. El estado operativo sigue separado del financiero. GET de lista y detalle añade `financialSummary: { totalAmountMinor, paidAmountMinor, currency }`: total y moneda nulos identifican una reserva legacy sin Snapshot; pagado suma solo `RECORDED`. Usa importes enteros seguros y consultas por lote, sin saldos persistidos ni N+1. Para reservas con Snapshot, estado e importes se proyectan en la misma lectura consistente.
+
+No se migran ni eliminan Borradores históricos. POST legacy, Submit y Confirm se conservan para compatibilidad, con Submit revalidado atómicamente bajo los mismos bloqueos de recursos. Confirm legacy rechaza una nueva PENDING que ya contiene Snapshot: su confirmación ocurre al registrar cobro. El precio cero continúa válido; en este corte permanece PENDING sin pagos artificiales. La confirmación manual sin cobro, edición de precio/fechas con preservación de cobros y acciones manuales de ingreso/salida/no show fueron autorizadas posteriormente en QA y se implementarán en un delta separado. No se infieren reembolsos, anulaciones ni cambios históricos.
+
+### Operaciones manuales y confirmación sin cobro - QA 2026-10-02
+
+El usuario autorizó acciones manuales de OWNER/ADMIN/RECEPTIONIST: Registrar ingreso CONFIRMED → IN_PROGRESS, Registrar salida IN_PROGRESS → COMPLETED y No show CONFIRMED → NO_SHOW. No son estados adicionales de check-in/check-out; las transiciones y sus eventos conservan la historia. No se agregan umbrales de fecha o deuda ni cambios automáticos, reembolsos o reaperturas de estados cerrados.
+
+Confirmar sin cobro permite exclusivamente PENDING → CONFIRMED con total vigente exacto cero, Contact/Resource/fechas/capacidad/Availability válidos. No fabrica Payment ni interpreta outstanding cero como precio cero. El precio vigente es la última PricingRevision o, en su ausencia, el Snapshot original, consultado bajo los locks de Booking/Snapshot. Un original cero revisado a positivo no habilita la acción; un original positivo revisado a cero sí puede habilitarla.
+
+Cada POST exige expectedUpdatedAt canónico. Estado, avance monotónico de versión y Timeline se guardan o revierten juntos; motivo opcional de 2 a 500 caracteres cuando se proporciona. Actor/membresía/Business y estado se comprueban en la operación. Un conflicto requiere nueva consulta y decisión; VIEWER sólo consulta. Frontend no recupera ni repite automáticamente estas mutaciones después de 401 y descarta respuestas de un contexto anterior.
+
+### Edición con preview y precio vigente - QA 2026-10-02
+
+El usuario autorizó editar fechas/tarifa mostrando el precio antes de guardar, conservar los cobros y recalcular pendiente o excedente sin reembolsos automáticos. El alcance mínimo interpretado para este corte es PENDING/CONFIRMED con precio persistido y mismo Resource; no se atribuye al usuario una aprobación específica de todos los estados. DRAFT mantiene su editor legacy. En curso, estados cerrados y cambio de Resource quedan fuera del delta.
+
+POST `/:bookingId/amendment-preview` calcula sin persistir. Contacto/huéspedes/notas con fechas idénticas permiten omitir `pricing[]` y conservar exactamente ítems y moneda vigentes, sin fabricar precio manual ni revisión; también para Recepción sobre Snapshot manual. Fechas o tarifa nuevas requieren precio explícito y permisos existentes de cálculo/override. Motivo opcional real de 2 a 500 caracteres si existe. La moneda propuesta debe coincidir con la vigente; no se convierte dinero.
+
+PATCH `/:bookingId/amendment` exige `expectedUpdatedAt`, `currentPricingId`, `expectedPaidAmountMinor` y `acceptedQuote` exacto del preview (moneda, total, ítems y fingerprint). Revalida tenant, actor/membresía, estado, contacto, capacidad y Availability excluyendo la propia reserva, bajo bloqueos Booking → Snapshot → Resource. Versiones, cobros, precio o quote obsoletos producen HTTP 409 sin cambios parciales. Editar no cambia estado. Una operación sin modificación efectiva ni precio nuevo no fabrica auditoría.
+
+Snapshot original, Payments y PaymentApplications se conservan. Un precio explícito crea PricingRevision append-only con número por reserva, procedencia al Snapshot tenant-scoped, precio anterior/nuevo, contexto, cobrado observado, actor/fecha y motivo nullable. Booking, revisión y BOOKING_AMENDED se confirman o revierten juntos, sin backfill. Precio vigente es última revisión por número o Snapshot original.
+
+Pendiente = `max(precioVigente − cobrado, 0)` y crédito = `max(cobrado − precioVigente, 0)`, con enteros seguros; financialSummary agrega ambos valores. Preview, Balance y GET plan advierten conciliación por diferencia de total/moneda, crédito o cobros sin aplicar. Restaurar el importe anterior no elimina el aviso si quedan cobros sin aplicar. Balance deja overdue/nextDue nulos; GET plan conserva cuotas históricas. Nuevos cobros se validan contra precio vigente y quedan sin aplicar mientras el plan necesite conciliación. Las escrituras manuales de planes conservan sus restricciones y releen precio/moneda/contexto bajo bloqueo. No se reprograman cuotas, reasignan aplicaciones ni generan devoluciones automáticamente.
 
 ## Payment
 
@@ -1283,7 +1362,7 @@ PaymentApplication materializa la relación entre un Payment y una cuota del pla
 ### 12. Pendientes
 
 - Plantillas iniciales de plan de pagos.
-- Regla definitiva de confirmación automática tras primer pago.
+- Pendiente histórico resuelto en QA 2026-10-02 por la regla de primer Payment RECORDED positivo definida en Booking; no requiere porcentaje mínimo.
 - Política de sobrepago y saldo a favor.
 - Tratamiento exacto de reembolsos.
 - Formatos y límites de comprobantes.

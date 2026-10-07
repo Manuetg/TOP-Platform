@@ -16,7 +16,7 @@ describe('PaymentPlanUseCases', () => {
   const input = { businessId, bookingId, actorUserId, installments: [{ amountMinor: 40, dueDate: '2026-10-01' }, { amountMinor: 60, dueDate: null }] };
   beforeEach(() => { jest.resetAllMocks(); findBusiness.mockResolvedValue(business()); findBooking.mockResolvedValue(booking()); findSnapshot.mockResolvedValue({ id: 'snapshot', businessId, bookingId, currency: 'PYG', totalAmountMinor: 100, items: [], createdAt: new Date() }); create.mockResolvedValue(plan()); replace.mockResolvedValue(plan()); findByBooking.mockResolvedValue(plan()); });
 
-  it.each([BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS])('creates a plan for %s deriving total, currency, actor and sortOrder', async (status) => { findBooking.mockResolvedValueOnce(booking(status)); await subject.create(input); expect(create).toHaveBeenCalledWith({ businessId, bookingId, currency: 'PYG', totalAmountMinor: 100, actorUserId, installments: [{ amountMinor: 40, dueDate: new Date('2026-10-01T00:00:00.000Z'), sortOrder: 0 }, { amountMinor: 60, dueDate: null, sortOrder: 1 }] }); });
+  it.each([BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS])('creates a plan for %s deriving total, currency, actor and sortOrder', async (status) => { findBooking.mockResolvedValueOnce(booking(status)); await subject.create(input); expect(create).toHaveBeenCalledWith({ businessId, bookingId, currency: 'PYG', totalAmountMinor: 100, currentPricingId: 'snapshot', actorUserId, installments: [{ amountMinor: 40, dueDate: new Date('2026-10-01T00:00:00.000Z'), sortOrder: 0 }, { amountMinor: 60, dueDate: null, sortOrder: 1 }] }); });
   it.each([
     { installments: [] },
     { installments: Array.from({ length: 101 }, () => ({ amountMinor: 1 })) },
@@ -27,4 +27,17 @@ describe('PaymentPlanUseCases', () => {
   it('rejects missing snapshot and total mismatch', async () => { findSnapshot.mockResolvedValueOnce(null); await expect(subject.create(input)).rejects.toBeInstanceOf(PaymentPlanConflictError); findSnapshot.mockResolvedValueOnce({ id: 'snapshot', businessId, bookingId, currency: 'PYG', totalAmountMinor: 101, items: [], createdAt: new Date() }); await expect(subject.create(input)).rejects.toThrow('total del plan'); });
   it('replaces before applications and maps repository conflicts', async () => { await expect(subject.replace(input)).resolves.toMatchObject({ bookingId, totalAmountMinor: 100 }); replace.mockRejectedValueOnce(new Error('PAYMENT_PLAN_HAS_APPLICATIONS')); await expect(subject.replace(input)).rejects.toBeInstanceOf(PaymentPlanConflictError); });
   it('derives PAID, OVERDUE, PARTIALLY_PAID and PENDING using approved precedence', async () => { findByBooking.mockResolvedValueOnce(plan([{ id: 'paid', amountMinor: 10, dueDate: new Date('2020-01-01'), sortOrder: 0, appliedAmountMinor: 10 }, { id: 'overdue', amountMinor: 10, dueDate: new Date('2020-01-01'), sortOrder: 1, appliedAmountMinor: 5 }, { id: 'partial', amountMinor: 10, dueDate: null, sortOrder: 2, appliedAmountMinor: 5 }, { id: 'pending', amountMinor: 70, dueDate: null, sortOrder: 3, appliedAmountMinor: 0 }])); const result = await subject.get(businessId, bookingId); expect(result.installments.map((item) => item.status)).toEqual(['PAID', 'OVERDUE', 'PARTIALLY_PAID', 'PENDING']); expect(result.installments.map((item) => item.outstandingAmountMinor)).toEqual([0, 5, 5, 70]); });
+
+  it('prepares a write from current pricing instead of the original Snapshot', async () => {
+    const currentPricing = jest.fn().mockResolvedValue({ id: 'revision-2', currency: 'PYG', totalAmountMinor: 80 });
+    const revised = new PaymentPlanUseCases({ create, findByBooking, replace, findCurrentPricing: currentPricing }, { findByIdAndBusinessId: findBooking } as never, { findByBookingId: findSnapshot } as never, { findById: findBusiness } as never);
+    await revised.create({ ...input, installments: [{ amountMinor: 80 }] });
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ totalAmountMinor: 80, currentPricingId: 'revision-2' }));
+    expect(currentPricing).toHaveBeenCalledWith(businessId, bookingId);
+  });
+
+  it('exposes the historical plan and its explicit reconciliation warning', async () => {
+    findByBooking.mockResolvedValueOnce({ ...plan(), needsReconciliation: true, warning: 'El plan requiere conciliación.' });
+    await expect(subject.get(businessId, bookingId)).resolves.toMatchObject({ totalAmountMinor: 100, needsReconciliation: true, warning: 'El plan requiere conciliación.' });
+  });
 });

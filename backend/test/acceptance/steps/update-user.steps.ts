@@ -30,9 +30,9 @@ Given('existe un User DISABLED para actualizar', async function (this: TopWorld)
   await userStatusRepositoryFake.update(user.disable());
 });
 
-Given('inició sesión antes de cambiar email', async function (this: TopWorld): Promise<void> { await login(this); });
+Given('inició sesión antes de intentar cambiar correo', async function (this: TopWorld): Promise<void> { await login(this); });
 
-When('actualiza su propio email', async function (this: TopWorld): Promise<void> {
+When('intenta cambiar su propio correo', async function (this: TopWorld): Promise<void> {
   await login(this);
   this.response = await request(this.app?.getHttpServer()).patch(`/api/users/${userId}`).set('Authorization', `Bearer ${accessToken}`).send({ email: ' NUEVO+Alias@Ejemplo.COM ', status: 'DISABLED', role: 'OWNER', passwordHash: 'forbidden' });
 });
@@ -46,14 +46,23 @@ When('intenta actualizarse con su access token', async function (this: TopWorld)
   this.response = await request(this.app?.getHttpServer()).patch(`/api/users/${userId}`).set('Authorization', `Bearer ${accessToken}`).send({ email: 'blocked@example.com' });
 });
 
-When('actualiza su propio email conservando la sesión', async function (this: TopWorld): Promise<void> {
+When('intenta cambiar su correo conservando la sesión', async function (this: TopWorld): Promise<void> {
   this.response = await request(this.app?.getHttpServer()).patch(`/api/users/${userId}`).set('Authorization', `Bearer ${accessToken}`).send({ email: 'new-session@example.com' });
-  assert.equal(this.response.status, 200);
+  assert.equal(this.response.status, 409);
+  assert.equal(this.response.body.code, 'EMAIL_CHANGE_UNAVAILABLE');
 });
 
-Then('el nuevo email queda normalizado', function (this: TopWorld): void { assert.equal(this.response?.body.email, 'nuevo+alias@ejemplo.com'); });
+When('solicita el mismo correo con espacios y mayúsculas', async function (this: TopWorld): Promise<void> {
+  this.response = await request(this.app?.getHttpServer()).patch(`/api/users/${userId}`).set('Authorization', `Bearer ${accessToken}`).send({ email: ` ${originalEmail.toUpperCase()} ` });
+});
+
+Then('el cambio de correo queda suspendido y conserva la identidad', function (this: TopWorld): void {
+  assert.equal(this.response?.body.code, 'EMAIL_CHANGE_UNAVAILABLE');
+  assert.equal(getUserByIdFake(userId)?.email, originalEmail);
+});
+Then('el mismo correo queda normalizado', function (this: TopWorld): void { assert.equal(this.response?.body.email, originalEmail); });
 Then('Update User conserva estado y campos protegidos', function (this: TopWorld): void {
-  assert.equal(this.response?.body.status, UserStatus.ACTIVE);
+  assert.equal(getUserByIdFake(userId)?.status, UserStatus.ACTIVE);
   assert.equal('passwordHash' in (this.response?.body ?? {}), false);
   assert.equal('role' in (this.response?.body ?? {}), false);
 });

@@ -11,6 +11,13 @@ const state = vi.hoisted(() => ({
   status: "authenticated", businessStatus: "ready", userId: "user-1", businessId: "business-1",
   pageFails: true, shellFails: false, pageRenders: 0, logout: vi.fn(), mutation: vi.fn(),
 }));
+vi.mock("../../features/profile/api/user-profile", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../features/profile/api/user-profile")>(),
+  getUserProfile: vi.fn(async (id: string) => ({
+    id, email: "demo@example.test", displayName: null, birthYear: null, username: null, phone: null,
+    avatarId: null, status: "ACTIVE", updatedAt: "2026-10-02T00:00:00.000Z",
+  })),
+}));
 vi.mock("../../features/auth/context/AuthContext", () => ({
   useAuth: () => ({ status: state.status, session: { user: { id: state.userId, email: "demo@example.test" } }, logout: state.logout }),
 }));
@@ -52,6 +59,7 @@ async function navigate(router: ReturnType<typeof createMemoryRouter>, path = "/
 
 describe("recuperación en las rutas productivas", () => {
   beforeEach(() => {
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ x: 100, y: 20, top: 20, left: 100, right: 300, bottom: 64, width: 200, height: 44, toJSON: () => ({}) });
     Object.assign(state, { status: "authenticated", businessStatus: "ready", userId: "user-1", businessId: "business-1", pageFails: true, shellFails: false, pageRenders: 0 });
     state.mutation.mockReset();
     // React informa las excepciones sintéticas de estos casos. Solo se silencia este describe.

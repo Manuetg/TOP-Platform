@@ -1,5 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { ApiError } from "../../../shared/api/api-client";
+import { createPaymentIdempotencyKey } from "../../../shared/utils/create-payment-idempotency-key";
 import {
   getOutstandingBalance,
   getPaymentPlan,
@@ -13,6 +15,11 @@ interface Options {
   businessId: string;
   bookingId: string;
   accessToken?: string | null;
+}
+
+function matchesFinancialContext(key: readonly unknown[], options: Options) {
+  return (key[0] === "payments" || key[0] === "outstanding-balance" || key[0] === "payment-history") &&
+    key[2] === options.businessId && key[3] === options.bookingId;
 }
 
 export function useBookingFinances(options: Options) {
@@ -42,23 +49,48 @@ export function useBookingFinances(options: Options) {
 
 export function useRegisterPayment(options: Options) {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: RegisterPaymentInput) =>
-      registerPayment({ ...options, input, idempotencyKey: crypto.randomUUID() }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["payments", undefined, options.businessId, options.bookingId] });
-      await queryClient.invalidateQueries({ queryKey: ["payments"] });
+  const intent = useRef<{ scope: string; fingerprint: string; key: string } | null>(null);
+  const scope = JSON.stringify([options.businessId, options.bookingId]);
+  useEffect(() => { intent.current = null; }, [scope]);
+  type Request = { input: RegisterPaymentInput; context: Options; key: string };
+  const mutation = useMutation({
+    retry: false,
+    mutationFn: ({ input, context, key }: Request) => registerPayment({ ...context, input, idempotencyKey: key }),
+    onSuccess: async (_payment, request) => {
+      if (intent.current?.key === request.key) intent.current = null;
+      const context = request.context;
+      await Promise.all([
+        queryClient.invalidateQueries({ predicate: (query) => matchesFinancialContext(query.queryKey, context) }),
+        queryClient.invalidateQueries({ queryKey: ["bookings", context.businessId] }),
+        queryClient.invalidateQueries({ queryKey: ["availability", "calendar", context.businessId] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard", context.businessId] }),
+      ]);
     },
   });
+  function request(input: RegisterPaymentInput): Request {
+    const fingerprint = JSON.stringify([input.amountMinor, input.method, input.paidAt, input.reference ?? null, input.note ?? null]);
+    if (intent.current?.scope !== scope || intent.current.fingerprint !== fingerprint) {
+      intent.current = { scope, fingerprint, key: createPaymentIdempotencyKey() };
+    }
+    // Captura el negocio y la reserva del envío; una respuesta tardía no invalida el contexto nuevo.
+    return { input, context: { ...options }, key: intent.current.key };
+  }
+  return { ...mutation, mutate: (input: RegisterPaymentInput) => mutation.mutate(request(input)), mutateAsync: (input: RegisterPaymentInput) => mutation.mutateAsync(request(input)) };
 }
 
 export function useSavePaymentPlan(options: Options) {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ input, replace }: { input: PaymentPlanInput; replace: boolean }) =>
-      savePaymentPlan({ ...options, input, replace }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["payments"] });
+  type Input = { input: PaymentPlanInput; replace: boolean };
+  const mutation = useMutation({
+    mutationFn: ({ input, replace, context }: Input & { context: Options }) =>
+      savePaymentPlan({ ...context, input, replace }),
+    onSuccess: async (_plan, request) => {
+      await queryClient.invalidateQueries({ predicate: (query) => matchesFinancialContext(query.queryKey, request.context) });
     },
   });
+  return {
+    ...mutation,
+    mutate: (input: Input) => mutation.mutate({ ...input, context: { ...options } }),
+    mutateAsync: (input: Input) => mutation.mutateAsync({ ...input, context: { ...options } }),
+  };
 }

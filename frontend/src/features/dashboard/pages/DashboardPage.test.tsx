@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DashboardPage } from "./DashboardPage";
 import { useDashboard } from "../queries/use-dashboard";
 import { useAuth } from "../../auth/context/AuthContext";
@@ -50,10 +50,17 @@ const data: DashboardResponse = {
     },
   },
 };
+function CalendarDestination() {
+  const location = useLocation();
+  return <><h1>Calendario de prueba</h1><output aria-label="Ruta actual">{location.pathname}{location.search}</output></>;
+}
 function show(businessId = "business-a") {
   return render(
-    <MemoryRouter>
-      <DashboardPage businessId={businessId} />
+    <MemoryRouter initialEntries={["/app"]}>
+      <Routes>
+        <Route path="/app" element={<DashboardPage businessId={businessId} />} />
+        <Route path="/app/calendar" element={<CalendarDestination />} />
+      </Routes>
     </MemoryRouter>,
   );
 }
@@ -67,6 +74,8 @@ function result(overrides = {}) {
   } as never);
 }
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-16T15:00:00.000Z"));
   vi.clearAllMocks();
   auth.mockReturnValue({ session: { accessToken: "access-token" } } as never);
   vi.mocked(useResources).mockReturnValue({
@@ -110,6 +119,9 @@ beforeEach(() => {
   } as never);
   result();
 });
+afterEach(() => {
+  vi.useRealTimers();
+});
 describe("DashboardPage", () => {
   it("presents real KPI values, seven statuses and navigation", () => {
     show();
@@ -126,14 +138,14 @@ describe("DashboardPage", () => {
       "Pendiente",
       "Confirmada",
       "En curso",
-      "Completada",
+      "Finalizada",
       "Cancelada",
       "No show",
     ])
       expect(screen.getByText(label)).toBeVisible();
     expect(screen.getByRole("link", { name: "Crear reserva" })).toHaveAttribute(
       "href",
-      "/app/bookings/new",
+      "/app/calendar",
     );
     expect(query).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -141,6 +153,12 @@ describe("DashboardPage", () => {
         accessToken: "access-token",
       }),
     );
+  });
+  it("el acceso Crear reserva del inicio usa Calendario", async () => {
+    show();
+    await userEvent.click(screen.getByRole("link", { name: "Crear reserva" }));
+    expect(screen.getByRole("heading", { name: "Calendario de prueba" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Ruta actual")).toHaveTextContent(/^\/app\/calendar$/);
   });
   it("formats the backend rate without recalculating from counts", () => {
     result({

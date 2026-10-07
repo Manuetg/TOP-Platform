@@ -1,4 +1,5 @@
-.payments-page {
+.payments-page,
+.payments-modal-layer {
   --pay-primary: var(--color-brand-primary);
   --pay-primary-hover: var(--color-primary-hover);
   --pay-primary-soft: var(--color-action-soft);
@@ -18,7 +19,9 @@
   --pay-danger: #9b4d34;
   --pay-danger-soft: #fff5f1;
   --pay-danger-border: #edcfc4;
+}
 
+.payments-page {
   display: grid;
   width: 100%;
   max-width: 1680px;
@@ -539,6 +542,7 @@
 }
 
 .payments-modal {
+  position: relative;
   display: flex;
   width: min(680px, 100%);
   max-height: min(800px, calc(100vh - 40px));
@@ -547,6 +551,10 @@
   border-radius: 17px;
   background: #fff;
   box-shadow: 0 24px 64px rgba(22, 45, 40, 0.22);
+}
+
+.payments-modal-layer > .top-overlay__backdrop {
+  background: transparent;
 }
 
 .payments-modal > header {

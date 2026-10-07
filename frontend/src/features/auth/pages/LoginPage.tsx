@@ -11,6 +11,7 @@ import {
 } from "../schemas/login.schema";
 import { useAuth } from "../context/AuthContext";
 import { ApiError } from "../../../shared/api/api-client";
+import { deploymentConfig, EMAIL_UNAVAILABLE_MESSAGE } from "../../../shared/config/deployment";
 import { Button } from "../../../shared/ui/Button";
 import { Input } from "../../../shared/ui/Input";
 import {
@@ -19,6 +20,7 @@ import {
 } from "../../../shared/motion/motion-presets";
 
 export function LoginPage() {
+  const isLanPilot = deploymentConfig.profile === "lan-pilot";
   const { establishSession } = useAuth();
   const submissionLock = useRef(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -104,7 +106,7 @@ export function LoginPage() {
 
             <motion.div className="top-auth-options" variants={itemVariants}>
               <label className="top-auth-remember"><input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} /><span>Mantener sesión iniciada</span></label>
-              <a className="top-auth-forgot" href="/forgot-password">¿Olvidaste tu contraseña?</a>
+              {!isLanPilot ? <a className="top-auth-forgot" href="/forgot-password">¿Olvidaste tu contraseña?</a> : null}
             </motion.div>
 
             {loginErrorMessage ? <motion.div className="top-auth-error" role="alert" variants={itemVariants}>{loginErrorMessage}</motion.div> : null}
@@ -115,8 +117,11 @@ export function LoginPage() {
               </Button>
             </motion.div>
           </motion.form>
-          <motion.p className="top-auth-footnote" variants={itemVariants}><ShieldCheck size={16} aria-hidden="true" />Acceso seguro para tu equipo.</motion.p>
-          <motion.p className="top-auth-footnote" variants={itemVariants}>¿Todavía no tenés una cuenta? <a className="top-auth-forgot" href="/signup">Crear cuenta</a></motion.p>
+          {isLanPilot
+            ? <motion.p className="top-auth-footnote" variants={itemVariants}>{EMAIL_UNAVAILABLE_MESSAGE}</motion.p>
+            : <><motion.p className="top-auth-footnote" variants={itemVariants}><ShieldCheck size={16} aria-hidden="true" />Acceso seguro para tu equipo.</motion.p>
+              <motion.p className="top-auth-footnote" variants={itemVariants}>¿Todavía no tenés una cuenta? <a className="top-auth-forgot" href="/signup">Crear cuenta</a></motion.p></>}
+          <motion.p className="top-auth-footnote" variants={itemVariants}><a className="top-auth-forgot" href="/cookies">Cookies y almacenamiento</a></motion.p>
         </motion.div>
       </motion.section>
     </motion.main>
@@ -124,13 +129,14 @@ export function LoginPage() {
 }
 
 function getLoginErrorMessage(error: ApiError): string {
+  if (error.code === "EMAIL_FEATURE_DISABLED") return EMAIL_UNAVAILABLE_MESSAGE;
   switch (error.status) {
     case 400:
       return "Revisa los datos ingresados.";
     case 401:
       return "El correo o la contraseña no son correctos.";
     case 403:
-      return "Tu usuario está deshabilitado.";
+      return error.message;
     default:
       return "No pudimos iniciar sesión. Intenta nuevamente.";
   }

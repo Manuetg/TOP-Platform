@@ -11,7 +11,8 @@ export interface BookingConfirmationSnapshotData {
 export type BookingConfirmationTransactionResult =
   | 'CONFIRMED'
   | 'NOT_FOUND'
-  | 'NOT_PENDING';
+  | 'NOT_PENDING'
+  | 'PAYMENT_REQUIRED';
 
 export interface BookingConfirmationTransactionInput {
   businessId: string;

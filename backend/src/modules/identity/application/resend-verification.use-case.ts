@@ -5,6 +5,7 @@ import { CryptoEmailVerificationTokenService } from '../infrastructure/crypto-em
 import { EMAIL_SENDER, type EmailSender } from '../domain/email-sender';
 import { SignupRateLimiter } from './signup-rate-limiter';
 import { readAppPublicUrl, readIntegerConfiguration } from '../../../config/environment';
+import { EmailFeaturePolicy } from './email-feature-policy';
 
 export const resendVerificationMessage = { status: 'VERIFICATION_EMAIL_SENT_IF_ELIGIBLE' as const };
 
@@ -13,12 +14,13 @@ export class ResendVerificationUseCase {
   private readonly logger = new Logger(ResendVerificationUseCase.name);
   private readonly cooldownMs: number;
   private readonly publicUrl: string;
-  constructor(private readonly prisma: PrismaIdentityService, private readonly tokens: CryptoEmailVerificationTokenService, @Inject(EMAIL_SENDER) private readonly email: EmailSender, private readonly limiter: SignupRateLimiter, config: ConfigService = new ConfigService()) {
+  constructor(private readonly prisma: PrismaIdentityService, private readonly tokens: CryptoEmailVerificationTokenService, @Inject(EMAIL_SENDER) private readonly email: EmailSender, private readonly limiter: SignupRateLimiter, config: ConfigService = new ConfigService(), private readonly emailFeatures: EmailFeaturePolicy = new EmailFeaturePolicy(config)) {
     const configured = readIntegerConfiguration(config, 'EMAIL_VERIFICATION_RESEND_SECONDS', 60, 0);
     this.cooldownMs = configured * 1000;
     this.publicUrl = readAppPublicUrl(config);
   }
   async execute(input: unknown): Promise<typeof resendVerificationMessage> {
+    this.emailFeatures.assertAvailable();
     const email = typeof input === 'string' ? input.trim().toLowerCase() : '';
     if (!email || !this.limiter.allow(email)) return resendVerificationMessage;
     const user = await this.prisma.user.findUnique({ where: { email } });

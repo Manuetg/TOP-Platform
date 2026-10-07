@@ -1,11 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import type { Booking as PrismaBooking, BookingResource } from '@prisma/client';
+import { Prisma, type Booking as PrismaBooking, type BookingResource } from '@prisma/client';
 import { PrismaService } from '../../business/infrastructure/prisma.service';
 import { Booking } from '../domain/booking.entity';
 import { BookingStatus } from '../domain/booking-status.enum';
 import type { BookingData, BookingListFilters, BookingRepository } from '../domain/booking.repository';
 import type { BlockingBooking } from '../booking.contract';
 import { BookingTimelineEventType } from '../domain/booking-timeline-event';
+import { validateAvailabilityInTransaction } from '../../availability/availability.contract';
+import { BookingAvailabilityConflictError, BookingContactNotFoundError, BookingContactRequiredError, BookingDatesRequiredError, BookingResourcesRequiredError } from '../application/booking.errors';
+import { assertBookingCapacity } from '../application/booking.validation';
 
 type BookingRow = PrismaBooking & { resources: BookingResource[] };
 const includeResources = { resources: { orderBy: { resourceId: 'asc' as const } } };
@@ -42,11 +45,33 @@ export class PrismaBookingRepository implements BookingRepository {
   }
   async markPending(id: string, businessId: string, actorUserId: string | null): Promise<Booking | null> {
     return this.prisma.$transaction(async (transaction) => {
+      await transaction.$queryRaw(Prisma.sql`SELECT "id" FROM "Booking" WHERE "id" = ${id} AND "businessId" = ${businessId} FOR UPDATE`);
+      const current = await transaction.booking.findFirst({ where: { id, businessId }, include: includeResources });
+      if (!current || current.status !== 'DRAFT') return null;
+      await this.validateSubmission(transaction, current, businessId, id);
       const updated = await transaction.booking.updateMany({ where: { id, businessId, status: BookingStatus.DRAFT }, data: { status: BookingStatus.PENDING } });
       if (updated.count !== 1) return null;
       await transaction.bookingTimelineEvent.create({ data: { businessId, bookingId: id, type: BookingTimelineEventType.BOOKING_SUBMITTED, actorUserId, details: {} } });
       return this.map(await transaction.booking.findUniqueOrThrow({ where: { id }, include: includeResources }));
+    }, { maxWait: 5000, timeout: 30000 });
+  }
+  private async validateSubmission(transaction: Prisma.TransactionClient, current: BookingRow, businessId: string, id: string): Promise<void> {
+    if (!current.contactId) throw new BookingContactRequiredError('La reserva requiere un contacto responsable.');
+    if (!current.checkInDate || !current.checkOutDate) throw new BookingDatesRequiredError('La reserva requiere fechas completas.');
+    if (current.resources.length !== 1) throw new BookingResourcesRequiredError('La reserva requiere exactamente un recurso.');
+    for (const resource of current.resources) {
+      await transaction.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${resource.resourceId}, 0))`);
+    }
+    const availability = await validateAvailabilityInTransaction(transaction, {
+      businessId, resourceIds: current.resources.map(({ resourceId }) => resourceId),
+      checkInDate: current.checkInDate.toISOString().slice(0, 10), checkOutDate: current.checkOutDate.toISOString().slice(0, 10), excludeBookingId: id,
     });
+    if (!availability.valid) throw new BookingAvailabilityConflictError('La reserva tiene conflictos de disponibilidad.');
+    const contact = await transaction.contact.findFirst({ where: { id: current.contactId, businessId }, select: { id: true } });
+    if (!contact) throw new BookingContactNotFoundError('El contacto no existe.');
+    const resource = await transaction.resource.findFirst({ where: { id: current.resources[0].resourceId, businessId }, select: { capacityMaximum: true, capacityMaximumChildren: true } });
+    if (!resource) throw new BookingAvailabilityConflictError('El recurso no existe.');
+    assertBookingCapacity(current.adults, current.children, resource.capacityMaximum, resource.capacityMaximumChildren);
   }
   async markCancelled(id: string, businessId: string, actorUserId: string | null, reason?: string): Promise<Booking | null> {
     return this.prisma.$transaction(async (transaction) => {

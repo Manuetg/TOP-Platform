@@ -1,0 +1,64 @@
+{
+  "checkedAt": "2026-10-01T13:23:49.0663972Z",
+  "powershellVersion": "7.6.5",
+  "nodeVersion": "v24.19.0",
+  "freshSmokeExecuted": false,
+  "applicationTestsExecuted": false,
+  "servicesStarted": false,
+  "syntax": [
+    {
+      "passed": true,
+      "file": "Common.ps1",
+      "parser": "PowerShell",
+      "errors": []
+    },
+    {
+      "passed": true,
+      "file": "Run-BackendGates.ps1",
+      "parser": "PowerShell",
+      "errors": []
+    },
+    {
+      "passed": true,
+      "file": "Seed-QAFixtures.ps1",
+      "parser": "PowerShell",
+      "errors": []
+    },
+    {
+      "passed": true,
+      "file": "Set-QAEnvironment.ps1",
+      "parser": "PowerShell",
+      "errors": []
+    },
+    {
+      "passed": true,
+      "file": "Start-QA.ps1",
+      "parser": "PowerShell",
+      "errors": []
+    },
+    {
+      "passed": true,
+      "file": "Stop-QA.ps1",
+      "parser": "PowerShell",
+      "errors": []
+    },
+    {
+      "passed": true,
+      "file": "Check-QADatabase.cjs",
+      "parser": "node --check",
+      "errors": []
+    },
+    {
+      "passed": true,
+      "file": "Seed-QAFixtures.cjs",
+      "parser": "node --check",
+      "errors": []
+    }
+  ],
+  "explicitArgumentsBindingStub": {
+    "count": 2,
+    "passed": true,
+    "last": "--gates-terminados"
+  },
+  "supportReadyTimeoutCorrection": "Start readiness 180s bounded with process exit detection; syntax rechecked PS7 and PS5"
+}

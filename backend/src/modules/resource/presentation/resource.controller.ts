@@ -154,6 +154,7 @@ export class ResourceController {
   }
 
   @Get('images/covers')
+  @BusinessAccess('businessId', Capability.RESOURCE_READ)
   @ApiOperation({
     summary:
       'Lists one signed cover image per Resource in the Business.',
@@ -233,6 +234,7 @@ export class ResourceController {
   }
 
   @Delete(':resourceId/images/:imageId')
+  @BusinessAccess('businessId', Capability.RESOURCE_IMAGE_WRITE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Deletes one persisted Resource image.',
@@ -258,6 +260,7 @@ export class ResourceController {
   }
 
   @Put(':resourceId/images/order')
+  @BusinessAccess('businessId', Capability.RESOURCE_IMAGE_WRITE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary:

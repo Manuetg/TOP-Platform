@@ -70,4 +70,22 @@ describe("updateResource", () => {
       capacityMaximum: 5,
     });
   });
+
+  it("passes cancellation to the transport and rejects a late success after abort", async () => {
+    let resolve!: (response: Response) => void;
+    const response = new Promise<Response>((finish) => { resolve = finish; });
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockReturnValue(response);
+    const controller = new AbortController();
+    const result = updateResource({
+      businessId: "business-1", resourceId: "resource-1", accessToken: "access-token",
+      input: { name: "Nombre actualizado" }, signal: controller.signal,
+    });
+    expect(fetchMock.mock.calls[0][1]?.signal).toBe(controller.signal);
+    const rejected = expect(result).rejects.toMatchObject({ name: "AbortError" });
+    controller.abort();
+    resolve(new Response(JSON.stringify({ id: "resource-1" }), {
+      status: 200, headers: { "Content-Type": "application/json" },
+    }));
+    await rejected;
+  });
 });

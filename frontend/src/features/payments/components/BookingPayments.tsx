@@ -92,7 +92,17 @@ export function BookingPayments(props: Props) {
         <h3 id="booking-balance-title">Resumen financiero</h3>
         {balance.isLoading ? <p role="status">Cargando saldo...</p> : balance.isError ? (
           balance.error instanceof ApiError && balance.error.status === 409 ? <p className="booking-payments__unavailable" role="status">Saldo no disponible</p> : <div role="alert"><p>{safeMessage(balance.error, "No pudimos cargar el saldo.")}</p><button ref={balanceRetryButton} type="button" className="top-button top-button--secondary" onClick={retryBalance}>Reintentar saldo</button></div>
-        ) : balance.data ? <><dl className="booking-payments__metrics"><div><dt>Total</dt><dd>{formatMoney(balance.data.totalAmountMinor, balance.data.currency)}</dd></div><div><dt>Pagado</dt><dd>{formatMoney(balance.data.paidAmountMinor, balance.data.currency)}</dd></div><div><dt>Pendiente</dt><dd>{formatMoney(balance.data.outstandingAmountMinor, balance.data.currency)}</dd></div><div><dt>Vencido</dt><dd>{formatMoney(balance.data.overdueAmountMinor, balance.data.currency)}</dd></div></dl><p className="booking-payments__status"><strong>{financialLabels[balance.data.financialStatus]}</strong>{balance.data.nextDueDate === null ? " · Sin próximo vencimiento" : ` · Próximo vencimiento: ${formatPureDate(balance.data.nextDueDate)}${balance.data.nextDueAmountMinor === null ? "" : ` (${formatMoney(balance.data.nextDueAmountMinor, balance.data.currency)})`}`}</p></> : null}
+        ) : balance.data ? <>
+          <dl className="booking-payments__metrics">
+            <div><dt>Total</dt><dd>{formatMoney(balance.data.totalAmountMinor, balance.data.currency)}</dd></div>
+            <div><dt>Pagado</dt><dd>{formatMoney(balance.data.paidAmountMinor, balance.data.currency)}</dd></div>
+            <div><dt>Pendiente</dt><dd>{formatMoney(balance.data.outstandingAmountMinor, balance.data.currency)}</dd></div>
+            <div><dt>Vencido</dt><dd>{balance.data.overdueAmountMinor === null ? "Pendiente de conciliación" : formatMoney(balance.data.overdueAmountMinor, balance.data.currency)}</dd></div>
+            {balance.data.creditAmountMinor > 0 && <div><dt>Saldo a favor</dt><dd>{formatMoney(balance.data.creditAmountMinor, balance.data.currency)}</dd></div>}
+          </dl>
+          <p className="booking-payments__status"><strong>{balance.data.creditAmountMinor > 0 ? "Saldo a favor" : financialLabels[balance.data.financialStatus]}</strong>{balance.data.needsReconciliation ? " · Requiere conciliación" : balance.data.nextDueDate === null ? " · Sin próximo vencimiento" : ` · Próximo vencimiento: ${formatPureDate(balance.data.nextDueDate)}${balance.data.nextDueAmountMinor === null ? "" : ` (${formatMoney(balance.data.nextDueAmountMinor, balance.data.currency)})`}`}</p>
+          {(balance.data.needsReconciliation || balance.data.warning) && <div className="booking-payments__unavailable" role="alert"><strong>Requiere conciliación</strong>{balance.data.warning && <p>{balance.data.warning}</p>}</div>}
+        </> : null}
         <p ref={balanceStatus} tabIndex={-1} className="booking-payments__page-status" aria-label="Estado del saldo" aria-live="polite">{balance.isFetching ? "Actualizando saldo..." : ""}</p>
       </section>
       <section className="booking-payments__history" aria-labelledby="payment-history-title">

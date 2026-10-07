@@ -15,6 +15,7 @@ interface UpdateResourceOptions {
   businessId: string;
   resourceId: string;
   accessToken?: string | null;
+  signal?: AbortSignal;
   input: UpdateResourceInput;
 }
 
@@ -22,6 +23,7 @@ export function updateResource({
   businessId,
   resourceId,
   accessToken,
+  signal,
   input,
 }: UpdateResourceOptions): Promise<Resource> {
   return apiRequest<Resource>(
@@ -29,6 +31,7 @@ export function updateResource({
     {
       method: "PATCH",
       accessToken,
+      signal,
       body: JSON.stringify(input),
     },
   );

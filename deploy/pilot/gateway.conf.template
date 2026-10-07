@@ -1,0 +1,61 @@
+# envsubst reemplaza exclusivamente LAN_IP y S3_BUCKET, sin tocar variables Nginx.
+server {
+    listen 80 default_server;
+    server_name ${LAN_IP};
+    server_tokens off;
+    root /usr/share/nginx/html;
+    index index.html;
+    client_max_body_size 12m;
+    access_log off;
+    # Nunca registrar queries firmadas, Authorization ni cuerpos de autenticacion.
+    error_log /dev/null;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy no-referrer always;
+
+    location = /health {
+        default_type text/plain;
+        return 200 "ok";
+    }
+
+    location = /api { return 404; }
+    location ^~ /api/ {
+        if ($http_host != "${LAN_IP}:3001") { return 444; }
+        proxy_pass http://api:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto http;
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Connection "";
+        proxy_cache off;
+        add_header Cache-Control no-store always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy no-referrer always;
+    }
+
+    # Lecturas de objetos privados con firma validada por MinIO. Sin rewrite/URI
+    # en proxy_pass: conservar ruta original, encoding, query y Host con puerto.
+    location ^~ /${S3_BUCKET}/ {
+        if ($http_host != "${LAN_IP}:3001") { return 444; }
+        limit_except GET HEAD { deny all; }
+        proxy_pass http://minio:9000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Connection "";
+        proxy_cache off;
+        proxy_hide_header Cache-Control;
+        add_header Cache-Control "private, no-store" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy no-referrer always;
+    }
+
+    location ^~ /minio/ { return 404; }
+    location / {
+        if ($http_host != "${LAN_IP}:3001") { return 444; }
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control no-store always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy no-referrer always;
+    }
+}
