@@ -6,11 +6,13 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { createHash } = require('node:crypto');
 
 const SOURCE = fs.readFileSync(path.join(__dirname, 'Finance-CI-Resources.cjs'), 'utf8');
 const CANARY = 'CANARY_SECRET_dont_print_url_password_or_external_resource';
 const OWNER = 'ab'.repeat(16);
 const ID = 'cd'.repeat(32);
+const MINIO_IMAGE_ID = 'sha256:' + '12'.repeat(32);
 const CTX = {
   repo: '/virtual/repo', temp: '/virtual/temp', envFile: '/virtual/temp/github-env',
   stateFile: '/virtual/temp/top-finance-ci-42-1-finance.json',
@@ -19,11 +21,13 @@ const CTX = {
 const EXPORTS = `
 module.exports = { ResourcesError, failureDiagnostic, context, descriptor, labels,
   dockerResult, docker, attest, cleanupOne, cleanup, start, main, ready, assertFree,
+  minioArchive, buildMinioImage, MINIO_BINARY_SHA, MINIO_BINARY_SIZE, MINIO_BINARY_URL,
   replace(values) {
     if (values.persist) persist = values.persist;
     if (values.environment) environment = values.environment;
     if (values.assertFree) assertFree = values.assertFree;
     if (values.docker) docker = values.docker;
+    if (values.buildMinioImage) buildMinioImage = values.buildMinioImage;
     if (values.createContainer) createContainer = values.createContainer;
     if (values.ready) ready = values.ready;
     if (values.prepareDatabases) prepareDatabases = values.prepareDatabases;
@@ -71,7 +75,7 @@ function fixture(options = {}) {
       if (options.server) return options.server();
       throw new Error('El fixture debe simular explícitamente puertos.');
     } },
-    'node:crypto': { randomBytes: length => Buffer.alloc(length, 0xab) },
+    'node:crypto': { randomBytes: length => Buffer.alloc(length, 0xab), createHash },
     'node:child_process': { spawnSync: (command, args, configuration) => {
       commands.push({ command, args, configuration });
       return options.spawn ? options.spawn(command, args, configuration)
@@ -111,10 +115,11 @@ function owned(f) {
     runId: CTX.runId, attempt: CTX.attempt, job: CTX.job,
     resources: ['postgres', 'minio'].map(kind => f.api.descriptor(CTX, OWNER, kind)) };
   state.resources[0].containerId = ID;
+  state.resources[1].imageId = MINIO_IMAGE_ID;
   return state;
 }
 function inspection(f, state, item) {
-  return { Id: item.containerId || ID, Name: '/' + item.name,
+  return { Id: item.containerId || ID, Name: '/' + item.name, Image: item.imageId,
     Config: { Image: item.image, Labels: f.api.labels(CTX, state, item) },
     HostConfig: { AutoRemove: true, Privileged: false, NetworkMode: 'default',
       ReadonlyRootfs: item.kind === 'minio', Tmpfs: item.tmpfs,
@@ -211,6 +216,7 @@ function failStage(f, phase, resource, cleanupError) {
     environment: () => ({ values: { TOKEN: CANARY }, docker: { PASSWORD: CANARY } }),
     assertFree: async port => fail('ports', port === 55473 ? 'postgres' : 'minio'),
     docker: args => fail('image-pull', args.at(-1).startsWith('postgres:') ? 'postgres' : 'minio'),
+    buildMinioImage: async () => { fail('image-pull', 'minio'); return MINIO_IMAGE_ID; },
     createContainer: (_ctx, _state, item) => { fail('creation', item.kind); item.containerId = ID; },
     ready: async (_ctx, _state, item) => fail('readiness', item.kind),
     prepareDatabases: () => fail('databases', 'postgres'),
@@ -409,4 +415,136 @@ test('comprobación de puerto conserva EADDRINUSE sin copiar mensaje de socket',
     assert.ok(!JSON.stringify({ message: error.message, diagnostic }).includes(CANARY));
     return true;
   });
+});
+
+test('MinIO fija release oficial, tamaño y SHA256 sin configuración externa mutable', () => {
+  const f = fixture();
+  assert.equal(f.api.MINIO_BINARY_SHA, '7c5bd8512c6e966455b1d198209358b2d191c77a83ab377c4073281065fb855f');
+  assert.equal(f.api.MINIO_BINARY_SIZE, 110989496);
+  assert.equal(f.api.MINIO_BINARY_URL, 'https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.linux-amd64.RELEASE.2025-09-07T16-13-09Z');
+  f.process.env.MINIO_BINARY_SHA = CANARY;
+  f.process.env.MINIO_BINARY_SIZE = '1';
+  f.process.env.MINIO_BINARY_URL = CANARY;
+  const item = f.api.descriptor(CTX, OWNER, 'minio');
+  assert.equal(item.image, 'top-finance-ci-minio:sha256-7c5bd8512c6e966455b1d198209358b2d191c77a83ab377c4073281065fb855f');
+  assert.equal(item.imageId, null);
+});
+
+test('tar MinIO contiene sólo Dockerfile y binario con nombres, modos, contenido y checksum válidos', () => {
+  const f = fixture();
+  const binary = Buffer.from('binario sintético en memoria');
+  const archive = f.api.minioArchive(binary);
+  const entries = [];
+  let offset = 0;
+  while (archive.subarray(offset, offset + 512).some(byte => byte !== 0)) {
+    const header = archive.subarray(offset, offset + 512);
+    const value = (start, end) => header.subarray(start, end).toString('utf8').split('\0')[0];
+    const size = parseInt(value(124, 136), 8);
+    const checksumHeader = Buffer.from(header);
+    checksumHeader.fill(32, 148, 156);
+    assert.equal(parseInt(value(148, 156), 8), [...checksumHeader].reduce((sum, byte) => sum + byte, 0));
+    assert.equal(value(257, 263), 'ustar');
+    assert.equal(value(156, 157), '0');
+    assert.equal(parseInt(value(108, 116), 8), 0);
+    assert.equal(parseInt(value(116, 124), 8), 0);
+    entries.push({ name: value(0, 100), mode: parseInt(value(100, 108), 8),
+      body: archive.subarray(offset + 512, offset + 512 + size) });
+    offset += 512 + Math.ceil(size / 512) * 512;
+  }
+  assert.equal(archive.length - offset, 1024);
+  assert.ok(archive.subarray(offset).every(byte => byte === 0));
+  assert.deepEqual(entries.map(({ name, mode }) => ({ name, mode })), [
+    { name: 'Dockerfile', mode: 0o644 }, { name: 'minio', mode: 0o755 },
+  ]);
+  assert.equal(entries[0].body.toString(), 'FROM scratch\nCOPY minio /usr/bin/minio\nENTRYPOINT ["/usr/bin/minio"]\n');
+  assert.deepEqual(entries[1].body, binary);
+});
+
+for (const [status, hasBody] of [[404, true], [200, false]]) {
+  test(`descarga MinIO rechaza HTTP/body inválido ${status}/${hasBody} sin invocar Docker`, async () => {
+    let cancelled = 0, requestedUrl;
+    const f = fixture({ fetch: async url => {
+      requestedUrl = url;
+      return { status, body: hasBody ? { cancel: async () => { cancelled += 1; } } : null };
+    } });
+    f.process.env.MINIO_BINARY_URL = CANARY;
+    await assert.rejects(f.api.buildMinioImage(), error => {
+      const diagnostic = f.api.failureDiagnostic('image-pull', 'minio', error);
+      assert.equal(diagnostic.httpStatus, status);
+      assert.ok(!JSON.stringify(diagnostic).includes(CANARY));
+      return true;
+    });
+    assert.equal(requestedUrl, f.api.MINIO_BINARY_URL);
+    assert.equal(cancelled, hasBody ? 1 : 0);
+    assert.equal(f.commands.length, 0);
+  });
+}
+
+test('descarga MinIO truncada falla antes de Docker aunque la respuesta declare el SHA esperado', async () => {
+  let f;
+  f = fixture({ fetch: async () => ({ status: 200,
+    headers: { get: () => f.api.MINIO_BINARY_SHA },
+    body: (async function* () { yield Buffer.from('truncado'); })() }) });
+  await assert.rejects(f.api.buildMinioImage(), error => error instanceof f.api.ResourcesError);
+  assert.equal(f.commands.length, 0);
+});
+
+test('descarga MinIO detiene stream sobredimensionado antes de Docker', async () => {
+  let f, closed = false;
+  f = fixture({ fetch: async () => ({ status: 200, body: (async function* () {
+    try {
+      const chunk = Buffer.alloc(65536);
+      for (let size = 0; size <= f.api.MINIO_BINARY_SIZE; size += chunk.length) yield chunk;
+      assert.fail('El helper debe abandonar el stream al exceder su límite.');
+    } finally { closed = true; }
+  })() }) });
+  await assert.rejects(f.api.buildMinioImage(), error => error instanceof f.api.ResourcesError);
+  assert.equal(closed, true);
+  assert.equal(f.commands.length, 0);
+});
+
+test('descarga MinIO de tamaño exacto y SHA incorrecto falla sin build ni aceptar overrides', async () => {
+  let f;
+  f = fixture({ fetch: async () => ({ status: 200, body: (async function* () {
+    const chunk = Buffer.alloc(65536);
+    let remaining = f.api.MINIO_BINARY_SIZE;
+    while (remaining) {
+      const size = Math.min(chunk.length, remaining);
+      yield chunk.subarray(0, size);
+      remaining -= size;
+    }
+  })() }) });
+  // Incluso una configuración externa con el digest del fixture no sustituye el pin.
+  f.process.env.MINIO_BINARY_SHA = createHash('sha256').update(Buffer.from('otro binario')).digest('hex');
+  await assert.rejects(f.api.buildMinioImage(), error => error instanceof f.api.ResourcesError);
+  assert.equal(f.commands.length, 0);
+});
+
+test('Docker build conserva operación y códigos seguros sin copiar stderr o stdin', () => {
+  const f = fixture({ spawn: () => ({ status: 1, signal: 'SIGKILL', stdout: CANARY,
+    stderr: 'permission denied ' + CANARY, error: Object.assign(new Error(CANARY), { code: 'EACCES' }) }) });
+  assert.throws(() => f.api.docker(['build', '--quiet', '-'], {}, 180000, Buffer.from(CANARY)), error => {
+    assert.deepEqual(plain(f.api.failureDiagnostic('image-pull', 'minio', error)), {
+      phase: 'image-pull', resource: 'minio', operation: 'build', exitCode: 1,
+      errorCode: 'EACCES', signal: 'SIGKILL', reason: 'permission-denied', httpStatus: null,
+    });
+    assert.ok(!error.message.includes(CANARY));
+    return true;
+  });
+  assert.equal(f.commands[0].configuration.input.toString(), CANARY);
+  assert.equal(f.commands[0].configuration.shell, false);
+  assert.equal(f.output.stdout + f.output.stderr, '');
+});
+
+test('cleanup MinIO rechaza ID de imagen diferente pese a nombre, tag y labels propios', () => {
+  let current;
+  const f = fixture({ spawn: () => ({ status: 0, stdout: JSON.stringify([current]), stderr: '' }) });
+  const state = owned(f), item = state.resources[1];
+  item.containerId = ID;
+  current = inspection(f, state, item);
+  current.Image = 'sha256:' + '34'.repeat(32);
+  f.files.set(item.cidFile, ID + '\n');
+  assert.throws(() => f.api.cleanupOne(CTX, state, item), f.api.ResourcesError);
+  assert.ok(f.files.has(item.cidFile));
+  assert.ok(f.commands.every(command => command.args[0] === 'inspect'));
 });

@@ -5,13 +5,17 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const net = require('node:net');
-const { randomBytes } = require('node:crypto');
+const { randomBytes, createHash } = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 const { createRequire } = require('node:module');
 const { setTimeout: delay } = require('node:timers/promises');
 
 const PG_IMAGE = 'postgres:16-alpine';
-const MINIO_IMAGE = 'minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e';
+// La imagen fijada no está disponible en CI; binario upstream estático verificado, sin mirrors ni latest.
+const MINIO_BINARY_SHA = '7c5bd8512c6e966455b1d198209358b2d191c77a83ab377c4073281065fb855f';
+const MINIO_BINARY_SIZE = 110989496;
+const MINIO_BINARY_URL = 'https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.linux-amd64.RELEASE.2025-09-07T16-13-09Z';
+const MINIO_IMAGE = 'top-finance-ci-minio:sha256-' + MINIO_BINARY_SHA;
 const PG_ACTOR = 'top_night_test';
 const MAIN_DB = 'top_test';
 const RESTORE_DB = 'top_finance_files_restore_test';
@@ -19,13 +23,14 @@ const PG_PORT = 55473;
 const S3_PORT = 45677;
 const PURPOSE = 'fin032-ci-resources-v1';
 const FULL_ID = /^[a-f0-9]{64}$/;
+const IMAGE_ID = /^sha256:[a-f0-9]{64}$/;
 const OWNER_ID = /^[a-f0-9]{32}$/;
 class ResourcesError extends Error {
   constructor(message, details = {}) { super(message); this.details = details; }
 }
 const PHASES = ['context', 'ports', 'image-pull', 'creation', 'readiness', 'databases', 'buckets', 'export', 'cleanup'];
 const RESOURCES = ['none', 'postgres', 'minio'];
-const OPERATIONS = ['pull', 'create', 'inspect', 'start', 'exec', 'rm'];
+const OPERATIONS = ['pull', 'build', 'create', 'inspect', 'start', 'exec', 'rm'];
 const ERROR_CODES = ['ENOENT', 'EACCES', 'EPERM', 'ETIMEDOUT', 'ENOBUFS', 'EADDRINUSE', 'ECONNREFUSED', 'ECONNRESET',
   'ENETUNREACH', 'EHOSTUNREACH', 'EPIPE', 'EIO', 'ENOSPC', 'AccessDenied', 'InvalidAccessKeyId', 'SignatureDoesNotMatch',
   'NoSuchBucket', 'NoSuchBucketPolicy', 'BucketAlreadyExists', 'BucketAlreadyOwnedByYou', 'InvalidBucketName',
@@ -106,7 +111,7 @@ function descriptor(ctx, ownerId, kind) {
     kind, name: `top-finance-ci-${postgres ? 'pg' : 's3'}-${ownerId}`,
     image: postgres ? PG_IMAGE : MINIO_IMAGE,
     cidFile: path.join(ctx.temp, `top-finance-ci-${ownerId}-${kind}.cid`),
-    containerId: null,
+    containerId: null, imageId: null,
     containerPort: postgres ? '5432/tcp' : '9000/tcp',
     hostPort: String(postgres ? PG_PORT : S3_PORT),
     tmpfs: postgres ? { '/var/lib/postgresql/data': 'rw,size=512m', '/tmp': 'rw,size=128m' }
@@ -130,6 +135,7 @@ function ownState(ctx) {
   for (const [index, kind] of ['postgres', 'minio'].entries()) {
     const actual = state.resources[index], expected = descriptor(ctx, state.ownerId, kind);
     if (!actual || (actual.containerId !== null && !FULL_ID.test(actual.containerId))) throw new ResourcesError('ID CI no es completo.');
+    if (actual.imageId !== null && (kind !== 'minio' || !IMAGE_ID.test(actual.imageId))) throw new ResourcesError('ID de imagen CI no corresponde a la construcción propia.');
     for (const key of ['kind', 'name', 'image', 'cidFile', 'containerPort', 'hostPort']) {
       if (actual[key] !== expected[key]) throw new ResourcesError('Metadata CI no corresponde al recurso propio esperado.');
     }
@@ -137,14 +143,49 @@ function ownState(ctx) {
   }
   return state;
 }
-function dockerResult(args, env = {}, timeout = 10000) {
+function dockerResult(args, env = {}, timeout = 10000, input) {
   return spawnSync('docker', args, { encoding: 'utf8', shell: false, timeout,
-    maxBuffer: 4 * 1024 * 1024, env: { ...process.env, ...env } });
+    maxBuffer: 4 * 1024 * 1024, input, env: { ...process.env, ...env } });
 }
-function docker(args, env = {}, timeout = 10000) {
-  const result = dockerResult(args, env, timeout);
+function docker(args, env = {}, timeout = 10000, input) {
+  const result = dockerResult(args, env, timeout, input);
   if (result.error || result.status !== 0) throw dockerFailure(args[0], result);
   return result.stdout.trim();
+}
+function minioArchive(binary) {
+  // Contexto tar sólo en memoria, dos entradas fijas; no rutas del checkout ni secretos.
+  const entry = (name, bytes, mode) => {
+    const header = Buffer.alloc(512);
+    const octal = (value, width) => value.toString(8).padStart(width - 1, '0') + '\0';
+    header.write(name); header.write(octal(mode, 8), 100); header.write(octal(0, 8), 108);
+    header.write(octal(0, 8), 116); header.write(octal(bytes.length, 12), 124);
+    header.write(octal(0, 12), 136); header.fill(32, 148, 156); header.write('0', 156);
+    header.write('ustar\0', 257); header.write('00', 263);
+    header.write([...header].reduce((sum, byte) => sum + byte, 0).toString(8).padStart(6, '0') + '\0 ', 148);
+    return Buffer.concat([header, bytes, Buffer.alloc((512 - bytes.length % 512) % 512)]);
+  };
+  const dockerfile = Buffer.from('FROM scratch\nCOPY minio /usr/bin/minio\nENTRYPOINT ["/usr/bin/minio"]\n');
+  return Buffer.concat([entry('Dockerfile', dockerfile, 0o644), entry('minio', binary, 0o755), Buffer.alloc(1024)]);
+}
+async function buildMinioImage() {
+  const response = await fetch(MINIO_BINARY_URL, { signal: AbortSignal.timeout(120000) });
+  if (response.status !== 200 || !response.body) {
+    await response.body?.cancel();
+    throw new ResourcesError('No se pudo descargar el binario oficial fijado.', { httpStatus: response.status });
+  }
+  const chunks = []; let size = 0;
+  for await (const chunk of response.body) {
+    size += chunk.length;
+    if (size > MINIO_BINARY_SIZE) throw new ResourcesError('El binario oficial excede el tamaño fijado.');
+    chunks.push(chunk);
+  }
+  const binary = Buffer.concat(chunks);
+  if (size !== MINIO_BINARY_SIZE || createHash('sha256').update(binary).digest('hex') !== MINIO_BINARY_SHA) {
+    throw new ResourcesError('El binario oficial no coincide con tamaño y SHA256 fijados.');
+  }
+  const id = docker(['build', '--platform', 'linux/amd64', '--no-cache', '--quiet', '--tag', MINIO_IMAGE, '-'], {}, 180000, minioArchive(binary));
+  if (!IMAGE_ID.test(id)) throw new ResourcesError('La construcción propia no devolvió un ID de imagen completo.');
+  return id;
 }
 function inspection(reference, allowMissing = false) {
   const result = dockerResult(['inspect', reference]);
@@ -174,6 +215,7 @@ function sameOptions(actual, expected) {
 function attest(ctx, state, item, current, running = false) {
   if (!current || !FULL_ID.test(current.Id) || (item.containerId && current.Id !== item.containerId)
     || current.Name !== '/' + item.name || current.Config?.Image !== item.image) throw new ResourcesError('Ownership o imagen Docker no coinciden.');
+  if (item.kind === 'minio' && (!IMAGE_ID.test(item.imageId) || current.Image !== item.imageId)) throw new ResourcesError('El contenedor no usa el ID de imagen MinIO construido y verificado.');
   for (const [key, value] of Object.entries(labels(ctx, state, item))) {
     if (current.Config.Labels?.[key] !== value) throw new ResourcesError('Labels de ownership Docker no coinciden.');
   }
@@ -340,7 +382,8 @@ async function start(ctx) {
     await assertFree(PG_PORT);
     resource = 'minio'; await assertFree(S3_PORT);
     phase = 'image-pull';
-    for (const item of state.resources) { resource = item.kind; docker(['pull', '--platform', 'linux/amd64', item.image], {}, 180000); }
+    resource = 'postgres'; docker(['pull', '--platform', 'linux/amd64', PG_IMAGE], {}, 180000);
+    resource = 'minio'; state.resources[1].imageId = await buildMinioImage(); persist(ctx, state);
     phase = 'creation';
     for (const item of state.resources) { resource = item.kind; createContainer(ctx, state, item, secrets.docker); }
     phase = 'readiness';
