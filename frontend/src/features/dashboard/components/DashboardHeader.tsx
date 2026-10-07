@@ -3,7 +3,6 @@ import { motion, useReducedMotion } from "motion/react";
 import { BadgeDollarSign, CalendarOff, CalendarPlus, Moon, Sun, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Business } from "../../business/types/business.types";
-import { formatDashboardMonth } from "../period";
 import { DashboardMonthFilter } from "./DashboardMonthFilter";
 
 export function DashboardHeader({
@@ -69,6 +68,7 @@ export function DashboardHeader({
           />
           <span>{greetingText}</span>
         </h1>
+        <p>{business?.name ?? "Tu establecimiento"} · Tu operación, de un vistazo.</p>
       </div>
       <div className="dashboard-context-header__actions">
         <DashboardMonthFilter month={month} currentMonth={currentMonth} onChange={onMonthChange} />

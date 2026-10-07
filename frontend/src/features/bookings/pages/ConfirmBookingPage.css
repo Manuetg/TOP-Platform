@@ -14,32 +14,33 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #52676d;
+  color: var(--color-text-secondary);
   font: inherit;
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .confirm-booking-header > span {
   display: block;
   margin-bottom: 5px;
-  color: #7a898d;
+  color: var(--color-text-secondary);
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .confirm-booking-header h1 {
   margin: 0;
-  color: #29434a;
-  font-size: clamp(1.55rem, 2.4vw, 2rem);
+  color: var(--color-text-primary);
+  font-size: clamp(28px, 2.5vw, 34px);
+  font-weight: 600;
 }
 
 .confirm-booking-header p {
   margin: 7px 0 0;
-  color: #718087;
+  color: var(--color-text-secondary);
   font-size: 0.82rem;
 }
 
@@ -57,24 +58,24 @@
   gap: 4px 9px;
   align-items: center;
   padding: 14px;
-  border: 1px solid #e0e7e5;
-  border-radius: 12px;
-  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
 }
 
 .confirm-booking-summary svg {
   grid-row: 1 / 3;
-  color: #155c4c;
+  color: var(--color-brand-primary);
 }
 
 .confirm-booking-summary span {
-  color: #849196;
+  color: var(--color-text-secondary);
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .confirm-booking-summary strong {
-  color: #29434a;
+  color: var(--color-text-primary);
   font-size: 0.82rem;
 }
 
@@ -82,20 +83,20 @@
   display: grid;
   gap: 14px;
   padding: 18px;
-  border: 1px solid #e0e7e5;
-  border-radius: 14px;
-  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
 }
 
 .confirm-booking-card__heading h2 {
   margin: 0;
-  color: #29434a;
+  color: var(--color-text-primary);
   font-size: 0.95rem;
 }
 
 .confirm-booking-card__heading p {
   margin: 5px 0 0;
-  color: #819095;
+  color: var(--color-text-secondary);
   font-size: 0.73rem;
 }
 
@@ -109,9 +110,9 @@
 }
 
 .confirm-booking-field > span {
-  color: #52666c;
+  color: var(--color-text-secondary);
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 
@@ -121,17 +122,17 @@
   justify-content: space-between;
   gap: 12px;
   padding: 11px 12px;
-  border-radius: 9px;
-  background: #f5f8f7;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
 }
 
 .confirm-booking-plan-info span {
-  color: #7b898e;
+  color: var(--color-text-secondary);
   font-size: 0.71rem;
 }
 
 .confirm-booking-plan-info strong {
-  color: #155c4c;
+  color: var(--color-brand-primary);
   font-size: 0.83rem;
 }
 
@@ -140,9 +141,9 @@
   align-items: center;
   gap: 13px;
   padding: 18px;
-  border: 1px solid #cfe0da;
-  border-radius: 14px;
-  background: #f2f7f5;
+  border: 1px solid color-mix(in srgb, var(--color-brand-primary) 28%, var(--color-border));
+  border-radius: var(--radius-lg);
+  background: var(--color-action-soft);
 }
 
 .confirm-booking-price__icon {
@@ -151,35 +152,35 @@
   height: 44px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 12px;
-  background: #e1efea;
-  color: #155c4c;
+  border-radius: var(--radius-md);
+  background: var(--color-action-soft);
+  color: var(--color-brand-primary);
 }
 
 .confirm-booking-price span {
   display: block;
-  color: #72837d;
+  color: var(--color-text-secondary);
   font-size: 0.69rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .confirm-booking-price strong {
   display: block;
   margin-top: 2px;
-  color: #155c4c;
+  color: var(--color-brand-primary);
   font-size: 1.25rem;
 }
 
 .confirm-booking-price p {
   margin: 2px 0 0;
-  color: #718087;
+  color: var(--color-text-secondary);
   font-size: 0.7rem;
 }
 
 .confirm-booking-error {
   padding: 12px 14px;
   border: 1px solid #e8c6bb;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: #fff5f1;
   color: #93462f;
   font-size: 0.77rem;
@@ -188,10 +189,10 @@
 .confirm-booking-empty,
 .confirm-booking-state {
   padding: 18px;
-  border: 1px solid #e0e7e5;
-  border-radius: 11px;
-  background: #ffffff;
-  color: #718087;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
   font-size: 0.78rem;
 }
 

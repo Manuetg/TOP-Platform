@@ -2,9 +2,12 @@ import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { CalendarCheck, ChartNoAxesCombined, CalendarRange, WalletCards, type LucideIcon } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip } from "recharts";
+import { formatMoney } from "../../../shared/utils/money";
 import type { DashboardResponse } from "../types/dashboard.types";
 import { getBookingStatusLabel, isBookingStatus } from "../../bookings/booking-status";
-import { AnimatedNumber } from "./AnimatedNumber";
+import { occupancyLabel } from "./DashboardMetrics";
+
+const number = new Intl.NumberFormat("es-PY");
 
 function Kpi({
   label,
@@ -65,35 +68,35 @@ export function DashboardKpiStrip({ dashboard }: { dashboard?: DashboardResponse
   const items = [
     {
       label: "Ocupación",
-      value: dashboard && dashboard.occupancy.occupancyRateBasisPoints !== null ? <AnimatedNumber value={dashboard.occupancy.occupancyRateBasisPoints / 100} format="percent" /> : "—",
+      value: dashboard ? occupancyLabel(dashboard.occupancy.occupancyRateBasisPoints) : "—",
       detail: dashboard ? `${dashboard.occupancy.occupiedResourceNights} de ${dashboard.occupancy.sellableResourceNights} noches` : "Cargando mes",
       icon: ChartNoAxesCombined,
       visual: dashboard ? <OccupancyMiniChart dashboard={dashboard} reducedMotion={reducedMotion} /> : null,
     },
     {
       label: "Fines de semana",
-      value: weekend ? <><AnimatedNumber value={weekend.full} /> <em>/ {weekend.total}</em></> : "—",
+      value: weekend ? <>{number.format(weekend.full)} <em>/ {number.format(weekend.total)}</em></> : "—",
       detail: weekend ? `${weekend.full} completos · ${weekend.partial} parciales` : "Sin datos del mes",
       icon: CalendarRange,
       visual: weekend?.items.length ? <div className="dashboard-weekend-segments">{weekend.items.slice(0, 6).map((item) => <span key={item.from} className={`dashboard-weekend-segment dashboard-weekend-segment--${item.status}`} title={`${item.from}–${item.to}: ${item.status}`} style={{ flex: `${Math.max(item.totalResources, 1)} 1 0` }} />)}</div> : <div className="dashboard-kpi__empty-visual" />,
     },
     {
       label: "Reservas confirmadas",
-      value: dashboard ? <AnimatedNumber value={confirmed} /> : "—",
+      value: dashboard ? number.format(confirmed) : "—",
       detail: dashboard && confirmedRate !== null ? `${confirmedRate}% de ${total} reservas` : "Cargando mes",
       icon: CalendarCheck,
       visual: <div className="dashboard-status-bar">{reservationSegments.map((segment) => <i key={segment.status} className={`dashboard-status-bar__segment dashboard-status-bar__segment--${segment.status}`} style={{ width: segment.width }} title={isBookingStatus(segment.status) ? getBookingStatusLabel(segment.status) : segment.status} />)}</div>,
     },
     {
       label: "Ingresos",
-      value: dashboard ? <AnimatedNumber value={dashboard.revenue.amountMinor} format="currency" currency={dashboard.revenue.currency} /> : "—",
+      value: dashboard ? formatMoney(dashboard.revenue.amountMinor, dashboard.revenue.currency) : "—",
       detail: dashboard ? "Monto del mes" : "Cargando mes",
       icon: WalletCards,
     },
   ];
   return (
     <motion.section
-      className="dashboard-kpi-strip top-surface"
+      className="dashboard-kpi-strip"
       aria-label="Indicadores principales del mes"
       initial={false}
       animate={{ opacity: 1, y: 0 }}

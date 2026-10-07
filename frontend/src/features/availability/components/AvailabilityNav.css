@@ -4,22 +4,22 @@
   width: fit-content;
   margin-bottom: var(--space-6);
   padding: 4px;
-  background: rgb(41 67 74 / 5%);
+  background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
 }
 
 .availability-nav__link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 var(--space-4);
   color: var(--color-text-secondary);
   font-size: 0.78rem;
   font-weight: 600;
   text-decoration: none;
-  border-radius: calc(var(--radius-md) - 3px);
+  border-radius: var(--radius-pill);
   transition: background-color var(--motion-fast) var(--motion-state),
     color var(--motion-fast) var(--motion-state);
 }
@@ -31,7 +31,7 @@
 .availability-nav__link--active {
   color: var(--color-brand-primary);
   background: var(--color-surface);
-  box-shadow: 0 1px 2px rgb(41 67 74 / 10%);
+  box-shadow: none;
 }
 
 .availability-nav__link--disabled {
