@@ -26,6 +26,7 @@ export interface Booking {
 export interface BookingFinancialSummary {
   totalAmountMinor: number | null;
   paidAmountMinor: number;
+  financialVersion: number;
   outstandingAmountMinor?: number;
   creditAmountMinor?: number;
   currency: string | null;

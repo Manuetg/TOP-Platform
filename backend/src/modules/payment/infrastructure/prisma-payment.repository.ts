@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../business/business.contract';
-import { Payment, PaymentMethod, PaymentRepository, PaymentStatus, PublicPayment, RegisterPaymentData } from '../domain/payment';
+import { Payment, PaymentMethod, PaymentRepository, PaymentStatus, type EffectivePaymentHistoryItem, RegisterPaymentData } from '../domain/payment';
 import { applyPaymentToPlan } from './prisma-payment-plan.repository';
 import { fromPrismaMoney, toPrismaMoney } from '../../../shared/infrastructure/prisma-money';
+import { assertFinancePeriodOpen } from '../../../shared/infrastructure/finance-period.guard';
 import { Prisma, type Payment as PrismaPayment } from '@prisma/client';
 import { readCurrentPricing, type CurrentPricing } from '../../pricing/pricing.contract';
 import { validateAvailabilityInTransaction, AvailabilityBusinessNotFoundError, AvailabilityBusinessUnavailableError, AvailabilityResourceNotFoundError } from '../../availability/availability.contract';
 import { PaymentConflictError, PaymentInputError, PaymentNotFoundError } from '../application/register-payment.use-case';
 import { assertBookingCapacity, InvalidBookingInputError } from '../../booking/booking.contract';
 import { needsPaymentReconciliation } from '../domain/financial-reconciliation';
+import { readBookingEffectiveAmounts, readEffectiveApplications, readEffectivePayments, summarizeEffectivePayments } from './prisma-payment-effective.reader';
 
 type RegisterPaymentResult = { payment: Payment; duplicate: boolean };
 interface PayableBooking {
@@ -52,10 +54,17 @@ export class PrismaPaymentRepository implements PaymentRepository {
     const snapshot = await this.agreedPrice(transaction, data);
     await this.ensureNoOverpayment(transaction, data, toPrismaMoney(snapshot.totalAmountMinor));
     if (booking.status === 'PENDING') await this.validatePending(transaction, data, booking);
+    await this.requireOpenPaymentPeriod(transaction, data);
     const payment = await transaction.payment.create({ data: { ...data, currency: snapshot.currency, amountMinor: toPrismaMoney(data.amountMinor) } });
     await this.applyToPlan(transaction, data, payment, snapshot);
     if (booking.status === 'PENDING') await this.confirmFromPending(transaction, data, payment.id);
     return { payment: this.map(payment), duplicate: false };
+  }
+
+  private async requireOpenPaymentPeriod(transaction: Prisma.TransactionClient, data: RegisterPaymentData): Promise<void> {
+    const dates = await transaction.$queryRaw<{ date: string }[]>`SELECT to_char(${data.paidAt}::timestamptz AT TIME ZONE timezone, 'YYYY-MM-DD') AS date FROM "Business" WHERE id=${data.businessId}`;
+    if (!dates[0]) throw new PaymentConflictError('No se puede determinar la fecha local del cobro.');
+    await assertFinancePeriodOpen(transaction, data.businessId, [dates[0].date]);
   }
 
   private async payableBooking(transaction: Prisma.TransactionClient, data: RegisterPaymentData): Promise<PayableBooking> {
@@ -82,8 +91,8 @@ export class PrismaPaymentRepository implements PaymentRepository {
   }
 
   private async ensureNoOverpayment(transaction: Prisma.TransactionClient, data: RegisterPaymentData, totalAmountMinor: bigint): Promise<void> {
-    const registered = await transaction.payment.aggregate({ where: { businessId: data.businessId, bookingId: data.bookingId, status: 'RECORDED' }, _sum: { amountMinor: true } });
-    const paidAmountMinor = registered._sum.amountMinor ?? 0n;
+    const amounts = await readBookingEffectiveAmounts(transaction, data.businessId, data.bookingId, data.currency);
+    const paidAmountMinor = toPrismaMoney(amounts.netRetainedAmountMinor);
     if (totalAmountMinor < 0n || paidAmountMinor < 0n) throw new Error('PAYMENT_FINANCIAL_INVARIANT');
     if (paidAmountMinor + toPrismaMoney(data.amountMinor) > totalAmountMinor) throw new Error('OVERPAYMENT');
   }
@@ -132,12 +141,12 @@ export class PrismaPaymentRepository implements PaymentRepository {
   }
 
   private async planIsReconciled(transaction: Prisma.TransactionClient, data: RegisterPaymentData, paymentId: string, plan: { id: string; currency: string; totalAmountMinor: bigint }, price: CurrentPricing): Promise<boolean> {
-    const [priorPayments, applications] = await Promise.all([
-      transaction.payment.aggregate({ where: { businessId: data.businessId, bookingId: data.bookingId, status: 'RECORDED', id: { not: paymentId } }, _sum: { amountMinor: true } }),
-      transaction.paymentApplication.aggregate({ where: { installment: { paymentPlanId: plan.id } }, _sum: { amountMinor: true } }),
+    const [payments, applications] = await Promise.all([
+      readEffectivePayments(transaction, data.businessId, [data.bookingId]),
+      readEffectiveApplications(transaction, data.businessId, data.bookingId),
     ]);
-    const paidAmountMinor = fromPrismaMoney(priorPayments._sum.amountMinor ?? 0n);
-    const appliedAmountMinor = fromPrismaMoney(applications._sum.amountMinor ?? 0n);
+    const paidAmountMinor = summarizeEffectivePayments(payments.filter((payment) => payment.paymentId !== paymentId), price.currency).netRetainedAmountMinor;
+    const appliedAmountMinor = fromPrismaMoney(applications.reduce((sum, application) => sum + toPrismaMoney(application.effectiveAmountMinor), 0n));
     if (appliedAmountMinor > paidAmountMinor) throw new Error('PAYMENT_APPLICATION_FINANCIAL_INVARIANT');
     const planTotalAmountMinor = fromPrismaMoney(plan.totalAmountMinor);
     return !needsPaymentReconciliation(price, paidAmountMinor, { currency: plan.currency, totalAmountMinor: planTotalAmountMinor, installmentTotalAmountMinor: planTotalAmountMinor, appliedAmountMinor });
@@ -149,9 +158,10 @@ export class PrismaPaymentRepository implements PaymentRepository {
     await transaction.bookingTimelineEvent.create({ data: { businessId: data.businessId, bookingId: data.bookingId, type: 'BOOKING_CONFIRMED', actorUserId: data.recordedByUserId, details: { paymentId } } });
   }
 
-  async listByBooking(input: Parameters<PaymentRepository['listByBooking']>[0]): Promise<PublicPayment[]> {
+  async listByBooking(input: Parameters<PaymentRepository['listByBooking']>[0]): Promise<EffectivePaymentHistoryItem[]> {
+    return this.prisma.$transaction(async (transaction) => {
     const before = input.before;
-    const rows = await this.prisma.payment.findMany({
+    const rows = await transaction.payment.findMany({
       where: {
         businessId: input.businessId,
         bookingId: input.bookingId,
@@ -179,12 +189,30 @@ export class PrismaPaymentRepository implements PaymentRepository {
         status: true,
       },
     });
-    return rows.map((row) => ({
+    if (rows.length === 0) return [];
+    const ids = rows.map((row) => row.id);
+    const [effective, adjustments] = await Promise.all([
+      readEffectivePayments(transaction, input.businessId, [input.bookingId], ids),
+      transaction.paymentAdjustment.findMany({ where: { businessId: input.businessId, bookingId: input.bookingId, paymentId: { in: ids } }, orderBy: [{ paymentId: 'asc' }, { sequence: 'asc' }], select: { id: true, paymentId: true, kind: true, amountMinor: true, occurredAt: true, createdAt: true, sequence: true } }),
+    ]);
+    const states = new Map(effective.map((state) => [state.paymentId, state]));
+    return rows.map((row): EffectivePaymentHistoryItem => {
+      const state = states.get(row.id);
+      if (!state) throw new Error('PAYMENT_HISTORY_EFFECTIVE_INVARIANT');
+      return {
       ...row,
       amountMinor: fromPrismaMoney(row.amountMinor),
       method: row.method as PaymentMethod,
       status: row.status as PaymentStatus,
-    }));
+      grossRecordedAmountMinor: state.grossRecordedAmountMinor,
+      voidedAmountMinor: state.voidedAmountMinor,
+      refundedAmountMinor: state.refundedAmountMinor,
+      netRetainedAmountMinor: state.netRetainedAmountMinor,
+      paymentVersion: state.paymentVersion,
+      effectiveStatus: effectiveStatus(state),
+      adjustments: adjustments.filter((adjustment) => adjustment.paymentId === row.id).map((adjustment) => ({ id: adjustment.id, kind: adjustment.kind as 'VOID' | 'REFUND', amountMinor: fromPrismaMoney(adjustment.amountMinor), occurredAt: adjustment.occurredAt, createdAt: adjustment.createdAt, sequence: adjustment.sequence })),
+    }; });
+    }, { isolationLevel: 'RepeatableRead' });
   }
 
   private map(row: PrismaPayment): Payment {
@@ -195,4 +223,10 @@ export class PrismaPaymentRepository implements PaymentRepository {
       status: row.status as PaymentStatus,
     };
   }
+}
+
+function effectiveStatus(state: { voidedAmountMinor: number; refundedAmountMinor: number; netRetainedAmountMinor: number }): EffectivePaymentHistoryItem['effectiveStatus'] {
+  if (state.voidedAmountMinor > 0) return 'VOIDED';
+  if (state.refundedAmountMinor === 0) return 'RETAINED';
+  return state.netRetainedAmountMinor === 0 ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
 }

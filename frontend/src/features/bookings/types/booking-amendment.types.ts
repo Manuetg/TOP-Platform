@@ -37,6 +37,7 @@ export interface BookingAmendmentPreview {
   expectedUpdatedAt: string;
   currentPricingId: string;
   expectedPaidAmountMinor: number;
+  expectedFinancialVersion: number;
   currentPricing: {
     id: string;
     originalSnapshotId: string;
@@ -50,7 +51,7 @@ export interface BookingAmendmentPreview {
     createdAt: string;
   };
   quote: AmendmentQuote;
-  financialSummary: { totalAmountMinor: number; paidAmountMinor: number; outstandingAmountMinor: number; creditAmountMinor: number };
+  financialSummary: { totalAmountMinor: number; paidAmountMinor: number; financialVersion: number; outstandingAmountMinor: number; creditAmountMinor: number };
   warnings: string[];
 }
 
@@ -58,5 +59,6 @@ export interface SaveBookingAmendmentInput extends BookingAmendmentInput {
   expectedUpdatedAt: string;
   currentPricingId: string;
   expectedPaidAmountMinor: number;
+  expectedFinancialVersion: number;
   acceptedQuote: AmendmentQuote;
 }

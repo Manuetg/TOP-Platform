@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PaymentMethod, PaymentStatus, type PublicPayment } from '../../domain/payment';
+import { PaymentMethod, PaymentStatus, type PublicPayment, type EffectivePaymentHistoryItem } from '../../domain/payment';
 
 export class PaymentHistoryItemResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
@@ -36,7 +36,30 @@ class PaymentHistoryPageInfoResponseDto {
   @ApiProperty() hasNextPage!: boolean;
 }
 
+class PublicPaymentAdjustmentResponseDto {
+  @ApiProperty() id!: string;
+  @ApiProperty({ enum: ['VOID', 'REFUND'] }) kind!: 'VOID' | 'REFUND';
+  @ApiProperty() amountMinor!: number;
+  @ApiProperty({ format: 'date-time' }) occurredAt!: string;
+  @ApiProperty({ format: 'date-time' }) createdAt!: string;
+  @ApiProperty() sequence!: number;
+}
+
+export class PaymentHistoryEffectiveItemResponseDto extends PaymentHistoryItemResponseDto {
+  @ApiProperty() grossRecordedAmountMinor!: number;
+  @ApiProperty() voidedAmountMinor!: number;
+  @ApiProperty() refundedAmountMinor!: number;
+  @ApiProperty() netRetainedAmountMinor!: number;
+  @ApiProperty() paymentVersion!: number;
+  @ApiProperty({ enum: ['RETAINED', 'PARTIALLY_REFUNDED', 'REFUNDED', 'VOIDED'] }) effectiveStatus!: EffectivePaymentHistoryItem['effectiveStatus'];
+  @ApiProperty({ type: PublicPaymentAdjustmentResponseDto, isArray: true }) adjustments!: PublicPaymentAdjustmentResponseDto[];
+
+  static fromEffectiveDomain(payment: EffectivePaymentHistoryItem): PaymentHistoryEffectiveItemResponseDto {
+    return { ...PaymentHistoryItemResponseDto.fromDomain(payment), grossRecordedAmountMinor: payment.grossRecordedAmountMinor, voidedAmountMinor: payment.voidedAmountMinor, refundedAmountMinor: payment.refundedAmountMinor, netRetainedAmountMinor: payment.netRetainedAmountMinor, paymentVersion: payment.paymentVersion, effectiveStatus: payment.effectiveStatus, adjustments: payment.adjustments.map((adjustment) => ({ id: adjustment.id, kind: adjustment.kind, amountMinor: adjustment.amountMinor, occurredAt: adjustment.occurredAt.toISOString(), createdAt: adjustment.createdAt.toISOString(), sequence: adjustment.sequence })) };
+  }
+}
+
 export class PaymentHistoryResponseDto {
-  @ApiProperty({ type: PaymentHistoryItemResponseDto, isArray: true }) items!: PaymentHistoryItemResponseDto[];
+  @ApiProperty({ type: PaymentHistoryEffectiveItemResponseDto, isArray: true }) items!: PaymentHistoryEffectiveItemResponseDto[];
   @ApiProperty({ type: PaymentHistoryPageInfoResponseDto }) pageInfo!: PaymentHistoryPageInfoResponseDto;
 }

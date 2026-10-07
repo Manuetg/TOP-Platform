@@ -16,6 +16,8 @@
     "test:e2e": "jest --selectProjects e2e",
     "test:acceptance": "node scripts/run-acceptance.cjs",
     "test:coverage": "jest --selectProjects unit integration e2e --coverage --runInBand",
+    "test:coverage:core": "node scripts/check-core-coverage.cjs",
+    "test:mutation:finance": "stryker run stryker.finance.conf.json",
     "test:mutation": "stryker run",
     "create:admin-user": "ts-node src/modules/identity/presentation/create-user.cli.ts",
     "architecture:check": "depcruise --config .dependency-cruiser.cjs src",

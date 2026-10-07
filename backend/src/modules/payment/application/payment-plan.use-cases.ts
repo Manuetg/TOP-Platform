@@ -30,6 +30,12 @@ export interface PaymentPlanResponse {
   bookingId: string;
   currency: string;
   totalAmountMinor: number;
+  paidAmountMinor: number;
+  grossRecordedAmountMinor: number;
+  voidedAmountMinor: number;
+  refundedAmountMinor: number;
+  netRetainedAmountMinor: number;
+  financialVersion: number;
   needsReconciliation: boolean;
   warning: string | null;
   installments: PaymentPlanInstallmentResponse[];
@@ -115,7 +121,7 @@ export class PaymentPlanUseCases {
 
   private response(plan: PaymentPlan): PaymentPlanResponse {
     const today = new Date().toISOString().slice(0, 10);
-    return { id: plan.id, bookingId: plan.bookingId, currency: plan.currency, totalAmountMinor: plan.totalAmountMinor, needsReconciliation: plan.needsReconciliation ?? false, warning: plan.warning ?? null, installments: plan.installments.map((installment) => {
+    return { id: plan.id, bookingId: plan.bookingId, currency: plan.currency, totalAmountMinor: plan.totalAmountMinor, paidAmountMinor: plan.netRetainedAmountMinor, grossRecordedAmountMinor: plan.grossRecordedAmountMinor, voidedAmountMinor: plan.voidedAmountMinor, refundedAmountMinor: plan.refundedAmountMinor, netRetainedAmountMinor: plan.netRetainedAmountMinor, financialVersion: plan.financialVersion, needsReconciliation: plan.needsReconciliation ?? false, warning: plan.warning ?? null, installments: plan.installments.map((installment) => {
       const outstandingAmountMinor = installment.amountMinor - installment.appliedAmountMinor;
       const dueDate = installment.dueDate?.toISOString().slice(0, 10) ?? null;
       const status = outstandingAmountMinor === 0 ? 'PAID' : dueDate !== null && dueDate < today ? 'OVERDUE' : installment.appliedAmountMinor > 0 ? 'PARTIALLY_PAID' : 'PENDING';

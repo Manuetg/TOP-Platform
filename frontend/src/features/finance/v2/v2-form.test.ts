@@ -1,0 +1,23 @@
+import {expect,it} from 'vitest';
+import {blankExpense,buildV2Command,v2CommandLabels,v2Money} from './v2-form';
+import type {FinanceV2CommandType} from './finance-v2.types';
+import {v2TestFixture,v2TestId} from './v2-test.fixture';
+it.each(Object.keys(v2CommandLabels) as FinanceV2CommandType[])('construye intención cerrada %s desde campos operativos sin actor del formulario',(type)=>{
+  const {draft,data,references}=v2TestFixture();if(type==='REIMBURSE_EXPENSE')draft.targetId='expense-a';
+  const command=buildV2Command(type,draft,data,references);expect(command.type).toBe(type);expect(command).not.toHaveProperty('actorUserId');expect(command).not.toHaveProperty('businessId');expect(command).not.toHaveProperty('idempotencyKey');
+});
+it('PYG conserva 450000 y rechaza fracciones/overflow sin redondear',()=>{expect(v2Money('450.000')).toBe(450000);expect(()=>v2Money('450,50')).toThrow();expect(()=>v2Money('9007199254740992')).toThrow();});
+it('borrador conserva referencias nulas y no fabrica una liquidación',()=>{const {draft,data,references}=v2TestFixture();expect(buildV2Command('CREATE_EXPENSE_DRAFT',draft,data,references)).toMatchObject({expenseDefinition:{amountMinor:900000,counterpartyId:null,reference:null,lines:[{resourceId:null,bookingId:null,amountMinor:900000}]},dueOn:null});expect(buildV2Command('CREATE_EXPENSE_DRAFT',draft,data,references)).not.toHaveProperty('settlement');});
+it('correspondencia distingue patas de una transferencia con id compartido y conserva hash del servidor',()=>{const {draft,data,references}=v2TestFixture();const result=buildV2Command('CONFIRM_BANK_MATCH',draft,data,references);expect(result).toMatchObject({components:[{sourceType:'TRANSFER',sourceId:v2TestId,sourceLeg:'TO',sourceVersion:2,sourceHash:'server-to-hash',amountMinor:900000}],previewToken:'server-preview-token'});});
+it('revisión de presupuesto no supone ausencia cuando el mes no fue consultado',()=>{const {draft,data,references}=v2TestFixture();data.budgetLoaded=false;expect(()=>buildV2Command('CREATE_BUDGET_REVISION',draft,data,references)).toThrow('Consulta el presupuesto');data.budgetLoaded=true;draft.month='2026-10';expect(()=>buildV2Command('CREATE_BUDGET_REVISION',draft,data,references)).toThrow('Consulta el presupuesto');});
+it('reparto usa fuente/versión del servidor y no cambia el costo base',()=>{const {draft,data,references}=v2TestFixture();expect(buildV2Command('APPLY_COST_ALLOCATION',draft,data,references)).toEqual({type:'APPLY_COST_ALLOCATION',source:{kind:'EXPENSE_LINE',id:'line-a'},expectedSourceVersion:2,ruleId:v2TestId,ruleVersion:2,expectedAllocationVersion:0,reason:'Motivo sintético'});expect(data.costs!.rows[0].amountMinor).toBe(900000);});
+it('confirmación de import exige el token de una vista previa válida',()=>{const {draft,data,references}=v2TestFixture();draft.previewToken='';expect(()=>buildV2Command('CONFIRM_HISTORY_IMPORT',draft,data,references)).toThrow('vista previa válida');});
+it('orígenes de costo con el mismo id conservan kind y versión propios al repartir',()=>{const {draft,data,references}=v2TestFixture();const actual=data.costs!.rows[0];data.costs!.rows.push({...actual,source:{...actual.source,kind:'LABOR_ESTIMATE',version:7},basis:'ESTIMATE'});draft.sourceId='LABOR_ESTIMATE:line-a';expect(buildV2Command('APPLY_COST_ALLOCATION',draft,data,references)).toMatchObject({source:{kind:'LABOR_ESTIMATE',id:'line-a'},expectedSourceVersion:7});});
+it('depósito850000 y bruto1000000 conservan comisión150000 explícita, sin derivar neto ni duplicar una comisión existente',()=>{
+  const {draft,data,references}=v2TestFixture(); draft.bankRows[0].amount='850000'; draft.bankComponents[0].amount='1000000';
+  const expense=blankExpense();expense.description='Comisión declarada';expense.amount='150000';expense.lines=[{label:'Comisión',amount:'150000',categoryId:'category-a',resourceId:'',bookingId:'',operational:true}];
+  draft.bankFees=[{bankRowId:draft.bankRows[0].id,mode:'NEW',expenseId:'',settlementId:'',consumedOn:'2026-09-30',occurredAt:'2026-09-30T12:00',reference:'',expense}];
+  expect(buildV2Command('CONFIRM_BANK_MATCH',draft,data,references)).toMatchObject({rows:[{amountMinor:850000}],components:[{amountMinor:1000000}],fees:[{expenseDefinition:{amountMinor:150000,lines:[{amountMinor:150000}]},reference:null}]});
+  draft.bankFees[0]={...draft.bankFees[0],mode:'EXISTING',expenseId:'expense-a',settlementId:'settlement-a'};
+  const command=buildV2Command('CONFIRM_BANK_MATCH',draft,data,references);expect(command).toMatchObject({fees:[{existingExpenseId:'expense-a',existingSettlementId:'settlement-a'}]});if(command.type==='CONFIRM_BANK_MATCH')expect(command.fees[0]).not.toHaveProperty('expenseDefinition');
+});

@@ -11,6 +11,11 @@ export interface OutstandingBalanceProjection {
   paymentCurrencyMismatch?: boolean;
   invalidMonetaryData?: boolean;
   paidAmountMinor: number;
+  grossRecordedAmountMinor: number;
+  voidedAmountMinor: number;
+  refundedAmountMinor: number;
+  netRetainedAmountMinor: number;
+  financialVersion: number;
   planTotalAmountMinor: number | null;
   installmentTotalAmountMinor: number;
   appliedAmountMinor: number;

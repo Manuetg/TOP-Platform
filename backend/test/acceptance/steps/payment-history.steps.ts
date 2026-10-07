@@ -97,9 +97,20 @@ Then('el historial no tiene página siguiente', function (this: TopWorld): void 
 Then('el historial expone únicamente el contrato público', function (this: TopWorld): void {
   const item = this.response?.body.items[0] as Record<string, unknown>;
   assert.deepEqual(Object.keys(item).sort(), [
-    'amountMinor', 'bookingId', 'createdAt', 'currency', 'id', 'method', 'note',
-    'paidAt', 'recordedByUserId', 'reference', 'status',
+    'adjustments', 'amountMinor', 'bookingId', 'createdAt', 'currency', 'effectiveStatus',
+    'grossRecordedAmountMinor', 'id', 'method', 'netRetainedAmountMinor', 'note', 'paidAt',
+    'paymentVersion', 'recordedByUserId', 'reference', 'refundedAmountMinor', 'status', 'voidedAmountMinor',
   ]);
+  assert.equal(item.amountMinor, 40);
+  assert.equal(item.status, 'RECORDED');
+  assert.equal(item.grossRecordedAmountMinor, 40);
+  assert.equal(item.netRetainedAmountMinor, 40);
+  assert.equal(item.voidedAmountMinor, 0);
+  assert.equal(item.refundedAmountMinor, 0);
+  assert.equal(item.paymentVersion, 1);
+  assert.equal(item.effectiveStatus, 'RETAINED');
+  assert.deepEqual(item.adjustments, []);
+  for (const privateField of ['businessId', 'idempotencyKey', 'requestFingerprint', 'applications', 'accountId', 'reason', 'privateReason', 'personLabel', 'storageKey']) assert.equal(Object.hasOwn(item, privateField), false);
 });
 
 Then('el historial conserva paidAt {string}', function (this: TopWorld, paidAt: string): void {

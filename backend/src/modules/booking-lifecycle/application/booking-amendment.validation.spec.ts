@@ -3,7 +3,7 @@ import { amendmentChanges, amendmentExpectation, type BookingAmendmentInput } fr
 
 const scope = { businessId: '11111111-1111-4111-8111-111111111111', bookingId: '22222222-2222-4222-8222-222222222222', actorUserId: '33333333-3333-4333-8333-333333333333' };
 const quote = { currency: 'PYG', totalAmountMinor: 0, items: [], fingerprint: 'a'.repeat(64) };
-const accepted = { ...scope, expectedUpdatedAt: '2026-10-02T10:00:00.000Z', currentPricingId: '44444444-4444-4444-8444-444444444444', expectedPaidAmountMinor: 0, acceptedQuote: quote };
+const accepted = { ...scope, expectedUpdatedAt: '2026-10-02T10:00:00.000Z', currentPricingId: '44444444-4444-4444-8444-444444444444', expectedPaidAmountMinor: 0, expectedFinancialVersion: 0, acceptedQuote: quote };
 
 describe('Booking amendment optimistic validation', () => {
   it('preserves omitted pricing/reason and normalizes only explicit contact details', () => {
@@ -21,12 +21,17 @@ describe('Booking amendment optimistic validation', () => {
   });
 
   it('requires exact observed version, price id and safely represented payments', () => {
-    expect(amendmentExpectation(accepted)).toEqual({ expectedUpdatedAt: accepted.expectedUpdatedAt, currentPricingId: accepted.currentPricingId, expectedPaidAmountMinor: 0, acceptedQuote: quote });
+    expect(amendmentExpectation(accepted)).toEqual({ expectedUpdatedAt: accepted.expectedUpdatedAt, currentPricingId: accepted.currentPricingId, expectedPaidAmountMinor: 0, expectedFinancialVersion: 0, acceptedQuote: quote });
+  });
+
+  it.each([0, 1, Number.MAX_SAFE_INTEGER])('preserves the server observed financial counter %p independently of paid money', (expectedFinancialVersion) => {
+    expect(amendmentExpectation({ ...accepted, expectedFinancialVersion })).toEqual({ expectedUpdatedAt: accepted.expectedUpdatedAt, currentPricingId: accepted.currentPricingId, expectedPaidAmountMinor: 0, expectedFinancialVersion, acceptedQuote: quote });
   });
 
   it.each([
     { expectedUpdatedAt: undefined }, { expectedUpdatedAt: '2026-10-02T10:00:00Z' }, { expectedUpdatedAt: 'bad' },
     { currentPricingId: 'not-an-id' }, { expectedPaidAmountMinor: -1 }, { expectedPaidAmountMinor: Number.MAX_SAFE_INTEGER + 1 },
+    { expectedFinancialVersion: undefined }, { expectedFinancialVersion: -1 }, { expectedFinancialVersion: 0.5 }, { expectedFinancialVersion: Number.MAX_SAFE_INTEGER + 1 },
     { acceptedQuote: undefined }, { acceptedQuote: { ...quote, totalAmountMinor: 0.5 } },
     { acceptedQuote: { ...quote, totalAmountMinor: -1 } }, { acceptedQuote: { ...quote, fingerprint: 'client-price' } },
   ])('rejects incomplete or manipulated preview expectations %#', (expectation) => {

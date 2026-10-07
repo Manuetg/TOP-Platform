@@ -16,6 +16,7 @@ export interface BookingAmendmentInput {
   expectedUpdatedAt?: unknown;
   currentPricingId?: unknown;
   expectedPaidAmountMinor?: unknown;
+  expectedFinancialVersion?: unknown;
   acceptedQuote?: unknown;
 }
 
@@ -55,7 +56,12 @@ export function amendmentExpectation(input: BookingAmendmentInput): AmendmentExp
   if (typeof expectedUpdatedAt !== 'string' || Number.isNaN(Date.parse(expectedUpdatedAt)) || new Date(expectedUpdatedAt).toISOString() !== expectedUpdatedAt) throw new InvalidBookingInputError('Se requiere la versión exacta de la reserva en formato ISO UTC.');
   const currentPricingId = requireBookingUuid(input.currentPricingId, 'Se requiere el precio vigente observado en el preview.');
   if (typeof input.expectedPaidAmountMinor !== 'number' || !Number.isSafeInteger(input.expectedPaidAmountMinor) || input.expectedPaidAmountMinor < 0) throw new InvalidBookingInputError('El cobrado esperado debe ser un entero seguro no negativo.');
-  return { expectedUpdatedAt, currentPricingId, expectedPaidAmountMinor: input.expectedPaidAmountMinor, acceptedQuote: acceptedAmendmentQuote(input.acceptedQuote) };
+  return { expectedUpdatedAt, currentPricingId, expectedPaidAmountMinor: input.expectedPaidAmountMinor, expectedFinancialVersion: expectedFinancialVersion(input.expectedFinancialVersion), acceptedQuote: acceptedAmendmentQuote(input.acceptedQuote) };
+}
+
+function expectedFinancialVersion(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) throw new InvalidBookingInputError('Se requiere la versión financiera exacta observada en el preview.');
+  return value;
 }
 
 function acceptedAmendmentQuote(value: unknown): AmendmentQuote {

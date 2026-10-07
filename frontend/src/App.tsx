@@ -5,6 +5,7 @@ import { QueryProvider } from "./app/providers/QueryProvider";
 import { AuthProvider } from "./features/auth/context/AuthContext";
 import { BusinessProvider } from "./features/business/context/BusinessContext";
 import { DeploymentNotice } from "./shared/ui/DeploymentNotice";
+import { FinanceIntentSessionBoundary } from "./features/finance/v2/FinanceIntentSessionBoundary";
 
 function App() {
   return (
@@ -12,7 +13,7 @@ function App() {
       <DeploymentNotice />
       <QueryProvider>
         <AuthProvider>
-          <BusinessProvider><AppRouter /></BusinessProvider>
+          <BusinessProvider><FinanceIntentSessionBoundary /><AppRouter /></BusinessProvider>
         </AuthProvider>
       </QueryProvider>
     </ErrorBoundary>

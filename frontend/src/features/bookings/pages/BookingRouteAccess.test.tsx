@@ -38,7 +38,7 @@ function PaymentRouteProbe() {
 function setup(route: "edit" | "confirm", options: { deferConfirm?: boolean; deferCalculate?: boolean; deferEdit?: boolean; suppliedBusinessId?: string; pricedPending?: boolean; total?: number; initialEntries?: string[] } = {}) {
   const requests: RequestRecord[] = [];
   const currentBooking = { ...booking, status: route === "edit" ? "DRAFT" as const : "PENDING" as const,
-    ...(options.pricedPending ? { financialSummary: { totalAmountMinor: options.total ?? 400000, paidAmountMinor: 0, currency: "PYG" } } : {}),
+    ...(options.pricedPending ? { financialSummary: { totalAmountMinor: options.total ?? 400000, paidAmountMinor: 0, financialVersion: 0, currency: "PYG" } } : {}),
   };
   const pending = deferred<Response>();
   vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init: RequestInit = {}) => {

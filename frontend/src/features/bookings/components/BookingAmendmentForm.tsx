@@ -48,7 +48,8 @@ export function BookingAmendmentForm({ booking, businessId, notice, onStalePrevi
   const canEdit = authStatus === "authenticated" && Boolean(session?.user.id && session.accessToken) && businessStatus === "ready" &&
     activeBusinessId === businessId && activeBusiness?.id === businessId && activeBusiness.status === "ACTIVE" &&
     ["OWNER", "ADMIN", "RECEPTIONIST"].includes(activeRole ?? "") && booking.businessId === businessId &&
-    ["PENDING", "CONFIRMED"].includes(booking.status) && booking.financialSummary?.totalAmountMinor != null;
+    ["PENDING", "CONFIRMED"].includes(booking.status) && booking.financialSummary?.totalAmountMinor != null &&
+    Number.isSafeInteger(booking.financialSummary.financialVersion) && booking.financialSummary.financialVersion >= 0;
   const canOverride = activeRole === "OWNER" || activeRole === "ADMIN";
   const datesChanged = values.checkInDate !== booking.checkInDate || values.checkOutDate !== booking.checkOutDate;
   const needsPrice = datesChanged || changePrice;
@@ -92,7 +93,7 @@ export function BookingAmendmentForm({ booking, businessId, notice, onStalePrevi
       if (accepted) {
         const preview = accepted.preview;
         await mutations.save({ ...accepted.input, expectedUpdatedAt: preview.expectedUpdatedAt, currentPricingId: preview.currentPricingId,
-          expectedPaidAmountMinor: preview.expectedPaidAmountMinor, acceptedQuote: preview.quote }, controller.signal);
+          expectedPaidAmountMinor: preview.expectedPaidAmountMinor, expectedFinancialVersion: preview.expectedFinancialVersion, acceptedQuote: preview.quote }, controller.signal);
         if (current(controller, requestVersion)) navigate(`/app/bookings/${booking.id}`);
       } else {
         const preview = await mutations.preview(changes, controller.signal);
@@ -101,7 +102,7 @@ export function BookingAmendmentForm({ booking, businessId, notice, onStalePrevi
           preview.quote.currency !== preview.currentPricing.currency || !["PENDING", "CONFIRMED"].includes(preview.status)) {
           throw new Error("La revisión no corresponde a esta reserva. Volvé a revisar los cambios.");
         }
-        if (preview.expectedUpdatedAt !== booking.updatedAt) {
+        if (preview.expectedUpdatedAt !== booking.updatedAt || preview.expectedFinancialVersion !== booking.financialSummary?.financialVersion) {
           setReview(null);
           await onStalePreview();
           return;

@@ -20,7 +20,7 @@ it("invalida el negocio del envío tardío y conserva intactas las finanzas de o
   const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
   const { result, rerender } = renderHook((context) => useBookingAmendment(context), { wrapper, initialProps: { businessId: "business-1", bookingId: "booking-1", accessToken: "token-1" } });
   let pending!: Promise<unknown>;
-  act(() => { pending = result.current.save({ notes: "Cambio", expectedUpdatedAt: "2026-10-02T00:00:00Z", currentPricingId: "price-1", expectedPaidAmountMinor: 0, acceptedQuote: { currency: "PYG", totalAmountMinor: 0, items: [], fingerprint: "f".repeat(64) } }, new AbortController().signal); });
+  act(() => { pending = result.current.save({ notes: "Cambio", expectedUpdatedAt: "2026-10-02T00:00:00Z", currentPricingId: "price-1", expectedPaidAmountMinor: 0, expectedFinancialVersion: 7, acceptedQuote: { currency: "PYG", totalAmountMinor: 0, items: [], fingerprint: "f".repeat(64) } }, new AbortController().signal); });
   await waitFor(() => expect(saveBookingAmendment).toHaveBeenCalledOnce());
   rerender({ businessId: "business-2", bookingId: "booking-2", accessToken: "token-2" });
   await act(async () => { resolve({ id: "booking-1" }); await pending; });

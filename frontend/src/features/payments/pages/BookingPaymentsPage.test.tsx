@@ -114,7 +114,7 @@ describe("estado operativo y financiero de la cuenta de una reserva", () => {
 
   it("permite un pago positivo mínimo de una Pendiente con precio sin habilitar plan ni confirmar en el cliente", async () => {
     state.status = "PENDING";
-    state.summary = { totalAmountMinor: 400000, paidAmountMinor: 0, currency: "PYG" };
+    state.summary = { totalAmountMinor: 400000, paidAmountMinor: 0, financialVersion: 0, currency: "PYG" };
     Object.assign(state.balance, { paidAmountMinor: 0, outstandingAmountMinor: 400000, financialStatus: "UNPAID" });
     const user = userEvent.setup();
     render(<BookingPaymentsPage />);
@@ -133,7 +133,7 @@ describe("estado operativo y financiero de la cuenta de una reserva", () => {
 
   it("no permite registrar pagos de un Borrador o una Pendiente histórica sin precio", () => {
     state.status = "PENDING";
-    state.summary = { totalAmountMinor: null, paidAmountMinor: 0, currency: null };
+    state.summary = { totalAmountMinor: null, paidAmountMinor: 0, financialVersion: 0, currency: null };
     const { rerender } = render(<BookingPaymentsPage />);
     expect(screen.queryByRole("button", { name: "Registrar pago" })).not.toBeInTheDocument();
     state.status = "DRAFT";
@@ -155,7 +155,7 @@ describe("estado operativo y financiero de la cuenta de una reserva", () => {
 
   it("un total cero muestra porcentaje no aplicable y no admite un pago cero", () => {
     state.status = "PENDING";
-    state.summary = { totalAmountMinor: 0, paidAmountMinor: 0, currency: "PYG" };
+    state.summary = { totalAmountMinor: 0, paidAmountMinor: 0, financialVersion: 0, currency: "PYG" };
     Object.assign(state.balance, { totalAmountMinor: 0, paidAmountMinor: 0, outstandingAmountMinor: 0 });
     render(<BookingPaymentsPage />);
     expect(screen.getByText("—")).toBeVisible();

@@ -1,5 +1,71 @@
 # TOP — Arquitectura técnica inicial
 
+## Finance — diseño e interfaces de la entrega autorizada (2026-10-05)
+
+Antecedente del 05/10/2026: contrato de trabajo iniciado sobre PR #101 head `99a51148cc12839cdc1bea3ed303961ffd27698c`; ese inicio no acreditaba merge ni gates. [Backlog](07-Backlog.md) mantiene estado y GWT; [Domain Bible](03-Domain-Bible.md) y BR-087–094 definen autoridad. El encargo permitió empezar antes del merge en checkout aislado, revalidar develop/reconciliar sin reescribir trabajo ajeno y repetir controles afectados al integrarlo. No cambia configuración global, red, trust, datos reales, dependencias bloqueadas ni `releaseApproved=false`.
+
+Revalidación del 07/10/2026: PR #101 está mergeada en `develop@9332fa6b6750c0dd326d0b69df24d0ba0725d8b9`, con árbol idéntico a la base Finance `99a51148cc12839cdc1bea3ed303961ffd27698c`. El inicio previo al merge queda como antecedente histórico. Los manifiestos finales de fuentes acreditan Full12 backend, los tres controles frontend y navegador real móvil/desktop PASS localmente, según [Estado actual](00-Current-Status.md); no acreditan CI del nuevo HEAD ni aceptación formal. La mutación ampliada está `DEFERRED_BY_USER` y no se presenta como PASS.
+
+### Ownership y persistencia
+
+`finance` usa las capas domain/application/infrastructure/presentation del monolito; frontend `features/finance` reutiliza app/shared. Finance consume exclusivamente contratos públicos de Business, Identity, Resource, Booking, Pricing y Payment. Payment añade el reader público mínimo necesario para origen/asignación; no se importan repositorios privados de otro módulo ni se inventa un bus, event sourcing, framework o proyección sincronizada eventualmente.
+
+Decisión técnica V1 implementada: caja/obligaciones se leen derivadas de fuentes, sin tabla de balance editable. El schema y 35 migraciones del trabajo actual incluyen `FinanceCatalog` CATEGORY/COUNTERPARTY, `FinanceExpense`/`FinanceExpenseLine`/`FinanceSettlement`, `FinanceAccount`/`FinanceOpening`, `FinanceTransfer`/`FinanceCashMovement`, `FinancePaymentLink`, `FinanceReview`, `FinanceCashCount`, `FinanceRequest` y `FinanceAudit`. El catálogo mantiene nombre inmutable y archivo CAS; apertura inmutable se corrige mediante CashMovement enlazado. Los modelos V2 añaden borradores/plantillas/aprobaciones, importaciones/matching, reglas/asignaciones, costos laborales calculados, presupuesto/compromisos, certificación de servicio, períodos/snapshots y `FinanceEvidenceFile` privado. Un escritor integra schema/migraciones/capabilities/contratos/rutas; esta composición no afirma que existieran en el baseline ni que estén aceptadas todas las historias.
+
+Refs compuestas/scoped y comprobaciones de kind evitan enlazar contraparte/categoría/cuenta/recurso ajenos. FKs restrictivas preservan historia; importe BigInt DB, API number entero seguro PYG y acumulaciones exactas validadas. No persiste saldos ni duplica Payment. Índices solo con consulta/plan que justifique orden/selectividad y coste; migración aditiva probada en vacío y upgrade sintético conserva fingerprints de Payment, Snapshot, Revision y Applications. No usa migrate dev/reset ni una base compartida.
+
+### Escrituras y tiempo
+
+Escritor Finance transaccional revalida actor ACTIVE y Membership OWNER vigente bajo locks, Business ACTIVE para nuevos hechos, tenant de todas las referencias, CAS y valores que determinan saldo. Usa mismo `Business FOR UPDATE` de cambio timezone, con orden estable `User FOR SHARE` → `Membership FOR SHARE` → `Business FOR UPDATE` → fuentes ordenadas, compatible con los escritores vigentes. Amplía el guard de historial timezone a hechos Finance, incluso sin reservas. Carrera de primer gasto/apertura vs timezone se prueba en ambos órdenes: gana un hecho con zona coherente o el cambio falla/relee antes de escribir; no se atribuye RLS a la DB.
+
+Idempotencia por Business/operación/key con fingerprint normalizado y resultado público conservado dentro de la transacción; retry idéntico devuelve resultado original, key con payload distinto da 409. Versiones exactas se comparan antes del no-op, con incremento monotónico. Documentos, líneas, pago/aplicación, movimiento y audit se confirman juntos; fallo inyectado prueba rollback y carreras prueban no sobreaplicación. Apertura firmada declara posición inmediatamente anterior al instante de corte: movimientos `occurredAt < corte` quedan fuera del saldo calculado (`includedInBalance=false`), igualdad o posteriores se incluyen (`>= corte`). Transferencia serializa cuentas en orden estable; no bloquea sobregiro por saldo inventado.
+
+`consumedOn`/`dueOn` son fechas puras válidas. `occurredAt`, `paidAt`, creación y auditoría son instantes con offset explícito almacenados en UTC. Consulta convierte intervalo IANA `[from,to)` a límites reales, incluyendo medianoche/DST; duración V1 de 1..366 días. No agrega deuda histórica si no hay reconstrucción suficiente.
+
+### Contrato HTTP V1 congelado para implementación
+
+Fuente del contrato TypeScript: [finance.types.ts](../backend/src/modules/finance/domain/finance.types.ts). Son interfaces del trabajo actual incluidas en el corte funcional local validado; la publicación y CI del nuevo HEAD siguen pendientes y no se atribuye una verificación independiente de Swagger a esta evidencia. No eran contratos publicados del baseline. Base `/api/businesses/:businessId/finance`, autenticación y capability explícita por operación, sin permiso heredado de `payment.read`.
+
+| Método/ruta | Entrada / salida y semántica |
+|---|---|
+| `GET /finance?from=YYYY-MM-DD&to=YYYY-MM-DD` | `FinanceReport`: Business/PYG/timeZone, REGISTERED_OPERATIONS, from/to/asOf/token/sourceLimit, catálogos/resources/accounts/expenses/movements/payments/cashCounts, totales y coverage. |
+| `POST /finance/commands` | Header `Idempotency-Key`, `FinanceCommand` discriminado `type`; devuelve `{ id, version, type }`. Actor/Business/fingerprint proceden del servidor. |
+| `GET /finance/expenses/:id` | `{ expense, audit }` scoped, origen/auditoría autorizados y versión. |
+| `GET /finance/export?from=…&to=…&token=…` | CSV operativo; token debe reproducir fuentes actuales del reporte o 409 exige refrescar. Misma cohorte/semántica, no truncación. |
+
+Las **14 acciones** tipadas son `CREATE_CATALOG`, `ARCHIVE_CATALOG`, `CREATE_ACCOUNT`, `ARCHIVE_ACCOUNT`, `OPEN_ACCOUNT`, `CREATE_EXPENSE`, `SETTLE_EXPENSE`, `SET_EVIDENCE`, `LINK_PAYMENT`, `TRANSFER`, `CASH_MOVEMENT`, `REVIEW_MOVEMENT`, `COUNT_CASH` y `ADJUST_COUNT`. Capabilities usadas: `finance.read`, `finance.write`, `finance.export` y `finance.cash-adjust`, todas inicialmente OWNER; ajustes de arqueo/apertura declaran el permiso sensible. Archive/evidence/link/review/adjust usan expectedVersion contractual. Alta de gasto admite settlement opcional en la misma transacción. `report.payments` con `accountId=null` forma la bandeja sin asignar; no existe endpoint `/payments-unassigned`. `type` es un comando cerrado y no un motor arbitrario de acciones.
+
+Lecturas dentro de Repeatable Read entregan un snapshot consistente. Token hash representa filtros/fuentes y export exige igualdad actual o 409; `asOf` declara hora de cálculo y no promete time-travel. Límite explícito 5000 fuentes: exceso se rechaza, nunca responde conjunto parcial como completo. Obligaciones son actuales de los gastos consumidos dentro del intervalo: `coverage.unknownHistoricalDebt=true`. `serviceRevenueAvailable=false` identifica que V1 aún no calcula devengo. Cuenta sin apertura tiene balance null; cuenta negativa indica `negative`; Payment pre-corte asignado conserva `includedInBalance=false`. Liquidación/transferencia/CashMovement nuevos exigen apertura y fecha >=corte; un registro anterior se rechaza, sin importar saldo disponible. Agregados independientes evitan multiplicación por líneas/cuotas. CSV neutraliza formula injection y conserva IDs, moneda, filtros/base/timezone, montos/orígenes y cobertura sin datos salariales no autorizados.
+
+400 identifica entrada inválida; 401/403 autenticación/capability; 404 fuente inexistente o cruzada sin revelar tenant; 409 versión/fingerprint/fuente desactualizada o estado incompatible. Payload/errores/logs no exponen SQL, secretos, fingerprint interno o datos personales adicionales. Los controladores V2/V3 siguientes están montados en el trabajo actual; publicación, Swagger/CI y aceptación final permanecen pendientes.
+
+### Contratos V2/V3 integrados
+
+Las rutas continúan bajo `/api/businesses/:businessId/finance`. [finance-v2.types.ts](../backend/src/modules/finance/domain/finance-v2.types.ts), los contratos públicos Payment/Pricing y los controladores concretos definen los DTO cerrados. Todas las capacidades nuevas permanecen OWNER y default-deny para los demás roles.
+
+| Rutas | Contrato y acceso |
+|---|---|
+| `/v2/drafts`, `/v2/templates`, `/v2/approval-policy`, `/v2/commands` | Generación manual idempotente, revisión y confirmación; escritura exige `finance.write` más import/planning/approve/labor según el comando. |
+| POST `/v2/history-preview`, `/v2/bank-preview`, `/v2/bank-match-preview` | CSV por fila con errores estructurados y cero escrituras de preview; import exige `finance.import`, matching manual exige lectura y confirmación explícita. |
+| `/v2/bank-statements`, `/v2/bank-matches`, `/v2/bank-match-sources` | Orígenes canónicos, componentes/residuo y reimportación idempotente, sin feed ni segunda entrada de caja. |
+| `/payment-adjustments`, `/terminal-pricing`, `/corrections` | Payment conserva original y publica neto/versión; void/refund/final manual tienen `payment.void`, `payment.refund`, `pricing.final-amount` separados. No se transfiere dinero. |
+| `/recognition-sources`, `/service-certificates`, `/terminal-recognitions`, `/profitability`, `/bookings/:bookingId/result` | Noches explícitamente certificadas y política versionada; cobros separados, recursos sin unidad suficiente declarados no soportados. |
+| `/v2/costs`, `/v2/resource-results`, `/v2/allocation-rules`, `/v2/labor-costs` | Conservación fuente=destinos+sin asignar, residuos deterministas/versiones; detalle laboral exige `finance.labor`, exclusivamente OWNER. |
+| `/v2/budget`, `/v2/budget-comparison?periodMonth`, `/v2/commitments`, POST `/v2/planning-preview`, `/v2/aging` | Presupuesto y escenarios exigen `finance.planning`. La meta aprobada no cambia con el escenario; compromisos convertidos no suman dos veces. |
+| `/periods`, `/periods/:id/prepare`, `/periods/:id/close`, `/periods/:id/reopen`, `/periods/:id/snapshot`, `/periods/:id/package` | Checklist/cierre con snapshot inmutable y versiones enlazadas; export exige `finance.export`. Registry verifica funciones/triggers y hashes inmutables fuera del verificador. |
+| `/v2/alerts`, `/expenses/:expenseId/evidence`, `/evidence/:fileId/download` | Alertas dentro de TOP. Archivo exige `finance.evidence.read/write` y membresía vigente, sin URL pública ni signedURL. |
+
+`budget-comparison` devuelve forecast/deviation/token null salvo opt-in `forecastBasis=ACTUAL_PLUS_PENDING_COMMITMENTS`: costos ACTUAL operativos conocidos más saldo de compromisos ACTIVE del mismo mes/dimensión, en la misma transacción Repeatable Read y corte servidor. Estimados e imputación del dueño se exponen separados. Fuentes y dimensiones tienen límite de 5000; el exceso falla explícitamente sin truncar. V2 trata `asOf` como instante inclusivo a precisión TIMESTAMP(3); al consumir el mapper V1 expande únicamente el límite superior a +1ms, preservando el intervalo económico `[from,to)` y su contrato original. Procedencia Payment y hechos de caja posteriores impiden presentar un saldo histórico inventado.
+
+El proveedor financiero privado es opt-in `s3-private`; deshabilitado por defecto. PDF/JPEG/PNG de hasta 2MiB tienen verificación de bytes/MIME/hash, nombre UTF-8 y descarga autenticada con revalidación actual. Request/File/auditoría se insertan atómicamente, sin UPDATE de Request inmutable. Política inicial: conservar sin purga automática; no antivirus ni validez fiscal declarados. Restore de prueba copia DB completa más objetos a recursos sintéticos distintos y comprueba IDs/vínculos/hash/permisos.
+
+### Extensiones y validación
+
+FIN-017/018 usan los escritores públicos Payment/Pricing; neto/aplicaciones/saldos/proyecciones conservan originales. FIN-021 certifica explícitamente noches/versiones y fuentes; FIN-023/025 conservan reparto y costos calculados OWNER. FIN-029 guarda snapshots y protege escritores mediante guards SQL verificados; reglas nuevas de octubre no reescriben septiembre cerrado. FIN-032 tiene contrato privado y restore real enfocado. Full12 backend, las regresiones económicas D2, la aceptación ejecutable y el navegador final V1/V2/V3 tienen evidencia funcional local PASS en los alcances y manifiestos de Estado actual; los recorridos no acreditan ejecución de todos los formularios del catálogo. CI del nuevo HEAD, revisión/aceptación formal y mutación ampliada diferida siguen pendientes; implementación y validación funcional local no equivalen a aceptación integral.
+
+Controles de la entrega: Prisma generate/validate/migrate deploy propios, lint/unit/integration/E2E/acceptance/coverage/architecture/build, Core Domain/Application ≥90% demostrado separadamente, Finance y Payment afectado en mutation con break70/high80 sin bajar umbrales. Integración exit0 con suites skipped no acredita DB. Acceptance con fakes o seguridad desactivada no sustituye HTTP autenticado PostgreSQL. Frontend build/lint/test y browser real 390×844/1440×900 se separan de mocks de fallos; seed/browser no comparten DB durante limpieza de suites. Manifest conserva base/head/árbol/estado, fecha/runtime/DB, comando/exit/count/skipped/log/artefactos y CI head/merge-checkout/attempt exactos. Cambios posteriores repiten gates afectados; advisory heredado continúa abierto.
+
+
 > Composición local del piloto (2026-10-02): contratos incorporados desde Settings FINAL61 a Reservas/LAN. Los controles locales actuales y sus límites se registran en docs/00-Current-Status.md y deploy/pilot/release-manifest.json. Frontend y proxy se aprobaron por composición, sin intento agregado completo verde. CI, validación del operador y release siguen pendientes. Los resultados históricos conservan sus fuentes y fechas; no aprueban merge o despliegue.
 
 ### Tu establecimiento - contrato incorporado a la composición local (2026-10-02)
@@ -88,7 +154,7 @@ Identificadores internos UUID. Roles tenant-scoped: `OWNER`, `ADMIN`, `RECEPTION
 - `RECEPTIONIST`: opera las capabilities aprobadas de Contact, Availability, Block, Booking y Payment; no configura Resource, Pricing ni Availability Rules.
 - `VIEWER`: accede únicamente a capabilities de lectura.
 
-Los roles tenant-scoped no conceden autoridad GLOBAL. Payment void/refund, Ownership/Subscription y sus autorizaciones permanecen fuera del alcance implementado.
+Los roles tenant-scoped no conceden autoridad GLOBAL. En el corte inicial descrito por esta sección, Payment void/refund, Ownership/Subscription y sus autorizaciones permanecían fuera del alcance implementado. La entrega Finance superior incorpora únicamente void/refund y sus capacidades separadas; Ownership/Subscription conserva su límite anterior.
 
 El rol se resuelve desde UserBusinessMembership para el `userId + businessId` solicitado y no se incluye en el JWT. IAM-007 no incorpora endpoints de Roles, cambio posterior de rol ni un modelo persistido de Permissions.
 

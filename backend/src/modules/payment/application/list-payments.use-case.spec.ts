@@ -4,7 +4,7 @@ import {
   PaymentMethod,
   PaymentStatus,
   type PaymentRepository,
-  type PublicPayment,
+  type EffectivePaymentHistoryItem,
 } from '../domain/payment';
 import {
   ListPaymentsUseCase,
@@ -16,7 +16,7 @@ const businessId = '11111111-1111-4111-8111-111111111111';
 const bookingId = '22222222-2222-4222-8222-222222222222';
 const paymentId = '33333333-3333-4333-8333-333333333333';
 
-const payment = (overrides: Partial<PublicPayment> = {}): PublicPayment => ({
+const payment = (overrides: Partial<EffectivePaymentHistoryItem> = {}): EffectivePaymentHistoryItem => ({
   id: paymentId,
   bookingId,
   amountMinor: 250000,
@@ -28,6 +28,13 @@ const payment = (overrides: Partial<PublicPayment> = {}): PublicPayment => ({
   createdAt: new Date('2026-09-09T18:01:00.000Z'),
   recordedByUserId: '44444444-4444-4444-8444-444444444444',
   status: PaymentStatus.RECORDED,
+  grossRecordedAmountMinor: 250000,
+  voidedAmountMinor: 0,
+  refundedAmountMinor: 0,
+  netRetainedAmountMinor: 250000,
+  paymentVersion: 1,
+  effectiveStatus: 'RETAINED',
+  adjustments: [],
   ...overrides,
 });
 
@@ -95,6 +102,22 @@ describe('ListPaymentsUseCase', () => {
       createdAt: first.createdAt.toISOString(),
       id: first.id,
     });
+  });
+
+  it('keeps the original Payment amount and cursor while exposing refund, net and adjustment version', async () => {
+    const first = payment({ refundedAmountMinor: 75000, netRetainedAmountMinor: 175000, paymentVersion: 2, effectiveStatus: 'PARTIALLY_REFUNDED', adjustments: [{ id: 'refund', kind: 'REFUND', amountMinor: 75000, occurredAt: new Date('2026-09-12'), createdAt: new Date('2026-09-13'), sequence: 1 }] });
+    listByBooking.mockResolvedValueOnce([first, payment({ id: '55555555-5555-4555-8555-555555555555' })]);
+    const page = await subject.execute({ businessId, bookingId, limit: '1' });
+    expect(page.items[0]).toMatchObject({ amountMinor: 250000, status: 'RECORDED', grossRecordedAmountMinor: 250000, refundedAmountMinor: 75000, netRetainedAmountMinor: 175000, paymentVersion: 2, effectiveStatus: 'PARTIALLY_REFUNDED', adjustments: first.adjustments });
+    expect(JSON.parse(Buffer.from(page.pageInfo.nextCursor ?? '', 'base64url').toString('utf8'))).toEqual({ paidAt: first.paidAt.toISOString(), createdAt: first.createdAt.toISOString(), id: first.id });
+  });
+
+  it('returns a voided original as recorded history with its gross and zero retained net', async () => {
+    const original = payment({ voidedAmountMinor: 250000, netRetainedAmountMinor: 0, paymentVersion: 2, effectiveStatus: 'VOIDED', adjustments: [{ id: 'void', kind: 'VOID', amountMinor: 250000, occurredAt: new Date('2026-09-09T18:00:00.000Z'), createdAt: new Date('2026-09-13'), sequence: 1 }] });
+    listByBooking.mockResolvedValueOnce([original]);
+    const page = await subject.execute({ businessId, bookingId });
+    expect(page.items[0]).toMatchObject({ id: paymentId, amountMinor: 250000, status: 'RECORDED', grossRecordedAmountMinor: 250000, voidedAmountMinor: 250000, refundedAmountMinor: 0, netRetainedAmountMinor: 0, paymentVersion: 2, effectiveStatus: 'VOIDED' });
+    expect(page.pageInfo).toEqual({ nextCursor: null, hasNextPage: false });
   });
 
   it('decodes a valid cursor while preserving tenant and Booking scope', async () => {

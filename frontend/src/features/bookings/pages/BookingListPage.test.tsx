@@ -80,14 +80,14 @@ describe("BookingListPage: foco durante consultas de filtros", () => {
 
   it("presenta estado operativo, estado financiero y porcentaje en filas y tarjetas, sin solicitudes por cada reserva", async () => {
     const sourceFetch = fetchMock.getMockImplementation()!;
-    const summaries: Record<string, { totalAmountMinor: number | null; paidAmountMinor: number; currency: string | null } | undefined> = {
+    const summaries: Record<string, { totalAmountMinor: number | null; paidAmountMinor: number; financialVersion: number; currency: string | null } | undefined> = {
       DRAFT: undefined,
-      PENDING: { totalAmountMinor: 400000, paidAmountMinor: 0, currency: "PYG" },
-      CONFIRMED: { totalAmountMinor: 400000, paidAmountMinor: 1, currency: "PYG" },
-      IN_PROGRESS: { totalAmountMinor: 3, paidAmountMinor: 1, currency: "PYG" },
-      COMPLETED: { totalAmountMinor: 3, paidAmountMinor: 3, currency: "PYG" },
-      CANCELLED: { totalAmountMinor: 0, paidAmountMinor: 0, currency: "PYG" },
-      NO_SHOW: { totalAmountMinor: null, paidAmountMinor: 0, currency: null },
+      PENDING: { totalAmountMinor: 400000, paidAmountMinor: 0, financialVersion: 0, currency: "PYG" },
+      CONFIRMED: { totalAmountMinor: 400000, paidAmountMinor: 1, financialVersion: 1, currency: "PYG" },
+      IN_PROGRESS: { totalAmountMinor: 3, paidAmountMinor: 1, financialVersion: 1, currency: "PYG" },
+      COMPLETED: { totalAmountMinor: 3, paidAmountMinor: 3, financialVersion: 1, currency: "PYG" },
+      CANCELLED: { totalAmountMinor: 0, paidAmountMinor: 0, financialVersion: 0, currency: "PYG" },
+      NO_SHOW: { totalAmountMinor: null, paidAmountMinor: 0, financialVersion: 0, currency: null },
     };
     fetchMock.mockImplementation((input, init) => url(input).pathname.endsWith("/bookings")
       ? Promise.resolve(json(bookings.map((item) => ({ ...item, financialSummary: summaries[item.status] }))))

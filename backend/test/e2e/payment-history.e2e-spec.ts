@@ -24,7 +24,7 @@ import {
   PaymentStatus,
   type Payment,
   type PaymentCursor,
-  type PublicPayment,
+  type EffectivePaymentHistoryItem,
 } from '../../src/modules/payment/domain/payment';
 
 const secret = 'payment-history-e2e-secret';
@@ -100,7 +100,7 @@ describe('Payment History API', () => {
       .overrideProvider(PAYMENT_REPOSITORY)
       .useValue({
         register: jest.fn(),
-        listByBooking: ({ businessId: owner, bookingId: requestedBookingId, before, limit }: { businessId:string; bookingId:string; before:PaymentCursor|null; limit:number }): Promise<PublicPayment[]> => Promise.resolve(
+        listByBooking: ({ businessId: owner, bookingId: requestedBookingId, before, limit }: { businessId:string; bookingId:string; before:PaymentCursor|null; limit:number }): Promise<EffectivePaymentHistoryItem[]> => Promise.resolve(
           payments
             .filter((item) => item.businessId === owner && item.bookingId === requestedBookingId)
             .sort(comparePayments)
@@ -178,11 +178,19 @@ describe('Payment History API', () => {
       createdAt: '2026-09-09T11:00:00.000Z',
       recordedByUserId: userId,
       status: 'RECORDED',
+      grossRecordedAmountMinor: 25,
+      voidedAmountMinor: 0,
+      refundedAmountMinor: 0,
+      netRetainedAmountMinor: 25,
+      paymentVersion: 1,
+      effectiveStatus: 'RETAINED',
+      adjustments: [],
     });
     expect(first.body.items[0]).not.toHaveProperty('businessId');
     expect(first.body.items[0]).not.toHaveProperty('idempotencyKey');
     expect(first.body.items[0]).not.toHaveProperty('requestFingerprint');
     expect(first.body.items[0]).not.toHaveProperty('applications');
+    for (const privateField of ['accountId', 'reason', 'privateReason', 'personLabel', 'storageKey']) expect(first.body.items[0]).not.toHaveProperty(privateField);
     const second = await authorizedGet(`${endpoint()}?limit=2&cursor=${encodeURIComponent(first.body.pageInfo.nextCursor)}`).expect(200);
     expect(second.body).toEqual({
       items: [expect.objectContaining({ id: '60000000-0000-4000-8000-000000000001' })],
@@ -250,7 +258,7 @@ function isAfterCursor(payment: Payment, cursor: PaymentCursor): boolean {
       && payment.id < cursor.id);
 }
 
-function toPublicPayment(payment: Payment): PublicPayment {
+function toPublicPayment(payment: Payment): EffectivePaymentHistoryItem {
   return {
     id: payment.id,
     bookingId: payment.bookingId,
@@ -263,5 +271,12 @@ function toPublicPayment(payment: Payment): PublicPayment {
     createdAt: payment.createdAt,
     recordedByUserId: payment.recordedByUserId,
     status: payment.status,
+    grossRecordedAmountMinor: payment.amountMinor,
+    voidedAmountMinor: 0,
+    refundedAmountMinor: 0,
+    netRetainedAmountMinor: payment.amountMinor,
+    paymentVersion: 1,
+    effectiveStatus: 'RETAINED',
+    adjustments: [],
   };
 }

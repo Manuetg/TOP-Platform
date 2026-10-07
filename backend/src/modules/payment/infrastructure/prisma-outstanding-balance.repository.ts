@@ -8,6 +8,7 @@ import type {
   OutstandingBalanceRepository,
 } from '../domain/outstanding-balance';
 import { fromPrismaMoney } from '../../../shared/infrastructure/prisma-money';
+import { readBookingEffectiveAmounts } from './prisma-payment-effective.reader';
 
 interface OutstandingBalanceRow {
   paymentPlanId: string | null;
@@ -46,12 +47,15 @@ export class PrismaOutstandingBalanceRepository
             'La reserva no tiene un precio acordado vigente.',
           );
         }
+        const amounts = await readBookingEffectiveAmounts(transaction, input.businessId, input.bookingId, current.currency);
         const row = await readBalanceRow(transaction, input, current.currency);
         return {
           currentCurrency: current.currency,
           currentTotalAmountMinor: current.totalAmountMinor,
           currentPricingRevisionId: current.pricingRevisionId,
           ...toProjection(row),
+          ...amounts,
+          paidAmountMinor: amounts.netRetainedAmountMinor,
         };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
@@ -73,30 +77,29 @@ async function readBalanceRow(
     ),
     payment_total AS (
       SELECT
-        COALESCE(SUM("amountMinor"), 0)::bigint AS "paidAmountMinor",
+        COALESCE(SUM("netRetainedAmountMinor"), 0)::bigint AS "paidAmountMinor",
         COALESCE(BOOL_OR(currency <> ${currency}), FALSE)
           AS "paymentCurrencyMismatch",
-        COALESCE(BOOL_OR("amountMinor" < 0), FALSE)
+        COALESCE(BOOL_OR("invalidMonetaryData" OR "netRetainedAmountMinor" < 0), FALSE)
           AS "invalidMonetaryData"
-      FROM "Payment"
+      FROM "PaymentEffectiveState"
       WHERE "businessId" = ${input.businessId}
         AND "bookingId" = ${input.bookingId}
-        AND status = 'RECORDED'
     ),
     application_totals AS (
       SELECT
         application."installmentId",
-        COALESCE(SUM(application."amountMinor"), 0)::bigint AS "appliedAmountMinor",
+        COALESCE(SUM(application."effectiveAmountMinor"), 0)::bigint AS "appliedAmountMinor",
         COALESCE(BOOL_OR(payment.currency <> ${currency}), FALSE)
           AS "paymentCurrencyMismatch",
         COALESCE(BOOL_OR(
-          application."amountMinor" < 0
+          application."invalidMonetaryData" OR payment."invalidMonetaryData"
+          OR application."effectiveAmountMinor" < 0
           OR payment."businessId" <> ${input.businessId}
           OR payment."bookingId" <> ${input.bookingId}
-          OR payment.status <> 'RECORDED'
         ), FALSE) AS "invalidMonetaryData"
-      FROM "PaymentApplication" application
-      INNER JOIN "Payment" payment ON payment.id = application."paymentId"
+      FROM "PaymentApplicationEffective" application
+      INNER JOIN "PaymentEffectiveState" payment ON payment."paymentId" = application."paymentId"
       INNER JOIN "PaymentPlanInstallment" installment
         ON installment.id = application."installmentId"
       INNER JOIN selected_plan plan
@@ -182,7 +185,7 @@ async function readBalanceRow(
   return row;
 }
 
-function toProjection(row: OutstandingBalanceRow): OutstandingBalanceProjection {
+function toProjection(row: OutstandingBalanceRow): Omit<OutstandingBalanceProjection, 'grossRecordedAmountMinor' | 'voidedAmountMinor' | 'refundedAmountMinor' | 'netRetainedAmountMinor' | 'financialVersion'> {
   return {
     paymentPlanId: row.paymentPlanId,
     planCurrency: row.planCurrency,

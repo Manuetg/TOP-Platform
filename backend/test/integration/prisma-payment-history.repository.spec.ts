@@ -66,9 +66,14 @@ describeWithPostgres('PrismaPaymentRepository payment history with PostgreSQL', 
       '10000000-0000-4000-8000-000000000001',
     ]);
     expect(Object.keys(rows[0]).sort()).toEqual([
-      'amountMinor', 'bookingId', 'createdAt', 'currency', 'id', 'method', 'note',
-      'paidAt', 'recordedByUserId', 'reference', 'status',
+      'adjustments', 'amountMinor', 'bookingId', 'createdAt', 'currency', 'effectiveStatus',
+      'grossRecordedAmountMinor', 'id', 'method', 'netRetainedAmountMinor', 'note', 'paidAt',
+      'paymentVersion', 'recordedByUserId', 'reference', 'refundedAmountMinor', 'status', 'voidedAmountMinor',
     ]);
+    for (const item of rows) {
+      expect(item).toMatchObject({ amountMinor: 10, status: 'RECORDED', grossRecordedAmountMinor: 10, netRetainedAmountMinor: 10, voidedAmountMinor: 0, refundedAmountMinor: 0, paymentVersion: 1, effectiveStatus: 'RETAINED', adjustments: [] });
+      for (const privateField of ['businessId', 'idempotencyKey', 'requestFingerprint', 'applications', 'accountId', 'reason', 'privateReason', 'personLabel', 'storageKey']) expect(item).not.toHaveProperty(privateField);
+    }
   });
 
   it('paginates a composite cursor without duplicates and keeps tenant scope', async () => {

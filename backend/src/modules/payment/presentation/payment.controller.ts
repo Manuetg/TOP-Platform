@@ -7,7 +7,7 @@ import { PaymentConflictError, PaymentInputError, PaymentNotFoundError, Register
 import { ListPaymentsUseCase, PaymentHistoryInputError, PaymentHistoryNotFoundError } from '../application/list-payments.use-case';
 import { RegisterPaymentRequestDto } from './dto/register-payment.request.dto';
 import { PaymentHistoryQueryDto } from './dto/payment-history.query.dto';
-import { PaymentHistoryItemResponseDto, PaymentHistoryResponseDto } from './dto/payment-history.response.dto';
+import { PaymentHistoryItemResponseDto, PaymentHistoryResponseDto, PaymentHistoryEffectiveItemResponseDto } from './dto/payment-history.response.dto';
 
 @ApiTags('Payment')
 @Controller('businesses/:businessId/bookings/:bookingId/payments')
@@ -50,7 +50,7 @@ export class PaymentController {
   ): Promise<PaymentHistoryResponseDto> {
     try {
       const page = await this.list.execute({ businessId, bookingId, cursor: query.cursor, limit: query.limit });
-      return { items: page.items.map((payment) => PaymentHistoryItemResponseDto.fromDomain(payment)), pageInfo: page.pageInfo };
+      return { items: page.items.map((payment) => PaymentHistoryEffectiveItemResponseDto.fromEffectiveDomain(payment)), pageInfo: page.pageInfo };
     } catch (error: unknown) {
       if (error instanceof PaymentHistoryInputError) throw new BadRequestException(error.message);
       if (error instanceof PaymentHistoryNotFoundError) throw new NotFoundException(error.message);

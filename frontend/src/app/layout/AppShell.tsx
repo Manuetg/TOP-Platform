@@ -26,6 +26,7 @@ import {
   ShieldCheck,
   Tags,
   WalletCards,
+  Landmark,
   X,
 } from "lucide-react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
@@ -43,6 +44,7 @@ export type AppSection =
   | "contacts"
   | "pricing"
   | "payments"
+  | "finance"
   | "blocks"
   | "settings";
 
@@ -78,6 +80,7 @@ const managementItems = [
   { id: "contacts", label: "Contactos", icon: ContactRound },
   { id: "pricing", label: "Precios", icon: Tags },
   { id: "payments", label: "Pagos", icon: WalletCards },
+  { id: "finance", label: "Finanzas", icon: Landmark },
   { id: "blocks", label: "Bloqueos", icon: Blocks },
 ] as const;
 
@@ -94,6 +97,7 @@ const moreItems = [
   { id: "contacts", label: "Contactos", icon: ContactRound },
   { id: "pricing", label: "Precios", icon: Tags },
   { id: "payments", label: "Pagos", icon: WalletCards },
+  { id: "finance", label: "Finanzas", icon: Landmark },
   { id: "blocks", label: "Bloqueos", icon: Blocks },
   { id: "settings", label: "Configuración", icon: Settings },
 ] as const;

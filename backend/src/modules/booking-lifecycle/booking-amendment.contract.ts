@@ -26,6 +26,11 @@ export interface AmendmentQuote {
 export interface AmendmentFinancialSummary {
   totalAmountMinor: number;
   paidAmountMinor: number;
+  grossRecordedAmountMinor: number;
+  voidedAmountMinor: number;
+  refundedAmountMinor: number;
+  netRetainedAmountMinor: number;
+  financialVersion: number;
   outstandingAmountMinor: number;
   creditAmountMinor: number;
 }
@@ -36,6 +41,7 @@ export interface BookingAmendmentPreview {
   expectedUpdatedAt: string;
   currentPricingId: string;
   expectedPaidAmountMinor: number;
+  expectedFinancialVersion: number;
   currentPricing: CurrentPricing;
   quote: AmendmentQuote;
   financialSummary: AmendmentFinancialSummary;
@@ -46,6 +52,7 @@ export interface AmendmentExpectation {
   expectedUpdatedAt: string;
   currentPricingId: string;
   expectedPaidAmountMinor: number;
+  expectedFinancialVersion: number;
   acceptedQuote: AmendmentQuote;
 }
 

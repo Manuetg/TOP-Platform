@@ -23,6 +23,11 @@ export interface OutstandingBalanceResponse {
   currency: string;
   totalAmountMinor: number;
   paidAmountMinor: number;
+  grossRecordedAmountMinor: number;
+  voidedAmountMinor: number;
+  refundedAmountMinor: number;
+  netRetainedAmountMinor: number;
+  financialVersion: number;
   outstandingAmountMinor: number;
   creditAmountMinor: number;
   needsReconciliation: boolean;
@@ -173,6 +178,11 @@ function invariantViolation(
     projection.installmentTotalAmountMinor,
     projection.appliedAmountMinor,
     projection.overdueAmountMinor,
+    projection.grossRecordedAmountMinor,
+    projection.voidedAmountMinor,
+    projection.refundedAmountMinor,
+    projection.netRetainedAmountMinor,
+    projection.financialVersion,
   ];
   if (projection.planTotalAmountMinor !== null) {
     money.push(projection.planTotalAmountMinor);
@@ -181,12 +191,18 @@ function invariantViolation(
     money.push(projection.nextDueAmountMinor);
   }
   if (!money.every(isValidMoney)) return 'INVALID_MONETARY_AGGREGATE';
+  if (invalidEffectiveAmounts(projection)) return 'INVALID_EFFECTIVE_PAYMENT_AMOUNTS';
   if (projection.invalidMonetaryData) return 'INVALID_PERSISTED_MONEY';
   if (projection.paymentCurrencyMismatch) return 'PAYMENT_CURRENCY_MISMATCH';
   if (invalidDueDate(projection.nextDueDate)) return 'INVALID_NEXT_DUE_DATE';
   return projection.paymentPlanId === null
     ? invariantWithoutPlan(projection)
     : invariantWithPlan(outstandingAmountMinor, projection, needsReconciliation);
+}
+
+function invalidEffectiveAmounts(projection: OutstandingBalanceProjection): boolean {
+  const retained = BigInt(projection.grossRecordedAmountMinor) - BigInt(projection.voidedAmountMinor) - BigInt(projection.refundedAmountMinor);
+  return retained !== BigInt(projection.netRetainedAmountMinor) || projection.paidAmountMinor !== projection.netRetainedAmountMinor;
 }
 
 function invalidDueDate(value: Date | null): boolean {
@@ -267,6 +283,11 @@ function balanceResponse(input: {
     currency: input.currency,
     totalAmountMinor: input.totalAmountMinor,
     paidAmountMinor: projection.paidAmountMinor,
+    grossRecordedAmountMinor: projection.grossRecordedAmountMinor,
+    voidedAmountMinor: projection.voidedAmountMinor,
+    refundedAmountMinor: projection.refundedAmountMinor,
+    netRetainedAmountMinor: projection.netRetainedAmountMinor,
+    financialVersion: projection.financialVersion,
     outstandingAmountMinor: input.outstandingAmountMinor,
     creditAmountMinor: input.creditAmountMinor,
     needsReconciliation,

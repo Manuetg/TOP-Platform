@@ -9,15 +9,19 @@ export const API_ERROR_MESSAGES = {
   invalidResponse: "El servicio devolvió una respuesta no válida. Intentá nuevamente.",
 } as const;
 
+export interface ApiPreviewIssue { ordinal: number; column: string; code: string; message: string }
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: "EMAIL_FEATURE_DISABLED";
+  readonly previewIssues?: readonly ApiPreviewIssue[];
 
-  constructor(status: number, message: string, code?: "EMAIL_FEATURE_DISABLED") {
+  constructor(status: number, message: string, code?: "EMAIL_FEATURE_DISABLED", previewIssues?: readonly ApiPreviewIssue[]) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.previewIssues = previewIssues;
   }
 }
 
@@ -40,6 +44,7 @@ export class ApiResponseError extends Error {
 export interface ApiRequestOptions extends RequestInit {
   accessToken?: string | null;
   skipUnauthorizedRecovery?: boolean;
+  responseType?: "json" | "text" | "blob";
 }
 
 export interface UnauthorizedRecoveryHandler {
@@ -55,7 +60,7 @@ export async function apiRequest<T>(
   path: string,
   options: ApiRequestOptions = {},
 ): Promise<T> {
-  const { accessToken, skipUnauthorizedRecovery = false, headers: customHeaders, ...requestOptions } = options;
+  const { accessToken, skipUnauthorizedRecovery = false, responseType = "json", headers: customHeaders, ...requestOptions } = options;
   const headers = createHeaders(customHeaders, requestOptions.body, accessToken);
   const signal = requestOptions.signal;
   throwIfAborted(signal);
@@ -83,11 +88,11 @@ export async function apiRequest<T>(
         { ...requestOptions, headers: retryHeaders },
         signal,
       );
-      return readResponse<T>(retry, signal);
+      return readResponse<T>(retry, signal, responseType);
     }
   }
 
-  return readResponse<T>(response, signal);
+  return readResponse<T>(response, signal, responseType);
 }
 
 function createHeaders(
@@ -133,14 +138,14 @@ async function fetchResponse(
   }
 }
 
-async function readResponse<T>(response: Response, signal: AbortSignal | null | undefined): Promise<T> {
+async function readResponse<T>(response: Response, signal: AbortSignal | null | undefined, responseType: "json" | "text" | "blob"): Promise<T> {
   throwIfAborted(signal);
   if (!response.ok) throw await createHttpError(response, signal);
   if (response.status === 204) return undefined as T;
 
   throwIfAborted(signal);
   try {
-    const body: unknown = await response.json();
+    const body: unknown = responseType === "blob" ? await response.blob() : responseType === "text" ? await response.text() : await response.json();
     throwIfAborted(signal);
     return body as T;
   } catch (error) {
@@ -174,17 +179,34 @@ async function createHttpError(
   }
 
   let message: string = API_ERROR_MESSAGES.http;
+  let previewIssues: ApiPreviewIssue[] | undefined;
   try {
     const body: unknown = await response.json();
     throwIfAborted(signal);
     const candidate = readContractMessage(body);
     if (candidate) message = candidate;
+    if (response.status === 400) previewIssues = readPreviewIssues(body);
   } catch (error) {
     throwIfAborted(signal);
     if (isAbortError(error)) throw error;
     // Invalid or absent error bodies must not mask the original HTTP status.
   }
-  return new ApiError(response.status, message);
+  return new ApiError(response.status, message, undefined, previewIssues);
+}
+
+function readPreviewIssues(body: unknown): ApiPreviewIssue[] | undefined {
+  if (!body || typeof body !== "object" || !("statusCode" in body) || body.statusCode !== 400 ||
+    !("error" in body) || body.error !== "Bad Request" || !("previewToken" in body) || body.previewToken !== null ||
+    !("message" in body) || typeof body.message !== "string" || !body.message.trim() ||
+    !("issues" in body) || !Array.isArray(body.issues) || !body.issues.length || body.issues.length > 5001) return undefined;
+  const issues: ApiPreviewIssue[] = [];
+  for (const issue of body.issues) {
+    if (!issue || typeof issue !== "object" || !Number.isSafeInteger(issue.ordinal) || issue.ordinal < 0 ||
+      typeof issue.column !== "string" || typeof issue.code !== "string" || !issue.code ||
+      typeof issue.message !== "string" || !issue.message.trim()) return undefined;
+    issues.push({ ordinal: issue.ordinal, column: issue.column, code: issue.code, message: issue.message });
+  }
+  return issues;
 }
 
 function readContractMessage(body: unknown): string | null {

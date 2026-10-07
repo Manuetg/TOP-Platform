@@ -15,6 +15,6 @@ export function amendmentQuote(price: Omit<AmendmentQuote, 'fingerprint'>, conte
   return { ...price, fingerprint };
 }
 
-export function amendmentFinancialSummary(totalAmountMinor: number, paidAmountMinor: number): AmendmentFinancialSummary {
+export function amendmentFinancialSummary(totalAmountMinor: number, paidAmountMinor: number): Pick<AmendmentFinancialSummary, 'totalAmountMinor' | 'paidAmountMinor' | 'outstandingAmountMinor' | 'creditAmountMinor'> {
   return { totalAmountMinor, paidAmountMinor, outstandingAmountMinor: Math.max(totalAmountMinor - paidAmountMinor, 0), creditAmountMinor: Math.max(paidAmountMinor - totalAmountMinor, 0) };
 }

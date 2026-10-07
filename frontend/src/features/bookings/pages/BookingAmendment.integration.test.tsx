@@ -17,13 +17,14 @@ beforeEach(() => { Object.assign(context, { role: "OWNER", businessId: "business
 afterEach(() => { cleanup(); clients.splice(0).forEach((client) => client.clear()); vi.unstubAllGlobals(); });
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-function setup(options: { status?: BookingStatus; legacy?: boolean; conflictSave?: boolean; deferPreview?: boolean } = {}) {
+function setup(options: { status?: BookingStatus; legacy?: boolean; conflictSave?: boolean; deferPreview?: boolean; invalidPreviewVersion?: "missing" | "mismatch"; missingFinancialVersion?: boolean } = {}) {
   const status = options.status ?? "CONFIRMED";
   const paid = status === "PENDING" ? 0 : 250000;
   const booking: Booking = { id: "booking-1", businessId: "business-1", status, contactId: "contact-1", resourceIds: ["resource-1"],
     checkInDate: "2026-10-05", checkOutDate: "2026-10-07", adults: 2, children: 0, notes: null,
     createdAt: "2026-10-01T00:00:00.000Z", updatedAt: "2026-10-02T00:00:00.000Z",
-    financialSummary: { totalAmountMinor: options.legacy ? null : 400000, paidAmountMinor: paid, currency: options.legacy ? null : "PYG", outstandingAmountMinor: 400000 - paid, creditAmountMinor: 0 } };
+    financialSummary: { totalAmountMinor: options.legacy ? null : 400000, paidAmountMinor: paid, financialVersion: 7, currency: options.legacy ? null : "PYG", outstandingAmountMinor: 400000 - paid, creditAmountMinor: 0 } };
+  if (options.missingFinancialVersion) delete (booking.financialSummary as unknown as Record<string, unknown>).financialVersion;
   const requests: Array<{ method: string; path: string; body: unknown; signal?: AbortSignal | null }> = [];
   const previews: BookingAmendmentPreview[] = [];
   let conflict = options.conflictSave;
@@ -40,18 +41,25 @@ function setup(options: { status?: BookingStatus; legacy?: boolean; conflictSave
       const total = pricing ? pricing.pricingMode === "MANUAL_NO_RATE_PLAN" ? pricing.agreedAmountMinor : 600000 : 400000;
       const item = { resourceId: "resource-1", ratePlanId: null, pricingMode: "MANUAL_NO_RATE_PLAN" as const, suggestedAmountMinor: null, agreedAmountMinor: total, adjustmentAmountMinor: null, overrideReason: "Acuerdo original", nights: 2, breakdown: [] };
       const preview: BookingAmendmentPreview = { bookingId: booking.id, status: booking.status, expectedUpdatedAt: booking.updatedAt,
-        currentPricingId: "snapshot-1", expectedPaidAmountMinor: booking.financialSummary!.paidAmountMinor,
+        currentPricingId: "snapshot-1", expectedPaidAmountMinor: booking.financialSummary!.paidAmountMinor, expectedFinancialVersion: booking.financialSummary!.financialVersion,
         currentPricing: { id: "snapshot-1", originalSnapshotId: "snapshot-1", pricingRevisionId: null, revisionNumber: 0, businessId: booking.businessId, bookingId: booking.id, currency: "PYG", totalAmountMinor: 400000, items: [{ ...item, agreedAmountMinor: 400000 }], createdAt: booking.createdAt },
         quote: { currency: "PYG", totalAmountMinor: total, items: [item], fingerprint: (changes.notes ? "a" : "f").repeat(64) },
-        financialSummary: { totalAmountMinor: total, paidAmountMinor: booking.financialSummary!.paidAmountMinor,
+        financialSummary: { totalAmountMinor: total, paidAmountMinor: booking.financialSummary!.paidAmountMinor, financialVersion: booking.financialSummary!.financialVersion,
           outstandingAmountMinor: Math.max(total - booking.financialSummary!.paidAmountMinor, 0), creditAmountMinor: Math.max(booking.financialSummary!.paidAmountMinor - total, 0) }, warnings: total < paid ? ["El plan de pagos requiere conciliación."] : [] };
       previews.push(preview);
+      if (options.invalidPreviewVersion) {
+        const response = structuredClone(preview) as unknown as Record<string, unknown>;
+        if (options.invalidPreviewVersion === "missing") delete response.expectedFinancialVersion;
+        else response.expectedFinancialVersion = preview.expectedFinancialVersion + 1;
+        return json(response);
+      }
       if (options.deferPreview) return new Promise<Response>((resolve) => { resolvePreview = () => resolve(json(preview)); });
       return json(preview);
     }
     if (method === "PATCH" && path.endsWith("/amendment")) {
-      if (conflict) { conflict = false; booking.updatedAt = "2026-10-02T00:01:00.000Z"; booking.financialSummary!.paidAmountMinor += 1; return json({ message: "Los pagos cambiaron" }, 409); }
+      if (conflict) { conflict = false; booking.updatedAt = "2026-10-02T00:01:00.000Z"; booking.financialSummary!.paidAmountMinor += 1; booking.financialSummary!.financialVersion += 1; return json({ message: "Los pagos cambiaron" }, 409); }
       const changes = body as SaveBookingAmendmentInput;
+      if (changes.expectedFinancialVersion !== booking.financialSummary!.financialVersion) return json({ message: "La versión financiera cambió" }, 409);
       Object.assign(booking, { contactId: changes.contactId, checkInDate: changes.checkInDate, checkOutDate: changes.checkOutDate, adults: changes.adults, children: changes.children, notes: changes.notes, updatedAt: "2026-10-02T00:02:00.000Z" });
       return json(booking);
     }
@@ -93,7 +101,7 @@ describe("edición de reservas con preview obligatorio", () => {
     expect(previewRequest.body).not.toHaveProperty("pricing"); expect(previewRequest.body).not.toHaveProperty("resourceIds"); expect(previewRequest.body).not.toHaveProperty("reason");
     await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
     await screen.findByRole("heading", { name: "Detalle de reserva" });
-    expect(requests.find((request) => request.method === "PATCH")?.body).toEqual({ ...(previewRequest.body as object), expectedUpdatedAt: previews[0].expectedUpdatedAt, currentPricingId: previews[0].currentPricingId, expectedPaidAmountMinor: previews[0].expectedPaidAmountMinor, acceptedQuote: previews[0].quote });
+    expect(requests.find((request) => request.method === "PATCH")?.body).toEqual({ ...(previewRequest.body as object), expectedUpdatedAt: previews[0].expectedUpdatedAt, currentPricingId: previews[0].currentPricingId, expectedPaidAmountMinor: previews[0].expectedPaidAmountMinor, expectedFinancialVersion: previews[0].expectedFinancialVersion, acceptedQuote: previews[0].quote });
     expect(requests.some((request) => request.path.endsWith("/confirm") || request.path.endsWith("/submit"))).toBe(false);
   });
 
@@ -140,7 +148,7 @@ describe("edición de reservas con preview obligatorio", () => {
     await user.click(screen.getByRole("button", { name: "Revisar cambios" })); await screen.findByRole("heading", { name: "Revisión de cambios" });
     await user.click(screen.getByRole("button", { name: "Guardar cambios" })); await screen.findByRole("heading", { name: "Detalle de reserva" });
     expect(previews[1].expectedPaidAmountMinor).toBe(previews[0].expectedPaidAmountMinor + 1);
-    expect(requests.filter((request) => request.method === "PATCH")[1].body).toMatchObject({ expectedUpdatedAt: previews[2].expectedUpdatedAt, expectedPaidAmountMinor: previews[2].expectedPaidAmountMinor, acceptedQuote: previews[2].quote });
+    expect(requests.filter((request) => request.method === "PATCH")[1].body).toMatchObject({ expectedUpdatedAt: previews[2].expectedUpdatedAt, expectedPaidAmountMinor: previews[2].expectedPaidAmountMinor, expectedFinancialVersion: previews[2].expectedFinancialVersion, acceptedQuote: previews[2].quote });
   });
 
   it.each(["IN_PROGRESS", "COMPLETED", "NO_SHOW", "CANCELLED"] as const)("no habilita edición de %s ni monta consultas operativas", async (status) => {
@@ -195,5 +203,58 @@ describe("edición de reservas con preview obligatorio", () => {
     expect(requests.find((request) => request.path.endsWith("/amendment-preview"))?.signal?.aborted).toBe(true);
     expect(screen.getByLabelText("Notas")).toHaveValue("Borrador nuevo"); expect(screen.queryByRole("heading", { name: "Revisión de cambios" })).not.toBeInTheDocument();
     expect(requests.filter((request) => request.method === "PATCH")).toHaveLength(0);
+  });
+
+  it("un cambio financiero sin cambiar updatedAt ni neto exige refrescar y revisar otra vez antes de guardar", async () => {
+    const { booking, requests, previews, user } = setup(); await screen.findByLabelText("Contacto");
+    fireEvent.change(screen.getByLabelText("Notas"), { target: { value: "Nota local" } });
+    await user.click(screen.getByRole("button", { name: "Revisar cambios" })); await screen.findByRole("heading", { name: "Revisión de cambios" });
+    const originalUpdatedAt = booking.updatedAt;
+    const originalPaid = booking.financialSummary!.paidAmountMinor;
+    booking.financialSummary!.financialVersion += 2;
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Revisá los cambios otra vez");
+    expect(requests.filter((request) => request.method === "PATCH")).toHaveLength(1);
+    expect(requests.find((request) => request.method === "PATCH")?.body).toMatchObject({ expectedFinancialVersion: 7 });
+    expect(booking.notes).toBeNull();
+    expect(booking.updatedAt).toBe(originalUpdatedAt);
+    expect(booking.financialSummary!.paidAmountMinor).toBe(originalPaid);
+    expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Revisar cambios" }));
+    await screen.findByText(/La reserva cambió antes de revisar/);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Revisar cambios" })).toBeEnabled());
+    expect(screen.queryByRole("heading", { name: "Revisión de cambios" })).not.toBeInTheDocument();
+    expect(requests.filter((request) => request.method === "PATCH")).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "Revisar cambios" })); await screen.findByRole("heading", { name: "Revisión de cambios" });
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" })); await screen.findByRole("heading", { name: "Detalle de reserva" });
+    expect(previews[2].expectedFinancialVersion).toBe(9);
+    expect(requests.filter((request) => request.method === "PATCH")[1].body).toMatchObject({ expectedFinancialVersion: 9, expectedUpdatedAt: originalUpdatedAt, expectedPaidAmountMinor: originalPaid });
+  });
+
+  it("un GET con versión financiera nueva descarta una revisión aunque fecha y pago permanezcan iguales", async () => {
+    const { booking, client, requests, user } = setup(); await screen.findByLabelText("Contacto");
+    await user.click(screen.getByRole("button", { name: "Revisar cambios" })); await screen.findByRole("heading", { name: "Revisión de cambios" });
+    booking.financialSummary!.financialVersion += 1;
+    await act(async () => { await client.refetchQueries({ queryKey: ["bookings", "business-1", "booking-1"] }); });
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument());
+    expect(screen.queryByRole("heading", { name: "Revisión de cambios" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("La reserva cambió");
+    expect(requests.filter((request) => request.method === "PATCH")).toHaveLength(0);
+  });
+
+  it.each(["missing", "mismatch"] as const)("preview financiero %s no muestra revisión ni permite guardar", async (invalidPreviewVersion) => {
+    const { requests, user } = setup({ invalidPreviewVersion }); await screen.findByLabelText("Contacto");
+    await user.click(screen.getByRole("button", { name: "Revisar cambios" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("versión financiera válida");
+    expect(screen.queryByRole("heading", { name: "Revisión de cambios" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
+    expect(requests.filter((request) => request.method === "PATCH")).toHaveLength(0);
+  });
+
+  it("GET sin versión financiera no habilita el editor ni inventa versión cero", async () => {
+    const { requests } = setup({ missingFinancialVersion: true });
+    expect(await screen.findByRole("alert")).toHaveTextContent("versión financiera válida");
+    expect(document.querySelector("form")).toBeNull();
+    expect(requests).toHaveLength(1);
   });
 });

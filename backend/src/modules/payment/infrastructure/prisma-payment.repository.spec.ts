@@ -24,9 +24,15 @@ jest.mock('../../availability/availability.contract', () => ({
 const data = (overrides: Partial<RegisterPaymentData> = {}): RegisterPaymentData => ({ businessId: '11111111-1111-4111-8111-111111111111', bookingId: '22222222-2222-4222-8222-222222222222', amountMinor: 40, currency: 'PYG', method: PaymentMethod.CASH, reference: null, note: null, paidAt: new Date('2026-09-01T12:00:00Z'), recordedByUserId: '33333333-3333-4333-8333-333333333333', status: PaymentStatus.RECORDED, idempotencyKey: 'key-1', requestFingerprint: 'fingerprint-1', ...overrides });
 const resourceId = '44444444-4444-4444-8444-444444444444';
 const currentBooking = (status = 'CONFIRMED') => ({ id: data().bookingId, businessId: data().businessId, status, contactId: '55555555-5555-4555-8555-555555555555', checkInDate: new Date('2026-09-10'), checkOutDate: new Date('2026-09-12'), adults: 1, children: 0, resources: [{ resourceId }] });
+const effectivePayment = (amountMinor: bigint) => ({ paymentId: 'previous-payment', businessId: data().businessId, bookingId: data().bookingId, currency: 'PYG', grossRecordedAmountMinor: amountMinor, voidedAmountMinor: 0n, refundedAmountMinor: 0n, netRetainedAmountMinor: amountMinor, paymentVersion: 1n, invalidMonetaryData: false, applicationInvalid: false });
+const effectiveApplication = (amountMinor: bigint) => ({ paymentId: 'previous-payment', installmentId: 'previous-installment', originalAmountMinor: amountMinor, reversedAmountMinor: 0n, effectiveAmountMinor: amountMinor, dueDate: null, sortOrder: 0, invalidMonetaryData: false, scoped: true });
+function queryText(query: Prisma.Sql | TemplateStringsArray): string { return 'sql' in query ? query.sql : query.join('?'); }
+function queryValues(query: Prisma.Sql | TemplateStringsArray | undefined): unknown[] { return query && 'sql' in query ? query.values : []; }
 
 describe('PrismaPaymentRepository', () => {
-  const queryRaw = jest.fn<Promise<Array<{ id: string }>>, [Prisma.Sql]>();
+  const queryRaw = jest.fn<Promise<unknown[]>, [Prisma.Sql | TemplateStringsArray, ...unknown[]]>();
+  let effectivePayments: ReturnType<typeof effectivePayment>[];
+  let effectiveApplications: ReturnType<typeof effectiveApplication>[];
   const executeRaw = jest.fn<Promise<number>, [Prisma.Sql]>();
   const findUnique = jest.fn();
   const aggregate = jest.fn();
@@ -53,7 +59,7 @@ describe('PrismaPaymentRepository', () => {
     contact: { findFirst: findContact },
     resource: { findFirst: findResource },
     bookingTimelineEvent: { create: timelineCreate },
-    payment: { findUnique, aggregate, create },
+    payment: { findUnique, aggregate, create, findMany },
     paymentPlan: { findUnique: findPlan },
     paymentApplication: { aggregate: jest.fn(), createMany: jest.fn() },
     paymentPlanInstallment: { findMany: jest.fn() },
@@ -64,7 +70,15 @@ describe('PrismaPaymentRepository', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     prisma.$transaction.mockImplementation((callback: (tx: typeof transaction) => unknown) => callback(transaction));
-    queryRaw.mockResolvedValue([{ id: data().bookingId }]);
+    effectivePayments = []; effectiveApplications = [];
+    queryRaw.mockImplementation(query => {
+      const sql = queryText(query);
+      if (sql.includes('FROM "PaymentEffectiveState" state')) return Promise.resolve(effectivePayments);
+      if (sql.includes('FROM "PaymentApplicationEffective" application')) return Promise.resolve(effectiveApplications);
+      if (sql.includes('to_char(')) return Promise.resolve([{ date: '2026-09-01' }]);
+      if (sql.includes('top_finance_assert_open')) return Promise.resolve([{}]);
+      return Promise.resolve([{ id: data().bookingId }]);
+    });
     executeRaw.mockResolvedValue(1);
     findUnique.mockResolvedValue(null);
     retryLookup.mockResolvedValue(null);
@@ -90,15 +104,17 @@ describe('PrismaPaymentRepository', () => {
     const value = data();
     const result = await subject.register(value, 100);
     expect(result).toMatchObject({ duplicate: false, payment: { businessId: value.businessId, bookingId: value.bookingId, amountMinor: 40, currency: 'PYG', recordedByUserId: value.recordedByUserId, status: PaymentStatus.RECORDED } });
-    const bookingLock = queryRaw.mock.calls.find(([query]) => query.sql?.includes('Booking'));
-    expect(bookingLock?.[0].sql).toContain('FOR UPDATE');
-    expect(bookingLock?.[0].values).toEqual(expect.arrayContaining([value.bookingId, value.businessId]));
-    const snapshotLock = queryRaw.mock.calls.find(([query]) => query.sql.includes('PricingSnapshot'));
-    expect(snapshotLock?.[0].sql).toContain('FOR UPDATE');
-    expect(snapshotLock?.[0].values).toEqual(expect.arrayContaining([value.bookingId, value.businessId]));
+    const bookingLock = queryRaw.mock.calls.find(([query]) => queryText(query).includes('"Booking"'));
+    expect(bookingLock && queryText(bookingLock[0])).toContain('FOR UPDATE');
+    expect(queryValues(bookingLock?.[0])).toEqual(expect.arrayContaining([value.bookingId, value.businessId]));
+    const snapshotLock = queryRaw.mock.calls.find(([query]) => queryText(query).includes('PricingSnapshot'));
+    expect(snapshotLock && queryText(snapshotLock[0])).toContain('FOR UPDATE');
+    expect(queryValues(snapshotLock?.[0])).toEqual(expect.arrayContaining([value.bookingId, value.businessId]));
     expect(findBooking).toHaveBeenCalledWith(expect.objectContaining({ where: { id: value.bookingId, businessId: value.businessId } }));
     expect(findSnapshot).toHaveBeenCalledWith(expect.objectContaining({ where: { bookingId: value.bookingId } }));
-    expect(aggregate).toHaveBeenCalledWith({ where: { businessId: value.businessId, bookingId: value.bookingId, status: 'RECORDED' }, _sum: { amountMinor: true } });
+    const effectiveRead = queryRaw.mock.calls.find(([query]) => queryText(query).includes('FROM "PaymentEffectiveState" state'));
+    expect(effectiveRead?.slice(1)).toEqual([value.businessId, [value.bookingId], null, null]);
+    expect(aggregate).not.toHaveBeenCalled();
     expect(create).toHaveBeenCalledWith({ data: { ...value, amountMinor: BigInt(value.amountMinor) } });
     expect(updateBooking).not.toHaveBeenCalled();
     expect(timelineCreate).not.toHaveBeenCalled();
@@ -169,7 +185,7 @@ describe('PrismaPaymentRepository', () => {
   });
 
   it('sums already recorded payments inside the transaction before preventing overpayment', async () => {
-    aggregate.mockResolvedValueOnce({ _sum: { amountMinor: 60n } });
+    effectivePayments = [effectivePayment(60n)];
     await expect(subject.register(data({ amountMinor: 50 }), 100)).rejects.toThrow('OVERPAYMENT');
     expect(create).not.toHaveBeenCalled();
   });
@@ -292,10 +308,11 @@ describe('PrismaPaymentRepository', () => {
 
   it('leaves later payments unapplied when a restored price still has a historical payment gap', async () => {
     findPlan.mockResolvedValueOnce({ id: 'restored-plan', businessId: data().businessId, currency: 'PYG', totalAmountMinor: 100n });
-    aggregate.mockResolvedValueOnce({ _sum: { amountMinor: 50n } }).mockResolvedValueOnce({ _sum: { amountMinor: 50n } });
-    transaction.paymentApplication.aggregate.mockResolvedValueOnce({ _sum: { amountMinor: 40n } });
+    effectivePayments = [effectivePayment(50n)];
+    effectiveApplications = [effectiveApplication(40n)];
     await expect(subject.register(data({ amountMinor: 10 }), 100)).resolves.toMatchObject({ payment: { amountMinor: 10 } });
     expect(applyPayment).not.toHaveBeenCalled();
-    expect(aggregate).toHaveBeenLastCalledWith({ where: { businessId: data().businessId, bookingId: data().bookingId, status: 'RECORDED', id: { not: 'payment-id' } }, _sum: { amountMinor: true } });
+    expect(queryRaw.mock.calls.filter(([query]) => queryText(query).includes('FROM "PaymentEffectiveState" state'))).toHaveLength(2);
+    expect(aggregate).not.toHaveBeenCalled();
   });
 });

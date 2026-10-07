@@ -8,7 +8,10 @@ import { PaymentPlanConflictError, PaymentPlanInputError, PaymentPlanUseCases } 
 const businessId = '11111111-1111-4111-8111-111111111111'; const bookingId = '22222222-2222-4222-8222-222222222222'; const actorUserId = '33333333-3333-4333-8333-333333333333';
 const business = (status = BusinessStatus.ACTIVE) => Business.create({ id: businessId, businessNumber: null, name: 'TOP', legalName: null, taxId: null, timezone: 'America/Asuncion', currency: 'PYG', status, createdAt: new Date(), updatedAt: new Date() });
 const booking = (status = BookingStatus.CONFIRMED) => Booking.create({ id: bookingId, businessId, status, contactId: null, resourceIds: [], checkInDate: null, checkOutDate: null, adults: null, children: null, notes: null, createdAt: new Date(), updatedAt: new Date() });
-const plan = (installments: PaymentPlan['installments'] = [{ id: 'i1', amountMinor: 40, dueDate: null, sortOrder: 0, appliedAmountMinor: 0 }, { id: 'i2', amountMinor: 60, dueDate: null, sortOrder: 1, appliedAmountMinor: 0 }]): PaymentPlan => ({ id: 'plan', businessId, bookingId, currency: 'PYG', totalAmountMinor: 100, createdByUserId: actorUserId, updatedByUserId: actorUserId, createdAt: new Date(), updatedAt: new Date(), installments });
+const plan = (installments: PaymentPlan['installments'] = [{ id: 'i1', amountMinor: 40, dueDate: null, sortOrder: 0, appliedAmountMinor: 0 }, { id: 'i2', amountMinor: 60, dueDate: null, sortOrder: 1, appliedAmountMinor: 0 }], changes: Partial<PaymentPlan> = {}): PaymentPlan => {
+  const applied = installments.reduce((sum, installment) => sum + installment.appliedAmountMinor, 0);
+  return { id: 'plan', businessId, bookingId, currency: 'PYG', totalAmountMinor: 100, paidAmountMinor: applied, grossRecordedAmountMinor: applied, voidedAmountMinor: 0, refundedAmountMinor: 0, netRetainedAmountMinor: applied, financialVersion: applied > 0 ? 1 : 0, createdByUserId: actorUserId, updatedByUserId: actorUserId, createdAt: new Date(), updatedAt: new Date(), installments, ...changes };
+};
 
 describe('PaymentPlanUseCases', () => {
   const create = jest.fn<ReturnType<PaymentPlanRepository['create']>, Parameters<PaymentPlanRepository['create']>>(); const findByBooking = jest.fn(); const replace = jest.fn(); const findBusiness = jest.fn(); const findBooking = jest.fn(); const findSnapshot = jest.fn();
@@ -39,5 +42,24 @@ describe('PaymentPlanUseCases', () => {
   it('exposes the historical plan and its explicit reconciliation warning', async () => {
     findByBooking.mockResolvedValueOnce({ ...plan(), needsReconciliation: true, warning: 'El plan requiere conciliación.' });
     await expect(subject.get(businessId, bookingId)).resolves.toMatchObject({ totalAmountMinor: 100, needsReconciliation: true, warning: 'El plan requiere conciliación.' });
+  });
+  it('derives installment balances from effective applications and exposes net after refund with original gross', async () => {
+    findByBooking.mockResolvedValueOnce(plan([
+      { id: 'i1', amountMinor: 40, dueDate: null, sortOrder: 0, appliedAmountMinor: 40 },
+      { id: 'i2', amountMinor: 60, dueDate: null, sortOrder: 1, appliedAmountMinor: 20 },
+    ], { paidAmountMinor: 60, grossRecordedAmountMinor: 100, refundedAmountMinor: 40, netRetainedAmountMinor: 60, financialVersion: 2 }));
+    const response = await subject.get(businessId, bookingId);
+    expect(response).toMatchObject({ paidAmountMinor: 60, grossRecordedAmountMinor: 100, voidedAmountMinor: 0, refundedAmountMinor: 40, netRetainedAmountMinor: 60, financialVersion: 2 });
+    expect(response.installments.map((item) => item.appliedAmountMinor)).toEqual([40, 20]);
+    expect(response.installments.map((item) => item.outstandingAmountMinor)).toEqual([0, 40]);
+    expect(response.installments.map((item) => item.status)).toEqual(['PAID', 'PARTIALLY_PAID']);
+  });
+
+  it('keeps original gross and the financial version for a voided payment with released applications', async () => {
+    findByBooking.mockResolvedValueOnce(plan(undefined, { grossRecordedAmountMinor: 100, voidedAmountMinor: 100, paidAmountMinor: 0, netRetainedAmountMinor: 0, financialVersion: 2 }));
+    const response = await subject.get(businessId, bookingId);
+    expect(response).toMatchObject({ paidAmountMinor: 0, grossRecordedAmountMinor: 100, voidedAmountMinor: 100, refundedAmountMinor: 0, netRetainedAmountMinor: 0, financialVersion: 2 });
+    expect(response.installments.map((item) => item.outstandingAmountMinor)).toEqual([40, 60]);
+    expect(response.installments.map((item) => item.status)).toEqual(['PENDING', 'PENDING']);
   });
 });

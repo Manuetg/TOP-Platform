@@ -24,6 +24,7 @@ import {
   Settings,
   Tags,
   WalletCards,
+  Landmark,
 } from "lucide-react";
 
 import { PageErrorBoundary } from "../errors/PageErrorBoundary";
@@ -37,6 +38,7 @@ const sectionPaths: Record<AppSection, string> = {
   contacts: "/app/contacts",
   pricing: "/app/pricing",
   payments: "/app/payments",
+  finance: "/app/finance",
   blocks: "/app/blocks",
   settings: "/app/settings",
 };
@@ -78,6 +80,7 @@ const breadcrumbSections: Record<
   contacts: { label: "Contactos", icon: ContactRound },
   pricing: { label: "Precios", icon: Tags },
   payments: { label: "Pagos", icon: WalletCards },
+  finance: { label: "Finanzas", icon: Landmark },
   blocks: { label: "Bloqueos", icon: Blocks },
   settings: { label: "Configuración", icon: Settings },
 };

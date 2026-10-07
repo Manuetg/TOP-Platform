@@ -120,8 +120,8 @@ describeWithPostgres('Alta pendiente y confirmación por cobro: HTTP real', () =
     const list = await request(app.getHttpServer()).get('/api/businesses/' + value.businessId + '/bookings').set('Authorization', 'Bearer ' + token).expect(200);
     const rows = list.body as BookingBody[];
     expect(rows).toHaveLength(1);
-    expect(rows[0].financialSummary).toEqual({ totalAmountMinor: 1000000, paidAmountMinor: 1, currency: 'PYG', outstandingAmountMinor: 999999, creditAmountMinor: 0 });
-    expect(Object.keys(rows[0].financialSummary!).sort()).toEqual(['creditAmountMinor', 'currency', 'outstandingAmountMinor', 'paidAmountMinor', 'totalAmountMinor']);
+    expect(rows[0].financialSummary).toEqual({ totalAmountMinor: 1000000, paidAmountMinor: 1, currency: 'PYG', grossRecordedAmountMinor: 1, voidedAmountMinor: 0, refundedAmountMinor: 0, netRetainedAmountMinor: 1, financialVersion: 1, outstandingAmountMinor: 999999, creditAmountMinor: 0 });
+    expect(Object.keys(rows[0].financialSummary!).sort()).toEqual(['creditAmountMinor', 'currency', 'financialVersion', 'grossRecordedAmountMinor', 'netRetainedAmountMinor', 'outstandingAmountMinor', 'paidAmountMinor', 'refundedAmountMinor', 'totalAmountMinor', 'voidedAmountMinor']);
     expect(await prisma.bookingTimelineEvent.count({ where: { bookingId: created.id, type: 'BOOKING_CONFIRMED' } })).toBe(1);
   });
 

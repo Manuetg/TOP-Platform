@@ -65,6 +65,8 @@ import { assertTestDatabase, cleanTestDatabase } from '../../integration/support
 export const acceptanceFileStorage = new InMemoryFileStorage();
 
 Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
+  // Finance owns a real authenticated PostgreSQL harness, with no security override.
+  if (scenario.pickle.tags.some((tag) => tag.name === '@financeReal')) return;
   const accessTokens = {
     issue: (payload: { sub: string }) => Promise.resolve({ token: `token:${payload.sub}`, expiresIn: 900 }),
     verify: (token: string) => token.startsWith('token:') ? Promise.resolve({ sub: token.slice(6) }) : Promise.reject(new Error('Token inválido')),
@@ -161,6 +163,7 @@ Before(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
 });
 
 After(async function (this: TopWorld, scenario: ITestCaseHookParameter) {
+  if (scenario.pickle.tags.some((tag) => tag.name === '@financeReal')) return;
   try {
     if (this.app && scenario.pickle.tags.some((tag) => tag.name === '@postgres')) {
       await cleanTestDatabase(this.app.get(PrismaService), process.env.DATABASE_URL);

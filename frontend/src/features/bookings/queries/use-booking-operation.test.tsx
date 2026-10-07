@@ -9,7 +9,7 @@ import { useBookingOperation } from "./use-booking-operation";
 const options = { userId: "user-1", businessId: "business-1", bookingId: "booking-1", accessToken: "fixture-token" };
 const version = "2026-10-02T12:00:00.000Z", nextVersion = "2026-10-02T13:00:00.000Z";
 const booking: Booking = { id: options.bookingId, businessId: options.businessId, status: "CONFIRMED", contactId: null, resourceIds: ["resource-1"], checkInDate: "2026-10-06", checkOutDate: "2026-10-08", adults: 2, children: 0, notes: null, createdAt: version, updatedAt: version };
-const summary = { totalAmountMinor: 500000, paidAmountMinor: 100000, currency: "PYG" };
+const summary = { totalAmountMinor: 500000, paidAmountMinor: 100000, financialVersion: 7, currency: "PYG" };
 const detailKey = ["bookings", options.businessId, options.bookingId];
 const clients: QueryClient[] = [];
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
@@ -34,7 +34,7 @@ it("preserva el resumen GET al recibir un POST plano y recarga el detalle enriqu
   act(() => { pending = result.current.operation.mutateAsync({ operation: "check-in", expectedUpdatedAt: version, signal: new AbortController().signal, isCurrent: () => true }); });
   await waitFor(() => expect(getCount).toBe(2));
   expect(client.getQueryData(detailKey)).toEqual(expect.objectContaining({ status: "IN_PROGRESS", financialSummary: summary }));
-  const refreshed = { ...summary, paidAmountMinor: 150000 };
+  const refreshed = { ...summary, paidAmountMinor: 150000, financialVersion: 8 };
   await act(async () => { canonical.resolve(json({ ...booking, status: "IN_PROGRESS", updatedAt: nextVersion, financialSummary: refreshed })); await pending; });
   expect(client.getQueryData(detailKey)).toEqual(expect.objectContaining({ financialSummary: refreshed }));
   await waitFor(() => expect(result.current.detail.data).toEqual(expect.objectContaining({ financialSummary: refreshed })));
