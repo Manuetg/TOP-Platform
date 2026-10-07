@@ -65,10 +65,17 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 
     const capture = async (name: string) => {
       await expect(page.locator("#top-main-content")).toBeVisible();
       const width = await page.evaluate(() => ({ document: document.documentElement.scrollWidth, viewport: innerWidth }));
-      expect(width.document, `${name}: sin overflow del documento`).toBeLessThanOrEqual(width.viewport + 1);
       const path = testInfo.outputPath(`${name}.png`);
       await page.screenshot({ path, fullPage: false, animations: "disabled" });
       await testInfo.attach(name, { path, contentType: "image/png" });
+      if (width.document > width.viewport + 1) {
+        const overflow = await page.evaluate(() => Array.from(document.querySelectorAll("body *"))
+          .filter((element) => element.getBoundingClientRect().right > innerWidth + 1)
+          .map((element) => ({ tag: element.tagName, class: element.className, right: element.getBoundingClientRect().right }))
+          .slice(0, 25));
+        await testInfo.attach(`${name}-overflow`, { body: JSON.stringify({ ...width, overflow }), contentType: "application/json" });
+      }
+      expect(width.document, `${name}: sin overflow del documento`).toBeLessThanOrEqual(width.viewport + 1);
     };
     await page.goto(`${baseURL}/app`);
     await expect(page.getByRole("heading", { name: /Buenos|Buenas|Hola|Inicio|operación/i }).first()).toBeVisible();
@@ -108,11 +115,19 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 
     if (viewport.width === 1440) {
       // Proxy de reflow CSS al 200%; no equivale al zoom nativo del navegador.
       await page.evaluate(() => { document.documentElement.style.zoom = "2"; });
+      const searchWidth = await page.locator(".top-global-header__search-wrap").getByRole("combobox", { name: "Buscar en TOP" }).evaluate((element) => element.getBoundingClientRect().width);
+      expect(searchWidth).toBeGreaterThanOrEqual(88);
       await capture("finance-reflow-css-200");
+      await page.getByRole("navigation", { name: "Vistas de Finanzas" }).getByRole("button", { name: "Cobros", exact: true }).click();
+      await expect(page.locator(".finance-payment-amounts").first()).toBeVisible();
+      const clippedAmounts = await page.locator(".finance-payment-amounts, .finance-payment-amounts > div")
+        .evaluateAll((elements) => elements.filter((element) => element.scrollWidth > element.clientWidth + 1).length);
+      expect(clippedAmounts, "Etiquetas e importes de Cobros sin recorte interno").toBe(0);
+      await capture("finance-payments-reflow-css-200");
       await page.evaluate(() => { document.documentElement.style.zoom = ""; });
     }
     expect(unexpected).toEqual([]);
     expect(errors).toEqual([]);
-    await testInfo.attach("alcance", { body: JSON.stringify({ viewport, head: process.env.TOP_FERNLY_QA_HEAD ?? "working-tree", transport: "SYNTHETIC_ONLY_NOT_API_INTEGRATION", screenshots: viewport.width === 1440 ? 8 : 7, nativeZoom: "NOT_RUN", unexpected, errors }), contentType: "application/json" });
+    await testInfo.attach("alcance", { body: JSON.stringify({ viewport, head: process.env.TOP_FERNLY_QA_HEAD ?? "working-tree", transport: "SYNTHETIC_ONLY_NOT_API_INTEGRATION", screenshots: viewport.width === 1440 ? 9 : 7, nativeZoom: "NOT_RUN", unexpected, errors }), contentType: "application/json" });
   });
 }
