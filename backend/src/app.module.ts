@@ -19,6 +19,7 @@ import { BusinessAuthorizationGuard } from './shared/security/business-authoriza
 import { AuthorizationPolicy } from './shared/application/authorization-policy';
 import { PaymentModule } from './modules/payment/payment.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { FinanceModule } from './modules/finance/finance.module';
 
 @Module({
   imports: [SubscriptionModule, SearchModule, ConfigModule.forRoot({
@@ -26,7 +27,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     ignoreEnvFile: runtimeNodeEnvironment() !== 'development',
     skipProcessEnv: true,
     validate: validateApplicationEnvironment,
-  }), BusinessModule, IdentityModule, ResourceModule, PricingModule, ContactModule, BlockModule, BookingModule, AvailabilityModule, BookingLifecycleModule, PaymentModule, DashboardModule],
+  }), BusinessModule, IdentityModule, ResourceModule, PricingModule, ContactModule, BlockModule, BookingModule, AvailabilityModule, BookingLifecycleModule, PaymentModule, DashboardModule, FinanceModule],
   controllers: [HealthController],
   providers: [HealthService, AuthenticationGuard, AuthorizationPolicy, BusinessAuthorizationGuard],
 })

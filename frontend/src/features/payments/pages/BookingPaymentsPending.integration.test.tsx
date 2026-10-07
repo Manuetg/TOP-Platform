@@ -22,9 +22,9 @@ function setup(mode: "success" | "lost-response" | "deferred") {
     id: "booking-1", businessId: "business-1", status: "PENDING", contactId: "contact-1", resourceIds: ["resource-1"],
     checkInDate: "2026-10-02", checkOutDate: "2026-10-04", adults: 2, children: 0, notes: null,
     createdAt: "2026-10-01T12:00:00.000Z", updatedAt: "2026-10-01T12:00:00.000Z",
-    financialSummary: { totalAmountMinor: 400000, paidAmountMinor: 0, currency: "PYG" },
+    financialSummary: { totalAmountMinor: 400000, paidAmountMinor: 0, financialVersion: 0, currency: "PYG" },
   };
-  const nextBooking: Booking = { ...booking, id: "booking-2", financialSummary: { totalAmountMinor: 600000, paidAmountMinor: 0, currency: "PYG" } };
+  const nextBooking: Booking = { ...booking, id: "booking-2", financialSummary: { totalAmountMinor: 600000, paidAmountMinor: 0, financialVersion: 0, currency: "PYG" } };
   const bookings = new Map([[booking.id, booking], [nextBooking.id, nextBooking]]);
   const recorded = new Map<string, Payment>();
   let dropResponse = mode === "lost-response";

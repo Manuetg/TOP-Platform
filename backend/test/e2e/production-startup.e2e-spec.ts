@@ -9,7 +9,7 @@ const allowedOrigin = 'https://app.top.invalid';
 const secondaryOrigin = 'https://operations.top.invalid:8443';
 const userId = '11111111-1111-4111-8111-111111111111';
 const businessId = '22222222-2222-4222-8222-222222222222';
-const configurationKey = /^(NODE_ENV|DATABASE_URL|PORT|CORS_ORIGIN|APP_PUBLIC_URL|JWT_.*|PASSWORD_RESET_.*|REFRESH_TOKEN_.*|EMAIL_.*|SMTP_.*|S3_.*|TOP_STARTUP_DOTENV_MARKER)$/;
+const configurationKey = /^(NODE_ENV|DATABASE_URL|PORT|CORS_ORIGIN|APP_PUBLIC_URL|JWT_.*|PASSWORD_RESET_.*|REFRESH_TOKEN_.*|EMAIL_.*|SMTP_.*|S3_.*|FINANCE_.*|TOP_STARTUP_DOTENV_MARKER)$/;
 
 function environment(mode = 'production', port = '3000'): Record<string, string> {
   const common = {

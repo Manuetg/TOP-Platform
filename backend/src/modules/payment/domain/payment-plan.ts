@@ -12,6 +12,12 @@ export interface PaymentPlan {
   bookingId: string;
   currency: string;
   totalAmountMinor: number;
+  paidAmountMinor: number;
+  grossRecordedAmountMinor: number;
+  voidedAmountMinor: number;
+  refundedAmountMinor: number;
+  netRetainedAmountMinor: number;
+  financialVersion: number;
   needsReconciliation?: boolean;
   warning?: string | null;
   createdByUserId: string;

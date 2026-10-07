@@ -56,7 +56,7 @@ describeWithPostgres('Edición de reservas y precio vigente: HTTP real', () => {
     return response.body as BookingAmendmentPreview;
   }
   function accepted(changes: object, value: BookingAmendmentPreview) {
-    return { ...changes, expectedUpdatedAt: value.expectedUpdatedAt, currentPricingId: value.currentPricingId, expectedPaidAmountMinor: value.expectedPaidAmountMinor, acceptedQuote: value.quote };
+    return { ...changes, expectedUpdatedAt: value.expectedUpdatedAt, currentPricingId: value.currentPricingId, expectedPaidAmountMinor: value.expectedPaidAmountMinor, expectedFinancialVersion: value.expectedFinancialVersion, acceptedQuote: value.quote };
   }
   function save(bookingId: string, body: object) { return request(app.getHttpServer()).patch(base() + '/' + bookingId + '/amendment').set('Authorization', 'Bearer ' + token).send(body); }
   function payment(bookingId: string, amountMinor: number, key: string) { return request(app.getHttpServer()).post(base() + '/' + bookingId + '/payments').set('Authorization', 'Bearer ' + token).set('Idempotency-Key', key).send({ amountMinor, method: 'CASH', paidAt: '2000-01-01T12:00:00.000Z' }); }
@@ -90,7 +90,7 @@ describeWithPostgres('Edición de reservas y precio vigente: HTTP real', () => {
     const original = await prisma.pricingSnapshot.findUniqueOrThrow({ where: { bookingId: id } });
     const payments = await prisma.payment.findMany({ where: { bookingId: id } });
     const changes = { checkOutDate: '2026-12-13', pricing: pricing(80), reason: 'Estadía ajustada' };
-    const quoted = await preview(id, changes); expect(quoted.financialSummary).toEqual({ totalAmountMinor: 80, paidAmountMinor: 90, outstandingAmountMinor: 0, creditAmountMinor: 10 }); expect(quoted.warnings).not.toHaveLength(0);
+    const quoted = await preview(id, changes); expect(quoted.financialSummary).toEqual({ totalAmountMinor: 80, paidAmountMinor: 90, grossRecordedAmountMinor: 90, voidedAmountMinor: 0, refundedAmountMinor: 0, netRetainedAmountMinor: 90, financialVersion: 1, outstandingAmountMinor: 0, creditAmountMinor: 10 }); expect(quoted.warnings).not.toHaveLength(0);
     await save(id, accepted(changes, quoted)).expect(200);
     expect(await prisma.pricingSnapshot.findUnique({ where: { bookingId: id } })).toEqual(original); expect(await prisma.payment.findMany({ where: { bookingId: id } })).toEqual(payments);
     expect(await prisma.pricingRevision.findFirst({ where: { bookingId: id } })).toMatchObject({ revisionNumber: 1, originalSnapshotId: original.id, actorUserId: actorId, reason: changes.reason, totalAmountMinor: 80n, paidAmountMinorAtSave: 90n });

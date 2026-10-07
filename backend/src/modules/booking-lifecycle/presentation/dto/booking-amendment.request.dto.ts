@@ -16,5 +16,6 @@ export class BookingAmendmentRequestDto extends BookingAmendmentPreviewRequestDt
   @IsDefined() @ApiProperty() expectedUpdatedAt!: string;
   @IsDefined() @ApiProperty({ format: 'uuid' }) currentPricingId!: string;
   @IsDefined() @ApiProperty() expectedPaidAmountMinor!: number;
+  @IsDefined() @ApiProperty() expectedFinancialVersion!: number;
   @IsDefined() @ApiProperty({ description: 'Objeto quote exacto devuelto por el preview: currency, totalAmountMinor, items y fingerprint.' }) acceptedQuote!: unknown;
 }

@@ -177,6 +177,11 @@ describe('Outstanding Balance API', () => {
       currency: 'PYG',
       totalAmountMinor: 100,
       paidAmountMinor: 40,
+      grossRecordedAmountMinor: 40,
+      voidedAmountMinor: 0,
+      refundedAmountMinor: 0,
+      netRetainedAmountMinor: 40,
+      financialVersion: 1,
       outstandingAmountMinor: 60,
       creditAmountMinor: 0,
       needsReconciliation: false,
@@ -192,6 +197,11 @@ describe('Outstanding Balance API', () => {
     projection = {
       paymentPlanId: 'plan',
       paidAmountMinor: 40,
+      grossRecordedAmountMinor: 40,
+      voidedAmountMinor: 0,
+      refundedAmountMinor: 0,
+      netRetainedAmountMinor: 40,
+      financialVersion: 1,
       planTotalAmountMinor: 100,
       installmentTotalAmountMinor: 100,
       appliedAmountMinor: 40,
@@ -247,10 +257,16 @@ describe('Outstanding Balance API', () => {
   });
 });
 
-function noPlanProjection(paidAmountMinor = 0) {
+function noPlanProjection(paidAmountMinor = 0): OutstandingBalanceProjection {
+  // Un monto positivo representa un único cobro ORIGINAL sin ajustes; cero, ninguno.
   return {
     paymentPlanId: null,
     paidAmountMinor,
+    grossRecordedAmountMinor: paidAmountMinor,
+    voidedAmountMinor: 0,
+    refundedAmountMinor: 0,
+    netRetainedAmountMinor: paidAmountMinor,
+    financialVersion: paidAmountMinor > 0 ? 1 : 0,
     planTotalAmountMinor: null,
     installmentTotalAmountMinor: 0,
     appliedAmountMinor: 0,

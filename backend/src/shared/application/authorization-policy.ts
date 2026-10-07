@@ -9,6 +9,16 @@ export enum AuthorizationScope {
 }
 
 export enum Capability {
+  FINANCE_READ = 'finance.read',
+  FINANCE_WRITE = 'finance.write',
+  FINANCE_EXPORT = 'finance.export',
+  FINANCE_CASH_ADJUST = 'finance.cash-adjust',
+  FINANCE_EVIDENCE_READ = 'finance.evidence.read',
+  FINANCE_EVIDENCE_WRITE = 'finance.evidence.write',
+  FINANCE_IMPORT = 'finance.import',
+  FINANCE_PLANNING = 'finance.planning',
+  FINANCE_APPROVE = 'finance.approve',
+  FINANCE_LABOR = 'finance.labor',
   SUBSCRIPTION_READ = 'subscription.read',
   SUBSCRIPTION_REQUEST_UPGRADE = 'subscription.request-upgrade',
   SEARCH_READ = 'search.read',
@@ -41,6 +51,9 @@ export enum Capability {
   BOOKING_CANCEL = 'booking.cancel',
   PAYMENT_READ = 'payment.read',
   PAYMENT_RECORD = 'payment.record',
+  PAYMENT_VOID = 'payment.void',
+  PAYMENT_REFUND = 'payment.refund',
+  PRICING_FINAL_AMOUNT = 'pricing.final-amount',
   DASHBOARD_READ = 'dashboard.read',
 }
 
@@ -53,6 +66,16 @@ export const capabilityScopes: Readonly<Record<Capability, AuthorizationScope>> 
 );
 
 const roleCapabilities: Readonly<Record<Capability, readonly MembershipRole[]>> = Object.freeze({
+  [Capability.FINANCE_READ]: [MembershipRole.OWNER],
+  [Capability.FINANCE_WRITE]: [MembershipRole.OWNER],
+  [Capability.FINANCE_EXPORT]: [MembershipRole.OWNER],
+  [Capability.FINANCE_CASH_ADJUST]: [MembershipRole.OWNER],
+  [Capability.FINANCE_EVIDENCE_READ]: [MembershipRole.OWNER],
+  [Capability.FINANCE_EVIDENCE_WRITE]: [MembershipRole.OWNER],
+  [Capability.FINANCE_IMPORT]: [MembershipRole.OWNER],
+  [Capability.FINANCE_PLANNING]: [MembershipRole.OWNER],
+  [Capability.FINANCE_APPROVE]: [MembershipRole.OWNER],
+  [Capability.FINANCE_LABOR]: [MembershipRole.OWNER],
   [Capability.SUBSCRIPTION_READ]: allRoles,
   [Capability.SUBSCRIPTION_REQUEST_UPGRADE]: [MembershipRole.OWNER],
   [Capability.SEARCH_READ]: allRoles,
@@ -85,6 +108,9 @@ const roleCapabilities: Readonly<Record<Capability, readonly MembershipRole[]>> 
   [Capability.BOOKING_CANCEL]: operational,
   [Capability.PAYMENT_READ]: allRoles,
   [Capability.PAYMENT_RECORD]: operational,
+  [Capability.PAYMENT_VOID]: [MembershipRole.OWNER],
+  [Capability.PAYMENT_REFUND]: [MembershipRole.OWNER],
+  [Capability.PRICING_FINAL_AMOUNT]: [MembershipRole.OWNER],
   [Capability.DASHBOARD_READ]: allRoles,
 });
 

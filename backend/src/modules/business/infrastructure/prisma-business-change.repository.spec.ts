@@ -35,14 +35,14 @@ function setup(overrides: Partial<typeof current> = {}, role: string | null = 'O
 }
 
 describe('PrismaBusinessRepository: edición transaccional y archivo', () => {
-  it('consulta los cuatro tipos de historial por tenant solo para timezone efectiva y rechaza el PATCH completo', async () => {
+  it('consulta el historial operativo y financiero por tenant solo para timezone efectiva y rechaza el PATCH completo', async () => {
     const { repository, transaction, prisma } = setup();
     transaction.$queryRaw.mockImplementation((query) => Promise.resolve(query.sql.includes('AS "hasHistory"') ? [{ hasHistory: true }] : []));
     await expect(repository.changeProfile({ id, actorUserId, expectedUpdatedAt: updatedAt, changes: { name: 'No persistir', timezone: 'America/New_York' } })).rejects.toBeInstanceOf(BusinessTimezoneHistoryError);
     const queries = transaction.$queryRaw.mock.calls.map(([query]) => ({ text: query.sql, values: query.values }));
     expect(queries).toHaveLength(4);
-    for (const entity of ['Resource', 'Booking', 'Block', 'Payment']) expect(queries[3].text).toContain(`FROM "${entity}" WHERE "businessId" = ?`);
-    expect(queries[3].values).toEqual([id, id, id, id]);
+    for (const entity of ['Resource', 'Booking', 'Block', 'Payment', 'FinanceAudit']) expect(queries[3].text).toContain(`FROM "${entity}" WHERE "businessId" = ?`);
+    expect(queries[3].values).toEqual([id, id, id, id, id]);
     expect(queries[3].text).not.toContain('status');
     expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function) as unknown, { isolationLevel: 'ReadCommitted' });
     expect(transaction.business.update).not.toHaveBeenCalled();

@@ -1,0 +1,17 @@
+import type { FinanceReport } from "../types/finance.types";
+/** Synthetic API fixture for frontend tests; this is not PostgreSQL evidence. */
+export function financeFixture(businessId = "synthetic-a"): FinanceReport {
+  return { businessId, currency: "PYG", timeZone: "America/Asuncion", basis: "REGISTERED_OPERATIONS", from: "2026-09-01", to: "2026-10-01", asOf: "2026-10-05T12:00:00.000Z", token: "synthetic-report-token", sourceLimit: 5000,
+    catalogs: [{ id: "category-a", kind: "CATEGORY", name: "Reparación sintética", archived: false, version: 1 }], resources: [{ id: "resource-a", name: "Cabaña sintética", active: true }],
+    accounts: [{ id: "account-a", name: "Caja sintética", kind: "CASH", archived: false, version: 1, opening: { id: "opening-a", amountMinor: 1000000, occurredAt: "2026-09-01T12:00:00.000Z", reason: "Apertura sintética" }, balanceMinor: 700000, negative: false }],
+    expenses: [{ id: "expense-a", description: "Reparación sintética pendiente", consumedOn: "2026-09-30", dueOn: "2026-10-01", counterpartyId: null, counterpartyName: null, reference: null, evidenceMissing: true, amountMinor: 900000, paidAmountMinor: 300000, outstandingMinor: 600000, overdue: true, version: 2,
+      lines: [{ id: "line-a", label: "Reparación", categoryId: "category-a", categoryName: "Reparación sintética", resourceId: null, resourceName: null, amountMinor: 900000, operational: true }], settlements: [{ id: "settlement-a", accountId: "account-a", amountMinor: 300000, occurredAt: "2026-09-30T12:00:00.000Z", reference: "Pago sintético", recordedByUserId: "owner-a" }], recordedByUserId: "owner-a", createdAt: "2026-09-30T10:00:00.000Z" }],
+    movements: [{ id: "settlement-a", sourceType: "SETTLEMENT", sourceId: "settlement-a", sourceVersion: 1, accountId: "account-a", amountMinor: -300000, occurredAt: "2026-09-30T12:00:00.000Z", description: "Pago reparación sintética", includedInBalance: true, reviewed: false, reviewVersion: 0, reviewStale: false }],
+    balanceSources: [
+      { id: "opening-a", sourceType: "OPENING", sourceId: "opening-a", sourceVersion: 1, accountId: "account-a", amountMinor: 1000000, occurredAt: "2026-09-01T12:00:00.000Z", description: "Apertura sintética", includedInBalance: true, reviewed: false, reviewVersion: 0, reviewStale: false },
+      { id: "settlement-a", sourceType: "SETTLEMENT", sourceId: "settlement-a", sourceVersion: 1, accountId: "account-a", amountMinor: -300000, occurredAt: "2026-09-30T12:00:00.000Z", description: "Pago reparación sintética", includedInBalance: true, reviewed: false, reviewVersion: 0, reviewStale: false },
+    ],
+    payments: [{ id: "payment-a", bookingId: "booking-a", amountMinor: 400000, currency: "PYG", paidAt: "2026-09-29T12:00:00.000Z", reference: null, accountId: null, version: 0, paymentVersion: 1, effectiveStatus: "RETAINED", grossRecordedAmountMinor: 400000, voidedAmountMinor: 0, refundedAmountMinor: 0, netRetainedAmountMinor: 400000, includedInBalance: false }], cashCounts: [],
+    totals: { grossRecordedAmountMinor: 400000, voidedAmountMinor: 0, refundedAmountMinor: 0, netRecordedReceiptFlowMinor: 400000, paymentNetRetainedAmountMinor: 400000, expenseMinor: 900000, operatingCostMinor: 900000, paymentsMinor: 400000, settlementsMinor: 300000, outstandingMinor: 600000, overdueMinor: 600000, unassignedPaymentsMinor: 400000, registeredBalanceMinor: 700000 },
+    coverage: { unconfiguredAccountIds: [], missingEvidenceExpenseIds: ["expense-a"], unknownHistoricalDebt: true, serviceRevenueAvailable: false } };
+}

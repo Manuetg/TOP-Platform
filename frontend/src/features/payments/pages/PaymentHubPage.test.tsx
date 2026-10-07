@@ -52,8 +52,8 @@ function booking(status: BookingStatus): Booking {
 describe("etiquetas de reservas en el listado de pagos", () => {
   it.each([0, 400000])("incluye la Pendiente con precio %s junto a confirmadas, sin incluir Pendientes históricas sin precio", async (total) => {
     const pending = state.bookings.find((item) => item.status === "PENDING")!;
-    pending.financialSummary = { totalAmountMinor: total, paidAmountMinor: 0, currency: "PYG" };
-    state.bookings.push({ ...booking("PENDING"), id: "pending-legacy", contactId: null, financialSummary: { totalAmountMinor: null, paidAmountMinor: 0, currency: null } });
+    pending.financialSummary = { totalAmountMinor: total, paidAmountMinor: 0, financialVersion: 0, currency: "PYG" };
+    state.bookings.push({ ...booking("PENDING"), id: "pending-legacy", contactId: null, financialSummary: { totalAmountMinor: null, paidAmountMinor: 0, financialVersion: 0, currency: null } });
     const user = userEvent.setup();
     render(<PaymentHubPage />);
     expect(screen.getAllByRole("button")).toHaveLength(4);

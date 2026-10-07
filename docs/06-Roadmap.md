@@ -1,5 +1,74 @@
 # TOP — Roadmap
 
+## Finanzas operativas — alcance post-MVP autorizado (2026-10-05)
+
+Antecedente del 05/10/2026: este encargo se contabiliza separado del MVP histórico. Rolo autorizó implementar Finanzas de extremo a extremo hasta quedar listo para probar; D1–D3 están aprobadas desde el 05/10/2026 00:28 UTC. La autorización posterior «continua con el resto yo hare el merge pero no dependas de mi para avanzar» permitió comenzar desde el head revisado de PR #101, `99a51148cc12839cdc1bea3ed303961ffd27698c`, árbol `28434d484dd9013939f205fa15557de20cb1e84b`, en checkout aislado, sustituyendo para FIN-001 la espera del merge. Esa autorización no acreditaba que PR #101 estuviera mergeada.
+
+Revalidación para publicación del 07/10/2026: PR #101 está mergeada en `develop@9332fa6b6750c0dd326d0b69df24d0ba0725d8b9`; su árbol coincide con la base Finance indicada. La comprobación de igualdad permite conservar la evidencia local asociada a los manifiestos de fuentes, sin atribuirla a un SHA de publicación todavía no probado por CI. Full12 backend, build/lint/test frontend y navegador real V1/V2/V3 móvil/desktop tienen PASS local en los alcances de [Estado actual](00-Current-Status.md). CI del nuevo HEAD y revisión/aceptación formal siguen pendientes; la mutación ampliada está `DEFERRED_BY_USER`. FIN-001–035 siguen In Progress y FIN-036/037 Blocked.
+
+La autorización Git del 05/10/2026 00:31 UTC permite commits, pushes, PR Draft por entrega y merge normal a develop después de revisión independiente y gates, sin omitir protecciones. Como antecedente, la transición de PR #101 a Ready fue denegada `FORBIDDEN` y no se reintentó en el trabajo Finance. No autoriza despliegue, cambios de trust Git, configuración global, red, credenciales o datos reales. El advisory HIGH heredado y `releaseApproved=false` permanecen; no se reintenta la remediación deepmerge-ts/Prisma bloqueada.
+
+| Épica | Resultado / historias | Estado inicial | Dependencia de salida |
+|---|---|---|---|
+| FIN-E00 | Base verificable, contratos y capabilities; FIN-001–002 | In Progress | Base revisada aislada; contratos/evidencia y revisión. |
+| FIN-E01 | Gasto, líneas, obligación, origen; FIN-003–006 | In Progress | E00. |
+| FIN-E02 | Cuentas, apertura, pago, vínculo de cobro, transferencias; FIN-007–010 | In Progress | E00; E01 para liquidar gastos. |
+| FIN-E03 | Consulta, export, revisión, arqueo, recuperación; FIN-011–015 | In Progress | E01 + E02. |
+| FIN-E04 | Importación acotada, corrección y devolución; FIN-016–018 | In Progress | E03; D2 aprobada, contrato técnico de Payment revisado. |
+| FIN-E05 | Recurrencias/reintegros y matching CSV manual; FIN-019–020 | In Progress | E03/E04 según fuente; aprobación interna solo con política concreta. |
+| FIN-E06 | Prestación, directos, comunes y resultado; FIN-021–024 | In Progress | E03; D1/D3 aprobadas, evidencia explícita de servicio. |
+| FIN-E07 | Costo laboral calculado, presupuesto, compromiso, proyección; FIN-025–028 | In Progress | E06. |
+| FIN-E08 | Cierre, contador, alertas, archivos/restore; FIN-029–032 | In Progress | E04–E07; upload/retención sujeto a contrato de FIN-032. |
+| FIN-E09 | Fixtures, revisión independiente y entrega reproducible; FIN-033–035 | In Progress | Se inicia con E00 y se repite por entrega. |
+| FIN-E10 | Garantías y unidades no nocturnas; FIN-036–037 | Blocked | Contratos adicionales específicos; no impiden FIN-001–035 soportadas. |
+
+- **V1:** FIN-001–015 y FIN-033–035 sobre ese alcance: gasto → deuda → pago parcial → cuenta/caja → origen → exportación, con referencia de evidencia privada textual. Caja se deriva; cobros existentes conservan Payment como única fuente. No incluye refund ni devengo.
+- **V2:** FIN-016–028 y repetición de FIN-033–035: correcciones/refunds, recurrencia manual, import/matching, reconocimiento certificado, costos, resultado y planificación. D1–D3 no se vuelven a preguntar; los contratos y bordes sí se verifican.
+- **V3:** FIN-029–032 y FIN-033–035 sobre todo el alcance habilitado: cierre con fuentes protegidas, paquete reproducible, alertas internas y recuperación. FIN-032 incorpora proveedor privado opt-in, preservación sin purga y restore DB+objetos sintéticos; el corte funcional local integrado y los recorridos reales finales tienen evidencia PASS, con CI del nuevo HEAD y aceptación formal pendientes y mutación ampliada diferida. El modo sin proveedor conserva referencia textual y muestra upload deshabilitado.
+
+Listo para probar exige entorno propio accesible, dataset sintético, PostgreSQL real, HTTP autenticado, móvil 390×844 y desktop 1440×900, revisión independiente y CI del código publicado. No equivale a piloto GO, aprobación fiscal, operación bancaria, producción ni finalización de las 54 capacidades del discovery. Estados/evidencia por historia en [Backlog](07-Backlog.md) y [Frontend Backlog](14-Frontend-Backlog.md); decisiones de dominio en [Domain Bible](03-Domain-Bible.md) y [Business Rules](04-Business-Rules.md).
+
+### Trazabilidad del catálogo FIN01–FIN54
+
+Los IDs del catálogo del discovery se conservan; no son IDs de historias ni un estado Completed. «Existente» se refiere al contrato Payment vigente, que requiere regresión; «parcial» conserva su límite.
+
+| Catálogo / capacidad | Corte e historias |
+|---|---|
+| FIN01 Panorama; FIN03 CxC | V1 FIN-011; V2 FIN-028 para antigüedad fiable. |
+| FIN02 Cobros parciales/mixtos | Payment existente + V1 FIN-009/033; sin segundo cobro editable. |
+| FIN04 Anticipos/garantías | Payment cubre anticipo; garantía condicionada FIN-036. |
+| FIN05 Correcciones/devoluciones | V2 FIN-017/018; neto y aplicaciones canónicas. |
+| FIN06 Prestación | V2 FIN-021; unidades adicionales condicionadas FIN-037. |
+| FIN07 Comisiones/liquidaciones; FIN22 Extracto; FIN23 Matching | V2 FIN-020; CSV/manual, sin bank feed. |
+| FIN08 Antigüedad/deuda; FIN38 Proyección | V2 FIN-028; previsto separado de saldo registrado. |
+| FIN09 Alta gasto; FIN13 División | V1 FIN-004/008; líneas exactas operativas/no operativas. |
+| FIN10 Categorías/contrapartes | V1 FIN-003; archivo conserva historia. |
+| FIN11 Evidencia | V1 FIN-006 textual; archivos V3 FIN-032 condicionados. |
+| FIN12 CxP | V1 FIN-005/008; obligación derivada. |
+| FIN14 Recurrencias; FIN15 Aprobación; FIN16 Reintegros | V2 FIN-019; borradores manuales y política de aprobación antes de habilitarla. |
+| FIN17 Cuentas/aperturas | V1 FIN-007; corte explícito. |
+| FIN18 Vínculos | V1 FIN-009; fuente Payment única. |
+| FIN19 Transferencias; FIN24 Aportes/retiros/financiación | V1 FIN-010; fuera de resultado operativo. |
+| FIN20 Arqueo | V1 FIN-014; diferencia visible. |
+| FIN21 Revisión manual | V1 FIN-013; no acredita conciliación bancaria. |
+| FIN25 Directos; FIN29 Estancia/rotación | V1 captura FIN-004; V2 análisis FIN-022. |
+| FIN26 Comunes; FIN27 Reglas | V2 FIN-023; porcentajes/versiones y sin asignar. |
+| FIN28 Resultado; FIN31 Cobertura; FIN52 Conciliar reportes | V1 cobertura FIN-011; V2 FIN-024; V3 FIN-030. |
+| FIN30 Unidades/estacionalidad | V2 parcial FIN-024; unidades nuevas condicionadas FIN-037. |
+| FIN33 Laboral; FIN34 Asignación; FIN35 Trabajo propio | V2 FIN-025/023; calculado externamente y detalle OWNER. |
+| FIN36 Presupuesto; FIN37 Compromiso/real | V2 FIN-026/027; meta/forecast y conversión separados. |
+| FIN39 Cierre | V3 FIN-029; escritores afectados y snapshot versionado. |
+| FIN41 Capabilities; FIN42 Auditoría | V1 FIN-002/006; transversal. |
+| FIN43 Import apertura | V2 FIN-016; apertura manual V1 no completa importación. |
+| FIN44 Export operativo; FIN49 Filtros | V1 FIN-011/012; mismo corte o conflicto explícito. |
+| FIN45 Contador | V3 FIN-030; sin integración/certificación fiscal. |
+| FIN48 Recuperación; FIN50 Accesibilidad | V1 FIN-002/015/033/034; repetir V2/V3. |
+| FIN51 Alertas | V3 FIN-031; dentro de TOP. |
+| FIN53 Retención/restore | V3 FIN-032; DB + objetos reales de test. |
+| FIN32 Activos/depreciación; FIN40 Fondos de propietarios; FIN46 Multimoneda; FIN47 Integraciones; FIN54 Fiscal local | F3 futuro, fuera del núcleo autorizado. No se infieren políticas ni se simulan. |
+
+El segmento es dueño operador de recursos propios, PYG. No incorpora nómina fiscal, impuestos, FX, fondos ajenos, feeds bancarios, ejecución de transferencias ni nuevos tipos reservables. Los nombres/tipos Resource existentes no prueban contratos de turnos, horas o plazas. Toda dependencia nueva requiere necesidad y compatibilidad documentadas. Se ejecuta PLAN → IMPLEMENT → TEST → REVIEW → CORRECT → ACCEPT, con un escritor de schema/contratos compartidos y ownership por archivos; solo se paralelizan partes independientes con interfaces congeladas.
+
 Actualización operativa del 01/10/2026: `develop@835b2a4` incluye PR #98 y #100. El primer corte de seguridad B está integrado; B restante y el quality gate preproducción permanecen abiertos. Las referencias fechadas inferiores conservan el seguimiento histórico. Los refinamientos de estados, configuración, perfil, Resources y almacenamiento web se validan solo en la rama local de integración, según [Estado actual](00-Current-Status.md), sin publicación o merge autorizado.
 
 Decisiones pendientes derivadas de este encargo: el cambio seguro de correo requiere definir revalidación de la dirección, asociación/invalidez de tokens de verificación previos y reautenticación, conservando o revisando expresamente la regla aprobada de sesiones de IAM-005; no se implementa ese flujo. Antes de publicar documentación jurídica completa deben confirmarse operador/responsable, contacto, jurisdicción, proveedores, retención y condiciones del servicio. El inventario técnico de cookies/storage no acredita cumplimiento legal.

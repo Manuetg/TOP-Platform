@@ -5,13 +5,14 @@ import {
   type PaymentCursor,
   type PaymentRepository,
   type PublicPayment,
+  type EffectivePaymentHistoryItem,
 } from '../domain/payment';
 
 export class PaymentHistoryInputError extends Error {}
 export class PaymentHistoryNotFoundError extends Error {}
 
 export interface PaymentHistoryPage {
-  items: PublicPayment[];
+  items: EffectivePaymentHistoryItem[];
   pageInfo: { nextCursor: string | null; hasNextPage: boolean };
 }
 

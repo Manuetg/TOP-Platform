@@ -112,11 +112,12 @@ export class PrismaBusinessRepository implements BusinessRepository, BusinessCha
         EXISTS (SELECT 1 FROM "Resource" WHERE "businessId" = ${input.id}) OR
         EXISTS (SELECT 1 FROM "Booking" WHERE "businessId" = ${input.id}) OR
         EXISTS (SELECT 1 FROM "Block" WHERE "businessId" = ${input.id}) OR
-        EXISTS (SELECT 1 FROM "Payment" WHERE "businessId" = ${input.id})
+        EXISTS (SELECT 1 FROM "Payment" WHERE "businessId" = ${input.id}) OR
+        EXISTS (SELECT 1 FROM "FinanceAudit" WHERE "businessId" = ${input.id})
       ) AS "hasHistory"
     `);
     if (!history || typeof history.hasHistory !== 'boolean') throw new Error('No se pudo verificar el historial del establecimiento.');
-    if (history.hasHistory) throw new BusinessTimezoneHistoryError('No se puede cambiar la zona horaria de un establecimiento con recursos, reservas, bloqueos o pagos registrados. Conserva la zona horaria actual para guardar los demás datos.');
+    if (history.hasHistory) throw new BusinessTimezoneHistoryError('No se puede cambiar la zona horaria de un establecimiento con recursos, reservas, bloqueos, pagos o hechos financieros registrados. Conserva la zona horaria actual para guardar los demás datos.');
   }
 
   private profileChanges(current: PrismaBusiness, input: BusinessProfileChange) {

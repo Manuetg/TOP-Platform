@@ -34,14 +34,14 @@ describe("resumen financiero de reservas", () => {
 
   it("distingue precio ausente, sin pagos, parcial y pagada sin cambiar el estado de reserva", () => {
     expect(getBookingFinancialLabel()).toBe("Sin precio");
-    expect(getBookingFinancialLabel({ totalAmountMinor: null, paidAmountMinor: 0, currency: null })).toBe("Sin precio");
-    expect(getBookingFinancialLabel({ totalAmountMinor: 0, paidAmountMinor: 0, currency: "PYG" })).toBe("Sin pagos");
-    expect(getBookingFinancialLabel({ totalAmountMinor: 400000, paidAmountMinor: 0, currency: "PYG" })).toBe("Sin pagos");
-    expect(getBookingFinancialLabel({ totalAmountMinor: 400000, paidAmountMinor: 1, currency: "PYG" })).toBe("Pago parcial");
-    expect(getBookingFinancialLabel({ totalAmountMinor: 400000, paidAmountMinor: 400000, currency: "PYG" })).toBe("Pagada");
-    expect(getBookingFinancialLabel({ totalAmountMinor: 100000, paidAmountMinor: 120000, currency: "PYG" })).toBe("Saldo a favor");
-    expect(getBookingFinancialLabel({ totalAmountMinor: 0, paidAmountMinor: 100, creditAmountMinor: 100, currency: "PYG" })).toBe("Saldo a favor");
-    expect(getBookingFinancialLabel({ totalAmountMinor: 100, paidAmountMinor: 0, creditAmountMinor: Infinity, currency: "PYG" })).toBe("Sin pagos");
-    expect(getBookingFinancialLabel({ totalAmountMinor: 100, paidAmountMinor: Number.MAX_SAFE_INTEGER + 1, currency: "PYG" })).not.toBe("Saldo a favor");
+    expect(getBookingFinancialLabel({ financialVersion: 7, totalAmountMinor: null, paidAmountMinor: 0, currency: null })).toBe("Sin precio");
+    expect(getBookingFinancialLabel({ financialVersion: 7, totalAmountMinor: 0, paidAmountMinor: 0, currency: "PYG" })).toBe("Sin pagos");
+    expect(getBookingFinancialLabel({ financialVersion: 7, totalAmountMinor: 400000, paidAmountMinor: 0, currency: "PYG" })).toBe("Sin pagos");
+    expect(getBookingFinancialLabel({ financialVersion: 7, totalAmountMinor: 400000, paidAmountMinor: 1, currency: "PYG" })).toBe("Pago parcial");
+    expect(getBookingFinancialLabel({ financialVersion: 7, totalAmountMinor: 400000, paidAmountMinor: 400000, currency: "PYG" })).toBe("Pagada");
+    expect(getBookingFinancialLabel({ financialVersion: 7, totalAmountMinor: 100000, paidAmountMinor: 120000, currency: "PYG" })).toBe("Saldo a favor");
+    expect(getBookingFinancialLabel({ financialVersion: 7, totalAmountMinor: 0, paidAmountMinor: 100, creditAmountMinor: 100, currency: "PYG" })).toBe("Saldo a favor");
+    expect(getBookingFinancialLabel({ financialVersion: 7, totalAmountMinor: 100, paidAmountMinor: 0, creditAmountMinor: Infinity, currency: "PYG" })).toBe("Sin pagos");
+    expect(getBookingFinancialLabel({ financialVersion: 7, totalAmountMinor: 100, paidAmountMinor: Number.MAX_SAFE_INTEGER + 1, currency: "PYG" })).not.toBe("Saldo a favor");
   });
 });

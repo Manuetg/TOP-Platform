@@ -91,10 +91,11 @@ function EditBookingContent({ businessId }: { businessId: string }) {
   const observedVersion = useRef<string | null>(null);
   useEffect(() => {
     if (!booking || !["PENDING", "CONFIRMED"].includes(booking.status)) return;
-    if (observedVersion.current && observedVersion.current !== booking.updatedAt) {
+    const currentVersion = `${booking.updatedAt}:${booking.financialSummary?.financialVersion ?? "unknown"}`;
+    if (observedVersion.current && observedVersion.current !== currentVersion) {
       setAmendmentNotice((previous) => previous ?? "La reserva cambió. Volvimos a cargar los datos actuales; revisá los cambios nuevamente.");
     }
-    observedVersion.current = booking.updatedAt;
+    observedVersion.current = currentVersion;
   }, [booking]);
 
   if (isLoading) {
@@ -173,8 +174,9 @@ function EditBookingContent({ businessId }: { businessId: string }) {
   const currentBookingId = booking.id;
 
   if (booking.id === bookingId && booking.businessId === businessId && booking.resourceIds.length === 1 &&
-    ["PENDING", "CONFIRMED"].includes(booking.status) && booking.financialSummary?.totalAmountMinor != null && activeBusiness?.status === "ACTIVE") {
-    return <BookingAmendmentForm key={`${session?.user.id}:${businessId}:${bookingId}:${activeRole}:${activeBusiness.status}:${booking.updatedAt}`} booking={booking} businessId={businessId}
+    ["PENDING", "CONFIRMED"].includes(booking.status) && booking.financialSummary?.totalAmountMinor != null &&
+    Number.isSafeInteger(booking.financialSummary.financialVersion) && booking.financialSummary.financialVersion >= 0 && activeBusiness?.status === "ACTIVE") {
+    return <BookingAmendmentForm key={`${session?.user.id}:${businessId}:${bookingId}:${activeRole}:${activeBusiness.status}:${booking.updatedAt}:${booking.financialSummary.financialVersion}`} booking={booking} businessId={businessId}
       notice={amendmentNotice} onStalePreview={async () => {
         setAmendmentNotice("La reserva cambió antes de revisar. Cargá los datos actuales antes de revisar nuevamente.");
         const response = await refetch();

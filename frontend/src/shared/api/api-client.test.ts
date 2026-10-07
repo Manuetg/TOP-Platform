@@ -17,6 +17,31 @@ function httpError(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
+describe("errores CSV estructurados", () => {
+  const issue = { ordinal: 2, column: "amountMinor", code: "INVALID_INPUT", message: "Importe inválido" };
+  const body = { statusCode: 400, error: "Bad Request", message: "El CSV contiene errores.", previewToken: null, issues: [issue] };
+  it("conserva HTTP400 y sólo campos públicos de los errores por fila", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(httpError(400, { ...body, digest: "SYNTHETIC_NOT_PUBLIC", sources: ["SYNTHETIC_NOT_PUBLIC"], issues: [{ ...issue, internal: "SYNTHETIC_NOT_PUBLIC" }] })));
+    try { await apiRequest("/finance/v2/history-preview"); throw new Error("Expected HTTP400"); } catch (error) {
+      expect(error).toBeInstanceOf(ApiError); expect(error).toMatchObject({ status: 400, message: body.message, previewIssues: [issue] });
+      expect(error).not.toHaveProperty("digest"); expect(error).not.toHaveProperty("sources"); expect((error as ApiError).previewIssues![0]).not.toHaveProperty("internal");
+    }
+  });
+  it("conserva ordinal cero para error global del archivo", async () => {
+    const globalIssue = { ...issue, ordinal: 0, column: "", message: "Cabecera inválida" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(httpError(400, { ...body, issues: [globalIssue] })));
+    await expect(apiRequest("/finance/v2/bank-preview")).rejects.toMatchObject({ status: 400, previewIssues: [globalIssue] });
+  });
+  it.each([{ ...body, previewToken: "stale" }, { ...body, message: undefined }, { ...body, statusCode: 422 }, { ...body, issues: [{ ...issue, ordinal: -1 }] }, { ...body, issues: [{ ...issue, ordinal: 2.5 }] }, { ...body, issues: [{ ...issue, column: null }] }, { ...body, issues: [{ ...issue, code: null }] }, { ...body, issues: [{ ...issue, message: "" }] }])("envelope mal formado conserva error HTTP y descarta metadatos: %j", async (invalidBody) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(httpError(400, invalidBody)));
+    await expect(apiRequest("/finance/v2/history-preview")).rejects.toMatchObject({ status: 400, previewIssues: undefined });
+  });
+  it.each([401, 403, 409, 500])("HTTP%s no acepta metadata de errores CSV como HTTP400", async (status) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(httpError(status, body)));
+    await expect(apiRequest("/finance/v2/history-preview", { skipUnauthorizedRecovery: true })).rejects.toMatchObject({ status, previewIssues: undefined });
+  });
+});
+
 describe("apiRequest", () => {
   it("interpreta solo el código de correo deshabilitado con texto fijo seguro", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(httpError(503, { code: "EMAIL_FEATURE_DISABLED", message: "SYNTHETIC_SECRET" })));

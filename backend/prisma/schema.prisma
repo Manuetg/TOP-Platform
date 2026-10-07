@@ -87,6 +87,36 @@ enum PaymentStatus {
 }
 
 model User {
+  financeEvidenceFiles FinanceEvidenceFile[] @relation("FinanceEvidenceFileActor")
+  v2FinanceImportBatchActor FinanceImportBatch[] @relation("FinanceImportBatchActor")
+  v2FinanceExpenseTemplateActor FinanceExpenseTemplate[] @relation("FinanceExpenseTemplateActor")
+  v2FinanceExpenseTemplateRevisionActor FinanceExpenseTemplateRevision[] @relation("FinanceExpenseTemplateRevisionActor")
+  v2FinanceExpenseDraftCreator FinanceExpenseDraft[] @relation("FinanceExpenseDraftCreator")
+  v2FinanceExpenseDraftActor FinanceExpenseDraft[] @relation("FinanceExpenseDraftActor")
+  v2FinanceApprovalPolicyRevisionActor FinanceApprovalPolicyRevision[] @relation("FinanceApprovalPolicyRevisionActor")
+  v2FinanceDraftDecisionActor FinanceDraftDecision[] @relation("FinanceDraftDecisionActor")
+  v2FinanceReimbursementDraftActor FinanceReimbursementDraft[] @relation("FinanceReimbursementDraftActor")
+  v2FinanceReimbursementClaimActor FinanceReimbursementClaim[] @relation("FinanceReimbursementClaimActor")
+  v2FinanceBankStatementActor FinanceBankStatement[] @relation("FinanceBankStatementActor")
+  v2FinanceBankMatchActor FinanceBankMatch[] @relation("FinanceBankMatchActor")
+  v2FinanceBankMatchCancelActor FinanceBankMatch[] @relation("FinanceBankMatchCancelActor")
+  v2FinanceBankFeeOriginActor FinanceBankFeeOrigin[] @relation("FinanceBankFeeOriginActor")
+  v2FinanceAllocationRuleActor FinanceAllocationRule[] @relation("FinanceAllocationRuleActor")
+  v2FinanceAllocationRuleRevisionActor FinanceAllocationRuleRevision[] @relation("FinanceAllocationRuleRevisionActor")
+  v2FinanceCostAllocationActor FinanceCostAllocation[] @relation("FinanceCostAllocationActor")
+  v2FinanceLaborCostActor FinanceLaborCost[] @relation("FinanceLaborCostActor")
+  v2FinanceLaborCostRevisionActor FinanceLaborCostRevision[] @relation("FinanceLaborCostRevisionActor")
+  v2FinanceBudgetActor FinanceBudget[] @relation("FinanceBudgetActor")
+  v2FinanceBudgetRevisionActor FinanceBudgetRevision[] @relation("FinanceBudgetRevisionActor")
+  v2FinanceBudgetRevisionApprover FinanceBudgetRevision[] @relation("FinanceBudgetRevisionApprover")
+  v2FinanceCommitmentActor FinanceCommitment[] @relation("FinanceCommitmentActor")
+  v2FinanceCommitmentCancelActor FinanceCommitment[] @relation("FinanceCommitmentCancelActor")
+  v2FinanceCommitmentConversionActor FinanceCommitmentConversion[] @relation("FinanceCommitmentConversionActor")
+  financeServiceCertificates FinanceServiceCertificate[] @relation("FinanceServiceCertificateActor")
+  financeTerminalRecognitions FinanceTerminalRecognition[] @relation("FinanceTerminalRecognitionActor")
+  financeCloseSnapshots FinanceCloseSnapshot[] @relation("FinanceCloseSnapshotActor")
+  financeCloseEvents FinanceCloseEvent[] @relation("FinanceCloseEventActor")
+  recordedPaymentAdjustments PaymentAdjustment[] @relation("PaymentAdjustmentActor")
   id              String                   @id @default(uuid())
   email           String                   @unique
   displayName      String?
@@ -220,6 +250,44 @@ model EmailVerificationToken {
 }
 
 model Business {
+  financeEvidenceFiles FinanceEvidenceFile[] @relation("FinanceEvidenceFileBusiness")
+  v2FinanceImportBatchBusiness FinanceImportBatch[] @relation("FinanceImportBatchBusiness")
+  v2FinanceImportItemBusiness FinanceImportItem[] @relation("FinanceImportItemBusiness")
+  v2FinanceExpenseTemplateBusiness FinanceExpenseTemplate[] @relation("FinanceExpenseTemplateBusiness")
+  v2FinanceExpenseTemplateRevisionBusiness FinanceExpenseTemplateRevision[] @relation("FinanceExpenseTemplateRevisionBusiness")
+  v2FinanceExpenseTemplateLineBusiness FinanceExpenseTemplateLine[] @relation("FinanceExpenseTemplateLineBusiness")
+  v2FinanceExpenseDraftBusiness FinanceExpenseDraft[] @relation("FinanceExpenseDraftBusiness")
+  v2FinanceExpenseDraftLineBusiness FinanceExpenseDraftLine[] @relation("FinanceExpenseDraftLineBusiness")
+  v2FinanceApprovalPolicyRevisionBusiness FinanceApprovalPolicyRevision[] @relation("FinanceApprovalPolicyRevisionBusiness")
+  v2FinanceDraftDecisionBusiness FinanceDraftDecision[] @relation("FinanceDraftDecisionBusiness")
+  v2FinanceReimbursementDraftBusiness FinanceReimbursementDraft[] @relation("FinanceReimbursementDraftBusiness")
+  v2FinanceReimbursementClaimBusiness FinanceReimbursementClaim[] @relation("FinanceReimbursementClaimBusiness")
+  v2FinanceBankStatementBusiness FinanceBankStatement[] @relation("FinanceBankStatementBusiness")
+  v2FinanceBankRowBusiness FinanceBankRow[] @relation("FinanceBankRowBusiness")
+  v2FinanceBankMatchBusiness FinanceBankMatch[] @relation("FinanceBankMatchBusiness")
+  v2FinanceBankMatchRowBusiness FinanceBankMatchRow[] @relation("FinanceBankMatchRowBusiness")
+  v2FinanceBankMatchComponentBusiness FinanceBankMatchComponent[] @relation("FinanceBankMatchComponentBusiness")
+  v2FinanceBankFeeOriginBusiness FinanceBankFeeOrigin[] @relation("FinanceBankFeeOriginBusiness")
+  v2FinanceAllocationRuleBusiness FinanceAllocationRule[] @relation("FinanceAllocationRuleBusiness")
+  v2FinanceAllocationRuleRevisionBusiness FinanceAllocationRuleRevision[] @relation("FinanceAllocationRuleRevisionBusiness")
+  v2FinanceAllocationRulePartBusiness FinanceAllocationRulePart[] @relation("FinanceAllocationRulePartBusiness")
+  v2FinanceCostAllocationBusiness FinanceCostAllocation[] @relation("FinanceCostAllocationBusiness")
+  v2FinanceCostAllocationPartBusiness FinanceCostAllocationPart[] @relation("FinanceCostAllocationPartBusiness")
+  v2FinanceLaborCostBusiness FinanceLaborCost[] @relation("FinanceLaborCostBusiness")
+  v2FinanceLaborCostRevisionBusiness FinanceLaborCostRevision[] @relation("FinanceLaborCostRevisionBusiness")
+  v2FinanceBudgetBusiness FinanceBudget[] @relation("FinanceBudgetBusiness")
+  v2FinanceBudgetRevisionBusiness FinanceBudgetRevision[] @relation("FinanceBudgetRevisionBusiness")
+  v2FinanceBudgetLineBusiness FinanceBudgetLine[] @relation("FinanceBudgetLineBusiness")
+  v2FinanceCommitmentBusiness FinanceCommitment[] @relation("FinanceCommitmentBusiness")
+  v2FinanceCommitmentConversionBusiness FinanceCommitmentConversion[] @relation("FinanceCommitmentConversionBusiness")
+  financeServiceHeads FinanceServiceHead[] @relation("FinanceServiceHeadBusiness")
+  financeServiceCertificates FinanceServiceCertificate[] @relation("FinanceServiceCertificateBusiness")
+  financeTerminalRecognitions FinanceTerminalRecognition[] @relation("FinanceTerminalRecognitionBusiness")
+  financePeriods FinancePeriod[] @relation("FinancePeriodBusiness")
+  financeCloseSnapshots FinanceCloseSnapshot[] @relation("FinanceCloseSnapshotBusiness")
+  financeCloseEvents FinanceCloseEvent[] @relation("FinanceCloseEventBusiness")
+  paymentAdjustments PaymentAdjustment[]
+  paymentApplicationReversals PaymentApplicationReversal[]
   id                    String                   @id @default(uuid())
   businessNumber        Int?
   name                  String
@@ -250,6 +318,19 @@ model Business {
   paymentPlans          PaymentPlan[]
   subscription          BusinessSubscription?
   profileAudits         BusinessProfileAudit[]
+  financeCatalogs       FinanceCatalog[]
+  financeAccounts       FinanceAccount[]
+  financeOpenings       FinanceOpening[]
+  financeExpenses       FinanceExpense[]
+  financeExpenseLines   FinanceExpenseLine[]
+  financeSettlements    FinanceSettlement[]
+  financePaymentLinks   FinancePaymentLink[]
+  financeTransfers      FinanceTransfer[]
+  financeCashMovements  FinanceCashMovement[]
+  financeReviews        FinanceReview[]
+  financeCashCounts     FinanceCashCount[]
+  financeRequests       FinanceRequest[]
+  financeAudits         FinanceAudit[]
 }
 
 model BusinessProfileAudit {
@@ -322,6 +403,14 @@ model Contact {
 }
 
 model Resource {
+  v2FinanceTemplateLineResource FinanceExpenseTemplateLine[] @relation("FinanceTemplateLineResource")
+  v2FinanceDraftLineResource FinanceExpenseDraftLine[] @relation("FinanceDraftLineResource")
+  v2FinanceAllocationRulePartResource FinanceAllocationRulePart[] @relation("FinanceAllocationRulePartResource")
+  v2FinanceCostAllocationPartResource FinanceCostAllocationPart[] @relation("FinanceCostAllocationPartResource")
+  v2FinanceBudgetLineResource FinanceBudgetLine[] @relation("FinanceBudgetLineResource")
+  v2FinanceCommitmentResource FinanceCommitment[] @relation("FinanceCommitmentResource")
+  financeServiceCertificates FinanceServiceCertificate[] @relation("FinanceServiceCertificateResource")
+  financeTerminalRecognitions FinanceTerminalRecognition[] @relation("FinanceTerminalRecognitionResource")
   id                      String             @id @default(uuid())
   businessId              String
   name                    String
@@ -340,7 +429,9 @@ model Resource {
   ratePlanResources       RatePlanResource[]
   blocks                  Block[]
   bookingResources        BookingResource[]
+  financeExpenseLines     FinanceExpenseLine[]
 
+  @@unique([id, businessId])
   @@unique([businessId, internalCode])
   @@index([businessId, status])
   @@index([businessId, sortOrder])
@@ -462,6 +553,13 @@ model Block {
 }
 
 model Booking {
+  v2FinanceTemplateLineBooking FinanceExpenseTemplateLine[] @relation("FinanceTemplateLineBooking")
+  v2FinanceDraftLineBooking FinanceExpenseDraftLine[] @relation("FinanceDraftLineBooking")
+  v2ExpenseLines FinanceExpenseLine[] @relation("FinanceExpenseLineBooking")
+  financeServiceHead FinanceServiceHead? @relation("FinanceServiceHeadBooking")
+  financeServiceCertificates FinanceServiceCertificate[] @relation("FinanceServiceCertificateBooking")
+  financeTerminalRecognitions FinanceTerminalRecognition[] @relation("FinanceTerminalRecognitionBooking")
+  paymentAdjustments PaymentAdjustment[]
   id              String                 @id @default(uuid())
   businessId      String
   status          BookingStatus          @default(DRAFT)
@@ -488,6 +586,8 @@ model Booking {
 }
 
 model Payment {
+  v2FinanceBankComponentPayment FinanceBankMatchComponent[] @relation("FinanceBankComponentPayment")
+  adjustments PaymentAdjustment[]
   id String @id @default(uuid())
   businessId String
   bookingId String
@@ -505,6 +605,9 @@ model Payment {
   business Business @relation(fields:[businessId],references:[id],onDelete:Restrict)
   booking Booking @relation(fields:[bookingId],references:[id],onDelete:Restrict)
   applications PaymentApplication[]
+  financeLink FinancePaymentLink?
+  @@unique([id,businessId,bookingId])
+  @@unique([id,businessId])
   @@unique([businessId,idempotencyKey])
   @@index([businessId,bookingId,paidAt,id])
 }
@@ -541,6 +644,7 @@ model PaymentPlanInstallment {
 }
 
 model PaymentApplication {
+  reversals PaymentApplicationReversal[]
   paymentId    String
   installmentId String
   amountMinor  BigInt
@@ -553,6 +657,9 @@ model PaymentApplication {
 }
 
 model BookingTimelineEvent {
+  financeServiceCheckIns FinanceServiceCertificate[] @relation("FinanceServiceCheckIn")
+  financeServiceCheckOuts FinanceServiceCertificate[] @relation("FinanceServiceCheckOut")
+  @@unique([id, businessId, bookingId])
   id          String   @id @default(uuid())
   businessId  String
   bookingId   String
@@ -578,6 +685,7 @@ model BookingResource {
 }
 
 model PricingSnapshot {
+  financeServiceCertificates FinanceServiceCertificate[] @relation("FinanceServiceCertificateSnapshot")
   id               String   @id @default(uuid())
   businessId       String
   bookingId        String   @unique
@@ -595,6 +703,13 @@ model PricingSnapshot {
 }
 
 model PricingRevision {
+  financeServiceCertificates FinanceServiceCertificate[] @relation("FinanceServiceCertificateRevision")
+  financeTerminalRecognitions FinanceTerminalRecognition[] @relation("FinanceTerminalRecognitionRevision")
+  @@unique([id, businessId, bookingId])
+  kind String @default("SERVICE")
+  requestId String? @unique
+  financeRequest FinanceRequest? @relation("TerminalPricingRequest", fields: [requestId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([requestId, businessId])
   id String @id @default(uuid())
   businessId String
   bookingId String
@@ -617,4 +732,1286 @@ model PricingRevision {
 
   @@unique([bookingId, revisionNumber])
   @@index([businessId, bookingId, revisionNumber])
+}
+
+model FinanceCatalog {
+  v2FinanceTemplateRevisionCounterparty FinanceExpenseTemplateRevision[] @relation("FinanceTemplateRevisionCounterparty")
+  v2FinanceTemplateLineCategory FinanceExpenseTemplateLine[] @relation("FinanceTemplateLineCategory")
+  v2FinanceDraftCounterparty FinanceExpenseDraft[] @relation("FinanceDraftCounterparty")
+  v2FinanceDraftLineCategory FinanceExpenseDraftLine[] @relation("FinanceDraftLineCategory")
+  v2FinanceReimbursementDraftCreditor FinanceReimbursementDraft[] @relation("FinanceReimbursementDraftCreditor")
+  v2FinanceReimbursementDraftSupplier FinanceReimbursementDraft[] @relation("FinanceReimbursementDraftSupplier")
+  v2FinanceReimbursementClaimCreditor FinanceReimbursementClaim[] @relation("FinanceReimbursementClaimCreditor")
+  v2FinanceReimbursementClaimSupplier FinanceReimbursementClaim[] @relation("FinanceReimbursementClaimSupplier")
+  v2FinanceBudgetLineCategory FinanceBudgetLine[] @relation("FinanceBudgetLineCategory")
+  v2FinanceCommitmentCategory FinanceCommitment[] @relation("FinanceCommitmentCategory")
+  id String @id @default(uuid())
+  businessId String
+  kind String
+  name String
+  archived Boolean @default(false)
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  categoryLines FinanceExpenseLine[] @relation("ExpenseCategory")
+  counterpartyExpenses FinanceExpense[] @relation("ExpenseCounterparty")
+  @@unique([id, businessId])
+  @@index([businessId, kind, archived, name, id])
+}
+
+model FinanceAccount {
+  v2FinanceBankStatementAccount FinanceBankStatement[] @relation("FinanceBankStatementAccount")
+  v2FinanceBankRowAccount FinanceBankRow[] @relation("FinanceBankRowAccount")
+  v2FinanceBankMatchAccount FinanceBankMatch[] @relation("FinanceBankMatchAccount")
+  refunds PaymentAdjustment[] @relation("RefundAccount")
+  id String @id @default(uuid())
+  businessId String
+  name String
+  kind String
+  archived Boolean @default(false)
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  opening FinanceOpening?
+  settlements FinanceSettlement[]
+  paymentLinks FinancePaymentLink[]
+  transfersFrom FinanceTransfer[] @relation("TransferFrom")
+  transfersTo FinanceTransfer[] @relation("TransferTo")
+  cashMovements FinanceCashMovement[]
+  cashCounts FinanceCashCount[]
+  @@unique([id, businessId])
+  @@index([businessId, archived, name, id])
+}
+
+model FinanceOpening {
+  v2FinanceImportItemOpening FinanceImportItem[] @relation("FinanceImportItemOpening")
+  id String @id @default(uuid())
+  businessId String
+  accountId String @unique
+  amountMinor BigInt
+  occurredAt DateTime
+  reason String
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  account FinanceAccount @relation(fields: [accountId, businessId], references: [id, businessId], onDelete: Restrict)
+  corrections FinanceCashMovement[]
+  @@unique([accountId, businessId])
+  @@unique([id, businessId])
+}
+
+model FinanceExpense {
+  evidenceFiles FinanceEvidenceFile[] @relation("FinanceEvidenceFileExpense")
+  v2FinanceImportItemExpense FinanceImportItem[] @relation("FinanceImportItemExpense")
+  v2FinanceDraftConfirmedExpense FinanceExpenseDraft? @relation("FinanceDraftConfirmedExpense")
+  v2FinanceReimbursementClaimExpense FinanceReimbursementClaim? @relation("FinanceReimbursementClaimExpense")
+  v2FinanceBankFeeOriginExpense FinanceBankFeeOrigin? @relation("FinanceBankFeeOriginExpense")
+  v2FinanceCommitmentConversionExpense FinanceCommitmentConversion? @relation("FinanceCommitmentConversionExpense")
+  id String @id @default(uuid())
+  businessId String
+  description String
+  consumedOn DateTime @db.Date
+  dueOn DateTime? @db.Date
+  counterpartyId String?
+  reference String?
+  amountMinor BigInt
+  version Int @default(1)
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  counterparty FinanceCatalog? @relation("ExpenseCounterparty", fields: [counterpartyId, businessId], references: [id, businessId], onDelete: Restrict)
+  lines FinanceExpenseLine[]
+  settlements FinanceSettlement[]
+  @@unique([id, businessId])
+  @@index([businessId, consumedOn, id])
+}
+
+model FinanceExpenseLine {
+  bookingId String?
+  bookingSourceUpdatedAt DateTime?
+  bookingSourceStatus BookingStatus?
+  booking Booking? @relation("FinanceExpenseLineBooking", fields: [bookingId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@index([businessId, bookingId])
+  v2FinanceCostAllocationExpenseLine FinanceCostAllocation[] @relation("FinanceCostAllocationExpenseLine")
+  v2FinanceLaborCostCurrentExpenseLine FinanceLaborCost? @relation("FinanceLaborCostCurrentExpenseLine")
+  v2FinanceLaborRevisionExpenseLine FinanceLaborCostRevision[] @relation("FinanceLaborRevisionExpenseLine")
+  id String @id @default(uuid())
+  businessId String
+  expenseId String
+  label String
+  categoryId String
+  resourceId String?
+  amountMinor BigInt
+  operational Boolean
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  expense FinanceExpense @relation(fields: [expenseId, businessId], references: [id, businessId], onDelete: Restrict)
+  category FinanceCatalog @relation("ExpenseCategory", fields: [categoryId, businessId], references: [id, businessId], onDelete: Restrict)
+  resource Resource? @relation(fields: [resourceId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@index([expenseId, businessId])
+}
+
+model FinanceSettlement {
+  @@unique([id, businessId, expenseId])
+  v2FinanceImportItemSettlement FinanceImportItem[] @relation("FinanceImportItemSettlement")
+  v2FinanceBankComponentSettlement FinanceBankMatchComponent[] @relation("FinanceBankComponentSettlement")
+  v2FinanceBankFeeOriginSettlement FinanceBankFeeOrigin? @relation("FinanceBankFeeOriginSettlement")
+  id String @id @default(uuid())
+  businessId String
+  expenseId String
+  accountId String
+  amountMinor BigInt
+  occurredAt DateTime
+  reference String?
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  expense FinanceExpense @relation(fields: [expenseId, businessId], references: [id, businessId], onDelete: Restrict)
+  account FinanceAccount @relation(fields: [accountId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@index([businessId, occurredAt, id])
+  @@index([expenseId, businessId])
+}
+
+model FinancePaymentLink {
+  id String @id @default(uuid())
+  businessId String
+  paymentId String @unique
+  accountId String
+  version Int @default(1)
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  payment Payment @relation(fields: [paymentId, businessId], references: [id, businessId], onDelete: Restrict)
+  account FinanceAccount @relation(fields: [accountId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([paymentId, businessId])
+  @@index([businessId, accountId])
+}
+
+model FinanceTransfer {
+  v2FinanceBankComponentTransfer FinanceBankMatchComponent[] @relation("FinanceBankComponentTransfer")
+  id String @id @default(uuid())
+  businessId String
+  fromAccountId String
+  toAccountId String
+  amountMinor BigInt
+  occurredAt DateTime
+  reason String
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  fromAccount FinanceAccount @relation("TransferFrom", fields: [fromAccountId, businessId], references: [id, businessId], onDelete: Restrict)
+  toAccount FinanceAccount @relation("TransferTo", fields: [toAccountId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@index([businessId, occurredAt, id])
+}
+
+model FinanceCashMovement {
+  v2FinanceBankComponentMovement FinanceBankMatchComponent[] @relation("FinanceBankComponentMovement")
+  id String @id @default(uuid())
+  businessId String
+  accountId String
+  kind String
+  amountMinor BigInt
+  occurredAt DateTime
+  reason String
+  openingId String?
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  account FinanceAccount @relation(fields: [accountId, businessId], references: [id, businessId], onDelete: Restrict)
+  opening FinanceOpening? @relation(fields: [openingId, businessId], references: [id, businessId], onDelete: Restrict)
+  count FinanceCashCount?
+  @@unique([id, businessId])
+  @@index([businessId, occurredAt, id])
+}
+
+model FinanceReview {
+  id String @id @default(uuid())
+  businessId String
+  sourceType String
+  sourceId String
+  sourceVersion Int
+  reviewed Boolean
+  version Int @default(1)
+  reason String
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  @@unique([businessId, sourceType, sourceId])
+}
+
+model FinanceCashCount {
+  id String @id @default(uuid())
+  businessId String
+  accountId String
+  occurredAt DateTime
+  expectedAmountMinor BigInt
+  countedAmountMinor BigInt
+  differenceMinor BigInt
+  reason String
+  version Int @default(1)
+  adjustmentId String? @unique
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  account FinanceAccount @relation(fields: [accountId, businessId], references: [id, businessId], onDelete: Restrict)
+  adjustment FinanceCashMovement? @relation(fields: [adjustmentId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([adjustmentId, businessId])
+  @@unique([id, businessId])
+  @@index([businessId, occurredAt, id])
+}
+
+model FinanceRequest {
+  evidenceFile FinanceEvidenceFile? @relation("FinanceEvidenceFileRequest")
+  serviceCertificate FinanceServiceCertificate? @relation("FinanceServiceCertificateRequest")
+  terminalRecognition FinanceTerminalRecognition? @relation("FinanceTerminalRecognitionRequest")
+  closeEvent FinanceCloseEvent? @relation("FinanceCloseEventRequest")
+  paymentAdjustment PaymentAdjustment?
+  terminalPricingRevision PricingRevision? @relation("TerminalPricingRequest")
+  @@unique([id, businessId])
+  id String @id @default(uuid())
+  businessId String
+  operation String
+  idempotencyKey String
+  fingerprint String
+  result Json
+  createdAt DateTime @default(now())
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  @@unique([businessId, operation, idempotencyKey])
+}
+
+model FinanceAudit {
+  id String @id @default(uuid())
+  businessId String
+  action String
+  sourceId String
+  actorUserId String
+  occurredAt DateTime @default(now())
+  details Json
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  @@index([businessId, sourceId, occurredAt, id])
+}
+
+model PaymentAdjustment {
+  v2FinanceBankComponentRefund FinanceBankMatchComponent[] @relation("FinanceBankComponentRefund")
+  @@unique([id, businessId])
+  id String @id @default(uuid())
+  businessId String
+  bookingId String
+  paymentId String
+  kind String
+  amountMinor BigInt
+  currency String
+  occurredAt DateTime
+  createdAt DateTime @default(now())
+  recordedByUserId String
+  reason String
+  reference String?
+  accountId String?
+  sequence Int
+  requestId String @unique
+  beforeStateJson Json
+  afterStateJson Json
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  booking Booking @relation(fields: [bookingId, businessId], references: [id, businessId], onDelete: Restrict)
+  payment Payment @relation(fields: [paymentId, businessId, bookingId], references: [id, businessId, bookingId], onDelete: Restrict)
+  recordedBy User @relation("PaymentAdjustmentActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  account FinanceAccount? @relation("RefundAccount", fields: [accountId, businessId], references: [id, businessId], onDelete: Restrict)
+  request FinanceRequest @relation(fields: [requestId, businessId], references: [id, businessId], onDelete: Restrict)
+  reversals PaymentApplicationReversal[]
+  @@unique([id, businessId, paymentId])
+  @@unique([paymentId, sequence])
+  @@unique([requestId, businessId])
+  @@index([businessId, bookingId, occurredAt, id])
+}
+
+model PaymentApplicationReversal {
+  id String @id @default(uuid())
+  businessId String
+  paymentId String
+  installmentId String
+  adjustmentId String
+  amountMinor BigInt
+  createdAt DateTime @default(now())
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  application PaymentApplication @relation(fields: [paymentId, installmentId], references: [paymentId, installmentId], onDelete: Restrict)
+  adjustment PaymentAdjustment @relation(fields: [adjustmentId, businessId, paymentId], references: [id, businessId, paymentId], onDelete: Restrict)
+  @@unique([adjustmentId, paymentId, installmentId])
+  @@index([businessId, paymentId, installmentId])
+}
+
+// Contrato técnico root, staging. Historia de prestación y cierres append-only.
+// Head/período son CAS; no son saldos financieros editables.
+model FinanceServiceHead {
+  id String @id @default(uuid())
+  businessId String
+  bookingId String
+  version Int
+  certificateId String @unique
+  business Business @relation("FinanceServiceHeadBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  booking Booking @relation("FinanceServiceHeadBooking", fields: [bookingId, businessId], references: [id, businessId], onDelete: Restrict)
+  certificate FinanceServiceCertificate @relation("FinanceServiceHeadCertificate", fields: [certificateId, businessId, bookingId], references: [id, businessId, bookingId], onDelete: Restrict)
+  @@unique([bookingId, businessId])
+  @@unique([certificateId, businessId, bookingId])
+}
+
+model FinanceServiceCertificate {
+  id String @id @default(uuid())
+  businessId String
+  bookingId String
+  resourceId String
+  version Int
+  supersedesCertificateId String? @unique
+  originalSnapshotId String
+  serviceRevisionId String?
+  sourceHash String @db.Char(64)
+  bookingUpdatedAt DateTime
+  effectiveCheckInOn DateTime @db.Date
+  effectiveCheckOutOn DateTime? @db.Date
+  checkInEventId String
+  checkOutEventId String?
+  pricing Json
+  policyVersion String
+  servicePolicyVersion String @default("NIGHT_SERVICE_V1")
+  evidence String
+  reason String
+  recordedByUserId String
+  recordedAt DateTime @default(now())
+  requestId String @unique
+  business Business @relation("FinanceServiceCertificateBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  booking Booking @relation("FinanceServiceCertificateBooking", fields: [bookingId, businessId], references: [id, businessId], onDelete: Restrict)
+  resource Resource @relation("FinanceServiceCertificateResource", fields: [resourceId, businessId], references: [id, businessId], onDelete: Restrict)
+  recordedBy User @relation("FinanceServiceCertificateActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  originalSnapshot PricingSnapshot @relation("FinanceServiceCertificateSnapshot", fields: [originalSnapshotId, businessId, bookingId], references: [id, businessId, bookingId], onDelete: Restrict)
+  serviceRevision PricingRevision? @relation("FinanceServiceCertificateRevision", fields: [serviceRevisionId, businessId, bookingId], references: [id, businessId, bookingId], onDelete: Restrict)
+  checkInEvent BookingTimelineEvent @relation("FinanceServiceCheckIn", fields: [checkInEventId, businessId, bookingId], references: [id, businessId, bookingId], onDelete: Restrict)
+  checkOutEvent BookingTimelineEvent? @relation("FinanceServiceCheckOut", fields: [checkOutEventId, businessId, bookingId], references: [id, businessId, bookingId], onDelete: Restrict)
+  request FinanceRequest @relation("FinanceServiceCertificateRequest", fields: [requestId, businessId], references: [id, businessId], onDelete: Restrict)
+  previous FinanceServiceCertificate? @relation("FinanceServiceCertificateHistory", fields: [supersedesCertificateId, businessId, bookingId], references: [id, businessId, bookingId], onDelete: Restrict)
+  next FinanceServiceCertificate? @relation("FinanceServiceCertificateHistory")
+  head FinanceServiceHead? @relation("FinanceServiceHeadCertificate")
+  units FinanceServiceUnit[] @relation("FinanceServiceUnitCertificate")
+  terminalRecognitions FinanceTerminalRecognition[] @relation("FinanceTerminalServiceCertificate")
+  @@unique([id, businessId, bookingId])
+  @@unique([requestId, businessId])
+  @@unique([supersedesCertificateId, businessId, bookingId])
+  @@unique([bookingId, businessId, version])
+  @@index([businessId, recordedAt, id])
+}
+
+model FinanceServiceUnit {
+  id String @id @default(uuid())
+  businessId String
+  bookingId String
+  certificateId String
+  localNight DateTime @db.Date
+  amountMinor BigInt
+  certificate FinanceServiceCertificate @relation("FinanceServiceUnitCertificate", fields: [certificateId, businessId, bookingId], references: [id, businessId, bookingId], onDelete: Restrict)
+  @@unique([certificateId, localNight])
+  @@index([businessId, localNight, certificateId])
+}
+
+model FinanceTerminalRecognition {
+  id String @id @default(uuid())
+  businessId String
+  bookingId String
+  resourceId String?
+  version Int
+  pricingRevisionId String
+  serviceCertificateId String?
+  serviceCertificateVersion Int
+  terminalSourceHash String @db.Char(64)
+  recognitionOn DateTime @db.Date
+  finalAmountMinor BigInt
+  serviceAmountMinor BigInt
+  amountMinor BigInt
+  coverage String
+  classification String
+  reason String
+  recordedByUserId String
+  recordedAt DateTime @default(now())
+  requestId String @unique
+  business Business @relation("FinanceTerminalRecognitionBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  booking Booking @relation("FinanceTerminalRecognitionBooking", fields: [bookingId, businessId], references: [id, businessId], onDelete: Restrict)
+  resource Resource? @relation("FinanceTerminalRecognitionResource", fields: [resourceId, businessId], references: [id, businessId], onDelete: Restrict)
+  pricingRevision PricingRevision @relation("FinanceTerminalRecognitionRevision", fields: [pricingRevisionId, businessId, bookingId], references: [id, businessId, bookingId], onDelete: Restrict)
+  certificate FinanceServiceCertificate? @relation("FinanceTerminalServiceCertificate", fields: [serviceCertificateId, businessId, bookingId], references: [id, businessId, bookingId], onDelete: Restrict)
+  recordedBy User @relation("FinanceTerminalRecognitionActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  request FinanceRequest @relation("FinanceTerminalRecognitionRequest", fields: [requestId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([bookingId, businessId, version])
+  @@unique([requestId, businessId])
+  @@index([businessId, recognitionOn, id])
+}
+
+model FinancePeriod {
+  id String @id @default(uuid())
+  businessId String
+  from DateTime @db.Date
+  to DateTime @db.Date
+  timeZone String
+  status String @default("OPEN")
+  version Int @default(1)
+  latestSnapshotId String? @unique
+  createdAt DateTime @default(now())
+  business Business @relation("FinancePeriodBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  snapshots FinanceCloseSnapshot[] @relation("FinanceCloseSnapshotPeriod")
+  events FinanceCloseEvent[] @relation("FinanceCloseEventPeriod")
+  latestSnapshot FinanceCloseSnapshot? @relation("FinancePeriodLatestSnapshot", fields: [latestSnapshotId, id, businessId], references: [id, periodId, businessId], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([latestSnapshotId, id, businessId])
+  @@unique([businessId, from, to])
+  @@index([businessId, status, from])
+}
+
+model FinanceCloseSnapshot {
+  id String @id @default(uuid())
+  businessId String
+  periodId String
+  closeVersion Int
+  previousSnapshotId String? @unique
+  asOf DateTime
+  sourceToken String @db.Char(64)
+  policyVersion String @default("BLOCK_CLOSED_PERIOD_V1")
+  policyVersions Json
+  payload Json
+  payloadHash String @db.Char(64)
+  sourceRefs Json
+  checklist Json
+  recordedByUserId String
+  recordedAt DateTime @default(now())
+  business Business @relation("FinanceCloseSnapshotBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  period FinancePeriod @relation("FinanceCloseSnapshotPeriod", fields: [periodId, businessId], references: [id, businessId], onDelete: Restrict)
+  latestFor FinancePeriod? @relation("FinancePeriodLatestSnapshot")
+  previous FinanceCloseSnapshot? @relation("FinanceCloseSnapshotHistory", fields: [previousSnapshotId, periodId, businessId], references: [id, periodId, businessId], onDelete: Restrict)
+  next FinanceCloseSnapshot? @relation("FinanceCloseSnapshotHistory")
+  recordedBy User @relation("FinanceCloseSnapshotActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  events FinanceCloseEvent[] @relation("FinanceCloseEventSnapshot")
+  @@unique([id, periodId, businessId])
+  @@unique([previousSnapshotId, periodId, businessId])
+  @@unique([periodId, businessId, closeVersion])
+}
+
+model FinanceCloseEvent {
+  id String @id @default(uuid())
+  businessId String
+  periodId String
+  type String
+  beforeVersion Int
+  afterVersion Int
+  snapshotId String
+  reason String
+  actorUserId String
+  occurredAt DateTime @default(now())
+  requestId String @unique
+  business Business @relation("FinanceCloseEventBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  period FinancePeriod @relation("FinanceCloseEventPeriod", fields: [periodId, businessId], references: [id, businessId], onDelete: Restrict)
+  snapshot FinanceCloseSnapshot @relation("FinanceCloseEventSnapshot", fields: [snapshotId, periodId, businessId], references: [id, periodId, businessId], onDelete: Restrict)
+  actor User @relation("FinanceCloseEventActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  request FinanceRequest @relation("FinanceCloseEventRequest", fields: [requestId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([periodId, businessId, afterVersion])
+  @@unique([requestId, businessId])
+}
+
+// Fragmento externo. Root es el único escritor de schema/producto/migración.
+// No es un schema independiente: copiar modelos nuevos y fusionar ROOT-MERGE.
+// IDs String UUID conservan el tipo físico TEXT del schema vigente.
+// Companion schema-v2-finance.constraints.sql completa CHECKs y unicidad nullable.
+// Locks para cualquier referencia Booking nueva: User SHARE -> Membership SHARE
+// -> Booking KEY SHARE por UUID -> Business UPDATE -> fuentes/cuentas por UUID.
+// Nunca adquirir Booking después de Business; validar resource/updatedAt bajo ese lock.
+// ROOT-MERGE FinanceExpenseLine
+//   bookingId String?
+//   bookingSourceUpdatedAt DateTime?
+//   bookingSourceStatus BookingStatus?
+//   booking Booking? @relation("FinanceExpenseLineBooking", fields: [bookingId, businessId], references: [id, businessId], onDelete: Restrict)
+//   @@unique([id, businessId])
+//   @@index([businessId, bookingId])
+// ROOT-MERGE FinanceSettlement
+//   @@unique([id, businessId, expenseId])
+// ROOT-MERGE PaymentAdjustment
+//   @@unique([id, businessId])
+// ROOT-MERGE-END
+
+enum FinanceImportKind {
+  OPENING
+  EXPENSE
+  SETTLEMENT
+}
+enum FinanceExpenseDraftState {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  CONFIRMED
+}
+enum FinanceDraftDecisionKind {
+  APPROVE
+  REJECT
+}
+enum FinanceBankMatchState {
+  ACTIVE
+  CANCELLED
+}
+enum FinanceBankComponentKind {
+  PAYMENT
+  REFUND
+  SETTLEMENT
+  TRANSFER
+  MOVEMENT
+}
+enum FinanceTransferLeg {
+  FROM
+  TO
+}
+enum FinanceLaborCostKind {
+  PRECOMPUTED_LABOR
+  OWNER_IMPUTED
+}
+enum FinanceCostBasis {
+  ACTUAL
+  ESTIMATE
+}
+enum FinanceCommitmentState {
+  ACTIVE
+  CANCELLED
+}
+
+model FinanceImportBatch {
+  id String @id @default(uuid())
+  businessId String
+  sourceNamespace String @db.VarChar(64)
+  digest String @db.Char(64)
+  formatVersion String @default("FINANCE_HISTORY_V1")
+  loadedAt DateTime @default(now())
+  result Json
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceImportBatchBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("FinanceImportBatchActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  items FinanceImportItem[] @relation("FinanceImportItemBatch")
+  @@unique([id, businessId])
+  @@unique([id, businessId, sourceNamespace])
+  @@unique([businessId, sourceNamespace, digest])
+  @@index([businessId, loadedAt, id])
+}
+
+model FinanceImportItem {
+  id String @id @default(uuid())
+  businessId String
+  batchId String
+  sourceNamespace String @db.VarChar(64)
+  externalKey String @db.VarChar(120)
+  kind FinanceImportKind
+  payloadDigest String @db.Char(64)
+  openingId String?
+  expenseId String?
+  settlementId String?
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceImportItemBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  batch FinanceImportBatch @relation("FinanceImportItemBatch", fields: [batchId, businessId, sourceNamespace], references: [id, businessId, sourceNamespace], onDelete: Restrict)
+  opening FinanceOpening? @relation("FinanceImportItemOpening", fields: [openingId, businessId], references: [id, businessId], onDelete: Restrict)
+  expense FinanceExpense? @relation("FinanceImportItemExpense", fields: [expenseId, businessId], references: [id, businessId], onDelete: Restrict)
+  settlement FinanceSettlement? @relation("FinanceImportItemSettlement", fields: [settlementId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([businessId, sourceNamespace, externalKey])
+  @@index([batchId, businessId])
+}
+
+model FinanceExpenseTemplate {
+  id String @id @default(uuid())
+  businessId String
+  name String
+  archived Boolean @default(false)
+  version Int @default(1)
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceExpenseTemplateBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("FinanceExpenseTemplateActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  revisions FinanceExpenseTemplateRevision[] @relation("FinanceTemplateRevisionParent")
+  drafts FinanceExpenseDraft[] @relation("FinanceDraftTemplate")
+  @@unique([id, businessId])
+  @@index([businessId, archived, name, id])
+}
+
+model FinanceExpenseTemplateRevision {
+  id String @id @default(uuid())
+  businessId String
+  templateId String
+  revisionNo Int
+  description String
+  counterpartyId String?
+  reference String?
+  amountMinor BigInt
+  reason String
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceExpenseTemplateRevisionBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  template FinanceExpenseTemplate @relation("FinanceTemplateRevisionParent", fields: [templateId, businessId], references: [id, businessId], onDelete: Restrict)
+  counterparty FinanceCatalog? @relation("FinanceTemplateRevisionCounterparty", fields: [counterpartyId, businessId], references: [id, businessId], onDelete: Restrict)
+  recordedBy User @relation("FinanceExpenseTemplateRevisionActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  lines FinanceExpenseTemplateLine[] @relation("FinanceTemplateLineRevision")
+  drafts FinanceExpenseDraft[] @relation("FinanceDraftTemplateRevision")
+  @@unique([id, businessId])
+  @@unique([id, templateId, businessId])
+  @@unique([templateId, businessId, revisionNo])
+}
+
+model FinanceExpenseTemplateLine {
+  id String @id @default(uuid())
+  businessId String
+  revisionId String
+  ordinal Int
+  label String
+  categoryId String
+  resourceId String?
+  bookingId String?
+  bookingSourceUpdatedAt DateTime?
+  bookingSourceStatus BookingStatus?
+  amountMinor BigInt
+  operational Boolean
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceExpenseTemplateLineBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  revision FinanceExpenseTemplateRevision @relation("FinanceTemplateLineRevision", fields: [revisionId, businessId], references: [id, businessId], onDelete: Restrict)
+  category FinanceCatalog @relation("FinanceTemplateLineCategory", fields: [categoryId, businessId], references: [id, businessId], onDelete: Restrict)
+  resource Resource? @relation("FinanceTemplateLineResource", fields: [resourceId, businessId], references: [id, businessId], onDelete: Restrict)
+  booking Booking? @relation("FinanceTemplateLineBooking", fields: [bookingId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([revisionId, businessId, ordinal])
+}
+
+model FinanceExpenseDraft {
+  id String @id @default(uuid())
+  businessId String
+  description String
+  consumedOn DateTime @db.Date
+  dueOn DateTime? @db.Date
+  counterpartyId String?
+  reference String?
+  amountMinor BigInt
+  version Int @default(1)
+  definitionVersion Int @default(1)
+  state FinanceExpenseDraftState @default(DRAFT)
+  creatorUserId String
+  recordedByUserId String
+  templateId String?
+  templateRevisionId String?
+  periodMonth String? @db.VarChar(7)
+  approvalPolicyRevisionId String?
+  submissionVersion Int?
+  confirmedExpenseId String? @unique
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceExpenseDraftBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  creator User @relation("FinanceExpenseDraftCreator", fields: [creatorUserId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("FinanceExpenseDraftActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  counterparty FinanceCatalog? @relation("FinanceDraftCounterparty", fields: [counterpartyId, businessId], references: [id, businessId], onDelete: Restrict)
+  template FinanceExpenseTemplate? @relation("FinanceDraftTemplate", fields: [templateId, businessId], references: [id, businessId], onDelete: Restrict)
+  templateRevision FinanceExpenseTemplateRevision? @relation("FinanceDraftTemplateRevision", fields: [templateRevisionId, templateId, businessId], references: [id, templateId, businessId], onDelete: Restrict)
+  approvalPolicyRevision FinanceApprovalPolicyRevision? @relation("FinanceDraftPolicy", fields: [approvalPolicyRevisionId, businessId], references: [id, businessId], onDelete: Restrict)
+  confirmedExpense FinanceExpense? @relation("FinanceDraftConfirmedExpense", fields: [confirmedExpenseId, businessId], references: [id, businessId], onDelete: Restrict)
+  lines FinanceExpenseDraftLine[] @relation("FinanceDraftLineParent")
+  decisions FinanceDraftDecision[] @relation("FinanceDraftDecisionParent")
+  reimbursement FinanceReimbursementDraft? @relation("FinanceReimbursementDraftParent")
+  @@unique([id, businessId])
+  @@unique([confirmedExpenseId, businessId])
+  @@unique([businessId, templateId, periodMonth])
+  @@index([businessId, state, createdAt, id])
+}
+
+model FinanceExpenseDraftLine {
+  id String @id @default(uuid())
+  businessId String
+  draftId String
+  definitionVersion Int @default(1)
+  ordinal Int
+  label String
+  categoryId String
+  resourceId String?
+  bookingId String?
+  bookingSourceUpdatedAt DateTime?
+  bookingSourceStatus BookingStatus?
+  amountMinor BigInt
+  operational Boolean
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceExpenseDraftLineBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  draft FinanceExpenseDraft @relation("FinanceDraftLineParent", fields: [draftId, businessId], references: [id, businessId], onDelete: Restrict)
+  category FinanceCatalog @relation("FinanceDraftLineCategory", fields: [categoryId, businessId], references: [id, businessId], onDelete: Restrict)
+  resource Resource? @relation("FinanceDraftLineResource", fields: [resourceId, businessId], references: [id, businessId], onDelete: Restrict)
+  booking Booking? @relation("FinanceDraftLineBooking", fields: [bookingId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([draftId, businessId, definitionVersion, ordinal])
+}
+
+model FinanceApprovalPolicyRevision {
+  id String @id @default(uuid())
+  businessId String
+  version Int
+  enabled Boolean
+  scope String @default("ALL_NEW_EXPENSE_CONFIRMATIONS")
+  requireDifferentActor Boolean @default(true)
+  reason String
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceApprovalPolicyRevisionBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("FinanceApprovalPolicyRevisionActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  drafts FinanceExpenseDraft[] @relation("FinanceDraftPolicy")
+  decisions FinanceDraftDecision[] @relation("FinanceDraftDecisionPolicy")
+  @@unique([id, businessId])
+  @@unique([businessId, version])
+}
+
+model FinanceDraftDecision {
+  id String @id @default(uuid())
+  businessId String
+  draftId String
+  draftVersionAtSubmission Int
+  policyRevisionId String
+  decision FinanceDraftDecisionKind
+  actorUserId String
+  reason String
+  occurredAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceDraftDecisionBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  draft FinanceExpenseDraft @relation("FinanceDraftDecisionParent", fields: [draftId, businessId], references: [id, businessId], onDelete: Restrict)
+  policyRevision FinanceApprovalPolicyRevision @relation("FinanceDraftDecisionPolicy", fields: [policyRevisionId, businessId], references: [id, businessId], onDelete: Restrict)
+  actor User @relation("FinanceDraftDecisionActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([draftId, businessId, draftVersionAtSubmission])
+}
+
+model FinanceReimbursementDraft {
+  id String @id @default(uuid())
+  businessId String
+  draftId String @unique
+  creditorCounterpartyId String
+  supplierCounterpartyId String?
+  externallyPaidOn DateTime @db.Date
+  privateReference String?
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceReimbursementDraftBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  draft FinanceExpenseDraft @relation("FinanceReimbursementDraftParent", fields: [draftId, businessId], references: [id, businessId], onDelete: Restrict)
+  creditor FinanceCatalog @relation("FinanceReimbursementDraftCreditor", fields: [creditorCounterpartyId, businessId], references: [id, businessId], onDelete: Restrict)
+  supplier FinanceCatalog? @relation("FinanceReimbursementDraftSupplier", fields: [supplierCounterpartyId, businessId], references: [id, businessId], onDelete: Restrict)
+  recordedBy User @relation("FinanceReimbursementDraftActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([draftId, businessId])
+}
+
+model FinanceReimbursementClaim {
+  id String @id @default(uuid())
+  businessId String
+  expenseId String @unique
+  creditorCounterpartyId String
+  supplierCounterpartyId String?
+  externallyPaidOn DateTime @db.Date
+  privateReference String?
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceReimbursementClaimBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  expense FinanceExpense @relation("FinanceReimbursementClaimExpense", fields: [expenseId, businessId], references: [id, businessId], onDelete: Restrict)
+  creditor FinanceCatalog @relation("FinanceReimbursementClaimCreditor", fields: [creditorCounterpartyId, businessId], references: [id, businessId], onDelete: Restrict)
+  supplier FinanceCatalog? @relation("FinanceReimbursementClaimSupplier", fields: [supplierCounterpartyId, businessId], references: [id, businessId], onDelete: Restrict)
+  recordedBy User @relation("FinanceReimbursementClaimActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([expenseId, businessId])
+}
+
+model FinanceBankStatement {
+  result Json
+  id String @id @default(uuid())
+  businessId String
+  accountId String
+  sourceNamespace String @db.VarChar(64)
+  canonicalDigest String @db.Char(64)
+  formatVersion String @default("FINANCE_BANK_V1")
+  loadedAt DateTime @default(now())
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceBankStatementBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  account FinanceAccount @relation("FinanceBankStatementAccount", fields: [accountId, businessId], references: [id, businessId], onDelete: Restrict)
+  recordedBy User @relation("FinanceBankStatementActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  rows FinanceBankRow[] @relation("FinanceBankRowStatement")
+  @@unique([id, businessId])
+  @@unique([id, businessId, accountId, sourceNamespace])
+  @@unique([businessId, accountId, sourceNamespace, canonicalDigest])
+  @@index([businessId, loadedAt, id])
+}
+
+model FinanceBankRow {
+  id String @id @default(uuid())
+  businessId String
+  statementId String
+  accountId String
+  sourceNamespace String @db.VarChar(64)
+  externalKey String @db.VarChar(120)
+  payloadDigest String @db.Char(64)
+  bookedOn DateTime @db.Date
+  amountMinor BigInt
+  reference String?
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceBankRowBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  statement FinanceBankStatement @relation("FinanceBankRowStatement", fields: [statementId, businessId, accountId, sourceNamespace], references: [id, businessId, accountId, sourceNamespace], onDelete: Restrict)
+  account FinanceAccount @relation("FinanceBankRowAccount", fields: [accountId, businessId], references: [id, businessId], onDelete: Restrict)
+  matches FinanceBankMatchRow[] @relation("FinanceBankMatchRowSource")
+  feeOrigin FinanceBankFeeOrigin? @relation("FinanceBankFeeOriginRow")
+  @@unique([id, businessId])
+  @@unique([id, businessId, accountId])
+  @@unique([businessId, accountId, sourceNamespace, externalKey])
+  @@index([businessId, accountId, bookedOn, id])
+}
+
+model FinanceBankMatch {
+  id String @id @default(uuid())
+  businessId String
+  accountId String
+  version Int @default(1)
+  state FinanceBankMatchState @default(ACTIVE)
+  reason String
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  cancelledByUserId String?
+  cancelledAt DateTime?
+  cancelReason String?
+  business Business @relation("FinanceBankMatchBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  account FinanceAccount @relation("FinanceBankMatchAccount", fields: [accountId, businessId], references: [id, businessId], onDelete: Restrict)
+  recordedBy User @relation("FinanceBankMatchActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  cancelledBy User? @relation("FinanceBankMatchCancelActor", fields: [cancelledByUserId], references: [id], onDelete: Restrict)
+  rows FinanceBankMatchRow[] @relation("FinanceBankMatchRowParent")
+  components FinanceBankMatchComponent[] @relation("FinanceBankMatchComponentParent")
+  @@unique([id, businessId])
+  @@unique([id, businessId, accountId])
+  @@index([businessId, state, createdAt, id])
+}
+
+model FinanceBankMatchRow {
+  id String @id @default(uuid())
+  businessId String
+  matchId String
+  bankRowId String
+  accountId String
+  consumedAmountMinor BigInt
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceBankMatchRowBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  match FinanceBankMatch @relation("FinanceBankMatchRowParent", fields: [matchId, businessId, accountId], references: [id, businessId, accountId], onDelete: Restrict)
+  bankRow FinanceBankRow @relation("FinanceBankMatchRowSource", fields: [bankRowId, businessId, accountId], references: [id, businessId, accountId], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([matchId, businessId, bankRowId])
+  @@index([bankRowId, businessId])
+}
+
+model FinanceBankMatchComponent {
+  id String @id @default(uuid())
+  businessId String
+  matchId String
+  accountId String
+  sourceType FinanceBankComponentKind
+  paymentId String?
+  paymentAdjustmentId String?
+  settlementId String?
+  transferId String?
+  cashMovementId String?
+  sourceLeg FinanceTransferLeg?
+  sourceVersion Int
+  sourceHash String @db.Char(64)
+  amountMinor BigInt
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceBankMatchComponentBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  match FinanceBankMatch @relation("FinanceBankMatchComponentParent", fields: [matchId, businessId, accountId], references: [id, businessId, accountId], onDelete: Restrict)
+  payment Payment? @relation("FinanceBankComponentPayment", fields: [paymentId, businessId], references: [id, businessId], onDelete: Restrict)
+  paymentAdjustment PaymentAdjustment? @relation("FinanceBankComponentRefund", fields: [paymentAdjustmentId, businessId], references: [id, businessId], onDelete: Restrict)
+  settlement FinanceSettlement? @relation("FinanceBankComponentSettlement", fields: [settlementId, businessId], references: [id, businessId], onDelete: Restrict)
+  transfer FinanceTransfer? @relation("FinanceBankComponentTransfer", fields: [transferId, businessId], references: [id, businessId], onDelete: Restrict)
+  cashMovement FinanceCashMovement? @relation("FinanceBankComponentMovement", fields: [cashMovementId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([matchId, businessId, paymentId])
+  @@unique([matchId, businessId, paymentAdjustmentId])
+  @@unique([matchId, businessId, settlementId])
+  @@unique([matchId, businessId, transferId, sourceLeg])
+  @@unique([matchId, businessId, cashMovementId])
+  @@index([businessId, paymentId])
+  @@index([businessId, paymentAdjustmentId])
+  @@index([businessId, settlementId])
+  @@index([businessId, transferId, sourceLeg])
+  @@index([businessId, cashMovementId])
+}
+
+model FinanceBankFeeOrigin {
+  id String @id @default(uuid())
+  businessId String
+  bankRowId String @unique
+  expenseId String @unique
+  settlementId String @unique
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceBankFeeOriginBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  bankRow FinanceBankRow @relation("FinanceBankFeeOriginRow", fields: [bankRowId, businessId], references: [id, businessId], onDelete: Restrict)
+  expense FinanceExpense @relation("FinanceBankFeeOriginExpense", fields: [expenseId, businessId], references: [id, businessId], onDelete: Restrict)
+  settlement FinanceSettlement @relation("FinanceBankFeeOriginSettlement", fields: [settlementId, businessId, expenseId], references: [id, businessId, expenseId], onDelete: Restrict)
+  recordedBy User @relation("FinanceBankFeeOriginActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([bankRowId, businessId])
+  @@unique([expenseId, businessId])
+  @@unique([settlementId, businessId, expenseId])
+}
+
+model FinanceAllocationRule {
+  id String @id @default(uuid())
+  businessId String
+  name String
+  archived Boolean @default(false)
+  version Int @default(1)
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceAllocationRuleBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("FinanceAllocationRuleActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  revisions FinanceAllocationRuleRevision[] @relation("FinanceAllocationRuleRevisionParent")
+  @@unique([id, businessId])
+  @@index([businessId, archived, name, id])
+}
+
+model FinanceAllocationRuleRevision {
+  id String @id @default(uuid())
+  businessId String
+  ruleId String
+  revisionNo Int
+  validFrom DateTime @db.Date
+  validTo DateTime? @db.Date
+  reason String
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceAllocationRuleRevisionBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  rule FinanceAllocationRule @relation("FinanceAllocationRuleRevisionParent", fields: [ruleId, businessId], references: [id, businessId], onDelete: Restrict)
+  recordedBy User @relation("FinanceAllocationRuleRevisionActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  parts FinanceAllocationRulePart[] @relation("FinanceAllocationRulePartParent")
+  allocations FinanceCostAllocation[] @relation("FinanceCostAllocationRule")
+  @@unique([id, businessId])
+  @@unique([ruleId, businessId, revisionNo])
+}
+
+model FinanceAllocationRulePart {
+  id String @id @default(uuid())
+  businessId String
+  revisionId String
+  resourceId String
+  basisPoints Int
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceAllocationRulePartBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  revision FinanceAllocationRuleRevision @relation("FinanceAllocationRulePartParent", fields: [revisionId, businessId], references: [id, businessId], onDelete: Restrict)
+  resource Resource @relation("FinanceAllocationRulePartResource", fields: [resourceId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([revisionId, businessId, resourceId])
+}
+
+model FinanceCostAllocation {
+  id String @id @default(uuid())
+  businessId String
+  revisionNo Int
+  ruleRevisionId String
+  sourceExpenseLineId String?
+  sourceLaborRevisionId String?
+  sourceVersion Int
+  sourceHash String @db.Char(64)
+  sourceAmountMinor BigInt
+  sourceBasis FinanceCostBasis
+  consumedOn DateTime @db.Date
+  unassignedMinor BigInt
+  reason String
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceCostAllocationBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  ruleRevision FinanceAllocationRuleRevision @relation("FinanceCostAllocationRule", fields: [ruleRevisionId, businessId], references: [id, businessId], onDelete: Restrict)
+  sourceExpenseLine FinanceExpenseLine? @relation("FinanceCostAllocationExpenseLine", fields: [sourceExpenseLineId, businessId], references: [id, businessId], onDelete: Restrict)
+  sourceLaborRevision FinanceLaborCostRevision? @relation("FinanceCostAllocationLaborRevision", fields: [sourceLaborRevisionId, businessId], references: [id, businessId], onDelete: Restrict)
+  recordedBy User @relation("FinanceCostAllocationActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  parts FinanceCostAllocationPart[] @relation("FinanceCostAllocationPartParent")
+  @@unique([id, businessId])
+  @@unique([businessId, sourceExpenseLineId, revisionNo])
+  @@unique([businessId, sourceLaborRevisionId, revisionNo])
+  @@index([businessId, consumedOn, id])
+}
+
+model FinanceCostAllocationPart {
+  id String @id @default(uuid())
+  businessId String
+  allocationId String
+  resourceId String
+  amountMinor BigInt
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceCostAllocationPartBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  allocation FinanceCostAllocation @relation("FinanceCostAllocationPartParent", fields: [allocationId, businessId], references: [id, businessId], onDelete: Restrict)
+  resource Resource @relation("FinanceCostAllocationPartResource", fields: [resourceId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([allocationId, businessId, resourceId])
+}
+
+model FinanceLaborCost {
+  id String @id @default(uuid())
+  businessId String
+  label String
+  personLabel String?
+  periodMonth String @db.VarChar(7)
+  consumedOn DateTime @db.Date
+  kind FinanceLaborCostKind
+  version Int @default(1)
+  actualExpenseLineId String? @unique
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceLaborCostBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  actualExpenseLine FinanceExpenseLine? @relation("FinanceLaborCostCurrentExpenseLine", fields: [actualExpenseLineId, businessId], references: [id, businessId], onDelete: Restrict)
+  recordedBy User @relation("FinanceLaborCostActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  revisions FinanceLaborCostRevision[] @relation("FinanceLaborRevisionParent")
+  @@unique([id, businessId])
+  @@unique([actualExpenseLineId, businessId])
+  @@index([businessId, periodMonth, id])
+}
+
+model FinanceLaborCostRevision {
+  id String @id @default(uuid())
+  businessId String
+  laborId String
+  revisionNo Int
+  actualExpenseLineId String?
+  estimatedMinor BigInt?
+  reason String
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceLaborCostRevisionBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  labor FinanceLaborCost @relation("FinanceLaborRevisionParent", fields: [laborId, businessId], references: [id, businessId], onDelete: Restrict)
+  actualExpenseLine FinanceExpenseLine? @relation("FinanceLaborRevisionExpenseLine", fields: [actualExpenseLineId, businessId], references: [id, businessId], onDelete: Restrict)
+  recordedBy User @relation("FinanceLaborCostRevisionActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  allocations FinanceCostAllocation[] @relation("FinanceCostAllocationLaborRevision")
+  @@unique([id, businessId])
+  @@unique([laborId, businessId, revisionNo])
+  @@index([actualExpenseLineId, businessId, laborId])
+}
+
+model FinanceBudget {
+  id String @id @default(uuid())
+  businessId String
+  periodMonth String @db.VarChar(7)
+  kind String @default("OPERATING_COST")
+  version Int @default(1)
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceBudgetBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("FinanceBudgetActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  revisions FinanceBudgetRevision[] @relation("FinanceBudgetRevisionParent")
+  @@unique([id, businessId])
+  @@unique([businessId, periodMonth])
+}
+
+model FinanceBudgetRevision {
+  id String @id @default(uuid())
+  businessId String
+  budgetId String
+  revisionNo Int
+  reason String
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  approvedByUserId String?
+  approvedAt DateTime?
+  business Business @relation("FinanceBudgetRevisionBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  budget FinanceBudget @relation("FinanceBudgetRevisionParent", fields: [budgetId, businessId], references: [id, businessId], onDelete: Restrict)
+  recordedBy User @relation("FinanceBudgetRevisionActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  approvedBy User? @relation("FinanceBudgetRevisionApprover", fields: [approvedByUserId], references: [id], onDelete: Restrict)
+  lines FinanceBudgetLine[] @relation("FinanceBudgetLineParent")
+  @@unique([id, businessId])
+  @@unique([budgetId, businessId, revisionNo])
+}
+
+model FinanceBudgetLine {
+  id String @id @default(uuid())
+  businessId String
+  revisionId String
+  ordinal Int
+  categoryId String?
+  resourceId String?
+  approvedMinor BigInt
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceBudgetLineBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  revision FinanceBudgetRevision @relation("FinanceBudgetLineParent", fields: [revisionId, businessId], references: [id, businessId], onDelete: Restrict)
+  category FinanceCatalog? @relation("FinanceBudgetLineCategory", fields: [categoryId, businessId], references: [id, businessId], onDelete: Restrict)
+  resource Resource? @relation("FinanceBudgetLineResource", fields: [resourceId, businessId], references: [id, businessId], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([revisionId, businessId, ordinal])
+  // ROOT SQL: UNIQUE NULLS NOT DISTINCT(revisionId,businessId,categoryId,resourceId).
+}
+
+model FinanceCommitment {
+  id String @id @default(uuid())
+  businessId String
+  description String
+  amountMinor BigInt
+  categoryId String?
+  resourceId String?
+  expectedConsumptionOn DateTime @db.Date
+  dueOn DateTime? @db.Date
+  operational Boolean
+  reference String?
+  version Int @default(1)
+  state FinanceCommitmentState @default(ACTIVE)
+  reason String
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  cancelledByUserId String?
+  cancelledAt DateTime?
+  cancelReason String?
+  business Business @relation("FinanceCommitmentBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  category FinanceCatalog? @relation("FinanceCommitmentCategory", fields: [categoryId, businessId], references: [id, businessId], onDelete: Restrict)
+  resource Resource? @relation("FinanceCommitmentResource", fields: [resourceId, businessId], references: [id, businessId], onDelete: Restrict)
+  recordedBy User @relation("FinanceCommitmentActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  cancelledBy User? @relation("FinanceCommitmentCancelActor", fields: [cancelledByUserId], references: [id], onDelete: Restrict)
+  conversions FinanceCommitmentConversion[] @relation("FinanceCommitmentConversionParent")
+  @@unique([id, businessId])
+  @@index([businessId, state, expectedConsumptionOn, id])
+}
+
+model FinanceCommitmentConversion {
+  id String @id @default(uuid())
+  businessId String
+  commitmentId String
+  expenseId String @unique
+  consumedMinor BigInt
+  recordedByUserId String
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceCommitmentConversionBusiness", fields: [businessId], references: [id], onDelete: Restrict)
+  commitment FinanceCommitment @relation("FinanceCommitmentConversionParent", fields: [commitmentId, businessId], references: [id, businessId], onDelete: Restrict)
+  expense FinanceExpense @relation("FinanceCommitmentConversionExpense", fields: [expenseId, businessId], references: [id, businessId], onDelete: Restrict)
+  recordedBy User @relation("FinanceCommitmentConversionActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  @@unique([id, businessId])
+  @@unique([expenseId, businessId])
+  @@index([commitmentId, businessId])
+}
+
+// BEGIN GENERATED ROOT INVERSES
+// ROOT-MERGE Business
+//   v2FinanceImportBatchBusiness FinanceImportBatch[] @relation("FinanceImportBatchBusiness")
+//   v2FinanceImportItemBusiness FinanceImportItem[] @relation("FinanceImportItemBusiness")
+//   v2FinanceExpenseTemplateBusiness FinanceExpenseTemplate[] @relation("FinanceExpenseTemplateBusiness")
+//   v2FinanceExpenseTemplateRevisionBusiness FinanceExpenseTemplateRevision[] @relation("FinanceExpenseTemplateRevisionBusiness")
+//   v2FinanceExpenseTemplateLineBusiness FinanceExpenseTemplateLine[] @relation("FinanceExpenseTemplateLineBusiness")
+//   v2FinanceExpenseDraftBusiness FinanceExpenseDraft[] @relation("FinanceExpenseDraftBusiness")
+//   v2FinanceExpenseDraftLineBusiness FinanceExpenseDraftLine[] @relation("FinanceExpenseDraftLineBusiness")
+//   v2FinanceApprovalPolicyRevisionBusiness FinanceApprovalPolicyRevision[] @relation("FinanceApprovalPolicyRevisionBusiness")
+//   v2FinanceDraftDecisionBusiness FinanceDraftDecision[] @relation("FinanceDraftDecisionBusiness")
+//   v2FinanceReimbursementDraftBusiness FinanceReimbursementDraft[] @relation("FinanceReimbursementDraftBusiness")
+//   v2FinanceReimbursementClaimBusiness FinanceReimbursementClaim[] @relation("FinanceReimbursementClaimBusiness")
+//   v2FinanceBankStatementBusiness FinanceBankStatement[] @relation("FinanceBankStatementBusiness")
+//   v2FinanceBankRowBusiness FinanceBankRow[] @relation("FinanceBankRowBusiness")
+//   v2FinanceBankMatchBusiness FinanceBankMatch[] @relation("FinanceBankMatchBusiness")
+//   v2FinanceBankMatchRowBusiness FinanceBankMatchRow[] @relation("FinanceBankMatchRowBusiness")
+//   v2FinanceBankMatchComponentBusiness FinanceBankMatchComponent[] @relation("FinanceBankMatchComponentBusiness")
+//   v2FinanceBankFeeOriginBusiness FinanceBankFeeOrigin[] @relation("FinanceBankFeeOriginBusiness")
+//   v2FinanceAllocationRuleBusiness FinanceAllocationRule[] @relation("FinanceAllocationRuleBusiness")
+//   v2FinanceAllocationRuleRevisionBusiness FinanceAllocationRuleRevision[] @relation("FinanceAllocationRuleRevisionBusiness")
+//   v2FinanceAllocationRulePartBusiness FinanceAllocationRulePart[] @relation("FinanceAllocationRulePartBusiness")
+//   v2FinanceCostAllocationBusiness FinanceCostAllocation[] @relation("FinanceCostAllocationBusiness")
+//   v2FinanceCostAllocationPartBusiness FinanceCostAllocationPart[] @relation("FinanceCostAllocationPartBusiness")
+//   v2FinanceLaborCostBusiness FinanceLaborCost[] @relation("FinanceLaborCostBusiness")
+//   v2FinanceLaborCostRevisionBusiness FinanceLaborCostRevision[] @relation("FinanceLaborCostRevisionBusiness")
+//   v2FinanceBudgetBusiness FinanceBudget[] @relation("FinanceBudgetBusiness")
+//   v2FinanceBudgetRevisionBusiness FinanceBudgetRevision[] @relation("FinanceBudgetRevisionBusiness")
+//   v2FinanceBudgetLineBusiness FinanceBudgetLine[] @relation("FinanceBudgetLineBusiness")
+//   v2FinanceCommitmentBusiness FinanceCommitment[] @relation("FinanceCommitmentBusiness")
+//   v2FinanceCommitmentConversionBusiness FinanceCommitmentConversion[] @relation("FinanceCommitmentConversionBusiness")
+// ROOT-MERGE User
+//   v2FinanceImportBatchActor FinanceImportBatch[] @relation("FinanceImportBatchActor")
+//   v2FinanceExpenseTemplateActor FinanceExpenseTemplate[] @relation("FinanceExpenseTemplateActor")
+//   v2FinanceExpenseTemplateRevisionActor FinanceExpenseTemplateRevision[] @relation("FinanceExpenseTemplateRevisionActor")
+//   v2FinanceExpenseDraftCreator FinanceExpenseDraft[] @relation("FinanceExpenseDraftCreator")
+//   v2FinanceExpenseDraftActor FinanceExpenseDraft[] @relation("FinanceExpenseDraftActor")
+//   v2FinanceApprovalPolicyRevisionActor FinanceApprovalPolicyRevision[] @relation("FinanceApprovalPolicyRevisionActor")
+//   v2FinanceDraftDecisionActor FinanceDraftDecision[] @relation("FinanceDraftDecisionActor")
+//   v2FinanceReimbursementDraftActor FinanceReimbursementDraft[] @relation("FinanceReimbursementDraftActor")
+//   v2FinanceReimbursementClaimActor FinanceReimbursementClaim[] @relation("FinanceReimbursementClaimActor")
+//   v2FinanceBankStatementActor FinanceBankStatement[] @relation("FinanceBankStatementActor")
+//   v2FinanceBankMatchActor FinanceBankMatch[] @relation("FinanceBankMatchActor")
+//   v2FinanceBankMatchCancelActor FinanceBankMatch[] @relation("FinanceBankMatchCancelActor")
+//   v2FinanceBankFeeOriginActor FinanceBankFeeOrigin[] @relation("FinanceBankFeeOriginActor")
+//   v2FinanceAllocationRuleActor FinanceAllocationRule[] @relation("FinanceAllocationRuleActor")
+//   v2FinanceAllocationRuleRevisionActor FinanceAllocationRuleRevision[] @relation("FinanceAllocationRuleRevisionActor")
+//   v2FinanceCostAllocationActor FinanceCostAllocation[] @relation("FinanceCostAllocationActor")
+//   v2FinanceLaborCostActor FinanceLaborCost[] @relation("FinanceLaborCostActor")
+//   v2FinanceLaborCostRevisionActor FinanceLaborCostRevision[] @relation("FinanceLaborCostRevisionActor")
+//   v2FinanceBudgetActor FinanceBudget[] @relation("FinanceBudgetActor")
+//   v2FinanceBudgetRevisionActor FinanceBudgetRevision[] @relation("FinanceBudgetRevisionActor")
+//   v2FinanceBudgetRevisionApprover FinanceBudgetRevision[] @relation("FinanceBudgetRevisionApprover")
+//   v2FinanceCommitmentActor FinanceCommitment[] @relation("FinanceCommitmentActor")
+//   v2FinanceCommitmentCancelActor FinanceCommitment[] @relation("FinanceCommitmentCancelActor")
+//   v2FinanceCommitmentConversionActor FinanceCommitmentConversion[] @relation("FinanceCommitmentConversionActor")
+// ROOT-MERGE FinanceOpening
+//   v2FinanceImportItemOpening FinanceImportItem[] @relation("FinanceImportItemOpening")
+// ROOT-MERGE FinanceExpense
+//   v2FinanceImportItemExpense FinanceImportItem[] @relation("FinanceImportItemExpense")
+//   v2FinanceDraftConfirmedExpense FinanceExpenseDraft? @relation("FinanceDraftConfirmedExpense")
+//   v2FinanceReimbursementClaimExpense FinanceReimbursementClaim? @relation("FinanceReimbursementClaimExpense")
+//   v2FinanceBankFeeOriginExpense FinanceBankFeeOrigin? @relation("FinanceBankFeeOriginExpense")
+//   v2FinanceCommitmentConversionExpense FinanceCommitmentConversion? @relation("FinanceCommitmentConversionExpense")
+// ROOT-MERGE FinanceSettlement
+//   v2FinanceImportItemSettlement FinanceImportItem[] @relation("FinanceImportItemSettlement")
+//   v2FinanceBankComponentSettlement FinanceBankMatchComponent[] @relation("FinanceBankComponentSettlement")
+//   v2FinanceBankFeeOriginSettlement FinanceBankFeeOrigin? @relation("FinanceBankFeeOriginSettlement")
+// ROOT-MERGE FinanceCatalog
+//   v2FinanceTemplateRevisionCounterparty FinanceExpenseTemplateRevision[] @relation("FinanceTemplateRevisionCounterparty")
+//   v2FinanceTemplateLineCategory FinanceExpenseTemplateLine[] @relation("FinanceTemplateLineCategory")
+//   v2FinanceDraftCounterparty FinanceExpenseDraft[] @relation("FinanceDraftCounterparty")
+//   v2FinanceDraftLineCategory FinanceExpenseDraftLine[] @relation("FinanceDraftLineCategory")
+//   v2FinanceReimbursementDraftCreditor FinanceReimbursementDraft[] @relation("FinanceReimbursementDraftCreditor")
+//   v2FinanceReimbursementDraftSupplier FinanceReimbursementDraft[] @relation("FinanceReimbursementDraftSupplier")
+//   v2FinanceReimbursementClaimCreditor FinanceReimbursementClaim[] @relation("FinanceReimbursementClaimCreditor")
+//   v2FinanceReimbursementClaimSupplier FinanceReimbursementClaim[] @relation("FinanceReimbursementClaimSupplier")
+//   v2FinanceBudgetLineCategory FinanceBudgetLine[] @relation("FinanceBudgetLineCategory")
+//   v2FinanceCommitmentCategory FinanceCommitment[] @relation("FinanceCommitmentCategory")
+// ROOT-MERGE Resource
+//   v2FinanceTemplateLineResource FinanceExpenseTemplateLine[] @relation("FinanceTemplateLineResource")
+//   v2FinanceDraftLineResource FinanceExpenseDraftLine[] @relation("FinanceDraftLineResource")
+//   v2FinanceAllocationRulePartResource FinanceAllocationRulePart[] @relation("FinanceAllocationRulePartResource")
+//   v2FinanceCostAllocationPartResource FinanceCostAllocationPart[] @relation("FinanceCostAllocationPartResource")
+//   v2FinanceBudgetLineResource FinanceBudgetLine[] @relation("FinanceBudgetLineResource")
+//   v2FinanceCommitmentResource FinanceCommitment[] @relation("FinanceCommitmentResource")
+// ROOT-MERGE Booking
+//   v2FinanceTemplateLineBooking FinanceExpenseTemplateLine[] @relation("FinanceTemplateLineBooking")
+//   v2FinanceDraftLineBooking FinanceExpenseDraftLine[] @relation("FinanceDraftLineBooking")
+//   v2ExpenseLines FinanceExpenseLine[] @relation("FinanceExpenseLineBooking")
+// ROOT-MERGE FinanceAccount
+//   v2FinanceBankStatementAccount FinanceBankStatement[] @relation("FinanceBankStatementAccount")
+//   v2FinanceBankRowAccount FinanceBankRow[] @relation("FinanceBankRowAccount")
+//   v2FinanceBankMatchAccount FinanceBankMatch[] @relation("FinanceBankMatchAccount")
+// ROOT-MERGE Payment
+//   v2FinanceBankComponentPayment FinanceBankMatchComponent[] @relation("FinanceBankComponentPayment")
+// ROOT-MERGE PaymentAdjustment
+//   v2FinanceBankComponentRefund FinanceBankMatchComponent[] @relation("FinanceBankComponentRefund")
+// ROOT-MERGE FinanceTransfer
+//   v2FinanceBankComponentTransfer FinanceBankMatchComponent[] @relation("FinanceBankComponentTransfer")
+// ROOT-MERGE FinanceCashMovement
+//   v2FinanceBankComponentMovement FinanceBankMatchComponent[] @relation("FinanceBankComponentMovement")
+// ROOT-MERGE FinanceExpenseLine
+//   v2FinanceCostAllocationExpenseLine FinanceCostAllocation[] @relation("FinanceCostAllocationExpenseLine")
+//   v2FinanceLaborCostCurrentExpenseLine FinanceLaborCost? @relation("FinanceLaborCostCurrentExpenseLine")
+//   v2FinanceLaborRevisionExpenseLine FinanceLaborCostRevision[] @relation("FinanceLaborRevisionExpenseLine")
+// ROOT-MERGE-END
+
+model FinanceEvidenceFile {
+  id String @id @default(uuid())
+  businessId String
+  expenseId String
+  requestId String @unique
+  recordedByUserId String
+  expenseVersion Int
+  filename String
+  mimeType String
+  sizeBytes Int
+  sha256 String
+  storageKey String @unique
+  createdAt DateTime @default(now())
+  business Business @relation("FinanceEvidenceFileBusiness", fields:[businessId], references:[id], onDelete:Restrict)
+  expense FinanceExpense @relation("FinanceEvidenceFileExpense", fields:[expenseId,businessId], references:[id,businessId], onDelete:Restrict)
+  request FinanceRequest @relation("FinanceEvidenceFileRequest", fields:[requestId,businessId], references:[id,businessId], onDelete:Restrict)
+  actor User @relation("FinanceEvidenceFileActor", fields:[recordedByUserId], references:[id], onDelete:Restrict)
+  @@unique([id,businessId])
+  @@unique([requestId,businessId])
+  @@index([businessId,expenseId,createdAt,id])
 }

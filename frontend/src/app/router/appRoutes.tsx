@@ -33,6 +33,7 @@ const EditRatePlanPage = lazy(() => import("../../features/pricing/pages/EditRat
 const SeasonalRatesPage = lazy(() => import("../../features/pricing/pages/SeasonalRatesPage").then((module) => ({ default: module.SeasonalRatesPage })));
 const PricePreviewPage = lazy(() => import("../../features/pricing/pages/PricePreviewPage").then((module) => ({ default: module.PricePreviewPage })));
 const PaymentHubPage = lazy(() => import("../../features/payments/pages/PaymentHubPage").then((module) => ({ default: module.PaymentHubPage })));
+const FinancePage = lazy(() => import("../../features/finance/pages/FinancePage").then((module) => ({ default: module.FinancePage })));
 const BookingPaymentsPage = lazy(() => import("../../features/payments/pages/BookingPaymentsPage").then((module) => ({ default: module.BookingPaymentsPage })));
 import { ProtectedRoute, PublicRoute } from "./ProtectedRoute";
 
@@ -167,6 +168,7 @@ export const appRoutes: RouteObject[] = [{ errorElement: <ErrorFallback general 
         path: "payments",
         element: page(PaymentHubPage),
       },
+      { path: "finance", element: page(FinancePage) },
       {
         path: "blocks",
         element: page(BlockListPage),

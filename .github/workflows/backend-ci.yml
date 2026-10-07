@@ -14,23 +14,6 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: top
-          POSTGRES_PASSWORD: top
-          POSTGRES_DB: top_test
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U top -d top_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      DATABASE_URL: postgresql://top:top@localhost:5432/top_test?schema=public
-      TEST_DATABASE_URL: postgresql://top:top@localhost:5432/top_test?schema=public
-      JWT_ACCESS_SECRET: ci-only-jwt-access-secret-not-for-production
     defaults:
       run:
         working-directory: backend
@@ -39,6 +22,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: backend/package-lock.json }
       - run: npm ci
+      - name: Test safe Finance CI diagnostics
+        run: node --test ../scripts/qa/Finance-CI-Resources.test.cjs
+      - name: Prepare own Finance CI resources
+        run: node ../scripts/qa/Finance-CI-Resources.cjs start
       - run: npx prisma generate
       - run: npx prisma migrate deploy
       - run: npm run lint
@@ -47,9 +34,13 @@ jobs:
       - run: npm run test:e2e -- --runInBand
       - run: npm run test:acceptance
       - run: npm run test:coverage
+      - run: npm run test:coverage:core
       - run: npm run architecture:check
       - run: npx prisma validate
       - run: npm run build
+      - name: Cleanup own Finance CI resources
+        if: always()
+        run: node ../scripts/qa/Finance-CI-Resources.cjs cleanup
   mutation:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -62,3 +53,4 @@ jobs:
         with: { node-version: 22 }
       - run: npm ci
       - run: npm run test:mutation
+      - run: npm run test:mutation:finance

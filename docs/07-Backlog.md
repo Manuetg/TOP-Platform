@@ -1,5 +1,225 @@
 # TOP — Backlog del MVP
 
+## Finanzas post-MVP — backlog autorizado FIN-001–037 (2026-10-05)
+
+Este bloque es separado de los conteos MVP históricos. Fuente de autorización: Rolo, implementación completa hasta listo para probar; D1–D3 aprobadas 05/10/2026 00:28 UTC; Git autorizado 00:31 UTC. Antecedente del 05/10: la continuación permitió iniciar en rama/checkout aislado desde head revisado PR #101 `99a51148cc12839cdc1bea3ed303961ffd27698c`, árbol `28434d484dd9013939f205fa15557de20cb1e84b`, sin esperar ni afirmar merge. La lectura inicial registró PR #101 Draft/open y su acción Ready denegada no se reintentó. No despliegue, nuevos trust/globalconfig ni remediación deepmerge-ts/Prisma bloqueada. `releaseApproved=false` y advisory heredado continúan.
+
+Revalidación del 07/10/2026: PR #101 está mergeada en `develop@9332fa6b6750c0dd326d0b69df24d0ba0725d8b9`, cuyo árbol coincide con la base Finance indicada. Full12 backend, build/lint/test frontend y navegador real V1/V2/V3 móvil/desktop acreditan el corte funcional local mediante los manifiestos de fuentes de [Estado actual](00-Current-Status.md). CI del nuevo HEAD y revisión/aceptación formal siguen pendientes; la mutación ampliada está `DEFERRED_BY_USER`. La publicación Draft conserva FIN-001–035 In Progress y FIN-036/037 Blocked.
+
+Secuencia y catálogo FIN01–FIN54 en [Roadmap](06-Roadmap.md); contratos D1–D3 en [Domain Bible](03-Domain-Bible.md), BR-087–094 y [Architecture](05-Architecture.md). PLAN → IMPLEMENT → TEST → REVIEW → CORRECT → ACCEPT. Coordinador único para schema/migraciones/capabilities/contratos/rutas/docs; escritor de cada historia con archivos asignados, QA y revisión independientes del autor. No Completed por autoinforme, HTTP200, exit0 con skipped o cierre de V1.
+
+### Contrato común de aceptación y evidencia
+
+Actor inicial OWNER vigente, Business autorizado; ADMIN/RECEPTIONIST/VIEWER default-deny a nuevas capabilities sin reducir Payment/Booking vigentes. Todas las historias heredan estos GWT, cuando son aplicables, además de los escenarios específicos:
+
+| ID | Given → When → Then transversal obligatorio |
+|---|---|
+| I1 | Dos Businesses → path/body/ref/línea/cuenta/origen/export ajeno → no datos, vínculo ni filtración de existencia. |
+| I2 | PYG450000, decimal, signo inválido u overflow incluso en sumas → registro/serialización → exacto450000 o rechazo íntegro sin redondeo. |
+| I3 | Cobro/aplicación/vínculo ya existente → consultar/asignar → una fuente, sin ingreso/gasto o saldo duplicado. |
+| I4 | Fallo en último movimiento/aplicación/audit → confirmar → rollback de todo el documento, ningún huérfano. |
+| I5 | Retry/timeout tras commit/dos clientes → misma key+payload → resultado original y un hecho/audit; otro payload con key igual →409. |
+| I6 | Versión obsoleta, incluso no-op → mutar →409 sin pérdida de borrador/escritura; audit guarda versión real/origen/actor/fecha/motivo. |
+| I7 | Fuente confirmada/histórica → archivar/corregir → conserva original y ajuste enlazado, sin editar Snapshot/Payment/Application para cuadrar. |
+| I8 | Instante/fecha pura, DST/medianoche y primer hecho vs timezone → filtro/escritura → IANA `[inicio,fin)`, pura intacta y protección atómica. |
+| I9 | Membresía/rol retirados antes de confirmar → query/mutación/CSV/audit → backend deniega con identidad vigente y sin efecto/dato sensible. |
+| I10 | Mismos filtros/corte, edición concurrente → KPI/detalle/export → conjunto/suma iguales o conflicto explícito, nunca discrepancia silenciosa. |
+| I11 | Cambio Business/identidad/rol, respuesta tardía,401 o resultado incierto → UI/retry → contexto seguro, sin retry mutable tras401, key/payload preservados para recuperar. |
+| I12 | Capacidad fuera de alcance/dato faltante → operar/reportar → límite visible; no simulación de éxito, transferencia, nómina, impuestos,FX o unidad nueva. |
+
+Pruebas: **U** unitarias Domain/Application; **P** PostgreSQL real/migración/rollback/carreras; **H** HTTP/E2E autenticado con roles/tenant; **A** Gherkin ejecutable; **B** browser móvil/desktop real. Mocks de fallos y aceptación con fakes son evidencia complementaria separada. FIN-001 tiene revisión documental y `git diff --check`; el resto exige U/P/H/A/B según su capacidad. Lecturas prueban conservación/tenant/corte; mutaciones añaden key, CAS, concurrencia e inyección de fallo, sin tests vacíos o exclusiones para pasar.
+
+**Registro vigente de evidencia:** FIN-001..035 In Progress; FIN-016..032 están integradas y tienen validación funcional local final, sin aceptación formal. FIN-032 cuenta con contrato conservador de acceso/retención y pruebas reales de archivos más restore DB+objetos. Current Status conserva los cortes históricos V1 y enfocados V2/V3, y registra después Full12 backend, los tres controles frontend y navegador real V1/V2/V3 PASS sobre manifiestos de fuentes estables. FIN-016 tiene rollback real inyectado en la auditoría final del lote, retry con la misma key/payload, replay único y conflicto409 comprobados en `test/e2e/finance-history-import-rollback.e2e-spec.ts`; esa prueba conserva su alcance y no sustituye los demás GWT. Ninguna historia se declara Completed ni CI PASS por staging, mocks o composición de intentos; la mutación ampliada permanece diferida por instrucción del usuario. Por historia se conserva qué cambió, base/head/tree o manifiesto de bytes sin commit, GWT PASS/FAIL/NOT RUN, comando completo, scope, fecha, runtime/DB propia, exit code, counts/skipped, logs, artefactos y revisión independiente; CI añade run/attempt/checkout. [Current Status](00-Current-Status.md) resume el corte. Cambios posteriores invalidan gates salvo igualdad de bytes comprobada.
+
+### FIN-E00 — base e invariantes
+
+**FIN-001 — Establecer base, backlog y contratos. Estado: In Progress.** Owner: integrador documental/contratos. Depende: autorización vigente, head revisado aislado; sustituida la espera de merge.
+- Given PR #101 sin merge y autorización de continuar, When se inicia Finance desde su head revisado, Then fija SHA/árbol/remoto/checkout y no se declara develop integrado.
+- Given merge posterior o propuesta no decidida, When reconcilia plan, Then relee develop/conserva trabajo ajeno/repite gates afectados y mantiene Planned/Blocked sin afirmar Completed. Revisión comprueba IDs sin colisión, seis docs coherentes, ownership e interfaces previstas; `git diff --check` obligatorio.
+
+**FIN-002 — Capabilities, dinero, fechas y transacción. Estado: In Progress.** Owner: backend/shared contract writer. Depende FIN-001.
+- Given cuatro roles y dos tenants, When llaman Finance o referencias cruzadas, Then solo OWNER nuevo permiso, sin filtración/efecto y Payment vigente conserva matriz.
+- Given primera apertura/gasto y cambio timezone concurrentes en ambos órdenes, When confirman, Then mismo Business lock impide reinterpretación; decimal/overflow o suma inválida no escribe nada. U/P/H/A prueban guardas antes de endpoints, moneda exacta y membresía revocada bajo lock.
+
+### FIN-E01 — gasto y obligación
+
+**FIN-003 — Categorías y contrapartes. Estado: In Progress.** Owner: backend Finance; consumidor FE-FIN-003. Depende FIN-002.
+- Given catálogo usado por gasto, When archiva con versión/motivo, Then histórico conserva nombre/ref, nuevas altas no eligen archivado; nombre inicial inmutable.
+- Given tipo incorrecto, tenant ajeno o versión vieja, When referencia/archiva, Then rechazo seguro sin efecto; carrera archive/alta se resuelve bajo datos canónicos. U/P/H/A/B; sin crear proveedor desde Contact.
+
+**FIN-004 — Gasto confirmado y líneas. Estado: In Progress.** Owner: backend Finance; FE-FIN-004. Depende FIN-003.
+- Given reparación900000 consumida30/09 sin pago, When registra, Then costo900000/obligación900000/caja0 con actor/origen. Given ticket100001 y líneas60000+40000, When confirma, Then rechaza diferencia1;40001 restante admite suma exacta.
+- Given línea no operativa o retry tras commit, When consulta/repite, Then documento/obligación conserva todas las líneas, costo excluye no operativa y existe un gasto/audit. Fallo de línea/audit revierte entero; no edición económica en sitio. U/P/H/A/B.
+
+**FIN-005 — Obligación actual y vencimientos. Estado: In Progress.** Owner: queries Finance; FE-FIN-005. Depende FIN-004.
+- Given900000 con300000 liquidado, When consulta, Then pendiente600000 y costo900000. Given dueOn ayer/hoy/null, When calcula día local, Then solo ayer con saldo es vencido.
+- Given cohorte por consumedOn y corte antiguo, When pide deuda histórica, Then declara obligación actual y unknownHistoricalDebt, sin llamar histórico al saldo vigente. Orden/filtros estables, tenant/moneda/overflow negativos; U/P/H/A/B.
+
+**FIN-006 — Evidencia y trazabilidad. Estado: In Progress.** Owner: backend Finance; FE-FIN-006. Depende FIN-004.
+- Given sin comprobante, When guarda, Then permitido con evidenceMissing, sin afirmación fiscal ni URL pública. Given referencia actualizada con motivo, When consulta, Then fuente/original/actor/versiones permanecen auditados.
+- Given CAS viejo, audit falla o ID ajeno, When modifica/lee timeline, Then409/rollback/404 sin filtración. Solo referencia textual privada V1; upload condicionado FIN-032. U/P/H/A/B.
+
+### FIN-E02 — dinero registrado
+
+**FIN-007 — Cuentas y apertura explícita. Estado: In Progress.** Owner: backend Finance; FE-FIN-007. Depende FIN-002.
+- Given banco con apertura1000000 al01/10, When consulta, Then saldo1000000 y resultado0; sin apertura saldo null. Given Payment histórico sin cuenta, When habilita Finance, Then sigue sin asignar, sin inferencia por método.
+- Given Payment histórico anterior al corte, When vincula, Then includedInBalance=false sin duplicar apertura; exactamente en el corte sí se incluye porque apertura declara posición inmediatamente anterior. Nueva liquidación/transferencia/movimiento propio anterior al corte o sin apertura se rechaza. Corrección añade adjustment enlazado. Apertura inmutable, archivo CAS conserva historia, tenant y carrera primera apertura/timezone probados. U/P/H/A/B.
+
+**FIN-008 — Liquidación parcial o alta pagada. Estado: In Progress.** Owner: backend Finance; FE-FIN-008. Depende FIN-005/007.
+- Given deuda900000/cuenta1000000, When paga300000, Then pendiente600000/caja700000/costo900000. Given dos pagos600000, When compiten sobre saldo900000, Then no aplica más de900000 y perdedor no deja liquidación parcial.
+- Given alta ya pagada y fallo movimiento/audit, When confirma, Then ningún gasto/pago huérfano; retry un resultado. Saldo negativo no impide registrar pago externo ya hecho, advierte. U/P/H/A/B, locks y versión actuales.
+
+**FIN-009 — Vínculo de Payment a cuenta. Estado: In Progress.** Owner: backend Finance con reader público Payment; FE-FIN-009. Depende FIN-007.
+- Given Payment400000, When asigna cuenta, Then un Payment, caja una vez según corte y saldo/plan/Revenue sin nuevo cobro. Given corrección de cuenta, When confirma con CAS/motivo, Then conserva audit y total entre cuentas.
+- Given dos vínculos simultáneos o retry/key distinta huella, When guardan, Then una versión gana/otra409, nunca dos cuentas cuentan el origen. report.payments accountId null es bandeja; U/P/H/A/B + regresión PaymentPlan/Revenue.
+
+**FIN-010 — Transferencias y no operativos. Estado: In Progress.** Owner: backend Finance; FE-FIN-010. Depende FIN-007/008.
+- Given banco1000000/caja0, When transfiere300000, Then700000/300000/consolidado1000000/resultado0. Comisión5000 es gasto separado y consolidado995000; retiro200000 baja caja sin cambiar margen ni llamarse sueldo/refund.
+- Given cuenta igual/cruzada o fallo entre patas, When confirma, Then rechazo/rollback de ambas/audit; retry único, locks por ID estables. Aporte/financiación/ajuste explícitos sin cálculo de interés. U/P/H/A/B.
+
+### FIN-E03 — consulta y control
+
+**FIN-011 — Panorama y detalle exacto. Estado: In Progress.** Owner: queries Finance; FE-FIN-011. Depende FIN-005/008/009/010.
+- Given filtro/corte/Business, When abre total, Then orígenes suman exacto sin join multiplicado; separa cobros, liquidaciones, costo, obligación actual, cuentas, sin asignar y cobertura.
+- Given cuenta no configurada, fuente faltante o respuesta de Business anterior, When carga, Then desconocido/null/incompleto visible y descarta respuesta ajena; no utilidad/devengo V1. Read repeatable-read, sourceLimit5000 sin truncar, U/P/H/A/B.
+
+**FIN-012 — Export operativo del mismo corte. Estado: In Progress.** Owner: queries/CSV Finance; FE-FIN-012. Depende FIN-011.
+- Given report token/filtros, When exporta, Then mismo conjunto/IDs/suma/base/PYG/timezone; cambio concurrente produce409/refrescar, nunca diferencia silenciosa.
+- Given sin finance.export, volumen mayor a5000 o texto =,+,-,@, When pide/abre CSV, Then no archivo, rechazo sin truncar o texto neutralizado legible. Prueba límite/paginación completa y privacidad; U/P/H/A/B.
+
+**FIN-013 — Revisión manual de fuente. Estado: In Progress.** Owner: backend Finance; FE-FIN-013. Depende FIN-011.
+- Given soporte y versión fuente, When reviewed/unreviewed con motivo/responsable, Then audit conserva acción sin cambiar importe/saldo; no usa needsReconciliation Booking.
+- Given ajuste/vínculo cambiado o CAS viejo, When consulta/revisa, Then revisión desactualizada visible o409, sin representar estado anterior como vigente ni acreditar banco. U/P/H/A/B + carrera fuente/review.
+
+**FIN-014 — Arqueo y diferencia. Estado: In Progress.** Owner: backend Finance; FE-FIN-014. Depende FIN-007/011.
+- Given esperado1000000/contado995000, When registra corte, Then diferencia−5000 visible sin alterar dinero. Given ajuste autorizado con motivo, When aplica, Then movimiento−5000 enlazado conserva arqueo original.
+- Given retry/dos ajustes o cuenta no CASH/ajena/no configurada, When confirma, Then un ajuste o rechazo sin ocultar diferencia/inventar esperado. U/P/H/A/B, saldo esperado coherente con corte.
+
+**FIN-015 — Accesibilidad y recuperación V1. Estado: In Progress.** Owner: frontend; FE-FIN-015. Depende FE-FIN-003–014/contratos backend.
+- Given doble clic/timeout/desconexión, When insiste, Then un hecho y recuperación verificable con misma key/payload; nueva intención cambia explícitamente key. Given409/401/403/500, When falla, Then borrador/contexto seguro y sin retry mutable tras401.
+- Given modal/cancel/Escape/Back/Forward/cambio rol, When navega, Then foco/historia seguros y ningún pago por cerrar. WCAG2.2AA, tokens TOP, B real390×844/1440×900 y mocks de fallo separados; build/lint/test frontend.
+
+### FIN-E04 — historia y correcciones
+
+**FIN-016 — Importación acotada de apertura/historial. Estado: In Progress.** Owner: Finance import; FE-FIN-016. Depende FIN-003–012.
+- Given CSV duplicado/ref ajena/no PYG, When preview, Then sin escrituras y errores por fila. Given lote confirmado/retry, When reimporta, Then no duplica saldo/gasto, fecha efectiva distinta de carga.
+- Given fallo parcial, When confirma/recupera, Then política all-or-nothing o filas explícitas repetibles, nunca éxito incompleto silencioso. Fingerprints Payment/Pricing/Applications intactos; U/P/H/A/B.
+
+**FIN-017 — Corrección sin borrado. Estado: In Progress.** Owner: Payment escritor del cobro; Finance consumidor; FE-FIN-017. Depende FIN-009/D2/contrato neto revisado.
+- Given cobro registrado por error, When void con motivo, Then original y reverso único conservados; efecto económico se excluye una vez y plan/saldo/Revenue/caja siguen contrato explícito.
+- Given aplicaciones/refund previo o void/refund/pago/repricing concurrentes, When corrigen, Then rechazo incompatible o ajuste trazable sin sobreaplicar/reabrir Booking/editar historia. U/P/H/A/B; delimitar bruto registrado vs cobro válido sin cambiar Revenue a devengo.
+
+**FIN-018 — Refund efectivo y crédito. Estado: In Progress.** Owner: Payment escritor refund/Pricing ajuste comercial; FE-FIN-018. Depende FIN-017/D2.
+- Given cobro1000000/precio800000, When devuelve200000 contra original, Then neto800000/crédito0/caja−200000, sin gasto ni transferencia ejecutada. Given seña400000/cancel exigible100000 manual, When devuelve300000, Then deuda0 y exigible/penalidad/refund separados.
+- Given dos refunds/exceso disponible o exigible conservado, When confirma, Then límite del original atómico y deuda puede reaparecer explicada. Terminal exige ajuste Pricing propio, no editor fuera de estados autorizados. U/P/H/A/B + todas las proyecciones canónicas.
+
+### FIN-E05 — repetición y conciliación manual
+
+**FIN-019 — Recurrencia, aprobación y reintegro. Estado: In Progress.** Owner: Finance; FE-FIN-019. Depende FIN-004/008.
+- Given plantilla mensual, When genera manualmente dos veces el período, Then un borrador, sin gasto confirmado/pago inventado. Given empleado pagó900000, When reintegra900000, Then cancela obligación a esa contraparte y no duplica costo.
+- Given política de aprobación concreta exige otro actor, When creador se autoaprueba, Then backend deniega y cambio de política conserva pasado. Separar subentregas revisables; aprobación queda deshabilitada sin política; no scheduler externo inferido. U/P/H/A/B.
+
+**FIN-020 — Extracto CSV, lotes/comisiones/matching. Estado: In Progress.** Owner: Finance matching; FE-FIN-020. Depende FIN-016/013/018 para refunds.
+- Given bruto1000000/comisión150000/depósito850000, When confirma matching, Then ingreso reconocido1000000/costo150000/entrada850000 separados y comisión una vez.
+- Given cinco reservas+refund/relación1:N o N:1/reimportación, When sugiere/confirma, Then componentes+residuo=depósito, consumo por origen limitado y sin venta nueva; sugerencia no concilia. U/P/H/A/B con fixtures sintéticas, sin feed ni estado Booking reutilizado.
+
+### FIN-E06 — prestación y resultado
+
+**FIN-021 — Reconocimiento certificado/versionado. Estado: In Progress.** Owner: Finance recognition con Booking/Pricing readers; FE-FIN-021. Depende FIN-009/018 para excepciones/D1.
+- Given cuatro noches29/09..03/10 a300000 efectivamente certificadas, When consulta meses, Then600000 septiembre/600000 octubre; cobros agosto/septiembre600000 quedan aparte.
+- Given PENDING/no-show, dato tardío o recurso sin unidad/evidencia, When reconoce, Then no presume prestación y marca pendiente/no soportado. Certificación/política/fuente revisada crea versión conservando anterior; residuo determinista, meses/DST/parcial U/P/H/A/B. Regresión de cierre obligatoria FIN-029/033, sin dependencia circular.
+
+**FIN-022 — Costos directos/estancia. Estado: In Progress.** Owner: queries Finance; FE-FIN-022. Depende FIN-004/021.
+- Given limpieza70000/cargo huésped50000 reconocido, When abre estancia, Then fuentes separadas y componente margen−20000. Given línea de Resource sin Booking, When agrega, Then cuenta una vez sin distribuir por estancia implícita.
+- Given ref ajena/línea no operativa/doble agregado documento+líneas, When consulta, Then rechazo/exclusión operacional/total conservado. U/P/H/A/B + export misma base.
+
+**FIN-023 — Reparto común versionado. Estado: In Progress.** Owner: Finance allocation; FE-FIN-023. Depende FIN-004/D3.
+- Given luz1000000 a60/30/10%, When aplica, Then600000/300000/100000 y negocio1000000 sin duplicar centro fuente. Given100001 a tres destinos equivalentes, When reparte, Then enteros con residuo determinista y fuente=destinos+sin asignar.
+- Given regla octubre nueva/retry/reaplicación, When consulta septiembre, Then conserva versión/montos anteriores; propiedades de conservación/tenant/carreras U/P/H/A/B. Cierre histórico protegido se verifica FIN-029/033.
+
+**FIN-024 — Resultado y cobertura por recurso. Estado: In Progress.** Owner: queries Finance; FE-FIN-024. Depende FIN-021–023.
+- Given costos/ingresos y sin asignar, When consolida, Then recursos+sin asignar reproducen negocio sin duplicar; fórmulas separan contribución/comunes/resultado gerencial.
+- Given dato faltante/ingreso0/unidades heterogéneas/inventario Resource sin historia, When compara, Then incompleto/no concluyente/margen% no aplica y limitación visible, sin RevPAR inventado o utilidad fiscal. U/P/H/A/B y export exacto.
+
+### FIN-E07 — personal y planificación
+
+**FIN-025 — Personal calculado y trabajo propio. Estado: In Progress.** Owner: Finance labor; FE-FIN-025. Depende FIN-023/D3.
+- Given real3000000 a70/20/10, When asigna, Then2100000/600000/300000 una fuente, sin sumar estimado. Given trabajo dueño imputado/retiro2000000, When reporta, Then costo opcional y caja separados.
+- Given rol sin detalle/persona, When agregado/filtro/drilldown/CSV/audit, Then no reconstruye salario por grupos pequeños; solo OWNER nuevo permiso. U/P/H/A/B de privacidad/query/serialización, sin nómina fiscal ni datos extra.
+
+**FIN-026 — Presupuesto mensual versionado. Estado: In Progress.** Owner: Finance budget; FE-FIN-026. Depende FIN-024.
+- Given meta aprobada1000000/proyección1200000, When consulta, Then meta1000000/desviación200000 con versión; recursos+sin asignar conservan total.
+- Given recurso/tenant ajeno, versión vieja o dos aprobaciones, When escribe, Then rechazo/carrera CAS sin overwrite ni forecast que cambie meta. U/P/H/A/B.
+
+**FIN-027 — Compromiso y conversión real. Estado: In Progress.** Owner: Finance commitment; FE-FIN-027. Depende FIN-004/026.
+- Given compromiso900000 convertido en gasto600000, When compara, Then real600000/pendiente300000, sin total1500000; compromiso futuro no es costo/caja.
+- Given retry/dos conversiones o referencia ajena, When convierte, Then una fuente y consumo exacto limitado bajo locks, sin parcial. U/P/H/A/B.
+
+**FIN-028 — Forecast de caja/antigüedad. Estado: In Progress.** Owner: queries Finance; FE-FIN-028. Depende FIN-005/009/026/027.
+- Given saldo registrado1000000/obligación futura900000, When proyecta escenario, Then previsto100000 con origen/fecha/probabilidad y registrado sigue1000000.
+- Given plan obsoleto/crédito/cuota sin fecha, When agrupa1–30/31–60/61–90/>90, Then revisión separada y vencimiento no inventado; límites locales exactos/escenario no muta hechos. U/P/H/A/B.
+
+### FIN-E08 — cierre y recuperación
+
+**FIN-029 — Cierre, ajuste y reapertura. Estado: In Progress.** Owner: integrador contratos de todos los escritores; FE-FIN-029. Depende FIN-018/020/024–028 según alcance habilitado.
+- Given diferencia/cobertura incompleta, When pide cerrar, Then checklist muestra bloqueos de política concreta sin forzar igualdad. Given cierre, When Payment/repricing/gasto retroactivo/refund/allocation intenta alterar fuente, Then bloqueo o ajuste abierto autorizado conserva snapshot previo.
+- Given reapertura con motivo/recierre, When confirma, Then nueva versión enlazada conserva anterior/actor/reglas. Cambios de reconocimiento021/reparto023 no reescriben septiembre cerrado; carrera cierre vs escritores U/P/H/A/B. No congela Booking fuera de autoridad aprobada.
+
+**FIN-030 — Reportes y paquete contador. Estado: In Progress.** Owner: Finance export; FE-FIN-030. Depende FIN-012/029.
+- Given mismo cierre/corte/reglas, When exporta pantalla/recursos/documentos/ajustes/diccionario, Then totales reconstruibles y toda diferencia con origen; no integración/certificado fiscal.
+- Given campo/archivo sensible fuera del permiso, When empaqueta, Then omite con alcance declarado, sin URL pública. U/P/H/A/B + paquete validado contra caso dorado completo y histórico reproducible.
+
+**FIN-031 — Alertas internas resolubles. Estado: In Progress.** Owner: queries Finance; FE-FIN-031. Depende FIN-005/014/024.
+- Given obligación vencida/diferencia/falta de datos, When consulta/resuelve fuente, Then alerta enlazada se resuelve y no renace como nueva al refrescar.
+- Given tenant/rol cambiado o carrera liquidación/lectura, When actualiza, Then ningún badge/dato ajeno, resolución idempotente coherente. U/P/H/A/B; sin email/WhatsApp/SMS inferidos.
+
+**FIN-032 - Archivos privados, retención y restore. Estado: In Progress.** Owner: Files seguro + integrador Finance; FE-FIN-032. Depende FIN-006. Contrato implementado: OWNER con capabilities específicas, descarga autenticada sin URL pública, PDF/JPEG/PNG <=2MiB, verificación efectiva de bytes/hash/MIME y preservación sin purga. S3 privado opt-in; proveedor propio de test y restore DB+objetos verificados. El corte funcional local integrado y el navegador final tienen evidencia PASS según Current Status; CI del nuevo HEAD, revisión/aceptación formal y mutación ampliada diferida siguen pendientes. No se habilita una política de purga ni se afirma antivirus.
+- Given archivo privado y permiso revocado, When pide metadata/download, Then backend deniega y ventana efectiva de URL se declara/prueba. Given tipo/tamaño malicioso, When carga, Then límites efectivos antes de exposición, sin antivirus ficticio.
+- Given backup DB+objetos sintéticos, When restaura aislado, Then IDs/hashes/links/permisos/conteos conservados; DB-only no es restore de archivos. U/P/H/A/B; referencia textual V1 continúa y no purga sin política.
+
+### FIN-E09 — validación integrada
+
+**FIN-033 — Fixtures y suite financiera. Estado: In Progress.** Owner: QA independiente; crece desde FIN-002 y por cada entrega.
+- Given DB sintética propia vacía/dos tenants/todos roles/precios/cobros/planes/gastos/cuentas, When ejecuta receta con identidad verificada, Then casos aplicables reproducen números exactos sin datos reales ni skipped silenciosos.
+- Given seed/reset y DB no propia/test o browser activo, When valida guardas, Then no limpia ni comparte base con suites destructivas. U/P/H/A y migración deploy, fingerprints originales, fallos/retries conservados; no convierte mock en persistencia.
+
+**FIN-034 — Review y browser independientes. Estado: In Progress.** Owner: revisor distinto del escritor + QA browser. Depende historias del corte/FIN-033.
+- Given SHA/árbol final, When revisa diff/GWT/permisos/dinero/transacciones, Then toda aceptación tiene evidencia; P0/P1 impiden aceptar. Cambios tras review repiten gates/review afectados sobre árbol final.
+- Given390×844/1440×900/teclado/Business sintético, When gasto→pago parcial→caja→origen→export contra API/PostgreSQL real, Then números/historia/foco/navegación correctos, sin errores inesperados. Screenshots/requests/DB se separan de mocks de fallos.
+
+**FIN-035 — Evidencia y entorno listo para probar. Estado: In Progress.** Owner: integrador. Depende FIN-034 y gates del alcance final.
+- Given controles completos PASS/PR autorizado, When publica, Then remoto contiene HEAD esperado y CI corresponde a run/attempt/head o merge-checkout exactos. Given gate bloqueado, When entrega, Then FAIL/NOT RUN con causa, no Completed ni listo integralmente.
+- Given entorno propio iniciado, When valida guía/dataset/URL/build/versión/recorrido, Then reproducible para el operador con límites visibles; sin producción/pilotoGO. Mantener backlog/CurrentStatus y manifest con comandos/resultados exactos.
+
+### FIN-E10 — extensiones condicionadas
+
+**FIN-036 — Garantía separada de anticipo. Estado: Blocked.** Owner: contrato posterior. Depende contrato explícito de captura/preautorización/titularidad/aplicación/permiso; no requisito V1–V3 soportado.
+- Given preautorización500000, When registra bajo contrato aprobado, Then caja0/venta0/deuda0. Given garantía capturada/devuelta500000, When termina, Then entradas/salidas iguales sin venta/gasto.
+- Aplicar daño exige política/autorización propia; nunca usar Payment para eludir límite de sobrepago. U/P/H/A/B **NOT RUN**, no activar antes del contrato.
+
+**FIN-037 — Unidades no nocturnas. Estado: Blocked.** Owner: dominio Booking/Resource con alcance adicional acordado. D1 está aprobada; falta unidad/fecha/capacidad de turnos/actividades soportada por el modelo real.
+- Given servicio completado con unidad/fecha explícitas bajo contrato aprobado, When reconoce, Then cantidad/precio/fecha reproducen ingreso, sin división por noches.
+- Given nombre Resource heterogéneo sin datos suficientes, When compara, Then no soportado/pendiente visible, sin mezclar RevPAR/noches/turnos ni inventar tipo reservable. U/P/H/A/B **NOT RUN**; si requiere reestructurar Booking, registrar proyecto futuro en Roadmap.
+
+### Casos dorados y gates de aceptación por entrega
+
+| Caso | Cifra/origen que debe probarse | Historias |
+|---|---|---|
+| A | Cuatro noches29/09..03/10 a300000 certificadas → devengo600000/600000, cobros separados. | 021/024 |
+| B | Bruto1000000/comisión150000/neto depósito850000, comisión una vez. | 020 |
+| C/D | Común1000000→600000/300000/100000; personal3000000→2100000/600000/300000. | 023/025 |
+| E/L | Gasto900000 septiembre sin pago; liquidación300000 → pendiente600000/costo900000 y caja por fecha pago. | 004/005/008 |
+| F/K | Seña400000/exigible100000/refund300000; rebaja1000000→800000/refund200000/neto800000. | 017/018 |
+| G | Garantía capturada/devuelta500000 sin resultado; preautorización caja0. Condicionado. | 036 |
+| H/I | Inversión5000000 no corriente sin depreciación inventada; retiro2000000 no costo laboral. | 004/010/025 |
+| J | Cinco reservas/comisiones/refund → un depósito y residuo explicable. | 020 |
+| M/N | Apertura sin doble suma de origen pre-corte; aislamiento todos IDs/relaciones/exports, dos tenants/roles. | 002/007/009/033 |
+
+Backend final: Node22/PostgreSQL16 compatibles, DB sintética propia y guardas; `npm ci`, `npx prisma generate`, `npx prisma migrate deploy`, `npx prisma validate`, `npm run lint`, `npm test`, `npm run test:integration`, `npm run test:e2e -- --runInBand`, `npm run test:acceptance`, `npm run test:coverage`, `npm run architecture:check`, `npm run build`, `npm run test:mutation` con alcance Finance/Payment afectado explícito. Global ≥85% lines/statements/functions y ≥80% branches no sustituye Core Domain/Application ≥90%; acreditarlo/enforzarlo aparte sin bajar umbrales. Mutation break70/high80 heredado fuera de Finance no acredita Finance. `quality:check` no sustituye preparación/validate/mutation ni toda la secuencia. CI final es evidencia oficial atribuida al árbol, y PG/HTTP/browser reales son obligatorios por autorización de este encargo.
+
+Frontend final: `npm ci --include=optional`, `npm run build`, `npm run lint`, `npm run test`; runner browser reproducible y QA real de ambos viewports, con mocks estrictos solo para errores/contexto. No hay `test:e2e` frontend ni Playwright config en baseline: registrar la ejecución que se implemente, no afirmar que ya existe. Regression obligatoria: primer Payment positivo confirma PENDING una vez/cero inválido no confirma; precio vigente cero bajo locks; revisiones append-only; needsReconciliation sin reasignar cuotas; vencimiento null/hoy; Revenue sin joins multiplicados; cancel/no-show no cero/refund automático; Payment original conservado; 401 sin retry mutable; timezone y primer hecho Finance concurrentes. No limpia base compartida; seed/browser después de gates destructivos o en base propia separada.
+
+
 > Composición local del piloto (2026-10-02): contratos incorporados desde Settings FINAL61 a Reservas/LAN. Los controles locales actuales y sus límites se registran en docs/00-Current-Status.md y deploy/pilot/release-manifest.json. Frontend y proxy se aprobaron por composición, sin intento agregado completo verde. CI, validación del operador y release siguen pendientes. Los resultados históricos conservan sus fuentes y fechas; no aprueban merge o despliegue.
 
 ### Tu establecimiento - contrato incorporado a la composición local (2026-10-02)

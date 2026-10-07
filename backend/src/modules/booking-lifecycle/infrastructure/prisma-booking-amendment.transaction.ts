@@ -6,6 +6,7 @@ import { validateAvailabilityInTransaction } from '../../availability/availabili
 import { readCurrentPricing, type CurrentPricing } from '../../pricing/pricing.contract';
 import { needsPaymentReconciliation, PAYMENT_RECONCILIATION_WARNING } from '../../payment/payment.contract';
 import { fromPrismaMoney, toPrismaMoney } from '../../../shared/infrastructure/prisma-money';
+import { assertFinancePeriodOpen } from '../../../shared/infrastructure/finance-period.guard';
 import { AuthorizationPolicy, Capability } from '../../../shared/application/authorization-policy';
 import { MembershipRole } from '../../identity/identity.contract';
 import { BookingAmendmentConflictError, BookingAmendmentPermissionError, type AmendmentChanges, type AmendmentExpectation, type BookingAmendmentPreview, type BookingAmendmentTransaction, type BookingAmendmentTransactionInput } from '../booking-amendment.contract';
@@ -14,6 +15,7 @@ import { amendmentFinancialSummary, amendmentQuote, canonicalAmendmentJson } fro
 type BookingRow = Prisma.BookingGetPayload<{ include: { resources: true } }>;
 interface BookingContext { contactId: string; checkInDate: Date; checkOutDate: Date; adults: number | null; children: number | null; notes: string | null; }
 interface PreparedAmendment { booking: BookingRow; currentPricing: CurrentPricing; before: BookingContext; after: BookingContext; preview: BookingAmendmentPreview; }
+interface EffectivePaymentRow { currency: string; grossRecordedAmountMinor: bigint; voidedAmountMinor: bigint; refundedAmountMinor: bigint; netRetainedAmountMinor: bigint; paymentVersion: bigint; invalidMonetaryData: boolean; applicationInvalid: boolean; }
 const transactionOptions = { maxWait: 5000, timeout: 30000 };
 
 @Injectable()
@@ -29,6 +31,7 @@ export class PrismaBookingAmendmentTransaction implements BookingAmendmentTransa
       const prepared = await this.prepare(transaction, input, true);
       this.requireExpectedPreview(prepared.preview, expectation);
       if (input.changes.pricing === undefined && canonicalAmendmentJson(this.context(prepared.before)) === canonicalAmendmentJson(this.context(prepared.after))) return this.booking(prepared.booking);
+      await this.requireOpenAmendmentPeriod(transaction, input, prepared);
       const revisionId = input.changes.pricing === undefined ? null : await this.writeRevision(transaction, input, prepared);
       const updatedAt = new Date(Math.max(Date.now(), prepared.booking.updatedAt.getTime() + 1));
       const row = await transaction.booking.update({ where: { id: input.bookingId }, data: { ...prepared.after, updatedAt }, include: { resources: true } });
@@ -41,6 +44,7 @@ export class PrismaBookingAmendmentTransaction implements BookingAmendmentTransa
           previousTotalAmountMinor: prepared.currentPricing.totalAmountMinor,
           totalAmountMinor: prepared.preview.quote.totalAmountMinor,
           paidAmountMinor: prepared.preview.expectedPaidAmountMinor,
+          financialVersion: prepared.preview.expectedFinancialVersion,
         },
       } });
       return this.booking(row);
@@ -48,8 +52,9 @@ export class PrismaBookingAmendmentTransaction implements BookingAmendmentTransa
   }
 
   private async prepare(transaction: Prisma.TransactionClient, input: BookingAmendmentTransactionInput, save: boolean): Promise<PreparedAmendment> {
-    const booking = await this.lockedBooking(transaction, input, save);
     await this.actor(transaction, input);
+    const booking = await this.lockedBooking(transaction, input, save);
+    await transaction.$queryRaw`SELECT id FROM "Business" WHERE id=${input.businessId} FOR SHARE`;
     const currentPricing = await this.lockedPrice(transaction, input, save);
     const before = this.complete(booking);
     const after = { ...before, ...this.details(input.changes) };
@@ -59,15 +64,29 @@ export class PrismaBookingAmendmentTransaction implements BookingAmendmentTransa
     await this.available(transaction, input, after, resourceIds);
     const price = input.changes.pricing === undefined ? this.price(currentPricing) : await input.preparePricing(after, resourceIds);
     if (price.currency !== currentPricing.currency) throw new BookingAmendmentConflictError('La moneda propuesta no coincide con el precio vigente; la edición no convierte moneda.');
-    const paidAmountMinor = await this.paid(transaction, input, price.currency);
-    const quote = amendmentQuote(price, { businessId: input.businessId, bookingId: input.bookingId, currentPricingId: currentPricing.id, after: this.context(after), resourceIds, reason: input.changes.reason });
-    const financialSummary = amendmentFinancialSummary(price.totalAmountMinor, paidAmountMinor);
+    const amounts = await this.paid(transaction, input, price.currency);
+    const paidAmountMinor = amounts.netRetainedAmountMinor;
+    const quote = amendmentQuote(price, { businessId: input.businessId, bookingId: input.bookingId, currentPricingId: currentPricing.id, financialVersion: amounts.financialVersion, after: this.context(after), resourceIds, reason: input.changes.reason });
+    const financialSummary = { ...amendmentFinancialSummary(price.totalAmountMinor, paidAmountMinor), ...amounts };
     const warnings = await this.warnings(transaction, input, price, paidAmountMinor);
     return { booking, currentPricing, before, after, preview: {
       bookingId: booking.id, status: booking.status as BookingStatus, expectedUpdatedAt: booking.updatedAt.toISOString(), currentPricingId: currentPricing.id,
-      expectedPaidAmountMinor: paidAmountMinor, currentPricing, quote, financialSummary,
+      expectedPaidAmountMinor: paidAmountMinor, expectedFinancialVersion: amounts.financialVersion, currentPricing, quote, financialSummary,
       warnings,
     } };
+  }
+
+  private async requireOpenAmendmentPeriod(transaction: Prisma.TransactionClient, input: BookingAmendmentTransactionInput, prepared: PreparedAmendment): Promise<void> {
+    if (input.changes.pricing === undefined) return;
+    const dates = [...new Set([...this.serviceNights(prepared.before), ...this.serviceNights(prepared.after)])];
+    const sources = [{ type: 'SERVICE_PRICING', id: prepared.currentPricing.id }];
+    await assertFinancePeriodOpen(transaction, input.businessId, dates, sources);
+  }
+
+  private serviceNights(context: BookingContext): string[] {
+    const dates: string[] = [];
+    for (let date = context.checkInDate.getTime(); date < context.checkOutDate.getTime(); date += 86400000) dates.push(new Date(date).toISOString().slice(0, 10));
+    return dates;
   }
 
   private async lockedBooking(transaction: Prisma.TransactionClient, input: BookingAmendmentTransactionInput, save: boolean): Promise<BookingRow> {
@@ -119,16 +138,26 @@ export class PrismaBookingAmendmentTransaction implements BookingAmendmentTransa
     assertBookingCapacity(after.adults, after.children, resource.capacityMaximum, resource.capacityMaximumChildren);
   }
 
-  private async paid(transaction: Prisma.TransactionClient, input: BookingAmendmentTransactionInput, currency: string): Promise<number> {
-    const groups = await transaction.payment.groupBy({ by: ['currency'], where: { businessId: input.businessId, bookingId: input.bookingId, status: 'RECORDED' }, _sum: { amountMinor: true } });
-    if (groups.some((group) => group.currency !== currency)) throw new BookingAmendmentConflictError('La moneda propuesta no coincide con los cobros registrados; no se convierte dinero.');
-    const paidAmountMinor = fromPrismaMoney(groups.reduce((total, group) => total + (group._sum.amountMinor ?? 0n), 0n));
-    if (paidAmountMinor < 0) throw new Error('AMENDMENT_PAYMENT_INVARIANT');
-    return paidAmountMinor;
+  private async paid(transaction: Prisma.TransactionClient, input: BookingAmendmentTransactionInput, currency: string) {
+    const rows = await transaction.$queryRaw<EffectivePaymentRow[]>`
+      SELECT state.*, COALESCE(app.invalid, FALSE) OR COALESCE(app.applied, 0) > state."netRetainedAmountMinor" AS "applicationInvalid"
+      FROM "PaymentEffectiveState" state
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(application."effectiveAmountMinor"), 0) AS applied,
+          COALESCE(BOOL_OR(application."invalidMonetaryData" OR application."businessId" <> state."businessId"
+            OR application."bookingId" <> state."bookingId" OR application.currency <> state.currency), FALSE) AS invalid
+        FROM "PaymentApplicationEffective" application WHERE application."paymentId" = state."paymentId"
+      ) app ON TRUE
+      WHERE state."businessId" = ${input.businessId} AND state."bookingId" = ${input.bookingId}
+    `;
+    if (rows.some((row) => row.currency !== currency)) throw new BookingAmendmentConflictError('La moneda propuesta no coincide con los cobros efectivos; no se convierte dinero.');
+    if (rows.some((row) => row.invalidMonetaryData || row.applicationInvalid || row.netRetainedAmountMinor < 0n || row.netRetainedAmountMinor > row.grossRecordedAmountMinor || row.paymentVersion < 1n)) throw new Error('AMENDMENT_PAYMENT_INVARIANT');
+    const sum = (key: 'grossRecordedAmountMinor' | 'voidedAmountMinor' | 'refundedAmountMinor' | 'netRetainedAmountMinor' | 'paymentVersion') => fromPrismaMoney(rows.reduce((total, row) => total + row[key], 0n));
+    return { grossRecordedAmountMinor: sum('grossRecordedAmountMinor'), voidedAmountMinor: sum('voidedAmountMinor'), refundedAmountMinor: sum('refundedAmountMinor'), netRetainedAmountMinor: sum('netRetainedAmountMinor'), financialVersion: sum('paymentVersion') };
   }
 
   private requireExpectedPreview(preview: BookingAmendmentPreview, expected: AmendmentExpectation): void {
-    if (preview.expectedUpdatedAt !== expected.expectedUpdatedAt || preview.currentPricingId !== expected.currentPricingId || preview.expectedPaidAmountMinor !== expected.expectedPaidAmountMinor) throw new BookingAmendmentConflictError('La reserva, el precio o los cobros cambiaron; actualice el preview antes de guardar.');
+    if (preview.expectedUpdatedAt !== expected.expectedUpdatedAt || preview.currentPricingId !== expected.currentPricingId || preview.expectedPaidAmountMinor !== expected.expectedPaidAmountMinor || preview.expectedFinancialVersion !== expected.expectedFinancialVersion) throw new BookingAmendmentConflictError('La reserva, el precio o los cobros cambiaron; actualice el preview antes de guardar.');
     if (canonicalAmendmentJson(preview.quote) !== canonicalAmendmentJson(expected.acceptedQuote)) throw new BookingAmendmentConflictError('El precio vigente no coincide con el aceptado; actualice el preview antes de guardar.');
   }
 
@@ -138,11 +167,11 @@ export class PrismaBookingAmendmentTransaction implements BookingAmendmentTransa
     if (!plan) return warnings;
     const [installments, applications] = await Promise.all([
       transaction.paymentPlanInstallment.aggregate({ where: { paymentPlanId: plan.id }, _sum: { amountMinor: true } }),
-      transaction.paymentApplication.aggregate({ where: { installment: { paymentPlanId: plan.id } }, _sum: { amountMinor: true } }),
+      transaction.$queryRaw<{ appliedAmountMinor: bigint }[]>`SELECT COALESCE(SUM(application."effectiveAmountMinor"), 0)::bigint AS "appliedAmountMinor" FROM "PaymentApplicationEffective" application INNER JOIN "PaymentPlanInstallment" installment ON installment.id = application."installmentId" WHERE installment."paymentPlanId" = ${plan.id}`,
     ]);
     const stale = needsPaymentReconciliation(price, paidAmountMinor, {
       currency: plan.currency, totalAmountMinor: fromPrismaMoney(plan.totalAmountMinor),
-      installmentTotalAmountMinor: fromPrismaMoney(installments._sum.amountMinor ?? 0n), appliedAmountMinor: fromPrismaMoney(applications._sum.amountMinor ?? 0n),
+      installmentTotalAmountMinor: fromPrismaMoney(installments._sum.amountMinor ?? 0n), appliedAmountMinor: fromPrismaMoney(applications[0]?.appliedAmountMinor ?? 0n),
     });
     if (stale) warnings.push(PAYMENT_RECONCILIATION_WARNING);
     return warnings;
@@ -154,7 +183,8 @@ export class PrismaBookingAmendmentTransaction implements BookingAmendmentTransa
       revisionNumber: prepared.currentPricing.revisionNumber + 1, currency: prepared.preview.quote.currency, totalAmountMinor: toPrismaMoney(prepared.preview.quote.totalAmountMinor),
       items: prepared.preview.quote.items as unknown as Prisma.InputJsonValue,
       previousPricing: this.price(prepared.currentPricing) as unknown as Prisma.InputJsonValue,
-      beforeContext: this.context(prepared.before), afterContext: this.context(prepared.after),
+      beforeContext: { ...this.context(prepared.before), financialVersion: prepared.preview.expectedFinancialVersion, financialSummary: prepared.preview.financialSummary } as unknown as Prisma.InputJsonValue,
+      afterContext: { ...this.context(prepared.after), financialVersion: prepared.preview.expectedFinancialVersion, financialSummary: prepared.preview.financialSummary } as unknown as Prisma.InputJsonValue,
       paidAmountMinorAtSave: toPrismaMoney(prepared.preview.expectedPaidAmountMinor), reason: input.changes.reason, actorUserId: input.actorUserId,
     }, select: { id: true } });
     return revision.id;

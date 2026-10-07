@@ -13,6 +13,11 @@ export class OutstandingBalanceResponseDto {
 
   @ApiProperty({ example: 400_000 })
   paidAmountMinor!: number;
+  @ApiProperty() grossRecordedAmountMinor!: number;
+  @ApiProperty() voidedAmountMinor!: number;
+  @ApiProperty() refundedAmountMinor!: number;
+  @ApiProperty() netRetainedAmountMinor!: number;
+  @ApiProperty() financialVersion!: number;
 
   @ApiProperty({ example: 600_000 })
   outstandingAmountMinor!: number;

@@ -129,7 +129,7 @@ afterEach(() => {
 
 describe("Estados de reservas: presentación y contratos", () => {
   it.each([0, 400000])("una Pendiente con precio %s ofrece pagos y no confirmación manual", async (total) => {
-    currentBooking = { ...booking("PENDING"), financialSummary: { totalAmountMinor: total, paidAmountMinor: 0, currency: "PYG" } };
+    currentBooking = { ...booking("PENDING"), financialSummary: { totalAmountMinor: total, paidAmountMinor: 0, financialVersion: 0, currency: "PYG" } };
     const user = userEvent.setup();
     show(`/app/bookings/${currentBooking.id}`);
     const payments = await screen.findByRole("button", { name: "Gestionar pagos" });
@@ -140,7 +140,7 @@ describe("Estados de reservas: presentación y contratos", () => {
   });
 
   it("una Pendiente histórica sin precio conserva la confirmación y no ofrece pagos", async () => {
-    currentBooking = { ...booking("PENDING"), financialSummary: { totalAmountMinor: null, paidAmountMinor: 0, currency: null } };
+    currentBooking = { ...booking("PENDING"), financialSummary: { totalAmountMinor: null, paidAmountMinor: 0, financialVersion: 0, currency: null } };
     show(`/app/bookings/${currentBooking.id}`);
     expect(await screen.findByRole("button", { name: "Confirmar reserva" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Gestionar pagos" })).not.toBeInTheDocument();
@@ -148,7 +148,7 @@ describe("Estados de reservas: presentación y contratos", () => {
 
   it("VIEWER consulta pagos de una Pendiente con precio y no obtiene acciones de reserva", async () => {
     context.role = "VIEWER";
-    currentBooking = { ...booking("PENDING"), financialSummary: { totalAmountMinor: 400000, paidAmountMinor: 0, currency: "PYG" } };
+    currentBooking = { ...booking("PENDING"), financialSummary: { totalAmountMinor: 400000, paidAmountMinor: 0, financialVersion: 0, currency: "PYG" } };
     show(`/app/bookings/${currentBooking.id}`);
     expect(await screen.findByRole("button", { name: "Gestionar pagos" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirmar reserva" })).not.toBeInTheDocument();

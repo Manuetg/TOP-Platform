@@ -51,6 +51,11 @@ const projection = (
 ): OutstandingBalanceProjection => ({
   paymentPlanId: null,
   paidAmountMinor: 0,
+  grossRecordedAmountMinor: changes.paidAmountMinor ?? 0,
+  voidedAmountMinor: 0,
+  refundedAmountMinor: 0,
+  netRetainedAmountMinor: changes.paidAmountMinor ?? 0,
+  financialVersion: (changes.paidAmountMinor ?? 0) > 0 ? 1 : 0,
   planTotalAmountMinor: null,
   installmentTotalAmountMinor: 0,
   appliedAmountMinor: 0,
@@ -100,6 +105,11 @@ describe('GetOutstandingBalanceUseCase', () => {
       currency: 'PYG',
       totalAmountMinor: 100,
       paidAmountMinor: 0,
+      grossRecordedAmountMinor: 0,
+      voidedAmountMinor: 0,
+      refundedAmountMinor: 0,
+      netRetainedAmountMinor: 0,
+      financialVersion: 0,
       outstandingAmountMinor: 100,
       creditAmountMinor: 0,
       needsReconciliation: false,
@@ -295,6 +305,28 @@ describe('GetOutstandingBalanceUseCase', () => {
       outstandingAmountMinor: 1,
       creditAmountMinor: 0,
     });
+  });
+
+  it('derives outstanding money from retained net after refund while exposing the unchanged original gross', async () => {
+    calculate.mockResolvedValueOnce(projection({ paidAmountMinor: 60, grossRecordedAmountMinor: 100, voidedAmountMinor: 0, refundedAmountMinor: 40, netRetainedAmountMinor: 60, financialVersion: 2 }));
+    await expect(subject.execute(businessId, bookingId)).resolves.toMatchObject({ totalAmountMinor: 100, paidAmountMinor: 60, grossRecordedAmountMinor: 100, voidedAmountMinor: 0, refundedAmountMinor: 40, netRetainedAmountMinor: 60, financialVersion: 2, outstandingAmountMinor: 40, creditAmountMinor: 0, financialStatus: 'PARTIALLY_PAID' });
+  });
+
+  it('keeps the gross and adjustment version after a full VOID while deriving UNPAID from zero net', async () => {
+    calculate.mockResolvedValueOnce(projection({ paidAmountMinor: 0, grossRecordedAmountMinor: 100, voidedAmountMinor: 100, refundedAmountMinor: 0, netRetainedAmountMinor: 0, financialVersion: 2 }));
+    await expect(subject.execute(businessId, bookingId)).resolves.toMatchObject({ grossRecordedAmountMinor: 100, voidedAmountMinor: 100, refundedAmountMinor: 0, paidAmountMinor: 0, netRetainedAmountMinor: 0, financialVersion: 2, outstandingAmountMinor: 100, financialStatus: 'UNPAID' });
+  });
+
+  it('exposes a changed financial version when a refund and new payment leave the same retained net', async () => {
+    calculate.mockResolvedValueOnce(projection({ paidAmountMinor: 60, grossRecordedAmountMinor: 60, netRetainedAmountMinor: 60, financialVersion: 1 }));
+    const before = await subject.execute(businessId, bookingId);
+    calculate.mockResolvedValueOnce(projection({ paidAmountMinor: 60, grossRecordedAmountMinor: 100, refundedAmountMinor: 40, netRetainedAmountMinor: 60, financialVersion: 3 }));
+    const after = await subject.execute(businessId, bookingId);
+    expect(after.outstandingAmountMinor).toBe(before.outstandingAmountMinor);
+    expect(after.paidAmountMinor).toBe(before.paidAmountMinor);
+    expect(after.grossRecordedAmountMinor).toBe(100);
+    expect(after.financialVersion).toBe(3);
+    expect(before.financialVersion).toBe(1);
   });
 
   it('uses the Business IANA timezone instead of the UTC calendar date', async () => {

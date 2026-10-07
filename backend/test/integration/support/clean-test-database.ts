@@ -8,8 +8,9 @@ export function assertTestDatabase(databaseUrl: string | undefined): void {
 
 export async function cleanTestDatabase(prisma: PrismaClient, databaseUrl: string | undefined): Promise<void> {
   assertTestDatabase(databaseUrl);
-  // Solo la base sintética: el historial append-only se reinicia sin desactivar su protección.
-  await prisma.$executeRaw`TRUNCATE TABLE "PricingRevision"`;
+  // Sólo fixtures sintéticas de la DB de test validada por el runner.
+  // Incluye historia append-only sin desactivar triggers. La baseline global del guard permanece.
+  await prisma.$executeRaw`TRUNCATE TABLE "FinanceCatalog", "FinanceAccount", "FinanceOpening", "FinanceExpense", "FinanceExpenseLine", "FinanceSettlement", "FinancePaymentLink", "FinanceTransfer", "FinanceCashMovement", "FinanceReview", "FinanceCashCount", "FinanceRequest", "FinanceAudit", "FinanceServiceHead", "FinanceServiceCertificate", "FinanceServiceUnit", "FinanceTerminalRecognition", "FinancePeriod", "FinanceCloseSnapshot", "FinanceCloseEvent", "FinanceImportBatch", "FinanceImportItem", "FinanceExpenseTemplate", "FinanceExpenseTemplateRevision", "FinanceExpenseTemplateLine", "FinanceExpenseDraft", "FinanceExpenseDraftLine", "FinanceApprovalPolicyRevision", "FinanceDraftDecision", "FinanceReimbursementDraft", "FinanceReimbursementClaim", "FinanceBankStatement", "FinanceBankRow", "FinanceBankMatch", "FinanceBankMatchRow", "FinanceBankMatchComponent", "FinanceBankFeeOrigin", "FinanceAllocationRule", "FinanceAllocationRuleRevision", "FinanceAllocationRulePart", "FinanceCostAllocation", "FinanceCostAllocationPart", "FinanceLaborCost", "FinanceLaborCostRevision", "FinanceBudget", "FinanceBudgetRevision", "FinanceBudgetLine", "FinanceCommitment", "FinanceCommitmentConversion", "FinanceEvidenceFile", "PaymentAdjustment", "PaymentApplicationReversal", "PricingRevision", "BookingTimelineEvent"`;
   await prisma.businessProfileAudit.deleteMany();
   await prisma.userProfileAudit.deleteMany();
   await prisma.userDisplayNameAudit.deleteMany();
