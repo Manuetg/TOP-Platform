@@ -31,6 +31,7 @@ class ResourcesError extends Error {
 const PHASES = ['context', 'ports', 'image-pull', 'creation', 'readiness', 'databases', 'buckets', 'export', 'cleanup'];
 const RESOURCES = ['none', 'postgres', 'minio'];
 const OPERATIONS = ['pull', 'build', 'create', 'inspect', 'start', 'exec', 'rm'];
+const DATABASE_STEPS = Object.freeze(['main-identity', 'restore-create', 'restore-identity']);
 const ERROR_CODES = ['ENOENT', 'EACCES', 'EPERM', 'ETIMEDOUT', 'ENOBUFS', 'EADDRINUSE', 'ECONNREFUSED', 'ECONNRESET',
   'ENETUNREACH', 'EHOSTUNREACH', 'EPIPE', 'EIO', 'ENOSPC', 'AccessDenied', 'InvalidAccessKeyId', 'SignatureDoesNotMatch',
   'NoSuchBucket', 'NoSuchBucketPolicy', 'BucketAlreadyExists', 'BucketAlreadyOwnedByYou', 'InvalidBucketName',
@@ -54,6 +55,8 @@ function failureDiagnostic(phase, resource, error) {
       : Number.isInteger(error?.$metadata?.httpStatusCode) && error.$metadata.httpStatusCode >= 100 && error.$metadata.httpStatusCode <= 599
         ? error.$metadata.httpStatusCode : null,
   };
+  const step = permitted(details.step, DATABASE_STEPS);
+  if (diagnostic.phase === 'databases' && diagnostic.resource === 'postgres' && step) diagnostic.step = step;
   if (details.cleanup?.status === 'complete') diagnostic.cleanup = { status: 'complete' };
   else if (details.cleanup?.status === 'failed') {
     const cleanupDetails = { ...details.cleanup }; delete cleanupDetails.cleanup;
@@ -282,13 +285,21 @@ async function ready(ctx, state, item) {
   throw new ResourcesError('Timeout de readiness del recurso CI propio.', { ...lastObservation, reason: 'readiness-timeout' });
 }
 function prepareDatabases(pg) {
-  const psql = (database, sql) => docker(['exec', pg.containerId, 'psql', '--username', PG_ACTOR,
-    '--dbname', database, '--no-psqlrc', '--tuples-only', '--no-align', '--set', 'ON_ERROR_STOP=1', '--command', sql]);
-  const identity = psql(MAIN_DB, "SELECT current_database()||'|'||current_user||'|'||pg_get_userbyid(datdba)||'|'||(current_setting('server_version_num')::int/10000) FROM pg_database WHERE datname=current_database()");
-  if (identity !== `${MAIN_DB}|${PG_ACTOR}|${PG_ACTOR}|16`) throw new ResourcesError('Identidad, ownership o versión PostgreSQL incorrectos.');
-  psql(MAIN_DB, `CREATE DATABASE ${RESTORE_DB} OWNER ${PG_ACTOR}`);
-  const empty = psql(RESTORE_DB, "SELECT current_database()||'|'||current_user||'|'||pg_get_userbyid(datdba)||'|'||(SELECT count(*) FROM information_schema.tables WHERE table_schema='public') FROM pg_database WHERE datname=current_database()");
-  if (empty !== `${RESTORE_DB}|${PG_ACTOR}|${PG_ACTOR}|0`) throw new ResourcesError('Destino restore no es una base propia vacía.');
+  const psql = (step, database, sql) => {
+    try {
+      return docker(['exec', pg.containerId, 'psql', '--username', PG_ACTOR,
+        '--dbname', database, '--no-psqlrc', '--tuples-only', '--no-align', '--set', 'ON_ERROR_STOP=1', '--command', sql]);
+    } catch (error) {
+      throw new ResourcesError('Falló una llamada PostgreSQL del recurso propio.', {
+        ...failureDiagnostic('databases', 'postgres', error), step: permitted(step, DATABASE_STEPS),
+      });
+    }
+  };
+  const identity = psql(DATABASE_STEPS[0], MAIN_DB, "SELECT current_database()||'|'||current_user||'|'||pg_get_userbyid(datdba)||'|'||(current_setting('server_version_num')::int/10000) FROM pg_database WHERE datname=current_database()");
+  if (identity !== `${MAIN_DB}|${PG_ACTOR}|${PG_ACTOR}|16`) throw new ResourcesError('Identidad, ownership o versión PostgreSQL incorrectos.', { step: DATABASE_STEPS[0] });
+  psql(DATABASE_STEPS[1], MAIN_DB, `CREATE DATABASE ${RESTORE_DB} OWNER ${PG_ACTOR}`);
+  const empty = psql(DATABASE_STEPS[2], RESTORE_DB, "SELECT current_database()||'|'||current_user||'|'||pg_get_userbyid(datdba)||'|'||(SELECT count(*) FROM information_schema.tables WHERE table_schema='public') FROM pg_database WHERE datname=current_database()");
+  if (empty !== `${RESTORE_DB}|${PG_ACTOR}|${PG_ACTOR}|0`) throw new ResourcesError('Destino restore no es una base propia vacía.', { step: DATABASE_STEPS[2] });
 }
 function mask(value) {
   process.stdout.write('::add-mask::' + value.replaceAll('%', '%25').replaceAll('\r', '%0D').replaceAll('\n', '%0A') + '\n');
