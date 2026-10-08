@@ -508,6 +508,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
         {canOperate ? <Button type="button" onClick={() => openWizard()}><Plus size={17} />Nueva reserva</Button> : null}
       </header>
 
+      <div className="availability-calendar-workspace">
       <div className="availability-calendar-toolbar">
         <div className="availability-calendar-period-selectors">
           <label>
@@ -720,6 +721,7 @@ function BusinessCalendar({ businessId, timezone, currency }: { businessId: stri
         </>
 
       )}
+      </div>
 
       <OverlayPanel open={wizardOpen && canOperate} label="Nueva reserva" className="booking-wizard" layerClassName="booking-wizard-layer" closeLabel="Cerrar asistente de reserva" triggerRef={wizardTrigger} onClose={closeWizard}>
             <header><div><span>Paso {step} de 5</span><h2 id="booking-wizard-title">Nueva reserva</h2></div><button type="button" aria-label="Cerrar" onClick={closeWizard}><X size={20} /></button></header>

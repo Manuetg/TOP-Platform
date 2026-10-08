@@ -134,7 +134,7 @@ export function DashboardPage({
               </div>
             )}
           </section>
-          <section className="top-surface dashboard-catalog-group dashboard-catalog-grid" aria-label="Catálogos operativos">
+          <section className="dashboard-catalog-group dashboard-catalog-grid" aria-label="Catálogos operativos">
             <ResourcesPreview
               resources={resources.data}
               covers={covers.data}

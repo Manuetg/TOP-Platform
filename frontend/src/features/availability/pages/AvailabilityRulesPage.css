@@ -11,7 +11,7 @@
 .availability-rules-eyebrow {
   color: var(--color-brand-primary);
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -19,8 +19,9 @@
 .availability-rules-header h1 {
   margin: var(--space-2) 0 0;
   color: var(--color-text-primary);
-  font-size: clamp(1.7rem, 2vw, 2.15rem);
+  font-size: clamp(28px, 2.5vw, 34px);
   letter-spacing: -0.035em;
+  font-weight: 600;
 }
 
 .availability-rules-header p {
@@ -112,8 +113,8 @@
   flex: 0 0 44px;
   width: 44px;
   height: 24px;
-  background: #c9d0d1;
-  border-radius: 999px;
+  background: var(--color-border);
+  border-radius: var(--radius-pill);
   transition: background-color var(--motion-fast) var(--motion-state);
 }
 
@@ -185,7 +186,7 @@
   padding: 0 13px;
   color: var(--color-text-primary);
   font: inherit;
-  font-size: 0.86rem;
+  font-size: 16px;
   background: transparent;
   border: 0;
   outline: 0;
@@ -236,9 +237,9 @@
 }
 
 .availability-rules-message--success {
-  color: #155c4c;
-  background: #eaf4ee;
-  border: 1px solid #c7dfd5;
+  color: var(--color-brand-primary);
+  background: var(--color-action-soft);
+  border: 1px solid color-mix(in srgb, var(--color-brand-primary) 28%, var(--color-border));
 }
 
 .availability-rules-actions {

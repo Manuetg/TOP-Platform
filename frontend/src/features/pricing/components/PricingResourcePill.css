@@ -4,13 +4,14 @@
   max-width: 100%;
   align-items: center;
   padding: 5px 10px;
-  border: 1px solid #dfe8e5;
-  border-radius: 999px;
-  background: #f2f6f5;
-  color: #49635b;
-  font-size: 0.7rem;
-  font-weight: 700;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+  color: var(--color-brand-secondary);
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 680px) {

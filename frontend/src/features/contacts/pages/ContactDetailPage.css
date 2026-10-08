@@ -1,5 +1,6 @@
 .contact-detail-page {
-  width: min(100%, 1040px);
+  width: min(100%, 1120px);
+  min-width: 0;
 }
 
 .contact-detail-back {
@@ -45,12 +46,12 @@
   display: grid;
   flex: 0 0 auto;
   place-items: center;
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   color: var(--color-brand-primary);
   font-size: 1rem;
-  font-weight: 700;
-  background: rgb(21 92 76 / 9%);
+  font-weight: 600;
+  background: var(--color-action-soft);
   border-radius: 50%;
 }
 
@@ -63,9 +64,12 @@
 
 .contact-detail-header__title h1 {
   margin: 0;
-  color: var(--color-text-primary);
-  font-size: clamp(1.7rem, 2vw, 2.15rem);
-  letter-spacing: -0.035em;
+  color: var(--color-brand-deep);
+  font-size: var(--font-page-title);
+  letter-spacing: -.035em;
+  line-height: 1.2;
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .contact-detail-header__identity p {
@@ -84,22 +88,22 @@
   padding: 5px 10px;
   font-size: 0.72rem;
   font-weight: 600;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .contact-detail-status--active {
-  color: #155c4c;
-  background: #eaf4ee;
+  color: var(--color-brand-primary);
+  background: var(--color-action-soft);
 }
 
 .contact-detail-status--inactive {
-  color: #7a5a18;
-  background: #f7f0dd;
+  color: var(--color-warning);
+  background: var(--color-warning-action-soft);
 }
 
 .contact-detail-status--archived {
-  color: #8a4c4c;
-  background: #f7eaea;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-muted);
 }
 
 .contact-detail-header__actions { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: flex-end; gap: var(--space-3); }
@@ -130,12 +134,16 @@
 
 .contact-detail-card__header {
   margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .contact-detail-card__header h2 {
   margin: 0;
   color: var(--color-text-primary);
-  font-size: 1rem;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
 }
 
 .contact-detail-items {
@@ -146,7 +154,11 @@
 
 .contact-detail-item {
   display: grid;
-  gap: 5px;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+  min-width: 0;
 }
 
 .contact-detail-item span,
@@ -173,6 +185,8 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .contact-detail-contact__row > svg {
@@ -205,7 +219,7 @@
   width: 52px;
   height: 52px;
   color: var(--color-brand-primary);
-  background: rgb(21 92 76 / 8%);
+  background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent);
   border-radius: 50%;
 }
 

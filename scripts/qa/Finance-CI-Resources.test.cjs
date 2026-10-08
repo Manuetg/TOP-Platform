@@ -20,7 +20,7 @@ const CTX = {
 };
 const EXPORTS = `
 module.exports = { ResourcesError, failureDiagnostic, context, descriptor, labels,
-  dockerResult, docker, attest, cleanupOne, cleanup, start, main, ready, assertFree, prepareBuckets,
+  dockerResult, docker, attest, cleanupOne, cleanup, start, main, ready, assertFree, prepareDatabases, prepareBuckets,
   minioArchive, buildMinioImage, MINIO_BINARY_SHA, MINIO_BINARY_SIZE, MINIO_BINARY_URL,
   replace(values) {
     if (values.persist) persist = values.persist;
@@ -127,6 +127,245 @@ function inspection(f, state, item) {
       PortBindings: { [item.containerPort]: [{ HostIp: '127.0.0.1', HostPort: item.hostPort }] } },
     Mounts: [], State: { Running: true, Health: { Status: 'healthy' } },
   };
+}
+
+const DATABASE_CALLS = [
+  { step: 'main-identity', database: 'top_test',
+    sql: "SELECT current_database()||'|'||current_user||'|'||pg_get_userbyid(datdba)||'|'||(current_setting('server_version_num')::int/10000) FROM pg_database WHERE datname=current_database()",
+    stdout: 'top_test|top_night_test|top_night_test|16\n' },
+  { step: 'restore-create', database: 'top_test',
+    sql: 'CREATE DATABASE top_finance_files_restore_test OWNER top_night_test', stdout: 'CREATE DATABASE\n' },
+  { step: 'restore-identity', database: 'top_finance_files_restore_test',
+    sql: "SELECT current_database()||'|'||current_user||'|'||pg_get_userbyid(datdba)||'|'||(SELECT count(*) FROM information_schema.tables WHERE table_schema='public') FROM pg_database WHERE datname=current_database()",
+    stdout: 'top_finance_files_restore_test|top_night_test|top_night_test|0\n' },
+];
+
+function noisyExternalError() {
+  return Object.assign(new Error(CANARY), { name: CANARY, code: 'ETIMEDOUT', stack: CANARY,
+    stdout: CANARY, stderr: CANARY, args: [CANARY], env: { SECRET: CANARY },
+    details: { step: 'restore-identity', operation: 'rm', reason: 'permission-denied', message: CANARY },
+    $metadata: { httpStatusCode: 503, requestId: CANARY }, sdk: { response: CANARY } });
+}
+function databaseResponse(index, options = {}) {
+  assert.ok(DATABASE_CALLS[index], 'No debe ejecutarse una cuarta llamada PostgreSQL.');
+  if (index === options.failedIndex) {
+    if (options.throwExternal) throw noisyExternalError();
+    return { status: 2, signal: 'SIGTERM', stdout: CANARY, stderr: CANARY,
+      message: CANARY, stack: CANARY, args: [CANARY], env: { SECRET: CANARY },
+      error: noisyExternalError(), sdk: { response: CANARY } };
+  }
+  return { status: 0, signal: null,
+    stdout: index === options.invalidIdentity ? CANARY : DATABASE_CALLS[index].stdout, stderr: CANARY };
+}
+function databaseFixture(options) {
+  let calls = 0;
+  return fixture({ spawn: (_command, args) => {
+    assert.equal(args[0], 'exec');
+    return databaseResponse(calls++, options);
+  } });
+}
+function expectedDatabaseFailure(step) {
+  return { phase: 'databases', resource: 'postgres', operation: 'exec', exitCode: 2,
+    errorCode: 'ETIMEDOUT', signal: 'SIGTERM', reason: 'docker-failed', httpStatus: null, step };
+}
+function assertSafeFailure(error, diagnostic, output) {
+  assert.ok(!JSON.stringify({ message: error.message, details: error.details, diagnostic, output }).includes(CANARY));
+}
+
+test('prepareDatabases real ejecuta tres llamadas en orden con SQL, bases y argumentos vigentes', () => {
+  const f = databaseFixture();
+  f.api.prepareDatabases(owned(f).resources[0]);
+  assert.equal(f.commands.length, 3);
+  for (const [index, expected] of DATABASE_CALLS.entries()) {
+    const command = f.commands[index];
+    assert.equal(command.command, 'docker');
+    assert.deepEqual(Array.from(command.args), ['exec', ID, 'psql', '--username', 'top_night_test',
+      '--dbname', expected.database, '--no-psqlrc', '--tuples-only', '--no-align', '--set',
+      'ON_ERROR_STOP=1', '--command', expected.sql]);
+    assert.equal(command.configuration.shell, false);
+    assert.equal(command.configuration.timeout, 10000);
+  }
+  assert.equal(f.output.stdout + f.output.stderr, '');
+});
+
+for (const [failedIndex, { step }] of DATABASE_CALLS.entries()) {
+  test(`prepareDatabases real identifica fallo ${step}, descarta canarios y detiene llamadas posteriores`, () => {
+    const f = databaseFixture({ failedIndex });
+    assert.throws(() => f.api.prepareDatabases(owned(f).resources[0]), error => {
+      assert.ok(error instanceof f.api.ResourcesError);
+      const diagnostic = plain(f.api.failureDiagnostic('databases', 'postgres', error));
+      assert.deepEqual(diagnostic, expectedDatabaseFailure(step));
+      assertSafeFailure(error, diagnostic, f.output);
+      return true;
+    });
+    assert.equal(f.commands.length, failedIndex + 1);
+    assert.equal(f.output.stdout + f.output.stderr, '');
+  });
+}
+
+for (const invalidIdentity of [0, 2]) {
+  const { step } = DATABASE_CALLS[invalidIdentity];
+  test(`prepareDatabases real atribuye guard de identidad a ${step} sin copiar respuesta externa`, () => {
+    const f = databaseFixture({ invalidIdentity });
+    assert.throws(() => f.api.prepareDatabases(owned(f).resources[0]), error => {
+      const diagnostic = plain(f.api.failureDiagnostic('databases', 'postgres', error));
+      assert.deepEqual(diagnostic, { phase: 'databases', resource: 'postgres', operation: null,
+        exitCode: null, errorCode: null, signal: null, reason: 'guard-rejected', httpStatus: null, step });
+      assertSafeFailure(error, diagnostic, f.output);
+      return true;
+    });
+    assert.equal(f.commands.length, invalidIdentity + 1);
+    assert.equal(f.output.stdout + f.output.stderr, '');
+  });
+}
+
+test('prepareDatabases real sanea una excepción externa del ejecutor y conserva el step interno', () => {
+  const f = databaseFixture({ failedIndex: 1, throwExternal: true });
+  assert.throws(() => f.api.prepareDatabases(owned(f).resources[0]), error => {
+    const diagnostic = plain(f.api.failureDiagnostic('databases', 'postgres', error));
+    assert.deepEqual(diagnostic, { phase: 'databases', resource: 'postgres', operation: null,
+      exitCode: null, errorCode: 'ETIMEDOUT', signal: null, reason: 'external-error', httpStatus: 503,
+      step: 'restore-create' });
+    assertSafeFailure(error, diagnostic, f.output);
+    return true;
+  });
+  assert.equal(f.commands.length, 2);
+  assert.equal(f.output.stdout + f.output.stderr, '');
+});
+
+test('diagnóstico acepta sólo steps internos cerrados en databases/postgres y elimina campos externos', () => {
+  const f = fixture();
+  for (const { step } of DATABASE_CALLS) {
+    const details = { step, operation: 'exec', reason: CANARY, postgresCategory: CANARY,
+      stdout: CANARY, stderr: CANARY, args: [CANARY], env: { SECRET: CANARY },
+      stack: CANARY, message: CANARY, metadata: { image: CANARY }, sdk: { response: CANARY } };
+    const error = new f.api.ResourcesError(CANARY, details);
+    error.stack = CANARY;
+    const diagnostic = plain(f.api.failureDiagnostic('databases', 'postgres', error));
+    assert.deepEqual(diagnostic, { phase: 'databases', resource: 'postgres', operation: 'exec',
+      exitCode: null, errorCode: null, signal: null, reason: 'guard-rejected', httpStatus: null, step });
+    assert.ok(!JSON.stringify(diagnostic).includes(CANARY));
+    for (const [phase, resource] of [['buckets', 'postgres'], ['databases', 'minio'],
+      ['cleanup', 'postgres'], [CANARY, CANARY]]) {
+      assert.ok(!('step' in f.api.failureDiagnostic(phase, resource, error)));
+    }
+  }
+  for (const step of [CANARY, 'database-create', null, 1, ['restore-create'], { step: 'restore-create' }]) {
+    const error = new f.api.ResourcesError(CANARY, { step, reason: CANARY });
+    const diagnostic = plain(f.api.failureDiagnostic('databases', 'postgres', error));
+    assert.ok(!('step' in diagnostic));
+    assert.equal(diagnostic.reason, 'guard-rejected');
+    assert.ok(!JSON.stringify(diagnostic).includes(CANARY));
+  }
+  const external = noisyExternalError();
+  external.step = 'main-identity';
+  assert.ok(!('step' in f.api.failureDiagnostic('databases', 'postgres', external)));
+});
+
+// El lifecycle usa prepareDatabases, Docker, readiness, ownership y cleanup reales.
+// Sólo puertos, credenciales y build MinIO se simulan fuera del objetivo PostgreSQL.
+function databaseLifecycleFixture(failedIndex, cleanupFails = false) {
+  const containers = new Map(), removed = new Set();
+  const ids = [ID, 'ef'.repeat(32)];
+  let calls = 0, f;
+  f = fixture({ fetch: async () => ({ status: 200, body: { cancel: async () => undefined } }),
+    spawn: (_command, args) => {
+      const operation = args[0], id = args.at(-1);
+      if (operation === 'pull' || operation === 'start') return { status: 0, stdout: '', stderr: CANARY };
+      if (operation === 'create') {
+        const state = JSON.parse(f.files.get(CTX.stateFile));
+        const item = state.resources.find(candidate => candidate.cidFile === args[args.indexOf('--cidfile') + 1]);
+        assert.ok(item);
+        item.containerId = ids[item.kind === 'postgres' ? 0 : 1];
+        f.files.set(item.cidFile, item.containerId + '\n');
+        containers.set(item.containerId, inspection(f, state, item));
+        return { status: 0, stdout: item.containerId + '\n', stderr: CANARY };
+      }
+      if (operation === 'exec') {
+        assert.equal(args[1], ID);
+        const result = databaseResponse(calls++, { failedIndex });
+        if (result.status !== 0 && cleanupFails) {
+          containers.get(ids[1]).Config.Labels['top.finance.qa.owner'] = CANARY;
+        }
+        return result;
+      }
+      if (operation === 'rm') {
+        assert.ok(containers.has(id), 'Cleanup sólo puede eliminar un ID propio conocido.');
+        removed.add(id);
+        return { status: 0, stdout: CANARY, stderr: CANARY };
+      }
+      assert.equal(operation, 'inspect');
+      if (removed.has(id)) return { status: 1, stdout: CANARY, stderr: 'No such object ' + CANARY };
+      assert.ok(containers.has(id), 'No debe inspeccionarse ni eliminarse un recurso externo.');
+      return { status: 0, stdout: JSON.stringify([containers.get(id)]), stderr: CANARY };
+    } });
+  f.api.replace({ context: () => CTX, assertFree: async () => undefined,
+    environment: () => ({ values: {}, docker: { POSTGRES_PASSWORD: CANARY, MINIO_ROOT_PASSWORD: CANARY } }),
+    buildMinioImage: async () => MINIO_IMAGE_ID });
+  f.files.set('/virtual/temp/foreign.cid', CANARY);
+  return { f, ids, removed, calls: () => calls };
+}
+function assertDatabaseCleanup(lifecycle, cleanupFails) {
+  const { f, ids, removed } = lifecycle;
+  assert.deepEqual(f.commands.filter(command => command.args[0] === 'rm').map(command => Array.from(command.args)),
+    (cleanupFails ? [ids[0]] : [ids[1], ids[0]]).map(id => ['rm', '--force', id]));
+  assert.ok(removed.has(ids[0]));
+  assert.equal(removed.has(ids[1]), !cleanupFails);
+  assert.equal(f.files.has(CTX.stateFile), cleanupFails);
+  const state = owned(f);
+  assert.ok(!f.files.has(state.resources[0].cidFile));
+  assert.equal(f.files.has(state.resources[1].cidFile), cleanupFails);
+  assert.equal(f.files.get('/virtual/temp/foreign.cid'), CANARY);
+  assert.ok(!f.files.has(CTX.envFile));
+  for (const id of removed) {
+    const removal = f.commands.findIndex(command => command.args[0] === 'rm' && command.args.at(-1) === id);
+    assert.deepEqual(Array.from(f.commands[removal - 1].args), ['inspect', id]);
+    assert.deepEqual(Array.from(f.commands[removal + 1].args), ['inspect', id]);
+  }
+}
+
+for (const [failedIndex, { step }] of DATABASE_CALLS.entries()) {
+  const cleanupFails = failedIndex === 1;
+  test(`start real conserva primario ${step} con cleanup ${cleanupFails ? 'fallido por ownership' : 'completo'}`, async () => {
+    const lifecycle = databaseLifecycleFixture(failedIndex, cleanupFails), { f } = lifecycle;
+    await assert.rejects(f.api.start(CTX), error => {
+      const diagnostic = plain(f.api.failureDiagnostic('databases', 'postgres', error));
+      const primary = expectedDatabaseFailure(step);
+      if (cleanupFails) {
+        primary.cleanup = { status: 'failed', phase: 'cleanup', resource: 'minio', operation: null,
+          exitCode: null, errorCode: null, signal: null, reason: 'guard-rejected', httpStatus: null };
+      } else primary.cleanup = { status: 'complete' };
+      assert.deepEqual(diagnostic, primary);
+      assertSafeFailure(error, diagnostic, f.output);
+      return true;
+    });
+    assert.equal(lifecycle.calls(), failedIndex + 1);
+    assertDatabaseCleanup(lifecycle, cleanupFails);
+    assert.equal(f.output.stdout + f.output.stderr, '');
+  });
+}
+
+for (const cleanupFails of [false, true]) {
+  test(`entrada real emite step PostgreSQL seguro y cleanup ${cleanupFails ? 'fallido' : 'completo'} separado`, async () => {
+    const lifecycle = databaseLifecycleFixture(2, cleanupFails), { f } = lifecycle;
+    await f.entry();
+    assert.equal(f.process.exitCode, 1);
+    assert.equal(f.output.stdout, '');
+    assert.ok(!f.output.stderr.includes(CANARY));
+    const lines = f.output.stderr.trim().split('\n');
+    assert.equal(lines.length, 2);
+    const diagnostic = JSON.parse(lines[1].replace('Diagnóstico seguro CI: ', ''));
+    const { cleanup, ...primary } = diagnostic;
+    assert.deepEqual(primary, expectedDatabaseFailure('restore-identity'));
+    assert.equal(cleanup.status, cleanupFails ? 'failed' : 'complete');
+    if (cleanupFails) {
+      assert.equal(cleanup.resource, 'minio');
+      assert.equal(cleanup.reason, 'guard-rejected');
+      assert.ok(!('step' in cleanup));
+    }
+    assert.equal(lifecycle.calls(), 3);
+    assertDatabaseCleanup(lifecycle, cleanupFails);
+  });
 }
 
 test('diagnóstico elimina texto externo, campos extra y enums o números no permitidos', () => {

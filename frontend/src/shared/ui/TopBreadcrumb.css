@@ -28,7 +28,7 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  min-height: 32px;
+  min-height: 44px;
   padding: 4px 7px;
   border-radius: var(--radius-sm);
 }
@@ -42,7 +42,7 @@
 
 .top-breadcrumb__link:hover {
   color: var(--color-brand-primary);
-  background: rgb(21 92 76 / 6%);
+  background: var(--color-action-soft);
 }
 
 .top-breadcrumb__current {

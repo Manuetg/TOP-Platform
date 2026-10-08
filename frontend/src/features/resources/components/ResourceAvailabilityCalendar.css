@@ -3,24 +3,24 @@
   gap: var(--space-4);
   min-width: 0;
   margin-top: var(--space-5);
-  padding: var(--space-3);
+  padding: var(--space-4);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
 
 .resource-calendar__header { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
-.resource-calendar h2 { margin: 0; color: var(--color-text-primary); font-size: 20px; line-height: 28px; }
+.resource-calendar h2 { margin: 0; color: var(--color-text-primary); font-size: 20px; line-height: 28px; font-weight: 600; }
 .resource-calendar__header p { margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
 .resource-calendar__header .resource-calendar__resource-name { color: var(--color-text-primary); font-weight: 600; }
-.resource-calendar__summary { display: flex; flex-wrap: wrap; gap: var(--space-3); color: var(--color-text-secondary); font-size: 14px; line-height: 20px; }
+.resource-calendar__summary { display: flex; flex-wrap: wrap; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--color-surface-muted); border-radius: var(--radius-md); color: var(--color-text-secondary); font-size: 14px; line-height: 20px; }
 .resource-calendar__summary strong { color: var(--color-text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
 .resource-calendar__toolbar { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
 .resource-calendar__toolbar strong { flex: 1; min-width: 0; color: var(--color-text-primary); font-size: 14px; line-height: 20px; font-weight: 600; text-align: center; text-transform: capitalize; }
 .resource-calendar__today { margin-left: var(--space-1); padding-inline: var(--space-3); }
 .resource-calendar__scroll { min-width: 0; overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
 .resource-calendar__grid { display: grid; grid-template-columns: repeat(7, minmax(44px, 1fr)); }
-.resource-calendar__weekday { display: grid; min-height: 32px; place-items: center; color: var(--color-text-secondary); background: var(--color-background); border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); font-size: 12px; line-height: 16px; font-weight: 600; }
+.resource-calendar__weekday { display: grid; min-height: 32px; place-items: center; color: var(--color-text-secondary); background: var(--color-surface-muted); border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); font-size: 12px; line-height: 16px; font-weight: 600; }
 .resource-calendar__weekday:nth-child(7n), .resource-calendar__day:nth-child(7n) { border-right: 0; }
 
 .resource-calendar__day {
@@ -63,7 +63,7 @@
 .resource-calendar__movement-content { min-width: 0; }
 .resource-calendar__movement-content p { margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
 .resource-calendar__movement-content .resource-calendar__movement-title { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin: 0; color: var(--color-text-primary); font-weight: 600; }
-.resource-calendar__status { padding: 2px var(--space-2); color: var(--color-text-secondary); background: var(--color-background); border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: 12px; line-height: 16px; }
+.resource-calendar__status { padding: 2px var(--space-2); color: var(--color-text-secondary); background: var(--color-background); border: 1px solid var(--color-border); border-radius: var(--radius-pill); font-size: 12px; line-height: 16px; }
 .resource-calendar__booking-link { display: inline-flex; grid-column: 2; justify-self: start; align-items: center; min-width: 44px; min-height: 44px; padding: var(--space-2); color: var(--color-brand-primary); border-radius: var(--radius-md); font-size: 14px; line-height: 20px; font-weight: 600; text-underline-offset: 3px; }
 .resource-calendar__note, .resource-calendar__empty-day { margin: 0; color: var(--color-text-secondary); font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
 .resource-calendar__note { padding-top: var(--space-3); border-top: 1px solid var(--color-border); font-size: 12px; line-height: 16px; }

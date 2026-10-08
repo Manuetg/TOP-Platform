@@ -12,9 +12,9 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #155c4c;
+  color: var(--color-brand-primary);
   font: inherit;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -37,21 +37,22 @@
   height: 48px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 14px;
-  background: #edf4f2;
-  color: #155c4c;
+  border-radius: var(--radius-lg);
+  background: var(--color-action-soft);
+  color: var(--color-brand-primary);
 }
 
 .create-block-header h1 {
   margin: 0;
-  color: #29434a;
-  font-size: clamp(1.75rem, 3vw, 2.2rem);
+  color: var(--color-text-primary);
+  font-size: clamp(28px, 2.5vw, 34px);
   line-height: 1.15;
+  font-weight: 600;
 }
 
 .create-block-header p {
   margin: 7px 0 0;
-  color: #617177;
+  color: var(--color-text-secondary);
   line-height: 1.55;
 }
 
@@ -63,9 +64,9 @@
 
 .create-block-section {
   padding: 22px;
-  border: 1px solid #dce4e1;
-  border-radius: 16px;
-  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
 }
 
 .create-block-section__heading {
@@ -74,13 +75,13 @@
 
 .create-block-section__heading h2 {
   margin: 0;
-  color: #29434a;
+  color: var(--color-text-primary);
   font-size: 1.05rem;
 }
 
 .create-block-section__heading p {
   margin: 5px 0 0;
-  color: #718086;
+  color: var(--color-text-secondary);
   font-size: 0.88rem;
   line-height: 1.5;
 }
@@ -103,9 +104,9 @@
 }
 
 .create-block-field label {
-  color: #40565d;
+  color: var(--color-text-primary);
   font-size: 0.84rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .create-block-field label span {
@@ -116,10 +117,10 @@
 .create-block-field select,
 .create-block-field textarea {
   width: 100%;
-  border: 1px solid #cbd7d3;
-  border-radius: 10px;
-  background: #ffffff;
-  color: #29434a;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   font: inherit;
 }
 
@@ -139,20 +140,20 @@
 .create-block-field input:focus,
 .create-block-field select:focus,
 .create-block-field textarea:focus {
-  border-color: #155c4c;
+  border-color: var(--color-brand-primary);
   outline: 3px solid rgba(21, 92, 76, 0.14);
   outline-offset: 1px;
 }
 
 .create-block-field__counter {
   align-self: flex-end;
-  color: #829096;
+  color: var(--color-text-secondary);
   font-size: 0.76rem;
 }
 
 .create-block-error {
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: #f8ece8;
   color: #9a472e;
   font-size: 0.88rem;
@@ -178,9 +179,9 @@
   justify-content: center;
   gap: 12px;
   padding: 32px;
-  border: 1px solid #dce4e1;
-  border-radius: 16px;
-  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
   text-align: center;
 }
 
@@ -189,20 +190,21 @@
   width: 52px;
   height: 52px;
   place-items: center;
-  border-radius: 14px;
-  background: #edf4f2;
-  color: #155c4c;
+  border-radius: var(--radius-lg);
+  background: var(--color-action-soft);
+  color: var(--color-brand-primary);
 }
 
 .create-block-state h1 {
   margin: 0;
-  color: #29434a;
+  color: var(--color-text-primary);
+  font-weight: 600;
 }
 
 .create-block-state p {
   margin: 0;
   max-width: 480px;
-  color: #617177;
+  color: var(--color-text-secondary);
   line-height: 1.55;
 }
 

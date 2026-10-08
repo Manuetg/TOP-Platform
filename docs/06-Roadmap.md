@@ -95,6 +95,7 @@ Plan histórico del 24/09/2026: un épico activo = una rama = una PR con impleme
 | C — Escalabilidad de API y base de datos | Planned | C1–C6 siguientes; medición antes de optimizar. |
 | D — Assets y performance | Planned | D1–D10 siguientes; conservar capacidades ya integradas. |
 | E — Automatización del ciclo de Booking | Discovery | Resolver semántica operativa antes de implementar automatización. |
+| Exploración visual Fernly — 07/10/2026 | In Progress, rama `design/fernly-ui-refresh` | Presentación de todas las capacidades frontend integradas sobre `develop@f648918`, sin cambios funcionales/backend/dependencias. Matriz y adaptación autorizada en Design Context; PR Draft hacia develop, aceptación humana pendiente. No altera conteos MVP ni aceptación de Finanzas. |
 
 ### A — Criterios de entrega
 
